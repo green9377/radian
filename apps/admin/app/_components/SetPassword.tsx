@@ -56,10 +56,10 @@ export default function SetPassword() {
 
   return (
     <div className="min-h-screen grid place-items-center px-4 py-12"
-         style={{ background: "linear-gradient(160deg,#2b1d32,#2c2032)" }}>
+         style={{ background: "linear-gradient(160deg,#faf6fc,#f3ecf7)" }}>
       <div className="w-full max-w-[420px]">
         <div className="text-center mb-6">
-          <div className="font-display text-[26px]" style={{ color: "#d47de8" }}>Radian</div>
+          <div className="font-display text-[26px]" style={{ color: "#7c1a92" }}>Radian</div>
           <div className="text-[12px] text-body-soft mt-0.5">Admin</div>
         </div>
 
@@ -70,11 +70,7 @@ export default function SetPassword() {
             <>
               <h1 className="font-display text-[19px] text-purple mb-2">This link no longer works</h1>
               <p className="text-[13px] text-body leading-relaxed">
-                It may have expired, or it may already have been used — each link
-                works once, on purpose.
-              </p>
-              <p className="text-[13px] text-body leading-relaxed mt-3">
-                Ask the owner for a new one, or use <strong>Forgot password</strong>
+                Ask the owner for a new link, or use <strong>Forgot password</strong>
                 {" "}on the sign-in screen.
               </p>
               <a href="/" className="inline-block mt-5 text-[12.5px] font-semibold text-purple">
@@ -87,16 +83,11 @@ export default function SetPassword() {
             <>
               <h1 className="font-display text-[19px] text-purple mb-2">Password set</h1>
               <p className="text-[13px] text-body leading-relaxed">
-                You can sign in with <strong>{check.email}</strong> and the
-                password you just chose.
+                Sign in with <strong>{check.email}</strong> and your new password.
               </p>
               {/*  Every existing session for this account was dropped server-side.
                   If the reason for resetting was that somebody else got in,
                   leaving their session alive would make the reset decorative.  */}
-              <p className="text-[11.5px] text-body-soft leading-relaxed mt-2">
-                Any device that was already signed in to this account has been
-                signed out.
-              </p>
               <a href="/" className="inline-block mt-5 text-[12.5px] font-semibold text-purple">
                 Go to sign in →
               </a>
@@ -110,7 +101,7 @@ export default function SetPassword() {
               </h1>
               <p className="text-[12.5px] text-body-soft leading-relaxed mb-4">
                 {check.kind === "INVITE"
-                  ? `Welcome, ${check.name}. Pick a password only you know — nobody else will ever see it.`
+                  ? `Welcome, ${check.name}.`
                   : `For ${check.email}.`}
               </p>
 
@@ -119,7 +110,7 @@ export default function SetPassword() {
               </label>
               <input
                 type="password"
-                className="w-full rounded-xl border border-[#3d3248] px-3 py-2 text-[13px] mb-3 outline-none focus:border-orchid"
+                className="w-full rounded-xl border border-[#e7dff0] px-3 py-2 text-[13px] mb-3 outline-none focus:border-orchid"
                 value={pw}
                 autoFocus
                 autoComplete="new-password"
@@ -131,7 +122,7 @@ export default function SetPassword() {
               </label>
               <input
                 type="password"
-                className="w-full rounded-xl border border-[#3d3248] px-3 py-2 text-[13px] outline-none focus:border-orchid"
+                className="w-full rounded-xl border border-[#e7dff0] px-3 py-2 text-[13px] outline-none focus:border-orchid"
                 value={again}
                 autoComplete="new-password"
                 onChange={(e) => setAgain(e.target.value)}
@@ -140,7 +131,7 @@ export default function SetPassword() {
 
               {err && (
                 <div className="mt-3 text-[12px] rounded-lg px-3 py-2"
-                     style={{ background: "#3b1717", color: "#e87d7d" }}>
+                     style={{ background: "#fdecec", color: "#991b1b" }}>
                   {err}
                 </div>
               )}
@@ -154,10 +145,6 @@ export default function SetPassword() {
                 {busy ? "Saving…" : "Save password"}
               </button>
 
-              <p className="text-[11px] text-body-soft leading-relaxed mt-3">
-                This does not set a PIN. Money actions need a 4-digit PIN, and
-                only the owner can give you one — never by email.
-              </p>
             </>
           )}
         </div>

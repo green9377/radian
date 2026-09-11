@@ -92,7 +92,7 @@ export default function SupplierSettings() {
       />
       {err && <ErrBar text={err} onClose={() => setErr(null)} />}
       {ok && (
-        <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px] font-medium" style={{ background: "#1f3529", color: "#76efab" }}>{ok}</div>
+        <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px] font-medium" style={{ background: "#e8f7ef", color: "#0e7a3d" }}>{ok}</div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
@@ -104,12 +104,12 @@ export default function SupplierSettings() {
             <div key={t.id} className={ROW + " py-2.5 hover:bg-lavender/15"}>
               <span className="text-[13.5px] font-semibold text-purple truncate">
                 {t.name}
-                {t.isSystem && <span className="ml-2 text-[10.5px] font-medium px-1.5 py-0.5 rounded-full align-middle" style={{ background: "#29242e", color: "#aea4b7" }}>system</span>}
+                {t.isSystem && <span className="ml-2 text-[10.5px] font-medium px-1.5 py-0.5 rounded-full align-middle" style={{ background: "#f1eef4", color: "#8a7b96" }}>system</span>}
               </span>
               <span>
                 {t.isFulfillment
-                  ? <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#38291c", color: "#dda37d" }}>vendor</span>
-                  : <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#161f3a", color: "#7770eb" }}>supplier</span>}
+                  ? <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#f9efe6", color: "#b5642f" }}>vendor</span>
+                  : <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#eef2ff", color: "#4f46e5" }}>supplier</span>}
               </span>
               <span className="text-[12.5px] font-medium text-body">{t._count?.suppliers ?? 0}</span>
               <span className="flex items-center justify-end gap-1">
@@ -117,7 +117,7 @@ export default function SupplierSettings() {
                   className="text-body-soft hover:text-purple px-1.5 py-1" title="Edit"><Icon name="edit" size={15} /></button>
                 {!t.isSystem && (
                   <button onClick={() => deleteType(t)}
-                    className="text-body-soft hover:text-[#e1837a] px-1.5 py-1" title="Delete"><Icon name="trash" size={15} /></button>
+                    className="text-body-soft hover:text-[#c0392b] px-1.5 py-1" title="Delete"><Icon name="trash" size={15} /></button>
                 )}
               </span>
             </div>
@@ -177,7 +177,7 @@ export default function SupplierSettings() {
               value={dlg.name} onChange={(e) => setDlg({ ...dlg, name: e.target.value })}
               onKeyDown={(e) => { if (e.key === "Enter" && dlg.name.trim() && !dupName) saveType(); }} />
             {dupName && (
-              <span className="block text-[12.5px] font-semibold text-[#e1837a] mt-1">
+              <span className="block text-[12.5px] font-semibold text-[#c0392b] mt-1">
                 “{dlg.name.trim()}” already exists.
               </span>
             )}
@@ -186,7 +186,7 @@ export default function SupplierSettings() {
           <label className={"flex items-center gap-2 text-[13px] font-medium text-body select-none " + (dlg.system ? "opacity-50" : "cursor-pointer")}>
             <input type="checkbox" checked={dlg.vendor} disabled={dlg.system}
               onChange={(e) => setDlg({ ...dlg, vendor: e.target.checked })} />
-            Vendor type — fulfilled per order, lives in the Vendors workspace
+            Vendor type — fulfilled per order
           </label>
         </Modal>
       )}

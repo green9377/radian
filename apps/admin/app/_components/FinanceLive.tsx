@@ -146,7 +146,7 @@ export function AccountsLive() {
   return (
     <div className={WRAP}>
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <FinHeader title="Money accounts" emoji="💰" tone="sky" sub="Every place your money sits, and what the books say is in it. Balances are calculated from the ledger — they are never typed in." />
+        <FinHeader title="Money accounts" emoji="💰" tone="sky" />
         <div className="flex items-center gap-2">
           {offline && <Chip tone="amber">API offline</Chip>}
           {!offline && (
@@ -193,14 +193,11 @@ export function AccountsLive() {
       )}
 
       {sum && !sum.openingPosted && (
-        <Card className="px-5 py-4 mb-5 border-[#534328] bg-[#393016]">
+        <Card className="px-5 py-4 mb-5 border-[#f5d9a8] bg-[#fffdf7]">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <div className="font-semibold text-[14px] text-purple mb-1">Opening balances are not in the ledger yet</div>
-              <p className="text-[13px] text-body-soft m-0 max-w-[640px]">
-                Type what is actually in each account today, then post them once. After posting they
-                are locked — any later difference goes through counting instead.
-              </p>
+              <p className="text-[13px] text-body-soft m-0 max-w-[640px]">Locked once posted.</p>
             </div>
             <button className={btnPrimary} style={btnPrimaryStyle} onClick={() => void doPostOpening()} disabled={sum.openingPendingPaisa === 0}>
               Post opening balances
@@ -260,7 +257,7 @@ export function AccountsLive() {
 
       <Card className="overflow-hidden mb-7">
         <table className="w-full text-[13.5px]">
-          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "#2c1b37", color: "#d47de8" }}>
+          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "#f3e9fa", color: "#7c1a92" }}>
             <tr>
               <th className="text-left px-4 py-2.5 font-semibold">Account</th>
               <th className="text-right px-4 py-2.5 font-semibold">Opening</th>
@@ -276,7 +273,7 @@ export function AccountsLive() {
               </td></tr>
             )}
             {money.map((a) => (
-              <tr key={a.id} className="border-t border-[#3e3248]">
+              <tr key={a.id} className="border-t border-[#f3eef7]">
                 <td className="px-4 py-3">
                   <div className="font-semibold text-purple">{a.name}</div>
                   <div className="text-[11.5px] text-body-soft">{a.code}{a.payMethod ? ` · ${a.payMethod.toLowerCase()}` : ""}</div>
@@ -293,7 +290,7 @@ export function AccountsLive() {
                     <span className="text-body-soft">{taka(a.openingBalancePaisa)}</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right font-bold" style={{ color: a.balancePaisa < 0 ? "#ea7171" : "#b694d1" }}>
+                <td className="px-4 py-3 text-right font-bold" style={{ color: a.balancePaisa < 0 ? "#b91c1c" : "#3d2352" }}>
                   {taka(a.balancePaisa)}
                 </td>
                 <td className="px-4 py-3 text-right whitespace-nowrap">
@@ -320,11 +317,10 @@ export function AccountsLive() {
       </Card>
 
       {counting && (
-        <Card className="px-5 py-4 mb-7 border-[#3d3248]">
+        <Card className="px-5 py-4 mb-7 border-[#e7dff0]">
           <div className="font-semibold text-[14px] text-purple mb-1">Counting — {counting.name}</div>
           <p className="text-[13px] text-body-soft mt-0 mb-3">
-            The books say <b>{taka(counting.balancePaisa)}</b>. Count what is actually there and type it below.
-            Any difference is recorded in the ledger, never silently adjusted.
+            The books say <b>{taka(counting.balancePaisa)}</b>.
           </p>
           <div className="flex items-end gap-3 flex-wrap">
             <div>
@@ -334,7 +330,7 @@ export function AccountsLive() {
             <button className={btnPrimary} style={btnPrimaryStyle} onClick={() => void doCount()}>Record count</button>
             <button className={btnGhost} onClick={() => setCounting(null)}>Cancel</button>
             <span className="text-[13px] text-body-soft">
-              Difference: <b style={{ color: toPaisa(countValue) - counting.balancePaisa === 0 ? "#76efc3" : "#f7a96e" }}>
+              Difference: <b style={{ color: toPaisa(countValue) - counting.balancePaisa === 0 ? "#0f7d55" : "#b45309" }}>
                 {taka(toPaisa(countValue) - counting.balancePaisa)}
               </b>
             </span>
@@ -346,9 +342,7 @@ export function AccountsLive() {
       <Card className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <div className="font-semibold text-[14px] text-purple mb-0.5">All account headings</div>
-          <p className="text-[13px] text-body-soft m-0">
-            {rows.length} headings, grouped by what they are. Add or rename expense headings there.
-          </p>
+          <p className="text-[13px] text-body-soft m-0">{rows.length} headings</p>
         </div>
         <a href="/finance/chart" className={btnGhost}>Open chart of accounts</a>
       </Card>
@@ -391,16 +385,16 @@ export function LedgerLive() {
   return (
     <div className={WRAP}>
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <FinHeader title="Ledger" emoji="📖" tone="slate" sub="Every money movement in the business, newest first. Each line traces back to the event that created it — nothing here can be edited or deleted." />
+        <FinHeader title="Ledger" emoji="📖" tone="slate" />
         {offline && <Chip tone="amber">API offline</Chip>}
       </div>
 
       {fails.length > 0 && (
         <Panel title={`${fails.length} entr${fails.length > 1 ? "ies" : "y"} could not be posted`} emoji="⚠" tone="rose" className="mb-5"
-          sub="the sale or purchase went through — only the bookkeeping failed, so it can be posted again">
+          sub="the bookkeeping failed, not the sale">
           <div className="px-5 py-3">
             {fails.map((f) => (
-              <div key={f.id} className="flex items-center justify-between gap-4 py-2.5 border-b border-[#3f3248] last:border-0">
+              <div key={f.id} className="flex items-center justify-between gap-4 py-2.5 border-b border-[#f6f2f9] last:border-0">
                 <div>
                   <div className="font-semibold text-purple text-[13px]">{f.sourceType.toLowerCase().replace(/_/g, " ")}</div>
                   <div className="text-[11.5px] text-body-soft">{f.error}</div>
@@ -426,7 +420,7 @@ export function LedgerLive() {
 
       <Card className="overflow-hidden">
         <table className="w-full text-[13px]">
-          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "#2c1b37", color: "#d47de8" }}>
+          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "#f3e9fa", color: "#7c1a92" }}>
             <tr>
               <th className="text-left px-4 py-2.5 font-semibold w-[110px]">No</th>
               <th className="text-left px-4 py-2.5 font-semibold w-[110px]">Date</th>
@@ -438,16 +432,14 @@ export function LedgerLive() {
           <tbody>
             {loading && <tr><td colSpan={5} className="px-4 py-6 text-center text-body-soft">Loading…</td></tr>}
             {!loading && rows.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-body-soft">
-                Nothing in the ledger yet — it fills up as orders, purchases and expenses happen.
-              </td></tr>
+              <tr><td colSpan={5} className="px-4 py-6 text-center text-body-soft">Nothing in the ledger yet.</td></tr>
             )}
             {rows.map((e) => {
               const total = e.lines.reduce((n, l) => n + l.debitPaisa, 0);
               const into = e.lines.filter((l) => l.debitPaisa > 0).map((l) => l.account?.name ?? "").join(", ");
               const outOf = e.lines.filter((l) => l.creditPaisa > 0).map((l) => l.account?.name ?? "").join(", ");
               return (
-                <tr key={e.id} className="border-t border-[#3e3248] align-top">
+                <tr key={e.id} className="border-t border-[#f3eef7] align-top">
                   <td className="px-4 py-3 font-semibold text-purple">{e.entryNo}</td>
                   <td className="px-4 py-3 text-body-soft">{e.entryDate.slice(0, 10)}</td>
                   <td className="px-4 py-3">
@@ -457,7 +449,7 @@ export function LedgerLive() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-[12.5px]">
-                    <span className="text-[#76efc3] font-semibold">→ {into || "—"}</span>
+                    <span className="text-[#0f7d55] font-semibold">→ {into || "—"}</span>
                     <br />
                     <span className="text-body-soft">from {outOf || "—"}</span>
                   </td>
@@ -507,7 +499,7 @@ export function FinanceSettingsLive() {
 
   return (
     <div className={WRAP}>
-      <FinHeader title="Settings" emoji="⚙" tone="brand" sub="The rules the ledger follows. Changing these changes how every future number is calculated." />
+      <FinHeader title="Settings" emoji="⚙" tone="brand" />
 
       <Flash ok={msg} err={err} />
 
@@ -536,9 +528,7 @@ export function FinanceSettingsLive() {
           <label className="text-[12px] font-semibold text-body-soft mt-3 block">Books closed up to</label>
           <input type="date" className={input} defaultValue={s.lastClosedDate?.slice(0, 10) ?? ""}
             onBlur={(e) => void patch({ lastClosedDate: e.target.value || null })} />
-          <p className="text-[12px] text-body-soft mt-1.5 mb-0">
-            Once profit has been shared for a period, close it — nothing can then be back-dated into it.
-          </p>
+          <p className="text-[12px] text-body-soft mt-1.5 mb-0">Nothing can be back-dated into a closed period.</p>
         </Card>
 
         <Card className="px-5 py-4">
@@ -563,10 +553,7 @@ export function FinanceSettingsLive() {
           <label className="text-[12px] font-semibold text-body-soft">Share of profit to the working partner before capital is repaid (%)</label>
           <input className={input} defaultValue={String(s.labourBonusPercentBp / 100)}
             onBlur={(e) => void patch({ labourBonusPercentBp: Math.round(Number(e.target.value || "0") * 100) })} />
-          <p className="text-[12px] text-body-soft mt-1.5 mb-0">
-            0 = all profit goes to repaying invested capital first. Anything above 0 gives the working
-            partner that share along the way.
-          </p>
+          <p className="text-[12px] text-body-soft mt-1.5 mb-0">0 = capital is repaid first.</p>
           <label className="text-[12px] font-semibold text-body-soft mt-4 block">Anything above this is an asset, not an expense (৳)</label>
           <input className={input} defaultValue={fromPaisa(s.assetThresholdPaisa)}
             onBlur={(e) => void patch({ assetThresholdPaisa: toPaisa(e.target.value) })} />
@@ -590,16 +577,13 @@ export function FinanceSettingsLive() {
           </label>
           <label className="text-[12px] font-semibold text-body-soft">Our BIN</label>
           <input className={input} defaultValue={s.businessBin ?? ""} onBlur={(e) => void patch({ businessBin: e.target.value || null })} />
-          <p className="text-[12px] text-body-soft mt-1.5 mb-0">
-            VAT collected is held for the government — it is never counted as income.
-          </p>
         </Card>
       </div>
 
       <h2 className="font-display text-[19px] text-purple mt-8 mb-3">Recent counts</h2>
       <Card className="overflow-hidden">
         <table className="w-full text-[13px]">
-          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "#2c1b37", color: "#d47de8" }}>
+          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "#f3e9fa", color: "#7c1a92" }}>
             <tr>
               <th className="text-left px-4 py-2.5 font-semibold">No</th>
               <th className="text-left px-4 py-2.5 font-semibold">Account</th>
@@ -612,13 +596,13 @@ export function FinanceSettingsLive() {
           <tbody>
             {recs.length === 0 && <tr><td colSpan={6} className="px-4 py-5 text-center text-body-soft">No counts yet</td></tr>}
             {recs.map((r) => (
-              <tr key={r.id} className="border-t border-[#3e3248]">
+              <tr key={r.id} className="border-t border-[#f3eef7]">
                 <td className="px-4 py-2.5 font-semibold text-purple">{r.reconNo}</td>
                 <td className="px-4 py-2.5">{r.account?.name ?? "—"}</td>
                 <td className="px-4 py-2.5 text-body-soft">{r.asOfDate.slice(0, 10)}</td>
                 <td className="px-4 py-2.5 text-right">{taka(r.systemBalancePaisa)}</td>
                 <td className="px-4 py-2.5 text-right">{taka(r.countedBalancePaisa)}</td>
-                <td className="px-4 py-2.5 text-right font-bold" style={{ color: r.differencePaisa === 0 ? "#76efc3" : "#f7a96e" }}>
+                <td className="px-4 py-2.5 text-right font-bold" style={{ color: r.differencePaisa === 0 ? "#0f7d55" : "#b45309" }}>
                   {taka(r.differencePaisa)}
                 </td>
               </tr>

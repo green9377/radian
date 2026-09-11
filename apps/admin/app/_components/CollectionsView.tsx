@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Icon from "./Icon";
-import { Info } from "./ItemEditor";
 import SaveBar, { type SaveState } from "./SaveBar";
 import {
   listCollections, createCollection, updateCollection, deleteCollection, uploadImage,
@@ -141,22 +140,18 @@ export default function CollectionsView({ embedded }: { embedded?: boolean } = {
     <div className={embedded ? "w-full" : WRAP}>
       {!embedded && (
         <>
-          <div className="flex items-center gap-2 mb-5">
-            <h1 className="font-display text-[22px] text-purple m-0">Collections</h1>
-            {/*  house rule 17 — the explanation lives behind the i  */}
-            <Info text="The cards under 'Gifts for Every Budget', and any other shelf you want to name. Click one to open it." />
-          </div>
+          <h1 className="font-display text-[22px] text-purple m-0 mb-5">Collections</h1>
         </>
       )}
 
       {!embedded && <SaveBar state={saveState} onSave={() => flash("Saved")} />}
 
       {err && (
-        <div className="flex items-start gap-2 bg-[#3b1a16] border border-[#532b28] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#e7847e] mb-4">
+        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-4">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
-      {ok && <div className="bg-[#213124] border border-[#324838] rounded-[11px] px-3.5 py-2 text-[12px] text-[#7ce9b4] mb-4">{ok}</div>}
+      {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
 
       {loading ? <p className="text-[13px] text-body-soft">Loading…</p> : (
         <div className="space-y-1.5 mb-4">
@@ -215,24 +210,17 @@ export default function CollectionsView({ embedded }: { embedded?: boolean } = {
                       </div>
                     </L>
 
-                    {c.mode === "PRICE_RANGE" ? (
+                    {c.mode === "PRICE_RANGE" && (
                       <div>
                         <div className="grid grid-cols-2 gap-3 max-w-[400px]">
                           <L label="From ৳"><input type="number" className="ipt" defaultValue={toTaka(c.minPaisa)} placeholder="any" onBlur={(e) => patch(c.id, { minPaisa: toPaisa(e.target.value) })} /></L>
                           <L label="Up to ৳"><input type="number" className="ipt" defaultValue={toTaka(c.maxPaisa)} placeholder="any" onBlur={(e) => patch(c.id, { maxPaisa: toPaisa(e.target.value) })} /></L>
                         </div>
-                        {/*  rule 17 — the price-band rule rides behind the i,
-                            not as a grey sentence under the fields  */}
-                        <div className="mt-1.5"><Info text="Uses the price a customer actually pays, after any discount. Leave a box empty for 'no limit'. The rule reads as obvious until a discount ends and a product leaves the shelf with nobody being told." /></div>
                       </div>
-                    ) : (
-                      <p className="text-[12px] text-body-soft bg-lavender/40 border border-lavender-deep rounded-[10px] px-3.5 py-2.5">
-                        Choosing the products happens on the collection page, which is not built yet. Everything else here works now.
-                      </p>
                     )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <L label="Card picture" hint="800 × 900 · upright · leave the lower third clear, the text sits there">
+                      <L label="Card picture" hint="800 × 900 · keep the lower third clear">
                         <label className="relative block w-full aspect-[1/1.14] max-w-[150px] rounded-[12px] border-2 border-dashed border-lavender-deep bg-lavender/40 hover:border-orchid cursor-pointer overflow-hidden grid place-items-center">
                           {c.imageUrl
                             // eslint-disable-next-line @next/next/no-img-element
@@ -241,7 +229,7 @@ export default function CollectionsView({ embedded }: { embedded?: boolean } = {
                           {uploadingId === c.id && <span className="absolute inset-x-0 bottom-0 bg-purple/85 text-white text-[11px] py-1 text-center">Uploading…</span>}
                           <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => pickImage(c.id, e.target.files?.[0] ?? null)} />
                         </label>
-                        {c.imageUrl && <button onClick={() => patch(c.id, { imageUrl: null })} className="text-[12.5px] text-body-soft hover:text-[#e1837a] mt-1.5">Remove</button>}
+                        {c.imageUrl && <button onClick={() => patch(c.id, { imageUrl: null })} className="text-[12.5px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove</button>}
                       </L>
 
                       <div className="space-y-3">
@@ -255,7 +243,7 @@ export default function CollectionsView({ embedded }: { embedded?: boolean } = {
                         <div className="text-[11.5px] text-body-soft">
                           Web address: <code className="text-purple">/collections/{c.slug}</code>
                         </div>
-                        <button onClick={() => remove(c.id)} className="text-[13px] text-body-soft hover:text-[#e1837a]">Remove this collection</button>
+                        <button onClick={() => remove(c.id)} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove this collection</button>
                       </div>
                     </div>
                   </div>

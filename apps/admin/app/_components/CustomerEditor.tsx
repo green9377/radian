@@ -57,33 +57,33 @@ import SpecialDateField from "./SpecialDateField";
 const SECTIONS = [
   {
     id: "profile", label: "Profile", blurb: "Name, phone, photo", icon: "user",
-    tint: "#2d1c37", edge: "#412d4e", chip: "#301f3a",
-    ink: "#c778ed", sub: "#af9fbc", strong: "#ce6ef7",
-    fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#401c46",
+    tint: "#f3e8f9", edge: "#e6d3f2", chip: "#e6d3f2",
+    ink: "#3b0b52", sub: "#816894", strong: "#470066",
+    fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#e9a8f5",
   },
   {
     id: "recipients", label: "Recipients", blurb: "Who they send to", icon: "pin",
-    tint: "#381a24", edge: "#4f2b39", chip: "#3c1f2a",
-    ink: "#db8aa3", sub: "#bf9ba7", strong: "#d586a0",
-    fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#401c28",
+    tint: "#fbeaf0", edge: "#f2cddb", chip: "#f2cddb",
+    ink: "#6b2138", sub: "#a06a7c", strong: "#993556",
+    fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#f4c0d1",
   },
   {
     id: "segments", label: "Segments", blurb: "Tags and notes", icon: "hash",
-    tint: "#34163b", edge: "#472853", chip: "#351840",
-    ink: "#de87db", sub: "#bd9cbf", strong: "#da8bd3",
-    fill: "linear-gradient(100deg,#8c2d84,#b444ad)", glow: "rgba(140,45,132,.26)", soft: "#3e1f3b",
+    tint: "#f9e9fd", edge: "#eecffa", chip: "#eecffa",
+    ink: "#5e1a5c", sub: "#96639a", strong: "#8c2d84",
+    fill: "linear-gradient(100deg,#8c2d84,#b444ad)", glow: "rgba(140,45,132,.26)", soft: "#f0c4ec",
   },
   {
     id: "orders", label: "Orders", blurb: "Value and history", icon: "bag",
-    tint: "#322023", edge: "#4a3135", chip: "#392428",
-    ink: "#ca9ba3", sub: "#bf9ca3", strong: "#c5969d",
-    fill: "linear-gradient(100deg,#98545f,#c07f8a)", glow: "rgba(152,84,95,.26)", soft: "#392326",
+    tint: "#f8eef0", edge: "#e8c9ce", chip: "#e8c9ce",
+    ink: "#6d3a43", sub: "#a5757e", strong: "#98545f",
+    fill: "linear-gradient(100deg,#98545f,#c07f8a)", glow: "rgba(152,84,95,.26)", soft: "#eccdd2",
   },
   {
     id: "activity", label: "Activity", blurb: "Every change, logged", icon: "clock",
-    tint: "#282032", edge: "#3c3348", chip: "#2b2434",
-    ink: "#dfd2e4", sub: "#ada2b9", strong: "#dfd2e4",
-    fill: "linear-gradient(100deg,#5f4b73,#7f6b93)", glow: "rgba(95,75,115,.24)", soft: "#2b2337",
+    tint: "#f3eff8", edge: "#e4dcee", chip: "#e4dcee",
+    ink: "#453556", sub: "#8b7c9c", strong: "#5f4b73",
+    fill: "linear-gradient(100deg,#5f4b73,#7f6b93)", glow: "rgba(95,75,115,.24)", soft: "#ded4ec",
   },
 ] as const;
 type SecId = (typeof SECTIONS)[number]["id"];
@@ -150,7 +150,7 @@ function Field({
 }
 
 const delBtn =
-  "border border-lavender-deep bg-white text-body-soft hover:text-[#e1837a] hover:border-[#4d2e2e] rounded-[10px] w-[38px] h-[38px] grid place-items-center shrink-0 transition-colors";
+  "border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#e0a1a1] rounded-[10px] w-[38px] h-[38px] grid place-items-center shrink-0 transition-colors";
 const addBtn =
   "self-start mt-3 border border-lavender-deep bg-white text-[13px] px-3.5 py-2 rounded-[10px] hover:border-orchid text-purple font-medium inline-flex items-center gap-1.5 transition-colors";
 
@@ -460,7 +460,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
           <button
             type="button"
             onClick={handleBlock}
-            className="border border-lavender-deep bg-white text-[13.5px] px-4 py-2.5 rounded-[11px] font-medium hover:border-[#4d2e2e] hover:text-[#e1837a] text-body-soft"
+            className="border border-lavender-deep bg-white text-[13.5px] px-4 py-2.5 rounded-[11px] font-medium hover:border-[#e0a1a1] hover:text-[#c0392b] text-body-soft"
           >
             {status === "blocked" ? "Unblock" : "Block"}
           </button>
@@ -479,15 +479,15 @@ export default function CustomerEditor({ id }: { id?: string }) {
         <div className="text-[13px] text-body-soft mb-4">Loading customer…</div>
       )}
       {notFound && (
-        <div className="bg-[#3b2b17] border border-[#534028] text-[#f7a96e] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
-          This customer could not be loaded — it may have been deleted, or the API (:4000) is not running.{" "}
+        <div className="bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+          This customer could not be loaded.{" "}
           <Link href="/customers/list" className="underline font-medium">
             Back to all customers
           </Link>
         </div>
       )}
       {saveErr && (
-        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {saveErr}
         </div>
       )}
@@ -562,7 +562,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
                   style={{ background: "linear-gradient(105deg,#470066,#320049 62%,#b76e79)" }}>
                   <label className="relative shrink-0 cursor-pointer" title="Upload a photo">
                     <span className="w-[58px] h-[58px] rounded-full grid place-items-center overflow-hidden border-2 border-orchid-mid"
-                      style={{ background: imageUrl ? "#fff" : "#34163b" }}>
+                      style={{ background: imageUrl ? "#fff" : "#f9e9fd" }}>
                       {imageUrl
                         ? /* eslint-disable-next-line @next/next/no-img-element */
                           <img src={imageUrl} alt="" className="w-full h-full object-cover" />
@@ -597,7 +597,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
                     </div>
                   </div>
                   <span className="ml-auto shrink-0 text-[11.5px] px-3 py-1.5 rounded-full font-medium inline-flex items-center gap-1.5"
-                    style={{ background: "#392428", color: "#cb9aa2" }}>
+                    style={{ background: "#e8c9ce", color: "#7a3f48" }}>
                     <Icon name="shield" size={12} /> WhatsApp is the login
                   </span>
                 </div>
@@ -688,7 +688,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
                             "text-[13px] px-4 py-2 rounded-[8px] font-medium capitalize transition-colors " +
                             (status === s
                               ? s === "blocked"
-                                ? "bg-white text-[#e1837a] shadow-soft"
+                                ? "bg-white text-[#c0392b] shadow-soft"
                                 : "bg-white text-purple shadow-soft"
                               : "text-body-soft hover:text-purple")
                           }
@@ -903,7 +903,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
                             <button
                               type="button"
                               onClick={() => removeOccasion(r.id, i)}
-                              className="text-body-soft hover:text-[#e1837a] text-[13px] px-1"
+                              className="text-body-soft hover:text-[#c0392b] text-[13px] px-1"
                               title="Remove date"
                             >
                               ✕
@@ -922,10 +922,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
                   </div>
                 ))}
                 {recipients.length === 0 && (
-                  <p className="text-[13px] text-body-soft">
-                    No recipients yet. Add the people this customer sends gifts
-                    to — with their birthdays & anniversaries for reminders.
-                  </p>
+                  <p className="text-[13px] text-body-soft">No recipients yet.</p>
                 )}
               </div>
               <button type="button" onClick={addRecipient} className={addBtn}>
@@ -940,7 +937,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
               <Card
                 icon="hash"
                 title="Segments"
-                hint="Marketing tags — VIP, Corporate, occasion buyers."
+                hint="Marketing tags"
               >
                 <div className="flex flex-wrap gap-2">
                   {(Object.keys(SEGMENT_LABEL) as Segment[]).map((s) => {
@@ -966,7 +963,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
               <Card
                 icon="book"
                 title="Internal note"
-                hint="Private staff note — never shown to the customer."
+                hint="Never shown to the customer"
               >
                 <textarea
                   className="ipt"
@@ -991,7 +988,6 @@ export default function CustomerEditor({ id }: { id?: string }) {
                   </span>
                 </span>
               }
-              hint="Read-only — these come from Sales."
             >
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {[
@@ -1016,11 +1012,6 @@ export default function CustomerEditor({ id }: { id?: string }) {
                   </div>
                 ))}
               </div>
-              <p className="text-[13px] text-body-soft mt-4">
-                Full order history opens in the Sales module (arrives after
-                Customer). New/Repeat is derived from order count — not an editable
-                field.
-              </p>
             </Card>
           )}
 
@@ -1029,7 +1020,6 @@ export default function CustomerEditor({ id }: { id?: string }) {
             <Card
               icon="clock"
               title="Activity log"
-              hint="Who changed what, and when."
             >
               <div className="flex flex-col">
                 {[
@@ -1065,10 +1055,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
                   </div>
                 ))}
               </div>
-              <p className="text-[13px] text-body-soft">
-                Demo entries. The real log is written automatically on every save
-                (never editable).
-              </p>
+              <p className="text-[13px] text-body-soft">Demo entries.</p>
             </Card>
           )}
         </div>
@@ -1145,9 +1132,6 @@ export default function CustomerEditor({ id }: { id?: string }) {
               </span>
             </div>
           </div>
-          <p className="text-[13px] text-body-soft mt-2.5 px-1">
-            This is the customer&apos;s account view — updates live as you edit.
-          </p>
         </aside>
       </div>
     </div>

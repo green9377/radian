@@ -108,7 +108,6 @@ export function DeliveryPerformance() {
       <Header
         eyebrow="Operations · Delivery"
         title="Cost & performance"
-        desc="What delivery costs us versus what we charge, and how well the promise is kept. Every figure here comes from Radian's own delivery records."
         actions={ranges}
       />
 
@@ -150,15 +149,13 @@ export function DeliveryPerformance() {
 
           {a.costPaisa === 0 && a.delivered > 0 && (
             <NoteBox tone="amber">
-              Delivery cost reads ৳0 because no rider or courier fare has been recorded against a parcel yet. Record
-              them on Delivery money — until then margin here is simply the charge, and the real margin is lower.
+              Delivery cost is ৳0 — no rider or courier fare recorded yet.
             </NoteBox>
           )}
 
           {a.unmeasurable > 0 && (
             <NoteBox tone="blue">
-              {a.unmeasurable} of {a.delivered} deliveries carried no promised time, so they are not counted as late or
-              on-time — the on-time rate above is out of {a.measurable}, not {a.delivered}.
+              {a.unmeasurable} of {a.delivered} carried no promised time — on-time is out of {a.measurable}.
             </NoteBox>
           )}
 
@@ -181,16 +178,6 @@ export function DeliveryPerformance() {
               empty="No deliveries completed in this window."
               rows={a.byZone.map((z) => ({ name: z.name, value: z.delivered, sub: `${z.delivered} · ${pct(z.onTimeBp)}` }))}
             />
-          </div>
-
-          <div className="mt-5">
-            <Panel title="Where the numbers come from" icon="shield" tone="green">
-              <div className="p-4 text-[13px] text-body-soft">
-                On-time compares when a parcel actually arrived against the time the order promised — never GA4, never an
-                estimate. Charge and cost are recorded separately, so margin is real and can be negative. A dash means
-                nothing could be measured, which is not the same as zero.
-              </div>
-            </Panel>
           </div>
         </>
       )}

@@ -101,10 +101,10 @@ type Preset = {
   body: Record<string, unknown>;
 };
 
-const PURPLE = { c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34" };
-const ORCHID = { c: "#bb87d4", edge: "#cf43ea", bg: "#30183a" };
-const ROSE = { c: "#c794a1", edge: "#c9788a", bg: "#361b1f" };
-const SOFT = { c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35" };
+const PURPLE = { c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8" };
+const ORCHID = { c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc" };
+const ROSE = { c: "#a4566a", edge: "#c9788a", bg: "#fbeef0" };
+const SOFT = { c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9" };
 
 /*  Two lines every flower shop repeats, kept in one place so twenty presets
     cannot drift into twenty slightly different promises. Both are the OWNER's
@@ -824,7 +824,7 @@ export default function OffersTemplates() {
           </div>
           <div className="flex items-center gap-2.5 mt-1.5">
             <h1 className="font-display text-[28px] text-purple m-0 leading-tight">Start from a template</h1>
-            <Info text="Every one is a Grand Slam Offer, not a discount: a named offer, the outcome in one line, bonuses that answer the next objection, a guarantee that moves the risk to us, and a deadline where the deadline is real. Pressing one creates a DRAFT and opens it — a draft reaches no customer until you submit it, so a wrong press costs nothing." />
+            <Info text="Pressing one creates a draft and opens it. A draft reaches no customer until you submit it." />
           </div>
         </div>
         <Link href="/marketing/offers/list"
@@ -858,7 +858,7 @@ export default function OffersTemplates() {
       </div>
 
       {err && (
-        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
+        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
           <span className="font-semibold">{err}</span>
           <button className="underline shrink-0 font-semibold" onClick={() => setErr(null)}>Dismiss</button>
         </div>
@@ -870,7 +870,7 @@ export default function OffersTemplates() {
           return (
             <div key={p.key}
               className="relative rounded-[18px] border border-white/70 shadow-soft overflow-hidden p-5 flex flex-col"
-              style={{ background: `linear-gradient(150deg,${p.tint.bg},#1f1727 130%)` }}>
+              style={{ background: `linear-gradient(150deg,${p.tint.bg},#ffffff 130%)` }}>
               <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: p.tint.edge }} />
 
               <div className="flex items-center gap-2.5 mb-3">
@@ -939,9 +939,9 @@ export default function OffersTemplates() {
            the checkout cannot pay.  */}
       <div className="mt-8 rounded-[18px] border border-lavender-deep bg-white shadow-soft overflow-hidden">
         <div className="px-5 py-3.5 flex items-center gap-2 text-[11px] uppercase tracking-[0.06em] font-bold text-purple"
-          style={{ background: `linear-gradient(135deg,${PURPLE.bg},#1f1727)` }}>
+          style={{ background: `linear-gradient(135deg,${PURPLE.bg},#ffffff)` }}>
           Not possible yet
-          <Info text="Shapes the checkout cannot pay today, so there is deliberately no template for them. Knowing what is missing matters when you are planning a season — better here than discovered in March." />
+          <Info text="Shapes the checkout cannot pay today, so there is no template for them." />
         </div>
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
           {/*  ⚠️ The reason goes behind the ⓘ, like everything else on this

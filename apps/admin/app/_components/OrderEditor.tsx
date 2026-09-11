@@ -419,10 +419,10 @@ export default function OrderEditor({ id }: { id: string }) {
     paidNet <= 0
       ? "Cancel this order? Nothing has been collected on it, so there is nothing to refund."
       : o.deliveryStatus === "unassigned"
-        ? `Cancel this order? Nothing has been made yet, so the refund is a share of the ${formatTaka(paidNet)} already paid — the exact percentage is the one set under Cancellation rules.`
+        ? `Cancel this order? Part of the ${formatTaka(paidNet)} paid comes back, at the rate under Cancellation rules.`
         : o.deliveryStatus === "preparing"
-          ? `Cancel this order? It has already been made, so only part of the ${formatTaka(paidNet)} paid comes back — the percentage set under Cancellation rules.`
-          : `Cancel this order? The rider has already left with it, so nothing of the ${formatTaka(paidNet)} paid is refundable.`;
+          ? `Cancel this order? It is already made, so only part of the ${formatTaka(paidNet)} paid comes back.`
+          : `Cancel this order? It is already on the road, so none of the ${formatTaka(paidNet)} paid is refundable.`;
   const custName = cust?.name ?? o.sender.name;
   const orderNo = (o as { orderNo?: string }).orderNo ?? o.id;
 
@@ -508,7 +508,7 @@ export default function OrderEditor({ id }: { id: string }) {
           ? !hasCarrier
             ? { label: o.deliveryStatus === "failed" ? "Assign a carrier for the retry" : "Assign carrier", colour: SOLID.blue, go: "delivery", locked: "Out for delivery · needs a carrier" }
             : needsPhoto
-              ? { label: "Add the customer's photo", colour: SOLID.blue, go: "photos", locked: "Out for delivery · needs the photo the customer asked for" }
+              ? { label: "Add the customer's photo", colour: SOLID.blue, go: "photos", locked: "Out for delivery · needs the photo" }
               : { label: "Out for delivery", colour: SOLID.orchid, run: () => assignmentAction(live!.id, "out") }
           : o.deliveryStatus === "out_for_delivery"
             ? {
@@ -725,7 +725,7 @@ export default function OrderEditor({ id }: { id: string }) {
           {sec === "summary" && (
             <>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <Card title="Customer & recipient" hint="The account that placed the order. Lifetime value and order count are Sales-owned and update when the order is delivered." right={<button type="button" onClick={() => setSec("customer")} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#3e3248] text-purple bg-white">More</button>}>
+                <Card title="Customer & recipient" right={<button type="button" onClick={() => setSec("customer")} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#3e3248] text-purple bg-white">More</button>}>
                   <div className="px-5 pb-4">
                     <Row k="Customer" v={<Link href={`/customers/${o.customerId}`} className="text-purple hover:underline">{custName}</Link>} />
                     <Row k="Phone" v={o.sender.phone} />
@@ -790,7 +790,7 @@ export default function OrderEditor({ id }: { id: string }) {
                 </Card>
               </div>
               {o.internalNote && (
-                <Card title="Internal note" hint="A private staff note — change it on the Edit order page.">
+                <Card title="Internal note">
                   <div className="px-5 pb-4 text-[13.5px] font-medium text-body">{o.internalNote}</div>
                 </Card>
               )}
@@ -800,7 +800,7 @@ export default function OrderEditor({ id }: { id: string }) {
           {/* CUSTOMER */}
           {sec === "customer" && (
             <>
-              <Card title="Customer" hint="The account that placed the order — the profile lives in Customer Management. Lifetime value and order count are Sales-owned and update when the order is delivered.">
+              <Card title="Customer">
                 <div className="px-5 pb-4">
                   <Row k="Name" v={<Link href={`/customers/${o.customerId}`} className="text-purple font-medium underline">{custName}</Link>} />
                   <Row k="Phone / WhatsApp" v={<span className="inline-flex items-center gap-2.5">{o.sender.phone}<a href={`tel:${o.sender.phone}`} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-1 rounded-[8px] border bg-white" style={{ color: SOLID.green, borderColor: SOLID.green }}><Icon name="phone" size={12} /> Call</a></span>} />
@@ -839,7 +839,7 @@ export default function OrderEditor({ id }: { id: string }) {
                    card's own shape and a Copy button — and it prints exactly
                    what the checkout sent, signature and all.  */}
               {o.isGift ? (
-                <Card title="Card message" hint="Hand-written on the Radian card — copy it exactly, line breaks included.">
+                <Card title="Card message" hint="Copy it exactly, line breaks included.">
                   <div className="px-5 pb-4">
                     {o.giftMessage ? (
                       <>
@@ -877,7 +877,7 @@ export default function OrderEditor({ id }: { id: string }) {
 
           {/* ITEMS */}
           {sec === "items" && (
-            <Card title="Items" count={o.lines.length} hint="Frozen at the ordered price — change them on the Edit order page." right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#3e3248] text-purple bg-white">Edit</Link> : undefined}>
+            <Card title="Items" count={o.lines.length} hint="Frozen at the ordered price." right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#3e3248] text-purple bg-white">Edit</Link> : undefined}>
               <div className="px-5 pb-5 flex flex-col gap-3">
                 {o.lines.map((l) => {
                   const craftedLine = l.productType === "crafted";
@@ -956,7 +956,7 @@ export default function OrderEditor({ id }: { id: string }) {
 
           {/* DELIVERY */}
           {sec === "delivery" && (
-            <Card title="Delivery" hint="Executed by Delivery — Sales only holds the promise." right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#3e3248] text-purple bg-white">Edit</Link> : undefined}>
+            <Card title="Delivery" right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#3e3248] text-purple bg-white">Edit</Link> : undefined}>
               <div className="px-5 pb-4">
                 <Row k="Method" v={o.methodLabel} />
                 <Row k="Zone" v={o.zone === "dhaka" ? "Inside Dhaka" : "Nationwide"} />
@@ -974,7 +974,7 @@ export default function OrderEditor({ id }: { id: string }) {
               order. Phase 6: this creates a real DeliveryAssignment, so the
               parcel reaches the board, analytics, cost and COD settlement. */}
           {sec === "delivery" && (
-            <Card title="Carrier" hint="Assigns through Delivery — the parcel lands on the delivery board and in its accounts. A parcel already on the road can be swapped to another carrier; that is never counted as a failed delivery.">
+            <Card title="Carrier">
               <div className="px-5 pb-5">
                 {assignment ? (
                   <>
@@ -1128,7 +1128,7 @@ export default function OrderEditor({ id }: { id: string }) {
               and the switch below said "photo updates are on" about photos
               that were never taken. Both are real controls now. */}
           {sec === "photos" && (
-            <Card title="Photos & proof" hint="Before it leaves the studio, and at the door. When the customer ticked photo updates at checkout, the before-delivery photo goes to them the moment it is saved: WhatsApp first, email if the number has no WhatsApp, and it is on their account either way. Out for delivery stays locked until that photo exists.">
+            <Card title="Photos & proof" hint="Out for delivery stays locked until the before-delivery photo exists.">
               <div className="px-5 pb-5">
                 {o.photoUpdates && (
                   <div className="mb-4 rounded-[12px] border-[1.5px] px-4 py-3 flex items-center gap-3 flex-wrap bg-white" style={{ borderColor: o.prepPhoto ? "#bfe3cd" : "#f5dcb0" }}>
@@ -1234,7 +1234,7 @@ export default function OrderEditor({ id }: { id: string }) {
 
           {/* PAYMENT */}
           {sec === "payment" && (
-            <Card title="Payment" hint="Gateway = SSLCommerz. The ledger entry itself is owned by Finance.">
+            <Card title="Payment" hint="Gateway = SSLCommerz.">
               <div className="px-5 pb-5">
                 <Row k="Method" v={o.payment.method === "online" ? "Online (SSLCommerz)" : "Cash on delivery"} />
                 <Row k="Status" v={<Pill colour={paymentColour(o)}>{pm.label}</Pill>} />
@@ -1326,7 +1326,7 @@ export default function OrderEditor({ id }: { id: string }) {
 
           {/* ACTIVITY */}
           {sec === "activity" && (
-            <Card title="Activity log" hint="Who, when and what — written automatically, never editable.">
+            <Card title="Activity log">
               <div className="px-5 pb-5">
                 {o.timeline.length === 0 ? <p className="text-[13px] font-medium text-body-soft m-0">No activity recorded yet.</p> : (
                   <div className="flex flex-col">

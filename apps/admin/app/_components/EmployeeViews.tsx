@@ -78,7 +78,7 @@ function Avatar({ name, url, size = 40 }: { name: string; url?: string | null; s
     return <img src={url} alt={name} className="rounded-xl object-cover shrink-0" style={{ width: size, height: size }} />;
   return (
     <div
-      className="rounded-xl grid place-items-center shrink-0 font-display text-purple bg-[#301c36]"
+      className="rounded-xl grid place-items-center shrink-0 font-display text-purple bg-[#f7ecfa]"
       style={{ width: size, height: size, fontSize: size * 0.38 }}
     >
       {initials(name)}
@@ -138,7 +138,6 @@ export function EmployeeListView() {
         title="Staff"
         emoji="👥"
         tone="brand"
-        sub="Everyone Radian pays. Salary and advances can only go to somebody on this list — that is what stops one person becoming three spellings in the books."
         right={
           <>
             <Link href="/employees/roles" className={btnGhost}>Job roles</Link>
@@ -189,8 +188,7 @@ export function EmployeeListView() {
           {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-body-soft">Loading…</td></tr>}
           {!loading && shown.length === 0 && (
             <tr><td colSpan={6} className="px-4 py-10">
-              <Empty emoji="👥" title="Nobody on the list yet"
-                sub="Add your staff — or load the practice data above to see how the whole thing works first." />
+              <Empty emoji="👥" title="Nobody on the list yet" />
             </td></tr>
           )}
           {shown.map((e) => (
@@ -216,7 +214,7 @@ export function EmployeeListView() {
               <Td>{new Date(e.joinedOn).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</Td>
               <Td right>
                 {e.advanceOutstandingPaisa > 0
-                  ? <b style={{ color: "#f7a96e" }}>{taka(e.advanceOutstandingPaisa)}</b>
+                  ? <b style={{ color: "#b45309" }}>{taka(e.advanceOutstandingPaisa)}</b>
                   : <span className="text-body-soft">—</span>}
               </Td>
               <Td right>
@@ -390,8 +388,7 @@ export function EmployeeEditor({ id }: { id?: string }) {
 
   return (
     <div className={WRAP}>
-      <FinHeader eyebrow="People" title={id ? "Edit employee" : "New employee"} emoji="👤" tone="brand"
-        sub="Name, when they started and how they are paid is all that is needed. Everything else can wait." />
+      <FinHeader eyebrow="People" title={id ? "Edit employee" : "New employee"} emoji="👤" tone="brand" />
       <Flash ok={ok} err={err} />
 
       <div className="grid lg:grid-cols-3 gap-4">
@@ -452,8 +449,7 @@ export function EmployeeEditor({ id }: { id?: string }) {
           <h3 className="font-display text-[17px] text-purple mt-6 mb-1">Personal</h3>
           {privateHidden ? (
             <p className="text-[12.5px] text-body-soft mt-0 mb-3">
-              NID, date of birth, address and next of kin are kept for the owner only, so they are
-              hidden here. Saving this form leaves them exactly as they are.
+              NID, date of birth, address and next of kin are visible to the owner only.
             </p>
           ) : (
             <div className="grid sm:grid-cols-2 gap-3 mt-3">
@@ -482,17 +478,10 @@ export function EmployeeEditor({ id }: { id?: string }) {
           <h3 className="font-display text-[17px] text-purple mt-6 mb-1">Documents</h3>
           {id ? (
             <p className="text-[12.5px] text-body-soft mt-0 mb-0">
-              NID copy, birth certificate, the job contract, educational certificates, the
-              guardian&apos;s NID — as many as you like, on the{" "}
-              <Link href={`/employees/${id}`} className="text-orchid">Documents tab</Link> of their page.
+              On the <Link href={`/employees/${id}`} className="text-orchid">Documents tab</Link> of their page.
             </p>
           ) : (
             <>
-              <p className="text-[12px] text-body-soft mt-0 mb-3">
-                NID copy, birth certificate, job contract, certificates, guardian&apos;s NID — add a
-                row for each one. They are attached the moment this person is saved, and more can be
-                added later at any time.
-              </p>
 
               <datalist id="doc-titles-new">{DOC_SUGGESTIONS.map((x) => <option key={x} value={x} />)}</datalist>
 
@@ -558,10 +547,6 @@ export function EmployeeEditor({ id }: { id?: string }) {
         <div className="flex flex-col gap-4">
           <Card className="px-5 py-5">
             <h3 className="font-display text-[17px] text-purple mt-0 mb-1">How they are paid</h3>
-            <p className="text-[12px] text-body-soft mt-0 mb-3">
-              Monthly is a fixed figure whatever the days. Daily and hourly are multiplied by what
-              the attendance sheet recorded.
-            </p>
             <Lbl>Pay type</Lbl>
             <select className={input} value={f.payType} onChange={(e) => set("payType", e.target.value as PayType)}>
               <option value="MONTHLY">Monthly — a fixed salary</option>
@@ -576,7 +561,7 @@ export function EmployeeEditor({ id }: { id?: string }) {
               = <b className="text-purple">{formatTaka(toPaisa(f.rate))}</b> {PAY_LABEL[f.payType]}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-[#3e3248]">
+            <div className="mt-4 pt-4 border-t border-[#f3eef7]">
               <Lbl>Usual shift</Lbl>
               <div className="flex items-center gap-2">
                 <input type="time" className={`${input} px-2`} value={f.shiftStart}
@@ -591,14 +576,9 @@ export function EmployeeEditor({ id }: { id?: string }) {
                   that is {shiftHours} hours — use it as the full day
                 </button>
               )}
-              <p className="text-[11.5px] text-body-soft mt-2 mb-0">
-                Optional. When it is set the attendance sheet arrives with these times already in,
-                so an ordinary day needs no typing at all. Leaving at an earlier clock time than
-                coming in simply means the shift runs past midnight.
-              </p>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-[#3e3248]">
+            <div className="mt-4 pt-4 border-t border-[#f3eef7]">
               <Lbl>A full day for this person is…</Lbl>
               <div className="flex items-center gap-2">
                 <input className={`${input} w-[90px]`} value={f.dutyHours} inputMode="decimal"
@@ -606,22 +586,13 @@ export function EmployeeEditor({ id }: { id?: string }) {
                 <span className="text-[13px] text-body-soft">hours</span>
               </div>
               <p className="text-[11.5px] text-body-soft mt-2 mb-0">
-                This is what makes &quot;half day&quot; mean something. With{" "}
-                <b>{Number(f.dutyHours) || 8}</b> hours, a half day is{" "}
-                <b>{((Number(f.dutyHours) || 8) / 2).toFixed(1)}</b> hours
-                {f.payType === "HOURLY"
-                  ? " — and that is exactly what gets paid."
-                  : " — recorded, so a long day leaves a trace even though the pay does not change."}
+                Half day = <b>{((Number(f.dutyHours) || 8) / 2).toFixed(1)}</b> hours
               </p>
             </div>
           </Card>
 
           <Card className="px-5 py-5">
             <h3 className="font-display text-[17px] text-purple mt-0 mb-1">Admin panel access</h3>
-            <p className="text-[12px] text-body-soft mt-0 mb-3">
-              Optional, and separate on purpose — most staff are paid without ever signing in.
-              Create the login under People &amp; access first, then link it here.
-            </p>
             <select className={input} value={f.appUserId} onChange={(e) => set("appUserId", e.target.value)}>
               <option value="">No login</option>
               {users.map((u) => (
@@ -792,7 +763,7 @@ export function EmployeeDetailView({ id }: { id: string }) {
 
       {tab === "attendance" && (
         <Card className="overflow-hidden">
-          <div className="px-5 py-4 flex items-center justify-between gap-3 flex-wrap border-b border-[#3e3248]">
+          <div className="px-5 py-4 flex items-center justify-between gap-3 flex-wrap border-b border-[#f3eef7]">
             <div>
               <b className="text-purple">{month}</b>
               {monthData && (
@@ -875,7 +846,7 @@ export function EmployeeDetailView({ id }: { id: string }) {
         <Card className="px-5 py-5">
           {timeline.length === 0 && <p className="text-body-soft m-0">Nothing recorded yet</p>}
           {timeline.map((t) => (
-            <div key={t.id} className="flex gap-3 py-2.5 border-b border-[#3f3347] last:border-0">
+            <div key={t.id} className="flex gap-3 py-2.5 border-b border-[#f5f1f8] last:border-0">
               <div className="text-[12px] text-body-soft w-[120px] shrink-0">{ago(t.createdAt)}</div>
               <div>
                 <b className="text-[13px]">{t.label}</b>
@@ -969,10 +940,7 @@ function DocumentsTab({
     <>
       <Card className="px-5 py-5 mb-4">
         <h3 className="font-display text-[17px] text-purple mt-0 mb-1">Attach a document</h3>
-        <p className="text-[12px] text-body-soft mt-0 mb-4">
-          NID copy, a signed contract, certificates — as many as you like. A photo of the page is
-          usually enough; keep each file under about 2.5 MB.
-        </p>
+        <p className="text-[12px] text-body-soft mt-0 mb-4">Each file under about 2.5 MB.</p>
         <div className="grid sm:grid-cols-[1fr_1.4fr_auto] gap-3 items-end">
           <div>
             <Lbl>What is it</Lbl>
@@ -1055,7 +1023,7 @@ function Rows({ rows }: { rows: [string, string | null | undefined][] }) {
   return (
     <div className="text-[13px]">
       {rows.map(([k, v]) => (
-        <div key={k} className="flex justify-between gap-4 py-2 border-b border-[#3f3347] last:border-0">
+        <div key={k} className="flex justify-between gap-4 py-2 border-b border-[#f5f1f8] last:border-0">
           <span className="text-body-soft">{k}</span>
           <span className="text-right font-semibold">{v || <span className="text-[#c9b8d4] font-normal">—</span>}</span>
         </div>
@@ -1096,7 +1064,6 @@ export function EmployeeRolesView() {
         title="Job roles"
         emoji="🏷"
         tone="slate"
-        sub="Add a role once and pick it for everybody after that. Kept as a list rather than typed each time, because a second 'Florist' with a different spelling quietly splits every report."
         right={<Link href="/employees" className={btnGhost}>← Staff</Link>}
       />
       <Flash ok={ok} err={err} />
@@ -1170,10 +1137,6 @@ export function EmployeeRolesView() {
         </Table>
       </Card>
 
-      <p className="text-[12px] text-body-soft mt-4 mb-0">
-        A role somebody actually holds cannot be removed — switch it off instead, and it stays on
-        their record while disappearing from the picker.
-      </p>
     </div>
   );
 
@@ -1217,7 +1180,6 @@ export function EmployeeTrashView() {
         title="Removed staff"
         emoji="🗑"
         tone="slate"
-        sub="Nobody is ever really deleted here — their payslips and ledger entries have to keep making sense. Put anyone back on the list whenever you need to."
         right={<Link href="/employees" className={btnGhost}>← Staff</Link>}
       />
       <Flash ok={ok} err={err} />

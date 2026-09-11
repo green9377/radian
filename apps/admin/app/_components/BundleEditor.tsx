@@ -150,10 +150,8 @@ export default function BundleEditor({
             <Icon name="layers" size={16} />
           </span>
           <span>
-            This product shows <b className="font-semibold text-purple">{inheritedFrom}</b>&rsquo;s
-            list. Add something below only if this product needs a different one — whatever you add
-            here <b className="font-semibold text-purple">replaces</b> the category&rsquo;s, it does
-            not add to it.
+            Showing <b className="font-semibold text-purple">{inheritedFrom}</b>&rsquo;s list —
+            anything added here <b className="font-semibold text-purple">replaces</b> it.
           </span>
         </div>
       )}
@@ -180,7 +178,7 @@ export default function BundleEditor({
               {/*  ⚠️ যে জিনিসটা website-এ আসবে না সেটা এখানেই বলা হয়। নাহলে
                   মালিক তালিকা বানিয়ে page-এ কিছু না দেখে ধরে নেন ভাঙা।  */}
               {it.hiddenReason && (
-                <span className="text-[11.5px] text-[#f7a96e] shrink-0">
+                <span className="text-[11.5px] text-[#b45309] shrink-0">
                   {it.hiddenReason === "draft" ? "draft — hidden" : "out of stock — hidden"}
                 </span>
               )}
@@ -189,9 +187,9 @@ export default function BundleEditor({
               </span>
               <button
                 type="button"
-                title="Take this one off the list"
+                title="Remove"
                 onClick={() => save({ ...list, items: list.items.filter((x) => x.id !== it.id) }, 0)}
-                className="w-[28px] h-[28px] grid place-items-center rounded-[7px] text-body-soft hover:text-[#e1837a] shrink-0"
+                className="w-[28px] h-[28px] grid place-items-center rounded-[7px] text-body-soft hover:text-[#c0392b] shrink-0"
               >
                 <Icon name="trash" size={14} />
               </button>
@@ -200,7 +198,7 @@ export default function BundleEditor({
         </div>
       )}
 
-      {err && <div className="text-[13px] text-[#e1837a] mb-2.5">{err}</div>}
+      {err && <div className="text-[13px] text-[#c0392b] mb-2.5">{err}</div>}
 
       {picking ? (
         <div className="border border-lavender-deep rounded-[12px] p-3 mb-3">
@@ -265,7 +263,7 @@ export default function BundleEditor({
             </div>
             {list.savePaisa > 0 ? (
               <div className="flex justify-between gap-3">
-                <span className="font-semibold text-[#76efc3]">
+                <span className="font-semibold text-[#0f7d55]">
                   Bundle price — customer saves {formatTaka(list.savePaisa)}
                 </span>
                 <span className="font-display font-semibold text-[15px] text-purple">
@@ -274,9 +272,8 @@ export default function BundleEditor({
               </div>
             ) : (
               <div className="text-[12px] text-body-soft pt-0.5">
-                No bundle discount set yet — set it on the{" "}
-                <b className="font-semibold text-purple">Pricing</b> tab and this preview
-                updates itself.
+                No bundle discount — set it on the{" "}
+                <b className="font-semibold text-purple">Pricing</b> tab.
               </div>
             )}
           </div>

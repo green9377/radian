@@ -254,9 +254,7 @@ function Row({ r, onChanged }: { r: ApiLostRow; onChanged: () => void }) {
 /*  the select column is gone — the checkbox on every row did nothing at all,
     and there was no bulk action for it to do (audit 11 Sep 2026)  */
 const HEADS = ["Ref", "When", "Who & what they left", "Value", "Why it stopped", "Action"];
-const HELP =
-  "Everyone who started to buy and did not finish: typed something at checkout and left, pressed Place Order and the payment failed or was cancelled, " +
-  "or opened the gateway and closed the tab. Whatever they typed is on the row. Recovered = came back and ordered, or paid on a later attempt, or marked Ordered by staff.";
+const HELP = "Everyone who started to buy and did not finish.";
 
 export default function LostOrdersView() {
   const [data, setData] = useState<ApiLostList | null>(null);

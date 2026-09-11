@@ -86,31 +86,24 @@ export default function RecoveryView() {
       <FinHeader
         eyebrow="Marketing" emoji="↩"
         title="Recover lost orders"
-        sub="Failed payments and unfinished checkouts — who gets reminded, and when"
       />
       <Flash ok={ok} err={err} />
 
       {s && !s.recoveryEnabled && (
         <Banner tone="amber" emoji="⚠" title="Everything is switched off">
-          The master switch is off, so nothing is sent whatever the settings
-          below say. Before turning it on, check the templates are approved in
-          Meta — otherwise every message will be refused.
+          Check the Meta templates are approved before turning it on.
         </Banner>
       )}
 
       {s && s.recoveryEnabled && !s.sweeperEnabled && (
-        <Banner tone="sky" emoji="ⓘ" title="Scheduled runs are off (correct for Demo)">
-          Every message about a payment that did not arrive now WAITS — the
-          wait is set below — so with the timer off none of them fire on their
-          own, nor does &ldquo;again after 24 hours&rdquo;. Use <strong>Run
-          now</strong> to send what is due. The reason it was left off — a timer
-          waking a free database — died with Neon; turn it on.
+        <Banner tone="sky" emoji="ⓘ" title="Scheduled runs are off">
+          Nothing sends on its own — use <strong>Run now</strong>.
         </Banner>
       )}
 
       {/* rules */}
       <div className="mt-5">
-        <Panel emoji="⚙" tone="brand" title="Rules" sub="Every number lives here — none of it is hardcoded">
+        <Panel emoji="⚙" tone="brand" title="Rules">
           {!s ? (
             <div className="p-4 text-[13px] text-body-soft">Loading…</div>
           ) : (
@@ -122,12 +115,11 @@ export default function RecoveryView() {
                 sub="With this off, nothing below happens at all"
               />
 
-              <div className="border-t border-[#3b3446] pt-4 space-y-3">
+              <div className="border-t border-[#f0edf5] pt-4 space-y-3">
                 <Toggle
                   on={s.paymentFailedEnabled}
                   onChange={(v) => set("paymentFailedEnabled", v)}
                   title="Message when a payment fails"
-                  sub="The order exists, only the money is missing — the easiest kind to win back"
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
@@ -137,10 +129,7 @@ export default function RecoveryView() {
                       value={s.paymentFailedRetryHours}
                       onChange={(e) => set("paymentFailedRetryHours", Number(e.target.value))}
                     />
-                    <p className="text-[11px] text-body-soft mt-1">
-                      0 means no second message. If the money arrives first, it is
-                      skipped anyway.
-                    </p>
+                    <p className="text-[11px] text-body-soft mt-1">0 means no second message.</p>
                   </div>
                   <div>
                     <Lbl>Wait before saying it failed (minutes)</Lbl>
@@ -149,22 +138,16 @@ export default function RecoveryView() {
                       value={s.unpaidAfterMinutes}
                       onChange={(e) => set("unpaidAfterMinutes", Number(e.target.value))}
                     />
-                    <p className="text-[11px] text-body-soft mt-1">
-                      One wait for both — the customer who pressed Cancel, and the
-                      one who closed the tab and told the gateway nothing. If the
-                      money arrives inside the window the message is dropped
-                      unsent, and a late payment is still taken either way.
-                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="border-t border-[#3b3446] pt-4 space-y-3">
+              <div className="border-t border-[#f0edf5] pt-4 space-y-3">
                 <Toggle
                   on={s.abandonedEnabled}
                   onChange={(v) => set("abandonedEnabled", v)}
                   title="Message when a checkout is abandoned"
-                  sub="Meta counts this as Marketing — it costs more, and the opt-out list is honoured"
+                  sub="Counted as Marketing by Meta — costs more"
                 />
                 <div className="max-w-[280px]">
                   <Lbl>Quiet for (minutes)</Lbl>
@@ -173,15 +156,11 @@ export default function RecoveryView() {
                     value={s.abandonedAfterMinutes}
                     onChange={(e) => set("abandonedAfterMinutes", Number(e.target.value))}
                   />
-                  <p className="text-[11px] text-body-soft mt-1">
-                    Five minutes is the floor. A bKash or card OTP takes longer
-                    than that, and anything shorter would message someone who is
-                    in the middle of paying.
-                  </p>
+                  <p className="text-[11px] text-body-soft mt-1">Five minutes is the floor.</p>
                 </div>
               </div>
 
-              <div className="border-t border-[#3b3446] pt-4 grid gap-3 sm:grid-cols-2">
+              <div className="border-t border-[#f0edf5] pt-4 grid gap-3 sm:grid-cols-2">
                 <div>
                   <Lbl>Keep unfinished checkouts for (days)</Lbl>
                   <input
@@ -189,10 +168,7 @@ export default function RecoveryView() {
                     value={s.leadRetentionDays}
                     onChange={(e) => set("leadRetentionDays", Number(e.target.value))}
                   />
-                  <p className="text-[11px] text-body-soft mt-1">
-                    Deleted automatically after that. Phone numbers of people who
-                    bought nothing are a liability to keep, not an asset.
-                  </p>
+                  <p className="text-[11px] text-body-soft mt-1">Deleted automatically after that.</p>
                 </div>
                 <div>
                   <Lbl>Phone number shown in the messages</Lbl>
@@ -204,12 +180,12 @@ export default function RecoveryView() {
                 </div>
               </div>
 
-              <div className="border-t border-[#3b3446] pt-4 space-y-3">
+              <div className="border-t border-[#f0edf5] pt-4 space-y-3">
                 <Toggle
                   on={s.sweeperEnabled}
                   onChange={(v) => set("sweeperEnabled", v)}
                   title="Run on a schedule"
-                  sub="Leave off in Demo — a timer waking the free database burns its monthly quota. On for the real shop."
+                  sub="Leave off in Demo"
                 />
                 <div className="max-w-[280px]">
                   <Lbl>Every (minutes)</Lbl>
@@ -239,7 +215,6 @@ export default function RecoveryView() {
         <Panel
           emoji="☎" tone="sky"
           title="Unfinished checkouts"
-          sub="Who stopped, and how far they got — the list to call from"
         >
           <div className="p-4">
             <Tabs
@@ -278,7 +253,7 @@ export default function RecoveryView() {
                   </thead>
                   <tbody>
                     {leads.map((l) => (
-                      <tr key={l.id} className="border-t border-[#3c3347] align-top">
+                      <tr key={l.id} className="border-t border-[#f4f1f8] align-top">
                         <Td>
                           <div className="font-semibold text-purple">{l.name || "No name given"}</div>
                           {l.phone && (
@@ -358,7 +333,7 @@ function Toggle({
         className="relative rounded-full shrink-0 transition-all mt-0.5"
         style={{
           width: 48, height: 28,
-          background: on ? TONE.emerald.bg : "#2c2634",
+          background: on ? TONE.emerald.bg : "#ded7e8",
         }}
       >
         <span

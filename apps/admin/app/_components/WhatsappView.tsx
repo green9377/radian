@@ -43,7 +43,6 @@ export function WhatsappView() {
       <FinHeader
         eyebrow="Marketing"
         title="WhatsApp"
-        sub="Write a message once, build a list of who should get it, then work down the queue. No API and no per-message cost — the button opens WhatsApp with the words already there and a person presses Send."
         emoji="💬"
         tone="emerald"
       />
@@ -89,9 +88,8 @@ function Templates({ setOk, setErr }: { setOk: (s: string) => void; setErr: (s: 
   return (
     <>
       <Banner tone="sky" emoji="✎" title="What goes in a message">
-        Write it in your own words, in Bangla if that is how you speak to customers — a translated
-        message reads like a machine and people can tell. Put <code>{"{customer}"}</code> where the
-        name should go; <code>{"{shop}"}</code> and <code>{"{last_order}"}</code> also work.
+        <code>{"{customer}"}</code>, <code>{"{shop}"}</code> and <code>{"{last_order}"}</code> are
+        filled in when the message is sent.
       </Banner>
 
       <div className="mb-4">
@@ -137,8 +135,7 @@ function Templates({ setOk, setErr }: { setOk: (s: string) => void; setErr: (s: 
 
       <Card className="overflow-hidden">
         {rows.length === 0 ? (
-          <Empty emoji="✎" title="No messages saved yet"
-            sub="Write the ones you send often — Eid, Valentine's, a thank-you after a first order — and they stop being retyped every time." />
+          <Empty emoji="✎" title="No messages saved yet" />
         ) : (
           <Table head={<><Th>Name</Th><Th>Message</Th><Th>For</Th><Th right>Sent</Th><Th right></Th></>}>
             {rows.map((t) => (
@@ -269,8 +266,7 @@ function Lists({
               </label>
             </div>
             <p className="text-[11.5px] text-body-soft mt-2 mb-0">
-              Anybody on the do-not-contact list is removed automatically and cannot be filtered
-              back in.
+              Anybody on the do-not-contact list is removed automatically.
             </p>
           </div>
 
@@ -291,8 +287,7 @@ function Lists({
 
       <Card className="overflow-hidden">
         {rows.length === 0 ? (
-          <Empty emoji="📤" title="No lists yet"
-            sub="A list is a message plus the people who should get it. Build one, then work down the queue at your own pace — it remembers where you stopped." />
+          <Empty emoji="📤" title="No lists yet" />
         ) : (
           <Table head={<><Th>List</Th><Th>Message</Th><Th>Progress</Th><Th right>People</Th><Th right></Th></>}>
             {rows.map((b) => (
@@ -379,7 +374,7 @@ function BroadcastQueue({
       </div>
 
       {next ? (
-        <Card className="p-5 mb-5" tone="emerald" style={{ background: "#1a3529" }}>
+        <Card className="p-5 mb-5" tone="emerald" style={{ background: "#f6fdfa" }}>
           <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-body-soft mb-2">
             Next — {b.counts.pending} left
           </div>
@@ -402,8 +397,7 @@ function BroadcastQueue({
                 </button>
               </div>
               <p className="text-[11.5px] text-body-soft mt-3 mb-0">
-                WhatsApp opens in a new tab with the message written out. You still press Send there
-                — nothing leaves without a person looking at it.
+                WhatsApp opens in a new tab — you still press Send there.
               </p>
             </div>
             <div>
@@ -411,7 +405,7 @@ function BroadcastQueue({
                 What they will get
               </div>
               <div className="rounded-2xl px-4 py-3 text-[13.5px] leading-relaxed whitespace-pre-wrap"
-                style={{ background: "#2b411a", color: "#111" }}>
+                style={{ background: "#dcf8c6", color: "#111" }}>
                 {next.message}
               </div>
             </div>
@@ -419,8 +413,7 @@ function BroadcastQueue({
         </Card>
       ) : (
         <Banner tone="emerald" emoji="✓" title="Everybody on this list has been reached">
-          {b.counts.sent} sent, {b.counts.skipped} skipped. The result is counted in the outreach
-          report along with every other contact.
+          {b.counts.sent} sent, {b.counts.skipped} skipped.
         </Banner>
       )}
 

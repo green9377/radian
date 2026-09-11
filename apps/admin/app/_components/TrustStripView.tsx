@@ -221,7 +221,7 @@ export default function TrustStripView({ embedded }: { embedded?: boolean } = {}
         <>
           <h1 className="font-display text-[22px] text-purple mb-1">Trust strip</h1>
           <p className="text-[13px] text-body-soft mb-5">
-            The row of promises just under the big banner. Everything saves the moment you click away.
+            The row of promises under the banner.
           </p>
         </>
       )}
@@ -229,11 +229,11 @@ export default function TrustStripView({ embedded }: { embedded?: boolean } = {}
       {!embedded && <SaveBar state={saveState} onSave={() => flash("Saved")} />}
 
       {err && (
-        <div className="flex items-start gap-2 bg-[#3b1a16] border border-[#532b28] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#e7847e] mb-4">
+        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-4">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
-      {ok && <div className="bg-[#213124] border border-[#324838] rounded-[11px] px-3.5 py-2 text-[12px] text-[#7ce9b4] mb-4">{ok}</div>}
+      {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
 
       {/* A preview, because this screen edits six fragments of one row and the
           only question that matters — does the row look right — cannot be
@@ -295,12 +295,12 @@ export default function TrustStripView({ embedded }: { embedded?: boolean } = {}
                 <button onClick={() => setPreviewZone("GLOBAL")} className="text-purple font-medium underline underline-offset-2">
                   Every zone
                 </button>{" "}
-                tab — edit them there.{" "}
+                tab.{" "}
               </>
             )}
             {preview.length > 4 && (
-              <span className="text-[#ecc779]">
-                {preview.length} showing — four fits comfortably, more gets cramped on a phone.
+              <span className="text-[#8a6414]">
+                {preview.length} showing — four fits best.
               </span>
             )}
           </p>
@@ -319,7 +319,7 @@ export default function TrustStripView({ embedded }: { embedded?: boolean } = {}
               className={"border rounded-[14px] transition-all " +
                 (b.isActive
                   ? "border-lavender-deep bg-white shadow-[0_1px_6px_rgba(80,40,100,0.05)]"
-                  : "border-lavender-deep/50 bg-[#2b2033]")}
+                  : "border-lavender-deep/50 bg-[#efe7f5]")}
             >
               {/* Explicit grid columns rather than flex-with-min-width. The
                   first attempt let two inputs, a select and five buttons
@@ -366,7 +366,7 @@ export default function TrustStripView({ embedded }: { embedded?: boolean } = {}
                   >
                     <span className="absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow-sm transition-all" style={{ width: 16, height: 16, left: b.isActive ? 19 : 3 }} />
                   </button>
-                  <button onClick={() => remove(b.id)} className="text-body-soft hover:text-[#e1837a] p-1.5" aria-label="Remove"><Icon name="trash" size={15} /></button>
+                  <button onClick={() => remove(b.id)} className="text-body-soft hover:text-[#c0392b] p-1.5" aria-label="Remove"><Icon name="trash" size={15} /></button>
                 </div>
 
                 <input
@@ -393,22 +393,12 @@ export default function TrustStripView({ embedded }: { embedded?: boolean } = {}
                     <div className="flex items-start gap-2 bg-white border border-lavender-deep rounded-[9px] px-3 py-2 mb-3">
                       <span className="text-orchid shrink-0 mt-0.5"><Icon name="upload" size={14} /></span>
                       <span className="text-[12px] text-body leading-relaxed">
-                        <b className="text-purple font-semibold">Draw it SQUARE, edge to edge, on a
-                        see-through background</b> — SVG or PNG.
-                        <span className="block text-body-soft mt-0.5">
-                          Square is what makes it look big. A wide, short drawing is fitted by its
-                          width, so it ends up short in a square tile — the same drawing filling a
-                          square frame comes out about half as large again.
-                        </span>
-                        <span className="block text-body-soft mt-1">
-                          Want it in the brand colour? Draw it in <b className="text-purple">#ce6ef7</b> —
-                          whatever you upload is shown exactly as it is, we never change its colours.
-                          Max 50 KB.
-                        </span>
+                        <b className="text-purple font-semibold">Square, edge to edge, on a
+                        see-through background</b> — SVG or PNG, max 50 KB.
                       </span>
                     </div>
                     <div className="text-[12px] text-body-soft mb-2.5">
-                      Pick a symbol — these take the brand colour automatically.
+                      Pick a symbol
                     </div>
                     <div className="grid gap-1.5 mb-3.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(38px, 1fr))" }}>
                       {ICON_NAMES.map((n) => (
@@ -434,7 +424,7 @@ export default function TrustStripView({ embedded }: { embedded?: boolean } = {}
                       {b.iconUrl && (
                         <button
                           onClick={() => patch(b.id, { iconUrl: null })}
-                          className="text-[12px] text-body-soft hover:text-[#e1837a] font-medium"
+                          className="text-[12px] text-body-soft hover:text-[#c0392b] font-medium"
                         >
                           Remove the upload
                         </button>
@@ -446,20 +436,10 @@ export default function TrustStripView({ embedded }: { embedded?: boolean } = {}
                         stored file carries what the uploader found in the
                         pixels (`media.ts`). It WARNS; it never changes the
                         picture (owner, 9 Sep 2026).  */}
-                    {b.iconUrl && (
-                      hasClearBackground(b.iconUrl) ? (
-                        <p className="mt-2.5 text-[12px] text-body-soft bg-white border border-lavender-deep rounded-[9px] px-3 py-2">
-                          The background is see-through, so it sits cleanly in the tile. Judge it
-                          in the preview at the top of this page — that is the real size on the
-                          real colour. If it does not read there, it will not read on the shop.
-                        </p>
-                      ) : (
-                        <p className="mt-2.5 text-[12px] text-[#f7c76e] bg-[#3b2e16] border border-[#534428] rounded-[9px] px-3 py-2">
-                          <b>This file has no see-through background.</b> On the shop it shows as a
-                          small picture inside its own square, beside symbols that have none. Pick
-                          a symbol above, or upload the same shape with a transparent background.
-                        </p>
-                      )
+                    {b.iconUrl && !hasClearBackground(b.iconUrl) && (
+                      <p className="mt-2.5 text-[12px] text-[#8A5A00] bg-[#FFF7E8] border border-[#F2D9A8] rounded-[9px] px-3 py-2">
+                        <b>This file has no see-through background.</b>
+                      </p>
                     )}
                   </div>
                 </div>

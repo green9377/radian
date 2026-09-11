@@ -51,7 +51,7 @@ function Jump({ id, label, icon }: { id: string; label: string; icon: string }) 
     <a
       href={`#${id}`}
       className="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-white"
-      style={{ borderColor: "#e4d3f2", color: "#ce6ef7", background: "#291a35" }}
+      style={{ borderColor: "#e4d3f2", color: "#470066", background: "#faf6fd" }}
     >
       <Icon name={icon} size={13} />
       {label}
@@ -59,11 +59,11 @@ function Jump({ id, label, icon }: { id: string; label: string; icon: string }) 
   );
 }
 
-function SectionHead({ id, title, note }: { id: string; title: string; note: string }) {
+function SectionHead({ id, title, note }: { id: string; title: string; note?: string }) {
   return (
     <div id={id} className="scroll-mt-6 mb-3 mt-9 first:mt-0">
       <h2 className="font-display text-[20px] text-purple leading-tight m-0">{title}</h2>
-      <p className="text-body-soft text-[12.5px] m-0 mt-0.5">{note}</p>
+      {note ? <p className="text-body-soft text-[12.5px] m-0 mt-0.5">{note}</p> : null}
     </div>
   );
 }
@@ -164,7 +164,7 @@ export function ExecutiveDashboard() {
     return (
       <div className={WRAP}>
         <Header eyebrow="Intelligence" title="Executive dashboard" />
-        <div className="rounded-[12px] border border-[#52282b] bg-[#391719] text-[#ed8078] px-4 py-3 text-[13px]">{err}</div>
+        <div className="rounded-[12px] border border-[#f6cfd2] bg-[#fdeff0] text-[#b42318] px-4 py-3 text-[13px]">{err}</div>
       </div>
     );
   }
@@ -178,7 +178,6 @@ export function ExecutiveDashboard() {
       <Header
         eyebrow="Intelligence"
         title="Executive dashboard"
-        desc="Everything on one page. The links below scroll — nothing is hidden behind them."
         actions={
           <div className="flex items-center gap-2">
             {/*  The dashboard answers "what is happening". The next question is
@@ -186,17 +185,17 @@ export function ExecutiveDashboard() {
                 A summary with no door to the detail is a dead end. */}
             {data?.seesMoney && (
               <>
-                <Link href="/intelligence/analytics" className="rounded-[10px] border border-[#3f2d4e] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#291a35]">
+                <Link href="/intelligence/analytics" className="rounded-[10px] border border-[#e4d3f2] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#faf6fd]">
                   Analytics
                 </Link>
-                <Link href="/intelligence/reports" className="rounded-[10px] border border-[#3f2d4e] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#291a35]">
+                <Link href="/intelligence/reports" className="rounded-[10px] border border-[#e4d3f2] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#faf6fd]">
                   Reports
                 </Link>
               </>
             )}
             <button
               onClick={() => void load()}
-              className="rounded-[10px] border border-[#3f2d4e] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#291a35]"
+              className="rounded-[10px] border border-[#e4d3f2] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#faf6fd]"
             >
               <Icon name="clock" size={13} /> Refresh
             </button>
@@ -215,13 +214,12 @@ export function ExecutiveDashboard() {
       <SectionHead
         id="today"
         title="Today"
-        note={`What is waiting. ${data.today.ordersToday} order${data.today.ordersToday === 1 ? "" : "s"} taken today.`}
+        note={`${data.today.ordersToday} order${data.today.ordersToday === 1 ? "" : "s"} taken today.`}
       />
 
       {clear ? (
-        <div className="rounded-[16px] border border-[#2d4d3a] bg-[#1c3626] px-4 py-5 text-[13.5px] text-[#76efab]">
-          <Icon name="check" size={15} /> Nothing is waiting. Every order is packed, every delivery has a
-          rider, and the books have nothing stuck in them.
+        <div className="rounded-[16px] border border-[#c2ecd3] bg-[#e9f9ef] px-4 py-5 text-[13.5px] text-[#0e7a3d]">
+          <Icon name="check" size={15} /> Nothing is waiting.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
@@ -254,7 +252,7 @@ export function ExecutiveDashboard() {
       )}
 
       {/* ================= 2. BUSINESS ================= */}
-      <SectionHead id="business" title="Business" note="How the month is going, against what you set as the target." />
+      <SectionHead id="business" title="Business" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {data.business.kpis.map((k) => <KpiCard key={k.key} k={k} />)}
@@ -262,7 +260,7 @@ export function ExecutiveDashboard() {
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 mt-3">
         {data.business.supporting.map((s) => (
-          <div key={s.key} className="rounded-[14px] border border-[#3f3149] bg-white px-3.5 py-3">
+          <div key={s.key} className="rounded-[14px] border border-[#eee6f4] bg-white px-3.5 py-3">
             <div className="font-display text-[21px] leading-none text-purple">{fmt(s.value, s.unit)}</div>
             <div className="text-[11.5px] text-body-soft mt-1.5">{s.label}</div>
           </div>
@@ -285,12 +283,11 @@ export function ExecutiveDashboard() {
 
         if (!data.meta.historyReady || active.length === 0) {
           return (
-            <div className="mt-3 rounded-[14px] border border-[#3f2d4e] bg-[#291a35] px-4 py-3 text-[12.5px] text-purple leading-relaxed">
+            <div className="mt-3 rounded-[14px] border border-[#e4d3f2] bg-[#faf6fd] px-4 py-3 text-[12.5px] text-purple leading-relaxed">
               <b>Nothing to chart yet.</b>{" "}
               {data.meta.snapshotDays === 0
-                ? "A day is recorded once it has closed, so the first row appears after tonight."
-                : `${data.meta.snapshotDays} days have been recorded and every one of them is empty — no sales have gone through the books yet.`}{" "}
-              A chart is drawn once there is something to draw.
+                ? "The first row appears after tonight."
+                : `${data.meta.snapshotDays} days recorded, all empty.`}
             </div>
           );
         }
@@ -311,7 +308,7 @@ export function ExecutiveDashboard() {
                     className="flex-1 rounded-t-[3px] min-w-[4px]"
                     style={{
                       height: `${Math.max(2, (d.revenuePaisa / max) * 100)}%`,
-                      background: d.revenuePaisa > 0 ? "#2b7fd4" : "#172a3e",
+                      background: d.revenuePaisa > 0 ? "#2b7fd4" : "#d9ecff",
                     }}
                   />
                 ))}
@@ -328,14 +325,14 @@ export function ExecutiveDashboard() {
           arrive is not a restriction, it is a rumour. */}
       {data.money ? (
         <>
-          <SectionHead id="money" title="Money" note="Every figure here comes from Finance. None of it is worked out twice." />
+          <SectionHead id="money" title="Money" />
 
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5">
             {data.money.figures.map((f) => (
               <Link
                 key={f.key}
                 href={f.href}
-                className="rounded-[14px] border border-[#3f3149] bg-white px-3.5 py-3 transition-transform hover:-translate-y-0.5"
+                className="rounded-[14px] border border-[#eee6f4] bg-white px-3.5 py-3 transition-transform hover:-translate-y-0.5"
               >
                 <div className="font-display text-[20px] leading-none text-purple">{fmt(f.value, "paisa")}</div>
                 <div className="text-[11.5px] text-body-soft mt-1.5 leading-snug">{f.label}</div>
@@ -344,14 +341,14 @@ export function ExecutiveDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-            <div className="rounded-[14px] border border-[#3f3149] bg-white px-4 py-3.5">
+            <div className="rounded-[14px] border border-[#eee6f4] bg-white px-4 py-3.5">
               <div className="text-[12px] text-body-soft mb-1.5">Break-even this month</div>
               {data.money.breakEven.known ? (
                 <>
                   <div className="font-display text-[22px] leading-none text-purple">
                     {formatBp(data.money.breakEven.progressBp)} of {formatTaka(data.money.breakEven.targetPaisa)}
                   </div>
-                  <div className="mt-2.5 h-[6px] rounded-full overflow-hidden bg-[#2c1e37]">
+                  <div className="mt-2.5 h-[6px] rounded-full overflow-hidden bg-[#efe4f7]">
                     <div className="h-full rounded-full bg-[#7d2ea8]" style={{ width: `${Math.min(100, data.money.breakEven.progressBp / 100)}%` }} />
                   </div>
                 </>
@@ -359,22 +356,21 @@ export function ExecutiveDashboard() {
                 /* Finance refuses to guess a break-even on thin sales and returns 0
                    rather than a confident wrong number. Passed straight through. */
                 <div className="text-[12.5px] text-body-soft leading-snug">
-                  Not enough sales yet to work this out honestly. Finance would rather say so than
-                  print a number it does not believe.
+                  Not enough sales yet.
                 </div>
               )}
             </div>
 
-            <div className="rounded-[14px] border border-[#3f3149] bg-white px-4 py-3.5">
+            <div className="rounded-[14px] border border-[#eee6f4] bg-white px-4 py-3.5">
               <div className="text-[12px] text-body-soft mb-1.5">Runway at the current fixed costs</div>
               <div className="font-display text-[22px] leading-none text-purple">
                 {data.money.runwayDays == null ? "—" : `${data.money.runwayDays} days`}
               </div>
-              <div className="text-[11.5px] text-body-soft mt-1.5">
-                {data.money.runwayDays == null
-                  ? "No fixed costs recorded this month, so there is nothing to divide."
-                  : "How long the spendable cash lasts if nothing else comes in."}
-              </div>
+              {data.money.runwayDays == null && (
+                <div className="text-[11.5px] text-body-soft mt-1.5">
+                  No fixed costs recorded this month.
+                </div>
+              )}
             </div>
           </div>
         </>
@@ -385,7 +381,6 @@ export function ExecutiveDashboard() {
       )}
 
       <p className="text-body-soft text-[11px] mt-8">
-        Today&apos;s figures are live. History comes from the nightly record.
         Last generated {new Date(data.meta.generatedAt).toLocaleString("en-GB")}.
       </p>
     </div>

@@ -237,8 +237,8 @@ function OrderRow({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
               />
               <span className={SOFT}>
                 {open === "REFUND"
-                  ? `At most ${formatTaka(refundable)} — that is what is still in hand.`
-                  : `Empty means the whole ${formatTaka(due)} still owing.`}
+                  ? `At most ${formatTaka(refundable)}.`
+                  : `Empty means the whole ${formatTaka(due)}.`}
               </span>
               <ActButton kind="solid" colour={open === "REFUND" ? SOLID.red : SOLID.green} onClick={save} disabled={busy}>
                 {busy ? "…" : "Save"}
@@ -471,10 +471,7 @@ function ReturnRow({ r, me, onChanged }: { r: ApiReturn; me: ApiMe | null; onCha
 
 /* ---------- the page ---------- */
 const HELP =
-  "Money on website orders, in one place. Orders: what each order owes or paid; record cash and advances here, send the pay link to an unpaid online order. " +
-  "Gateway attempts: every trip to SSLCommerz, read only — a payment is written when the gateway confirms it to us, never by hand. " +
-  "Returns & refunds: the Returns book for website orders; approve or reject here, pay out on the return. " +
-  "Every tile and every count is taken over the whole book on the server, not over the page you are looking at.";
+  "Money on website orders: what each owes or paid, gateway attempts, returns and refunds.";
 
 export default function PaymentsView() {
   const [tab, setTab] = useState<Tab>("orders");

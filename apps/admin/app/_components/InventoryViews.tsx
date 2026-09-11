@@ -30,7 +30,7 @@ function StockNum({ r }: { r: InvStockRow }) {
   if (r.assemblyMode === "MAKE_TO_ORDER") {
     return (
       <span className="text-[12px] font-semibold px-2 py-1 rounded-full"
-        style={{ background: "#2e1a38", color: ACCENT }}>
+        style={{ background: "#f5eafb", color: ACCENT }}>
         can build {r.canBuild ?? 0}
       </span>
     );
@@ -38,7 +38,7 @@ function StockNum({ r }: { r: InvStockRow }) {
   const neg = r.totalQtyMilli < 0;
   return (
     <span className={"text-[13.5px] font-semibold " + (neg ? "" : "text-body")}
-      style={neg ? { color: "#e1837a" } : undefined}>
+      style={neg ? { color: "#c0392b" } : undefined}>
       {fmtQty(r.totalQtyMilli)} <span className="font-normal text-[12px] text-body-soft">{r.unitShort}</span>
     </span>
   );
@@ -89,20 +89,20 @@ export function InventoryOverview() {
 
       {ov && (
         <Kpi items={[
-          { l: "Stock value (AVCO)", v: formatTaka(ov.kpis.totalValuePaisa), c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
-          { l: "Wastage today", v: formatTaka(ov.kpis.wastageTodayPaisa), c: ov.kpis.wastageTodayPaisa > 0 ? "#e1837a" : "#76efab", bg: "#3b1a16", icon: "bolt" },
-          { l: "Wastage this month", v: formatTaka(ov.kpis.wastageMonthPaisa), c: "#f7a96e", bg: "#3b2b17", icon: "cash" },
-          { l: "Given free this month", v: formatTaka(ov.kpis.giftMonthPaisa), c: "#da6cef", bg: "#35163b", icon: "heart" },
-          { l: "Movements today", v: ov.kpis.movementsToday, c: "#79abe2", bg: "#1b2838", icon: "clock" },
+          { l: "Stock value (AVCO)", v: formatTaka(ov.kpis.totalValuePaisa), c: "#470066", bg: "#f5eafb", icon: "box" },
+          { l: "Wastage today", v: formatTaka(ov.kpis.wastageTodayPaisa), c: ov.kpis.wastageTodayPaisa > 0 ? "#c0392b" : "#0e7a3d", bg: "#fdecea", icon: "bolt" },
+          { l: "Wastage this month", v: formatTaka(ov.kpis.wastageMonthPaisa), c: "#b45309", bg: "#fff4e6", icon: "cash" },
+          { l: "Given free this month", v: formatTaka(ov.kpis.giftMonthPaisa), c: "#cf43ea", bg: "#fbeafe", icon: "heart" },
+          { l: "Movements today", v: ov.kpis.movementsToday, c: "#2563a8", bg: "#e8f0fa", icon: "clock" },
         ]} />
       )}
 
       {/* needs attention — the reason this screen exists */}
       {att && attentionCount > 0 && (
-        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft" style={{ background: "#3b1a16", borderColor: "#f7cdc7" }}>
+        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft" style={{ background: "#fdecea", borderColor: "#f7cdc7" }}>
           <div className="flex items-center gap-2 mb-2.5">
             <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center text-white" style={{ background: "#c0392b" }}><Icon name="bolt" size={13} /></span>
-            <b className="text-[14px]" style={{ color: "#e38c82" }}>Needs attention ({attentionCount})</b>
+            <b className="text-[14px]" style={{ color: "#8f2b20" }}>Needs attention ({attentionCount})</b>
           </div>
 
           {att.negative.map((r) => (
@@ -110,7 +110,7 @@ export function InventoryOverview() {
               className="flex items-center gap-3 bg-white/70 rounded-[10px] px-3.5 py-2.5 mb-1.5 hover:bg-white">
               <ItemThumb item={r} size={30} />
               <span className="text-[13px] font-medium text-body flex-1 min-w-0 truncate">{r.name}</span>
-              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#3b1a16", color: "#e1837a" }}>
+              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#fdecea", color: "#c0392b" }}>
                 negative {fmtQty(r.totalQtyMilli)} {r.unitShort}
               </span>
               <span className="text-[12.5px] text-body-soft">count it, then adjust</span>
@@ -122,7 +122,7 @@ export function InventoryOverview() {
               className="flex items-center gap-3 bg-white/70 rounded-[10px] px-3.5 py-2.5 mb-1.5 hover:bg-white">
               <ItemThumb item={r} size={30} />
               <span className="text-[13px] font-medium text-body flex-1 min-w-0 truncate">{r.name}</span>
-              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#3b2b17", color: "#f7a96e" }}>
+              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#fff4e6", color: "#b45309" }}>
                 low · {fmtQty(r.totalQtyMilli)} {r.unitShort}
               </span>
               <span className="text-[12.5px] text-body-soft">reorder at {r.reorderLevel}</span>
@@ -133,7 +133,7 @@ export function InventoryOverview() {
             <div key={l.id} className="flex items-center gap-3 bg-white/70 rounded-[10px] px-3.5 py-2.5 mb-1.5">
               <ItemThumb item={{ sku: l.item.sku, name: l.item.name, imageUrl: l.item.imageUrl }} size={30} />
               <span className="text-[13px] font-medium text-body flex-1 min-w-0 truncate">{l.item.name}</span>
-              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#35163b", color: "#eb7ae9" }}>
+              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#fbeafe", color: "#a2189f" }}>
                 expires {new Date(l.expiryDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
               </span>
               <span className="text-[12.5px] text-body-soft">{fmtQty(l.qtyMilli)} left</span>
@@ -143,9 +143,9 @@ export function InventoryOverview() {
       )}
 
       {!loading && att && attentionCount === 0 && (
-        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft flex items-center gap-3" style={{ background: "#1f3529", borderColor: "#c9ecd8" }}>
+        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft flex items-center gap-3" style={{ background: "#e8f7ef", borderColor: "#c9ecd8" }}>
           <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center text-white" style={{ background: "#0e7a3d" }}><Icon name="check" size={13} /></span>
-          <b className="text-[14px]" style={{ color: "#76efab" }}>All clear — no negative stock, nothing low, no expiry alarms.</b>
+          <b className="text-[14px]" style={{ color: "#0e7a3d" }}>All clear</b>
         </div>
       )}
 
@@ -261,7 +261,7 @@ export function InvStockBoard() {
             className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
             style={filter === k
               ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-              : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
+              : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
             {label}
           </button>
         ))}
@@ -273,7 +273,7 @@ export function InvStockBoard() {
             {(["tiles", "rows"] as const).map((v) => (
               <button key={v} onClick={() => setView(v)} title={v === "tiles" ? "Photo tiles" : "Table rows"}
                 className="px-2.5 py-2"
-                style={view === v ? { background: ACCENT, color: "#fff" } : { background: "#fff", color: "#b0a1ba" }}>
+                style={view === v ? { background: ACCENT, color: "#fff" } : { background: "#fff", color: "#6b5878" }}>
                 <Icon name={v === "tiles" ? "grid" : "layers"} size={14} />
               </button>
             ))}
@@ -287,7 +287,7 @@ export function InvStockBoard() {
           {loading && <p className="text-[13px] text-body-soft">Loading…</p>}
           {!loading && shown.length === 0 && (
             <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-10 text-center text-[13px] text-body-soft">
-              Nothing here yet. Enter your first counts on the Opening stock screen.
+              Nothing here yet.
             </div>
           )}
           <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))" }}>
@@ -308,7 +308,7 @@ export function InvStockBoard() {
                     <span>
                       <span className="block text-[10px] uppercase tracking-[0.06em] text-body-soft font-semibold">In stock</span>
                       <b className="block text-[20px] leading-[1.1] font-display"
-                        style={{ color: r.isNegative ? "#e1837a" : r.isLow ? "#f7a96e" : "#ce6ef7", fontVariantNumeric: "tabular-nums" }}>
+                        style={{ color: r.isNegative ? "#c0392b" : r.isLow ? "#b45309" : "#470066", fontVariantNumeric: "tabular-nums" }}>
                         {mto ? "—" : fmtQty(r.totalQtyMilli)}
                       </b>
                       <span className="block text-[10.5px] text-body-soft">{mto ? "made to order" : r.unitName}</span>
@@ -324,7 +324,7 @@ export function InvStockBoard() {
                     <div className="px-3 pb-2 flex flex-wrap gap-1">
                       {cols.map((w) => (
                         <span key={w.id} className="text-[10.5px] px-1.5 py-0.5 rounded-full"
-                          style={{ background: "#2b1c35", color: "#dfd2e4", fontVariantNumeric: "tabular-nums" }}>
+                          style={{ background: "#f7f1fb", color: "#5c4a6b", fontVariantNumeric: "tabular-nums" }}>
                           {w.name.split(" ")[0]} {fmtQty(whQty(r, w.id))}
                         </span>
                       ))}
@@ -333,7 +333,7 @@ export function InvStockBoard() {
                   <div className="mt-auto border-t border-lavender-deep/60 flex">
                     {(r.isNegative || r.isLow) && (
                       <span className="text-[10.5px] font-bold px-2.5 py-2"
-                        style={{ color: r.isNegative ? "#e1837a" : "#f7a96e" }}>
+                        style={{ color: r.isNegative ? "#c0392b" : "#b45309" }}>
                         {r.isNegative ? "NEGATIVE" : "LOW"}
                       </span>
                     )}
@@ -367,17 +367,17 @@ export function InvStockBoard() {
         {loading && <div className="px-4 py-6 text-[13px] text-body-soft">Loading…</div>}
         {!loading && shown.length === 0 && (
           <div className="px-4 py-8 text-center text-[13px] text-body-soft">
-            Nothing here yet. Enter your first counts on the Opening stock screen.
+            Nothing here yet.
           </div>
         )}
         {shown.map((r) => (
           <div key={r.itemId} style={rowCols(cols.length)}
-            className={ROW + (r.isNegative ? " bg-[#3b1a16]/40" : r.isLow ? " bg-[#3b2b17]/40" : "")}>
+            className={ROW + (r.isNegative ? " bg-[#fdecea]/40" : r.isLow ? " bg-[#fff4e6]/40" : "")}>
             <ItemThumb item={r} size={38} />
             <span className="min-w-0">
               <span className="block text-[13.5px] font-semibold text-body truncate">
                 {r.name}
-                {r.trackExpiry && <span className="ml-2 text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full align-middle" style={{ background: "#35163b", color: "#eb7ae9" }}>expiry</span>}
+                {r.trackExpiry && <span className="ml-2 text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full align-middle" style={{ background: "#fbeafe", color: "#a2189f" }}>expiry</span>}
               </span>
               <span className="block text-[12px] text-body-soft">{r.sku} · {r.unitName}</span>
             </span>
@@ -452,7 +452,7 @@ export function InvMovementsView() {
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <button onClick={() => setReason("")}
           className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
-          style={!reason ? { background: ACCENT, color: "#fff", borderColor: ACCENT } : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
+          style={!reason ? { background: ACCENT, color: "#fff", borderColor: ACCENT } : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
           All
         </button>
         {reasons.map((k) => (
@@ -460,7 +460,7 @@ export function InvMovementsView() {
             className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
             style={reason === k
               ? { background: INV_REASON_META[k].colour, color: "#fff", borderColor: INV_REASON_META[k].colour }
-              : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
+              : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
             {INV_REASON_META[k].label}
           </button>
         ))}
@@ -485,7 +485,7 @@ export function InvMovementsView() {
             </span>
             <ReasonChip reason={m.reason} />
             <span className="text-[12.5px] text-body-soft min-w-0 truncate">{m.note ?? "—"}</span>
-            <span className="text-right text-[13px] font-semibold" style={{ color: m.qtyMilli < 0 ? "#e1837a" : "#76efab" }}>
+            <span className="text-right text-[13px] font-semibold" style={{ color: m.qtyMilli < 0 ? "#c0392b" : "#0e7a3d" }}>
               {m.qtyMilli > 0 ? "+" : ""}{fmtQty(m.qtyMilli)}
             </span>
             <span className="text-right text-[13px] text-body">{formatTaka(Math.abs(m.valuePaisa))}</span>

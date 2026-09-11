@@ -113,7 +113,7 @@ export function KpiCentre() {
       <div className={WRAP}>
         <Header eyebrow="Intelligence" title="Analytics & KPIs" />
         {err ? (
-          <div className="rounded-[12px] border border-[#52282b] bg-[#391719] text-[#ed8078] px-4 py-3 text-[13px]">{err}</div>
+          <div className="rounded-[12px] border border-[#f6cfd2] bg-[#fdeff0] text-[#b42318] px-4 py-3 text-[13px]">{err}</div>
         ) : (
           <p className="text-body-soft text-[13.5px]">Loading…</p>
         )}
@@ -126,7 +126,6 @@ export function KpiCentre() {
       <Header
         eyebrow="Intelligence"
         title="Analytics & KPIs"
-        desc="What a good month looks like, whether it happened, and why it moved. Click any target to change it."
         actions={
           <div className="flex items-center gap-1.5">
             {[thisYear - 1, thisYear, thisYear + 1].map((y) => (
@@ -135,9 +134,9 @@ export function KpiCentre() {
                 onClick={() => setYear(y)}
                 className="rounded-[10px] border px-3 py-1.5 text-[12.5px]"
                 style={{
-                  borderColor: y === year ? "#bb7fdc" : "#e4d3f2",
+                  borderColor: y === year ? "#7d2ea8" : "#e4d3f2",
                   background: y === year ? "#7d2ea8" : "#fff",
-                  color: y === year ? "#fff" : "#ce6ef7",
+                  color: y === year ? "#fff" : "#470066",
                 }}
               >
                 {y}
@@ -148,14 +147,14 @@ export function KpiCentre() {
       />
 
       {err && (
-        <div className="rounded-[12px] border border-[#3f2d4e] bg-[#291a35] text-purple px-4 py-2.5 text-[12.5px] mb-4">{err}</div>
+        <div className="rounded-[12px] border border-[#e4d3f2] bg-[#faf6fd] text-purple px-4 py-2.5 text-[12.5px] mb-4">{err}</div>
       )}
 
       {/* ---------------- the grid: target vs actual, month by month ---------------- */}
-      <div className="rounded-[16px] border border-[#3f3149] bg-white overflow-hidden mb-6">
+      <div className="rounded-[16px] border border-[#eee6f4] bg-white overflow-hidden mb-6">
         <table className="w-full text-[12.5px]" style={{ tableLayout: "fixed" }}>
           <thead>
-            <tr className="bg-[#291a35] text-purple">
+            <tr className="bg-[#faf6fd] text-purple">
               <th className="text-left font-medium px-3 py-2.5 w-[110px]">Month</th>
               {(Object.keys(KPI_META) as KpiName[]).map((k) => (
                 <th key={k} className="text-left font-medium px-3 py-2.5" title={KPI_META[k].hint}>
@@ -194,13 +193,10 @@ export function KpiCentre() {
           Revenue can only change two ways: more people bought, or each person
           spent more. They call for opposite responses, and a shop that cannot
           tell them apart spends money on the wrong one. */}
-      <h2 className="font-display text-[20px] text-purple leading-tight m-0 mb-1">Why it moved</h2>
-      <p className="text-body-soft text-[12.5px] m-0 mb-3">
-        Sales change for exactly two reasons — more orders, or a bigger basket. These two always add up to the whole change.
-      </p>
+      <h2 className="font-display text-[20px] text-purple leading-tight m-0 mb-3">Why it moved</h2>
 
       {movement && !movement.known ? (
-        <div className="rounded-[14px] border border-[#3f2d4e] bg-[#291a35] px-4 py-3 text-[12.5px] text-purple mb-6">
+        <div className="rounded-[14px] border border-[#e4d3f2] bg-[#faf6fd] px-4 py-3 text-[12.5px] text-purple mb-6">
           {movement.why}
         </div>
       ) : movement && movement.known ? (
@@ -228,24 +224,21 @@ export function KpiCentre() {
 
       {/* ---------------- weekday pattern ---------------- */}
       <h2 className="font-display text-[20px] text-purple leading-tight m-0 mb-1">Which days sell</h2>
-      <p className="text-body-soft text-[12.5px] m-0 mb-3">
-        Last 90 days. This is what stock buying and rostering should follow.
-      </p>
+      <p className="text-body-soft text-[12.5px] m-0 mb-3">Last 90 days.</p>
 
       {weekdays && !weekdays.known ? (
-        <div className="rounded-[14px] border border-[#3f2d4e] bg-[#291a35] px-4 py-3 text-[12.5px] text-purple">
-          No sales recorded in the last 90 days, so there is no pattern to report. Saying every day
-          is equally quiet would be true and useless.
+        <div className="rounded-[14px] border border-[#e4d3f2] bg-[#faf6fd] px-4 py-3 text-[12.5px] text-purple">
+          No sales in the last 90 days.
         </div>
       ) : weekdays ? (
         <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2.5">
           {weekdays.weekdays.map((d) => {
             const max = Math.max(1, ...weekdays.weekdays.map((x) => x.avgRevenuePaisa));
             return (
-              <div key={d.name} className="rounded-[14px] border border-[#3f3149] bg-white px-3.5 py-3">
+              <div key={d.name} className="rounded-[14px] border border-[#eee6f4] bg-white px-3.5 py-3">
                 <div className="text-[11.5px] text-body-soft">{d.name.slice(0, 3)}</div>
                 <div className="font-display text-[17px] leading-none text-purple mt-1.5">{formatTaka(d.avgRevenuePaisa)}</div>
-                <div className="mt-2 h-[5px] rounded-full bg-[#2c1e37] overflow-hidden">
+                <div className="mt-2 h-[5px] rounded-full bg-[#efe4f7] overflow-hidden">
                   <div className="h-full rounded-full bg-[#7d2ea8]" style={{ width: `${(d.avgRevenuePaisa / max) * 100}%` }} />
                 </div>
                 <div className="text-[11px] text-body-soft mt-1.5">{d.avgOrders} orders / day</div>
@@ -286,7 +279,7 @@ function MonthRow({
   const noData = m.actual.daysRecorded === 0 && !m.actual.isCurrentMonth && !m.inFuture;
 
   return (
-    <tr className="border-t border-[#3e314a]" style={{ background: isCurrent ? "#291a35" : undefined }}>
+    <tr className="border-t border-[#f2ecf7]" style={{ background: isCurrent ? "#faf6fd" : undefined }}>
       <td className="px-3 py-2.5">
         <span className="text-purple">{MONTH_NAMES[m.month - 1]}</span>
         {isCurrent && <span className="ml-1.5 text-[10px] uppercase tracking-[0.05em] text-orchid">now</span>}
@@ -304,7 +297,7 @@ function MonthRow({
             <div className="flex items-baseline gap-2 flex-wrap">
               <span
                 className="font-medium"
-                style={{ color: cell.rag === "none" ? "#dfd2e4" : t.text }}
+                style={{ color: cell.rag === "none" ? "#5b5b66" : t.text }}
               >
                 {show(cell.actual, meta.unit)}
               </span>
@@ -320,7 +313,7 @@ function MonthRow({
                       if (e.key === "Escape") onCancel();
                     }}
                     placeholder={meta.unit === "paisa" ? "৳" : "%"}
-                    className="w-[86px] rounded-[8px] border border-[#402e4c] px-2 py-1 text-[12px] outline-none"
+                    className="w-[86px] rounded-[8px] border border-[#c9a6e0] px-2 py-1 text-[12px] outline-none"
                     autoComplete="off"
                   />
                   <button onClick={() => onCommit(m.month, cell.kpi)} disabled={busy}
@@ -332,7 +325,7 @@ function MonthRow({
                   onClick={() => onEdit(cell.kpi)}
                   className="text-[11.5px] rounded-full px-2 py-0.5 border"
                   style={{ borderColor: t.border, background: t.bg, color: t.text }}
-                  title="Click to set the target for this month"
+                  title="Set target"
                 >
                   {cell.target === null
                     ? "set target"
@@ -352,7 +345,7 @@ function MonthRow({
         <button
           onClick={onCopy}
           disabled={busy}
-          title="Copy this month's targets into every other empty month of the year"
+          title="Copy to empty months"
           className="text-body-soft hover:text-purple"
         >
           <Icon name="copy" size={14} />

@@ -42,7 +42,6 @@ export function FinanceOverviewLive() {
       <FinHeader
         title="Money at a glance"
         emoji="৳"
-        sub="Where the money is, what this month earned and cost, and how far you are from covering the fixed costs."
         right={
           <>
             {offline && <Chip tone="amber">API offline</Chip>}
@@ -136,7 +135,7 @@ export function FinanceOverviewLive() {
           {/* the month */}
           <div className="grid lg:grid-cols-3 gap-4 mb-4">
             <Card className="lg:col-span-2 overflow-hidden">
-              <div className="px-5 py-4 border-b border-[#3e3248] flex items-baseline justify-between gap-3 flex-wrap">
+              <div className="px-5 py-4 border-b border-[#f3eef7] flex items-baseline justify-between gap-3 flex-wrap">
                 <div className="font-display text-[19px] text-purple">{monthName}</div>
                 <span className="text-[12px] text-body-soft">
                   {hasPrev ? (
@@ -147,11 +146,11 @@ export function FinanceOverviewLive() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-[#2a2131]">
+              <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-[#f3eef7]">
                 {[
                   { label: "Earned", value: o.incomePaisa, tone: TONE.emerald.text },
-                  { label: "Cost of goods", value: o.cogsPaisa, tone: "#adadad" },
-                  { label: "All costs", value: o.expensePaisa, tone: "#adadad" },
+                  { label: "Cost of goods", value: o.cogsPaisa, tone: "#6b6b6b" },
+                  { label: "All costs", value: o.expensePaisa, tone: "#6b6b6b" },
                   { label: "Left over", value: o.profitPaisa, tone: o.profitPaisa < 0 ? TONE.rose.text : TONE.emerald.text },
                 ].map((x) => (
                   <div key={x.label} className="px-5 py-4">
@@ -162,7 +161,7 @@ export function FinanceOverviewLive() {
               </div>
 
               {/* break-even */}
-              <div className="px-5 py-4 border-t border-[#3e3248]" style={{ background: "#2b1a34" }}>
+              <div className="px-5 py-4 border-t border-[#f3eef7]" style={{ background: "#fdfbfe" }}>
                 <div className="flex items-baseline justify-between text-[12.5px] mb-2 gap-3 flex-wrap">
                   <span className="font-bold text-purple">Break-even</span>
                   <span className="text-body-soft">
@@ -173,9 +172,9 @@ export function FinanceOverviewLive() {
                 <div className="text-[12px] text-body-soft mt-2">
                   {o.breakEvenPaisa > 0
                     ? pct >= 100
-                      ? `Fixed costs covered — everything above this is profit. Margin ${(o.contributionMarginBp / 100).toFixed(0)}%.`
-                      : `${pct.toFixed(0)}% there. Another ${taka(Math.max(0, o.breakEvenPaisa - o.incomePaisa))} of sales covers the fixed costs. Margin ${(o.contributionMarginBp / 100).toFixed(0)}%.`
-                    : `Fixed costs this month are ${taka(o.fixedCostPaisa)}. Once a normal month of sales is in, this fills itself.`}
+                      ? `Fixed costs covered · margin ${(o.contributionMarginBp / 100).toFixed(0)}%`
+                      : `${taka(Math.max(0, o.breakEvenPaisa - o.incomePaisa))} more sales needed · margin ${(o.contributionMarginBp / 100).toFixed(0)}%`
+                    : `Fixed costs this month ${taka(o.fixedCostPaisa)}`}
                 </div>
               </div>
             </Card>
@@ -211,9 +210,9 @@ export function FinanceOverviewLive() {
             <Panel title="Where the money sits" emoji="🏦" tone="sky">
               <div className="px-5 py-2">
                 {o.moneyAccounts.map((m) => (
-                  <div key={m.id} className="flex justify-between items-center py-2.5 border-b border-[#3f3248] last:border-0 text-[13.5px]">
+                  <div key={m.id} className="flex justify-between items-center py-2.5 border-b border-[#f6f2f9] last:border-0 text-[13.5px]">
                     <span className="text-body-soft">{m.name}</span>
-                    <span className="font-bold" style={{ color: m.balancePaisa < 0 ? TONE.rose.text : "#b694d1" }}>
+                    <span className="font-bold" style={{ color: m.balancePaisa < 0 ? TONE.rose.text : "#3d2352" }}>
                       {m.balancePaisa < 0 && <span className="mr-2"><Chip tone="rose">below zero</Chip></span>}
                       {taka(m.balancePaisa)}
                     </span>
@@ -229,7 +228,7 @@ export function FinanceOverviewLive() {
                   { l: "Out for delivery right now", v: o.goodsOutPaisa },
                   { l: "VAT held for the government", v: o.vatPayablePaisa },
                 ].map((x) => (
-                  <div key={x.l} className="flex justify-between items-center py-2.5 border-b border-[#3f3248] last:border-0 text-[13.5px]">
+                  <div key={x.l} className="flex justify-between items-center py-2.5 border-b border-[#f6f2f9] last:border-0 text-[13.5px]">
                     <span className="text-body-soft">{x.l}</span>
                     <span className="font-bold text-purple">{taka(x.v)}</span>
                   </div>
@@ -240,10 +239,7 @@ export function FinanceOverviewLive() {
 
           {o.spendablePaisa < 0 && (
             <div className="mt-4">
-              <Banner tone="rose" emoji="⚠" title="You are holding less than you owe customers">
-                Advances taken for undelivered orders are bigger than the cash in hand. Money meant
-                for flowers that have not gone out yet has already been spent.
-              </Banner>
+              <Banner tone="rose" emoji="⚠" title="You are holding less than you owe customers" />
             </div>
           )}
         </>

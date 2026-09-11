@@ -34,10 +34,10 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 
 /*  Brand family only — deep purple, orchid, rose gold, soft purple (house
     rule 17). Never a rainbow.  */
-const P = { c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34" };
-const O = { c: "#bb87d4", edge: "#cf43ea", bg: "#30183a" };
-const R = { c: "#c794a1", edge: "#c9788a", bg: "#361b1f" };
-const S = { c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35" };
+const P = { c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8" };
+const O = { c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc" };
+const R = { c: "#a4566a", edge: "#c9788a", bg: "#fbeef0" };
+const S = { c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9" };
 
 /** One number the owner types. Bold label, real field — house rule 16. */
 function RuleField({
@@ -160,7 +160,7 @@ export default function BadgeRulesView() {
         </div>
         <div className="flex items-center gap-2.5">
           {flash && (
-            <span className="text-[12.5px] font-semibold text-[#76efab]">{flash}</span>
+            <span className="text-[12.5px] font-semibold text-[#0E7A3D]">{flash}</span>
           )}
           <button
             type="button"
@@ -182,7 +182,7 @@ export default function BadgeRulesView() {
       </div>
 
       {err && (
-        <div className="mb-5 rounded-[14px] border border-[#4f2c2c] bg-[#391818] px-4 py-3 text-[13px] text-[#db8a8a]">
+        <div className="mb-5 rounded-[14px] border border-[#f0c8c8] bg-[#fdf1f1] px-4 py-3 text-[13px] text-[#8a2b2b]">
           {err}
         </div>
       )}
@@ -210,7 +210,7 @@ export default function BadgeRulesView() {
               max={50}
               value={rules.bestSellerPercent}
               onChange={(n) => set({ bestSellerPercent: n })}
-              tip="How much of a category may carry the badge. There is no upper limit on the COUNT — the percentage decides it. A category with 500 products at 10% badges 50 of them; at 20%, a hundred. The scope is the top-level category, not a sub-category: shop-wide every badge would land on fresh flowers, and by sub-category a shelf of four products would badge all four."
+              tip="Share of a top-level category that may carry the badge."
             />
             <RuleField
               label="Counted over"
@@ -219,7 +219,7 @@ export default function BadgeRulesView() {
               max={730}
               value={rules.bestSellerDays}
               onChange={(n) => set({ bestSellerDays: n })}
-              tip="How far back real, delivered sales are counted. 90 days rather than lifetime, so last Eid does not hold the badge all year and a better bouquet can climb past it. Only real orders count — the sales figures typed on the product page to reassure a shopper are display numbers and are deliberately ignored here."
+              tip="How far back delivered sales are counted."
             />
             <RuleField
               label="At least"
@@ -228,7 +228,7 @@ export default function BadgeRulesView() {
               max={50}
               value={rules.bestSellerMinCount}
               onChange={(n) => set({ bestSellerMinCount: n })}
-              tip="The floor, so a small category is not left with nothing: 10% of twelve products is one, and one is a fluke rather than a shelf. It only ever tops the list up out of products that qualify — it never invents a badge for something that has not sold, and it never trims a big category down."
+              tip="The floor, so a small category is not left with nothing."
             />
             <RuleField
               label="Needs at least"
@@ -237,7 +237,7 @@ export default function BadgeRulesView() {
               max={100}
               value={rules.bestSellerMinSales}
               onChange={(n) => set({ bestSellerMinSales: n })}
-              tip="How many delivered units a product needs before it is eligible at all. Without it, the top of a quiet category is whoever happened to sell twice."
+              tip="Delivered units a product needs to be eligible."
             />
           </div>
 
@@ -260,7 +260,7 @@ export default function BadgeRulesView() {
               max={180}
               value={rules.newArrivalDays}
               onChange={(n) => set({ newArrivalDays: n })}
-              tip="Counted from the day the product went LIVE, not the day the draft was started — a bouquet drafted in March and published in August is new in August. Editing a live product does not make it new again."
+              tip="Counted from the day the product went live."
             />
           </div>
 
@@ -274,7 +274,7 @@ export default function BadgeRulesView() {
                 <Icon name="layers" size={15} />
               </span>
               <h2 className="font-display text-[17px] text-purple">What that works out to</h2>
-              <Info text="Category by category, with today's sales: how many products it holds, how many the percentage asks for, and how many can actually be filled. Saved rules are already applied; change a number above and press Save to see this move." />
+              <Info text="Category by category, with today's sales." />
             </div>
             {rules.lastComputedAt && (
               <span className="text-[12px] text-body-soft">
@@ -289,7 +289,7 @@ export default function BadgeRulesView() {
                 <thead>
                   <tr
                     className="text-left"
-                    style={{ background: `linear-gradient(135deg,${P.bg},#1f1727)` }}
+                    style={{ background: `linear-gradient(135deg,${P.bg},#ffffff)` }}
                   >
                     <th className="px-4 py-3 font-bold text-purple">Category</th>
                     <th className="px-3 py-3 font-bold text-purple text-right">Products</th>
@@ -302,13 +302,13 @@ export default function BadgeRulesView() {
                     <th className="px-3 py-3 font-bold text-purple text-right">
                       <span className="inline-flex items-center gap-1.5">
                         Badged today
-                        <Info text="How many the shop can actually fill. Lower than what the rule asks for whenever fewer products have reached the minimum number of real sales — a badge is never handed to something that has not sold." />
+                        <Info text="How many the shop can actually fill." />
                       </span>
                     </th>
                     <th className="px-3 py-3 font-bold text-purple text-right">
                       <span className="inline-flex items-center gap-1.5">
                         By hand
-                        <Info text="Products where the badge was forced on or off on the product itself — Always or Never instead of Auto. Those override the rule." />
+                        <Info text="Badge forced on or off on the product itself." />
                       </span>
                     </th>
                   </tr>

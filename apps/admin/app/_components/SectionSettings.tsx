@@ -69,7 +69,7 @@ function BestSellerSettings({ c, save }: { c: Cfg; save: Save }) {
 
   return (
     <div className="space-y-4">
-      <F label="What goes in this grid" hint="the badge is earned under Products → Badge rules; nothing typed in can put a product here">
+      <F label="What goes in this grid">
         <div className="flex flex-wrap gap-2">
           {MODES.map((m) => (
             <button
@@ -83,21 +83,18 @@ function BestSellerSettings({ c, save }: { c: Cfg; save: Save }) {
             </button>
           ))}
         </div>
-        <p className="text-[11.5px] text-body-soft mt-1.5 m-0">{MODES.find((m) => m.v === mode)?.hint}</p>
       </F>
 
       {mode === "MANUAL" && <ProductPicker picked={(c.products as string[] | undefined) ?? []} onChange={(p) => save({ products: p })} />}
 
       <F
         label="Category tabs"
-        hint={chosen
-          ? "your own choice and order — click a category to add or remove it, use the arrows to order"
-          : "following the categories featured on the homepage (Contents tab) — click one to start choosing yourself"}
+        hint={chosen ? "your own choice and order" : "following the homepage categories"}
       >
         {tabs.length > 0 && (
           <div className="rounded-[12px] border border-lavender-deep bg-white overflow-hidden mb-2 max-w-[520px]">
             {tabs.map((slug, i) => (
-              <div key={slug} className="flex items-center gap-2.5 px-3 py-2 border-b border-[#40304a] last:border-b-0">
+              <div key={slug} className="flex items-center gap-2.5 px-3 py-2 border-b border-[#efe6f5] last:border-b-0">
                 <span className="w-[20px] text-[12px] text-body-soft tabular-nums">{i + 1}</span>
                 <span className="flex-1 min-w-0 text-[13px] text-purple truncate">{nameOf(slug)}</span>
                 <Arrow onClick={() => moveTab(i, -1)} disabled={i === 0} title="Move up">↑</Arrow>
@@ -136,7 +133,7 @@ function BestSellerSettings({ c, save }: { c: Cfg; save: Save }) {
 
       <ViewAllFields c={c} save={save} />
 
-      <F label="When there is nothing to show" hint="the words in the grid's place — for a zone with no best sellers yet">
+      <F label="When there is nothing to show">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
           <TextBox value={String(c.emptyTitle ?? "")} placeholder="Nothing here yet" onCommit={(v) => save({ emptyTitle: v })} />
           <TextBox value={String(c.emptyText ?? "")} placeholder="More gifts for your area are coming soon." onCommit={(v) => save({ emptyText: v })} />
@@ -175,15 +172,13 @@ function ProductPicker({ picked, onChange }: { picked: string[]; onChange: (next
   };
 
   return (
-    <F label="Your list" hint="click a product to add it — the order here is the order on the page; a tab shows the picks from its own category">
+    <F label="Your list">
       {picked.length === 0 ? (
-        <p className="text-[11.5px] text-[#ecc779] m-0 mb-2">
-          Nothing picked yet, so the grid is still filling itself automatically.
-        </p>
+        <p className="text-[11.5px] text-[#8a6414] m-0 mb-2">Nothing picked — filling automatically.</p>
       ) : (
         <div className="rounded-[12px] border border-lavender-deep bg-white overflow-hidden mb-2 max-w-[520px]">
           {picked.map((s, i) => (
-            <div key={s} className="flex items-center gap-2.5 px-3 py-2 border-b border-[#40304a] last:border-b-0">
+            <div key={s} className="flex items-center gap-2.5 px-3 py-2 border-b border-[#efe6f5] last:border-b-0">
               <span className="w-[20px] text-[12px] text-body-soft tabular-nums">{i + 1}</span>
               <span className="flex-1 min-w-0 text-[13px] text-purple truncate">{known[s] ?? s}</span>
               <Arrow onClick={() => move(i, -1)} disabled={i === 0} title="Move up">↑</Arrow>
@@ -213,7 +208,7 @@ function ProductPicker({ picked, onChange }: { picked: string[]; onChange: (next
 
 function CategorySettings({ c, save }: { c: Cfg; save: Save }) {
   return (
-    <F label="How many cards at most" hint="0 = every category ticked under Contents">
+    <F label="How many cards at most" hint="0 = all">
       <NumberBox value={Number(c.limit ?? 0)} min={0} max={24} onCommit={(n) => save({ limit: n })} />
     </F>
   );
@@ -241,11 +236,11 @@ function BlogSettings({ c, save }: { c: Cfg; save: Save }) {
       <F label="How many articles">
         <NumberBox value={Number(c.count ?? 3)} min={1} max={6} onCommit={(n) => save({ count: n })} />
       </F>
-      <F label="Which articles" hint={picked.length ? "your picks, in this order" : "the newest ones — click an article to choose yourself"}>
+      <F label="Which articles" hint={picked.length ? "your picks, in this order" : "the newest ones"}>
         {picked.length > 0 && (
           <div className="rounded-[12px] border border-lavender-deep bg-white overflow-hidden mb-2 max-w-[520px]">
             {picked.map((s, i) => (
-              <div key={s} className="flex items-center gap-2.5 px-3 py-2 border-b border-[#40304a] last:border-b-0">
+              <div key={s} className="flex items-center gap-2.5 px-3 py-2 border-b border-[#efe6f5] last:border-b-0">
                 <span className="w-[20px] text-[12px] text-body-soft tabular-nums">{i + 1}</span>
                 <span className="flex-1 min-w-0 text-[13px] text-purple truncate">{nameOf(s)}</span>
                 <Arrow onClick={() => move(i, -1)} disabled={i === 0} title="Move up">↑</Arrow>
@@ -294,7 +289,7 @@ export function GiftFinderSettings({ c, save }: { c: Cfg; save: Save }) {
 
   return (
     <div className="space-y-4">
-      <F label="The purple panel on the left" hint="the words beside the steps — the reference's 'It's better when it's personal'">
+      <F label="The purple panel on the left">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
           <div>
             <span className="text-[11px] text-body-soft block mb-1">Title</span>
@@ -309,7 +304,7 @@ export function GiftFinderSettings({ c, save }: { c: Cfg; save: Save }) {
             <TextBox value={String(c.panelText ?? "")} placeholder="Tell us a bit about your gifting moment…" onCommit={(v) => save({ panelText: v })} />
           </div>
           <div className="md:col-span-2">
-            <span className="text-[11px] text-body-soft block mb-1">Picture in the panel · a cut-out (transparent PNG) sits best on the purple · empty = no picture</span>
+            <span className="text-[11px] text-body-soft block mb-1">Picture in the panel</span>
             <div className="flex items-center gap-3">
               <label className="relative block w-[120px] aspect-square rounded-[12px] border-2 border-dashed border-lavender-deep bg-lavender/40 hover:border-orchid cursor-pointer overflow-hidden grid place-items-center">
                 {panelImage
@@ -318,12 +313,12 @@ export function GiftFinderSettings({ c, save }: { c: Cfg; save: Save }) {
                   : <span className="text-body-soft text-[11px] text-center px-2">{uploading ? "Uploading…" : "Click to upload"}</span>}
                 <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => pickImage(e.target.files?.[0] ?? null)} />
               </label>
-              {panelImage && !uploading && <button onClick={() => save({ panelImageUrl: "" })} className="text-[13px] text-body-soft hover:text-[#e1837a]">Remove</button>}
+              {panelImage && !uploading && <button onClick={() => save({ panelImageUrl: "" })} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove</button>}
             </div>
           </div>
         </div>
       </F>
-      <F label="The question above each step, and the small line under it" hint="the choices themselves are the tags and budget cards">
+      <F label="The question above each step, and the small line under it">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
           {steps.map((s) => (
             <div key={s.param} className="space-y-1.5">
@@ -347,7 +342,7 @@ export function GiftFinderSettings({ c, save }: { c: Cfg; save: Save }) {
           <div><span className="text-[11px] text-body-soft block mb-1">Next</span><TextBox value={String(c.nextLabel ?? "")} placeholder="Next Step →" onCommit={(v) => save({ nextLabel: v })} /></div>
           <div><span className="text-[11px] text-body-soft block mb-1">Last step</span><TextBox value={String(c.doneLabel ?? "")} placeholder="Show My Gifts →" onCommit={(v) => save({ doneLabel: v })} /></div>
           <div><span className="text-[11px] text-body-soft block mb-1">Skip · empty = no skip</span><TextBox value={String(c.skipLabel ?? "")} placeholder="Skip for now" onCommit={(v) => save({ skipLabel: v })} /></div>
-          <div><span className="text-[11px] text-body-soft block mb-1">Side caption (right column) · empty = no column</span><TextBox value={String(c.sideCaption ?? "")} placeholder="Small gestures, big happiness" onCommit={(v) => save({ sideCaption: v })} /></div>
+          <div><span className="text-[11px] text-body-soft block mb-1">Side caption · empty = none</span><TextBox value={String(c.sideCaption ?? "")} placeholder="Small gestures, big happiness" onCommit={(v) => save({ sideCaption: v })} /></div>
         </div>
       </F>
     </div>
@@ -359,7 +354,7 @@ export function GiftFinderSettings({ c, save }: { c: Cfg; save: Save }) {
 function DeliverySettings({ c, save }: { c: Cfg; save: Save }) {
   return (
     <div className="space-y-4">
-      <F label="Cards under each tab" hint="the tabs themselves are the delivery methods ticked under Contents">
+      <F label="Cards under each tab">
         <NumberBox value={Number(c.perTab ?? 4)} min={2} max={8} onCommit={(n) => save({ perTab: n })} />
       </F>
       <ViewAllFields c={c} save={save} />
@@ -387,7 +382,7 @@ function IconRows({ rows, max, onChange, placeholderTitle, placeholderSub }: {
           </select>
           <TextBox value={r.title} placeholder={placeholderTitle} onCommit={(v) => set(i, { title: v })} />
           <TextBox value={r.sub} placeholder={placeholderSub} onCommit={(v) => set(i, { sub: v })} />
-          <button type="button" onClick={() => onChange(rows.filter((_, j) => j !== i))} className="text-[13px] text-body-soft hover:text-[#e1837a] px-1" title="Remove">✕</button>
+          <button type="button" onClick={() => onChange(rows.filter((_, j) => j !== i))} className="text-[13px] text-body-soft hover:text-[#c0392b] px-1" title="Remove">✕</button>
         </div>
       ))}
       {rows.length < max && (
@@ -417,7 +412,7 @@ export function AboutSettings({ c, save, variant = "card" }: { c: Cfg; save: Sav
   if (variant === "article") {
     return (
       <div className="space-y-4">
-        <F label="The words" hint="centred under the page, the first paragraph open and the rest behind Read more — paragraphs separated by a blank line">
+        <F label="The words" hint="blank line = new paragraph">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
             <div><span className="text-[11px] text-body-soft block mb-1">Small line above</span><TextBox value={String(c.eyebrow ?? "")} placeholder="Fresh flowers in Dhaka" onCommit={(v) => save({ eyebrow: v })} /></div>
             <div><span className="text-[11px] text-body-soft block mb-1">Heading</span><TextBox value={String(c.title ?? "")} placeholder="Fresh Flower Delivery in Dhaka" onCommit={(v) => save({ title: v })} /></div>
@@ -433,7 +428,7 @@ export function AboutSettings({ c, save, variant = "card" }: { c: Cfg; save: Sav
 
   return (
     <div className="space-y-4">
-      <F label="The words" hint="paragraphs separated by a blank line">
+      <F label="The words" hint="blank line = new paragraph">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
           <div><span className="text-[11px] text-body-soft block mb-1">Small line above</span><TextBox value={String(c.eyebrow ?? "")} placeholder="About Radian" onCommit={(v) => save({ eyebrow: v })} /></div>
           <div><span className="text-[11px] text-body-soft block mb-1">Heading</span><TextBox value={String(c.title ?? "")} placeholder="Radian Flower & Gift Shop — Bringing Smiles Across Bangladesh" onCommit={(v) => save({ title: v })} /></div>
@@ -443,7 +438,7 @@ export function AboutSettings({ c, save, variant = "card" }: { c: Cfg; save: Sav
           </div>
         </div>
       </F>
-      <F label="The highlighted line" hint="the tinted box — a bold part and the rest">
+      <F label="The highlighted line">
         <div className="grid grid-cols-[120px_1fr_2fr] gap-2 max-w-[720px]">
           <select className="ipt" value={String(c.highlightIcon ?? "truck")} onChange={(e) => save({ highlightIcon: e.target.value })}>
             <option value="">No icon</option>
@@ -462,7 +457,7 @@ export function AboutSettings({ c, save, variant = "card" }: { c: Cfg; save: Sav
           <TextBox value={String(c.ctaHref ?? "")} placeholder="/about" onCommit={(v) => save({ ctaHref: v })} />
         </div>
       </F>
-      <F label="The picture" hint="upright, 4:5 · empty = the card has no picture column">
+      <F label="The picture" hint="upright, 4:5">
         <div className="flex items-center gap-3">
           <label className="relative block w-[120px] aspect-[4/5] rounded-[12px] border-2 border-dashed border-lavender-deep bg-lavender/40 hover:border-orchid cursor-pointer overflow-hidden grid place-items-center">
             {image
@@ -471,10 +466,10 @@ export function AboutSettings({ c, save, variant = "card" }: { c: Cfg; save: Sav
               : <span className="text-body-soft text-[11px] text-center px-2">{uploading ? "Uploading…" : "Click to upload"}</span>}
             <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => pickImage(e.target.files?.[0] ?? null)} />
           </label>
-          {image && !uploading && <button onClick={() => save({ imageUrl: "" })} className="text-[13px] text-body-soft hover:text-[#e1837a]">Remove</button>}
+          {image && !uploading && <button onClick={() => save({ imageUrl: "" })} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove</button>}
         </div>
       </F>
-      <F label="Beside the picture" hint="the handwritten line on top, the three little cards, the caption at the bottom">
+      <F label="Beside the picture">
         <div className="space-y-3 max-w-[720px]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><span className="text-[11px] text-body-soft block mb-1">Handwritten line</span><TextBox value={String(c.scriptLine ?? "")} placeholder="Flowers Make Better Days" onCommit={(v) => save({ scriptLine: v })} /></div>
@@ -496,7 +491,7 @@ function FaqSettings({ c, save }: { c: Cfg; save: Save }) {
   }, []);
   return (
     <div className="space-y-4">
-      <F label="Which questions" hint="the questions themselves are written under Pages & FAQs — published ones, in their order">
+      <F label="Which questions">
         <div className="grid grid-cols-1 md:grid-cols-[1fr_140px] gap-3 max-w-[720px]">
           <select className="ipt" value={String(c.group ?? "")} onChange={(e) => save({ group: e.target.value })}>
             <option value="">Every group</option>
@@ -510,7 +505,7 @@ function FaqSettings({ c, save }: { c: Cfg; save: Save }) {
           <TextBox value={String(c.footerLine ?? "")} placeholder="Thoughtful gifts. Happier people." onCommit={(v) => save({ footerLine: v })} />
         </div>
       </F>
-      <F label="The link under the list" hint="empty text = no link">
+      <F label="The link under the list" hint="empty = no link">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-[720px]">
           <TextBox value={String(c.linkText ?? "")} placeholder="See every question" onCommit={(v) => save({ linkText: v })} />
           <TextBox value={String(c.linkHref ?? "")} placeholder="/faq" onCommit={(v) => save({ linkHref: v })} />
@@ -577,7 +572,7 @@ function Arrow({ children, onClick, disabled, title, danger }: {
       disabled={disabled}
       title={title}
       className={"w-[28px] h-[28px] rounded-[8px] grid place-items-center bg-lavender transition-colors text-[13px] disabled:opacity-30 " +
-        (danger ? "text-body-soft hover:bg-[#3b1a16] hover:text-[#e1837a]" : "text-purple hover:bg-purple hover:text-white disabled:hover:bg-lavender disabled:hover:text-purple")}
+        (danger ? "text-body-soft hover:bg-[#fdecea] hover:text-[#c0392b]" : "text-purple hover:bg-purple hover:text-white disabled:hover:bg-lavender disabled:hover:text-purple")}
     >
       {children}
     </button>

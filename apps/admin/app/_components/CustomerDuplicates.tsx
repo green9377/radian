@@ -66,10 +66,8 @@ export default function CustomerDuplicates() {
 
     if (
       !confirm(
-        `Merge into "${keep.name}" (${keep.phone})?\n\n` +
-          `Merging in: ${drop.map((d) => d.name).join(", ")}\n` +
-          `Result: ${totalOrders} orders · ${formatTaka(totalLtv)} lifetime value on one profile.\n\n` +
-          `The duplicate is hidden, never deleted.`,
+        `Merge ${drop.length} profile(s) into "${keep.name}" (${keep.phone})?\n` +
+          `${totalOrders} orders · ${formatTaka(totalLtv)} on one profile. The duplicate is hidden, never deleted.`,
       )
     )
       return;
@@ -87,7 +85,7 @@ export default function CustomerDuplicates() {
       }
       return;
     }
-    setError("Merging live records needs POST /customers/:id/merge. Switch to demo data to try the full flow.");
+    setError("Merging live records is not available yet.");
     setMerged((prev) => [...prev, key]);
   }
 
@@ -102,9 +100,6 @@ export default function CustomerDuplicates() {
             Customer Management · duplicates
           </div>
           <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">Duplicates &amp; merge</h1>
-          <p className="text-body-soft text-[13.5px] m-0 max-w-[760px]">
-            The same person with two profiles splits their order history and lifetime value. Merge keeps one clean record.
-          </p>
         </div>
         <Link href="/customers/list" className="border border-lavender-deep bg-white text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] hover:border-orchid">
           All customers
@@ -112,7 +107,7 @@ export default function CustomerDuplicates() {
       </div>
 
       {error && (
-        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}. Is the API (:4000) running? <button className="underline" onClick={load}>Retry</button>
         </div>
       )}
@@ -121,10 +116,10 @@ export default function CustomerDuplicates() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
         {[
-          { l: "Possible duplicate sets", v: String(groups.length), c: groups.length ? "#f4bd66" : "#75f0c7", bg: groups.length ? "#3a2d16" : "#1e362b", icon: "copy" },
-          { l: "Profiles involved", v: String(dupCount), c: "#bb87d4", bg: "#2e1a38", icon: "user" },
-          { l: "Merged this session", v: String(merged.length), c: "#75f0c7", bg: "#1e362b", icon: "check" },
-          { l: "Total customers", v: String(all.length), c: "#7cb1df", bg: "#192739", icon: "grid" },
+          { l: "Possible duplicate sets", v: String(groups.length), c: groups.length ? "#d98a0f" : "#12a172", bg: groups.length ? "#fff8ec" : "#e6f7ef", icon: "copy" },
+          { l: "Profiles involved", v: String(dupCount), c: "#8b3fb0", bg: "#f5eafb", icon: "user" },
+          { l: "Merged this session", v: String(merged.length), c: "#12a172", bg: "#e6f7ef", icon: "check" },
+          { l: "Total customers", v: String(all.length), c: "#3182c9", bg: "#e9f1fb", icon: "grid" },
         ].map((k, i) => (
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}>
@@ -138,20 +133,12 @@ export default function CustomerDuplicates() {
 
       {groups.length === 0 && !loading ? (
         <div className="bg-white border border-lavender-deep rounded-[18px] p-10 shadow-soft text-center">
-          <div className="w-12 h-12 rounded-full bg-[#1e362b] text-[#75f0c7] grid place-items-center mx-auto mb-3">
+          <div className="w-12 h-12 rounded-full bg-[#e6f7ef] text-[#12a172] grid place-items-center mx-auto mb-3">
             <Icon name="check" size={24} />
           </div>
           <div className="font-display text-[18px] text-purple">No duplicates found</div>
-          <p className="text-body-soft text-[13px] mt-1 max-w-[440px] mx-auto">
-            Every customer has a unique phone and name. We compare the last 9 digits of the phone (so +880 and 01… match)
-            and exact names.
-          </p>
           {!isDemo && (
             <>
-              <p className="text-body-soft text-[12.5px] mt-3 max-w-[440px] mx-auto">
-                That is a clean result for your live data — nothing to merge. To see how merging works, try it on sample
-                customers.
-              </p>
               <button
                 onClick={() => {
                   setDemoMode(true);
@@ -170,7 +157,7 @@ export default function CustomerDuplicates() {
             const keepId = primaryOf(g.key, g.members);
             return (
               <div key={g.reason + g.key} className="bg-white border border-lavender-deep rounded-[18px] shadow-soft overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-lavender-deep bg-[#3a2d16] flex-wrap gap-2">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-lavender-deep bg-[#fff8ec] flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
                     <span className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-white" style={{ background: "#d98a0f" }}>
                       <Icon name="copy" size={16} />
@@ -240,11 +227,6 @@ export default function CustomerDuplicates() {
           })}
         </div>
       )}
-
-      <p className="text-body-soft text-[12px] mt-3.5">
-        Detection is live; <b>merge is a prototype</b>. The real merge must move orders, recipients and segments onto the primary
-        record and soft-hide the duplicate — history is never destroyed.
-      </p>
     </div>
   );
 }

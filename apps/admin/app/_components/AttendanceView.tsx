@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  WRAP, FinHeader, Card, Table, Th, Td, Chip, Flash, Empty, Banner,
+  WRAP, FinHeader, Card, Table, Th, Td, Chip, Flash, Empty,
   btnPrimary, btnPrimaryStyle, btnGhost, input, taka, todayStr, TONE,
 } from "./FinanceUI";
 import {
@@ -186,7 +186,7 @@ export function AttendanceView() {
         title="Attendance"
         emoji="✓"
         tone="emerald"
-        sub="Everybody starts the day marked present — change only the exceptions, then save. Payroll counts the days and hours from here, so it never has to be done from memory."
+        sub="Everybody starts marked present — change the exceptions"
         right={
           <>
             <Link href="/employees" className={btnGhost}>Staff</Link>
@@ -195,20 +195,6 @@ export function AttendanceView() {
         }
       />
       <Flash ok={ok} err={err} />
-
-      {sheet && sheet.rows.length > 0 && !sheet.everMarked && !sheet.lockedBy && !sheet.isFuture && (
-        <Banner tone="sky" emoji="?" title="What this screen is for">
-          Once a day you open this, glance down the list, and press save. Everyone is already marked
-          present with their normal hours, so on an ordinary day you change nothing. Each person has
-          their own full day — 12 hours for the shop, 4 for an evening helper — so pressing
-          <b> Half day</b> fills in half of <i>their</i> day, not a fixed number. It also works the
-          other way round: put in the real in and out times and the row sorts itself out — anything
-          under three quarters of their day becomes a half day, nothing worked becomes absent. Only
-          <b> Leave</b> stays yours to press, because a clock can say somebody was not here but not
-          whether you allowed it. An out-time earlier than the in-time simply means the shift ran
-          past midnight.
-        </Banner>
-      )}
 
       <Card className="px-5 py-4 mb-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -229,9 +215,7 @@ export function AttendanceView() {
         </div>
         {sheet?.lockedBy && (
           <p className="text-[12.5px] mt-3 mb-0" style={{ color: TONE.amber.text }}>
-            This day is inside approved payroll <b>{sheet.lockedBy}</b>, so it can no longer be changed —
-            last month&apos;s payslips have to keep matching last month&apos;s days. A genuine mistake is
-            corrected by reversing that payroll entry in Finance.
+            Inside approved payroll <b>{sheet.lockedBy}</b> — this day can no longer be changed.
           </p>
         )}
         {sheet?.isFuture && (
@@ -239,7 +223,7 @@ export function AttendanceView() {
         )}
         {sheet && !sheet.everMarked && !locked && (
           <p className="text-[12.5px] text-body-soft mt-3 mb-0">
-            Nothing saved for this day yet — everyone below is showing the default.
+            Nothing saved for this day yet.
           </p>
         )}
       </Card>
@@ -248,7 +232,7 @@ export function AttendanceView() {
         <Table head={<><Th>Employee</Th><Th>Status</Th><Th>In / out</Th><Th right>Hours worked</Th><Th>Note</Th></>}>
           {rows.length === 0 && (
             <tr><td colSpan={5} className="px-4 py-10">
-              <Empty emoji="👥" title="Nobody to mark" sub="Add staff first, then the day sheet fills itself." />
+              <Empty emoji="👥" title="Nobody to mark" />
             </td></tr>
           )}
           {rows.map((r) => (
@@ -265,7 +249,7 @@ export function AttendanceView() {
                 </span>
               </Td>
               <Td>
-                <div className="inline-flex rounded-xl overflow-hidden border border-[#3d3248]">
+                <div className="inline-flex rounded-xl overflow-hidden border border-[#e7dff0]">
                   {OPTIONS.map((o) => {
                     const on = r.status === o.key;
                     return (
@@ -273,7 +257,7 @@ export function AttendanceView() {
                         key={o.key}
                         disabled={locked}
                         onClick={() => setStatus(r, o.key)}
-                        className={`px-3 py-1.5 text-[12px] font-semibold border-r border-[#3d3248] last:border-r-0 transition-colors disabled:opacity-50 ${on ? "text-white" : "bg-white text-body-soft hover:bg-[#2a1538]"}`}
+                        className={`px-3 py-1.5 text-[12px] font-semibold border-r border-[#e7dff0] last:border-r-0 transition-colors disabled:opacity-50 ${on ? "text-white" : "bg-white text-body-soft hover:bg-[#fdfaff]"}`}
                         style={on ? { background: TONE[o.tone].bg } : undefined}
                       >
                         {o.label}

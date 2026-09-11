@@ -101,7 +101,7 @@ export default function SectionTextView({ embedded, only }: { embedded?: boolean
   }
 
   async function dropOverride(key: string, zone: string) {
-    if (!confirm(`Remove the ${zone === "DHAKA" ? "Dhaka" : "All Bangladesh"} wording? That zone goes back to the default above.`)) return;
+    if (!confirm(`Remove the ${zone === "DHAKA" ? "Dhaka" : "All Bangladesh"} wording? That zone goes back to the default.`)) return;
     await clearSectionOverride(key, zone);
     setRows((rs) => rs.filter((r) => !(r.key === key && r.zone === zone)));
     flash("Back to the default");
@@ -110,22 +110,17 @@ export default function SectionTextView({ embedded, only }: { embedded?: boolean
   return (
     <div className={embedded ? "w-full" : WRAP}>
       {!embedded && (
-        <>
-          <h1 className="font-display text-[22px] text-purple mb-1">Section headings</h1>
-          <p className="text-[13px] text-body-soft mb-5">
-            The three lines above each part of the website. Click a section to open it — everything saves the moment you click away.
-          </p>
-        </>
+        <h1 className="font-display text-[22px] text-purple mb-5">Section headings</h1>
       )}
 
       {!embedded && <SaveBar state={saveState} onSave={() => flash("Saved")} />}
 
       {err && (
-        <div className="flex items-start gap-2 bg-[#3b1a16] border border-[#532b28] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#e7847e] mb-4">
+        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-4">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
-      {ok && <div className="bg-[#213124] border border-[#324838] rounded-[11px] px-3.5 py-2 text-[12px] text-[#7ce9b4] mb-4">{ok}</div>}
+      {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
 
       {loading ? <p className="text-[13px] text-body-soft">Loading…</p> : groups.map(([page, items]) => (
         <div key={page} className="mb-7">
@@ -180,9 +175,7 @@ export default function SectionTextView({ embedded, only }: { embedded?: boolean
                     <div className="mt-3 pt-3 border-t border-lavender-deep space-y-4">
                       {/* Spelled out because "leave it empty" reads as "it will
                           be blank on the site" — it means the opposite here. */}
-                      <p className="text-[12px] text-body-soft">
-                        Leave a zone untouched and it uses the wording above. Fill one in only where the words must differ.
-                      </p>
+                      <p className="text-[12px] text-body-soft">A zone left empty uses the wording above.</p>
                       {ZONES.map((z) => {
                         const ov = overrideOf(r.key, z.v);
                         return (
@@ -190,7 +183,7 @@ export default function SectionTextView({ embedded, only }: { embedded?: boolean
                             <div className="flex items-center justify-between mb-1.5">
                               <span className="text-[12px] font-medium text-body">{z.label}</span>
                               {ov && (
-                                <button onClick={() => dropOverride(r.key, z.v)} className="text-[11.5px] text-body-soft hover:text-[#e1837a]">
+                                <button onClick={() => dropOverride(r.key, z.v)} className="text-[11.5px] text-body-soft hover:text-[#c0392b]">
                                   Use the default instead
                                 </button>
                               )}

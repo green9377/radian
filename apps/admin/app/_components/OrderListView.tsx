@@ -267,11 +267,7 @@ const SEGS: [Seg, string][] = [
     all, and there was no bulk action for it to do (audit 11 Sep 2026)  */
 const HEADS = ["Order No", "Date", "Customer", "Total", "Status", "Delivery", "Action"];
 
-const HELP =
-  "Every website, Facebook, Instagram, WhatsApp and phone order, cancelled ones included. Walk-in POS is a separate module. " +
-  "Needs action = placed and not yet confirmed. Preparing / out = being made or on the road. Revenue counts delivered orders only; " +
-  "To collect is every unpaid balance on an open order. Delivered today counts by the time it was actually handed over. " +
-  "Searching, filtering and every tile are counted in the database over all orders, not over this page.";
+const HELP = "Every online and phone order. Walk-in POS is separate.";
 
 const PAGE_SIZE = 50;
 

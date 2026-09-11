@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  WRAP, FinHeader, Card, Panel, Kpi, Chip, Empty, Flash, Banner,
-  Table, Th, Td, btnPrimary, btnPrimaryStyle, btnGhost, input, Lbl, TONE,
+  WRAP, FinHeader, Panel, Kpi, Chip, Empty, Flash, Banner,
+  Table, Th, Td, btnPrimary, btnPrimaryStyle, btnGhost, input, Lbl,
 } from "./FinanceUI";
 import {
   adsSummary, adsTest, adsPull, adsLink,
@@ -83,7 +83,7 @@ export function AdsView() {
       await saveTracking(body);
       setToken("");
       await load();
-      flash("Saved. Press “Check the connection” to prove the token works before trusting anything.");
+      flash("Saved.");
     } catch (e) { fail(e); } finally { setBusy(""); }
   };
 
@@ -106,7 +106,7 @@ export function AdsView() {
       const r = await adsPull(days);
       await load();
       flash(r.rows === 0
-        ? `Meta answered, but there were no campaign rows in the last ${r.days} days. Either nothing ran, or the token cannot see this account's insights.`
+        ? `No campaign rows in the last ${r.days} days.`
         : `Pulled ${r.rows} day-rows for the last ${r.days} days.`);
     } catch (e) { fail(e); } finally { setBusy(""); }
   };
@@ -139,11 +139,10 @@ export function AdsView() {
         title="Ad numbers — Meta"
         emoji="📊"
         tone="sky"
-        sub="What Facebook and Instagram charged, and what it bought. Read from the ad account; the money stays Finance's."
         right={
           <div className="flex items-center gap-2">
             <select
-              className="rounded-xl px-3 py-2 text-[13px] font-semibold bg-white/90 text-[#6ec7f7] border-0"
+              className="rounded-xl px-3 py-2 text-[13px] font-semibold bg-white/90 text-[#075985] border-0"
               value={days}
               onChange={(e) => { const d = Number(e.target.value); setDays(d); void load(d); }}
             >
@@ -152,7 +151,7 @@ export function AdsView() {
               <option value={90}>Last 90 days</option>
             </select>
             <button
-              className="rounded-xl px-4 py-2 text-[13px] font-semibold bg-white text-[#6ec7f7] disabled:opacity-60"
+              className="rounded-xl px-4 py-2 text-[13px] font-semibold bg-white text-[#075985] disabled:opacity-60"
               disabled={!ready || busy === "pull"}
               onClick={() => void doPull()}
             >
@@ -165,14 +164,7 @@ export function AdsView() {
 
       {/* the one thing nobody must misread */}
       <Banner tone="amber" emoji="⚠️" title="These figures are not the books.">
-        Meta reports what it billed{data && !data.isTaka ? ` in ${totalCcy}` : ""}; the bank charges
-        something else once the conversion rate and the card fee land. Both are true and they never
-        match. Nothing here touches the ledger — the button beside a campaign opens the Finance
-        expense form, where you type what the statement actually says.
-        {data && !data.isTaka && (
-          <> Because this ad account bills in <b>{totalCcy}</b>, the amount is deliberately left
-          blank for you to fill in taka.</>
-        )}
+        Meta reports what it billed{data && !data.isTaka ? ` in ${totalCcy}` : ""}; the bank charges something else.
       </Banner>
 
       {!ready && (
@@ -186,16 +178,13 @@ export function AdsView() {
             </button>
           }
         >
-          Two things are needed: the ad account id (<code>act_…</code>) and a token that carries the{" "}
-          <b>ads_read</b>{" "}permission. This is a different permission from the Conversions API token
-          on the Tracking screen — a token minted for one will not do the other&apos;s job.
+          Needs the ad account id (<code>act_…</code>) and a token with <b>ads_read</b> permission.
         </Banner>
       )}
 
       {(showKeys || !ready) && (
         <Panel
           title="Ad account"
-          sub="business.facebook.com → Business settings → Ad accounts (the id), then Graph API Explorer or a System User for the token"
           emoji="🔑"
           tone="slate"
           className="mb-6"
@@ -226,10 +215,6 @@ export function AdsView() {
                 name="radian-ads-token" data-1p-ignore data-lpignore="true"
                 placeholder={tr?.adsTokenSet ? "•••••••• — a token is saved. Type to replace it." : "paste the token"}
                 value={token} onChange={(e) => setToken(e.target.value)} />
-              <div className="text-[11.5px] text-body-soft mt-1">
-                The token is stored on the server and never sent back to this screen. Use a System
-                User token if you can — the short ones from the Graph Explorer expire in about an hour.
-              </div>
             </div>
             <div className="flex gap-2">
               <button className={btnPrimary} style={btnPrimaryStyle}
@@ -267,15 +252,12 @@ export function AdsView() {
                 : "not fetched yet"} />
           </div>
 
-          <Panel title="By campaign" sub="Meta's own campaigns. Tie each one to a Radian campaign so its spend has a home."
-            emoji="📈" tone="sky">
+          <Panel title="By campaign" emoji="📈" tone="sky">
             {data.items.length === 0 ? (
               <Empty
                 emoji="📭"
                 title="Nothing fetched yet"
-                sub={ready
-                  ? "Press “Fetch from Meta” above. Numbers are stored here afterwards, so the screen stays fast and the ad account is not hammered."
-                  : "Connect the ad account first."}
+                sub={ready ? "Press “Fetch from Meta” above." : "Connect the ad account first."}
               />
             ) : (
               <Table head={
@@ -291,7 +273,7 @@ export function AdsView() {
                 </>
               }>
                 {data.items.map((c) => (
-                  <tr key={c.id} className="border-t border-[#3d3248] hover:bg-[#271538]">
+                  <tr key={c.id} className="border-t border-[#f1ecf6] hover:bg-[#fdfbff]">
                     <Td>
                       <div className="font-semibold text-[13px]">{c.name}</div>
                       <div className="text-[11px] text-body-soft">
@@ -312,7 +294,7 @@ export function AdsView() {
                     <Td right>{c.clicks > 0 ? cash(c.cpcMinor, c.currency) : "—"}</Td>
                     <Td>
                       <select
-                        className="text-[12px] rounded-lg border border-[#3d3248] px-2 py-1 bg-white max-w-[190px]"
+                        className="text-[12px] rounded-lg border border-[#e7dff0] px-2 py-1 bg-white max-w-[190px]"
                         value={c.linkedTo?.id ?? ""}
                         onChange={(e) => void relink(c.id, e.target.value)}
                       >
@@ -333,19 +315,6 @@ export function AdsView() {
             )}
           </Panel>
 
-          <Card className="px-5 py-4 mt-5" style={{ background: TONE.slate.soft }}>
-            <div className="text-[12.5px] text-body-soft leading-relaxed">
-              <b>Why a campaign is missing from the dropdown.</b>{" "}Only campaigns that exist in{" "}
-              <Link href="/marketing/campaigns" className="underline">Campaigns</Link> can be tied to
-              a Meta campaign. Tying one does not move any money — it only means that when the
-              expense is recorded against that campaign, the ROI screen can put the cost and the
-              orders side by side.
-              <br />
-              <b>Why the CTR colours are what they are.</b>{" "}Above 1% is healthy for a Bangladeshi
-              flower audience, 0.5–1% is ordinary, below 0.5% usually means the picture or the
-              audience is wrong — not the budget.
-            </div>
-          </Card>
         </>
       )}
     </div>

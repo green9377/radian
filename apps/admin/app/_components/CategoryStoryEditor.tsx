@@ -136,7 +136,7 @@ export default function CategoryStoryEditor({
 
   return (
     <div className="space-y-6">
-      {err && <div className="text-[13px] text-[#e1837a]">{err}</div>}
+      {err && <div className="text-[13px] text-[#c0392b]">{err}</div>}
 
       {/* ─────────────── TRUST BADGES ─────────────── */}
       {(!only || only === "badges") && (
@@ -144,10 +144,6 @@ export default function CategoryStoryEditor({
         <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid mb-1.5">
           Trust badges
         </div>
-        <p className="text-[12.5px] text-body-soft mt-0 mb-3">
-          The three promises under the photo on every product page in this category.
-        </p>
-
         <div className="flex flex-col gap-2.5">
           {badges.map((b) => (
             <div key={b.id} className="border border-lavender-deep rounded-[12px] bg-white">
@@ -193,7 +189,7 @@ export default function CategoryStoryEditor({
                       "w-[32px] h-[32px] rounded-[9px] grid place-items-center transition-colors " +
                       (b.isActive
                         ? "bg-lavender text-purple hover:bg-purple hover:text-white"
-                        : "bg-[#2b2034] text-body-soft")
+                        : "bg-[#f0e8f6] text-body-soft")
                     }
                   >
                     <Icon name="eye" size={14} />
@@ -204,7 +200,7 @@ export default function CategoryStoryEditor({
                       setBadges((r) => r.filter((x) => x.id !== b.id));
                       removeCategoryBadge(b.id).catch(() => {});
                     }}
-                    className="w-[32px] h-[32px] rounded-[9px] grid place-items-center bg-lavender text-body-soft hover:bg-[#3b1a16] hover:text-[#e1837a] transition-colors"
+                    className="w-[32px] h-[32px] rounded-[9px] grid place-items-center bg-lavender text-body-soft hover:bg-[#fdecea] hover:text-[#c0392b] transition-colors"
                   >
                     <Icon name="trash" size={14} />
                   </button>
@@ -228,24 +224,12 @@ export default function CategoryStoryEditor({
                         <Icon name="upload" size={14} />
                       </span>
                       <span className="text-[12px] text-body leading-relaxed">
-                        <b className="text-purple font-semibold">Draw it SQUARE, edge to edge, on a
-                        see-through background</b> — SVG or PNG.
-                        <span className="block text-body-soft mt-0.5">
-                          Square is what makes it look big. A wide, short drawing is fitted by its
-                          width, so it ends up short in a square tile — the same drawing filling a
-                          square frame comes out about half as large again.
-                        </span>
-                        <span className="block text-body-soft mt-1">
-                          Want it in the brand colour? Draw it in <b className="text-purple">#ce6ef7</b> —
-                          whatever you upload is shown exactly as it is, we never change its colours.
-                          Max 50 KB.
-                        </span>
+                        <b className="text-purple font-semibold">Square, edge to edge, on a
+                        see-through background</b> — SVG or PNG, max 50 KB.
                       </span>
                     </div>
 
-                    <div className="text-[12px] text-body-soft mb-2">
-                      Pick a symbol — these take the brand colour automatically.
-                    </div>
+                    <div className="text-[12px] text-body-soft mb-2">Pick a symbol</div>
                     <div
                       className="grid gap-1.5 mb-3"
                       style={{ gridTemplateColumns: "repeat(auto-fill, minmax(38px, 1fr))" }}
@@ -287,17 +271,9 @@ export default function CategoryStoryEditor({
                         file's own name — what the uploader found in the pixels
                         (`media.ts`), not a guess from the extension.  */}
                     {b.iconUrl && (
-                      hasClearBackground(b.iconUrl) ? (
-                        <p className="mt-2.5 text-[12px] text-body-soft bg-white border border-lavender-deep rounded-[9px] px-3 py-2">
-                          The background is see-through, so it sits cleanly in the tile. Judge it
-                          in the preview at the top of this page — that is the real size on the
-                          real colour. If it does not read there, it will not read on the shop.
-                        </p>
-                      ) : (
-                        <p className="mt-2.5 text-[12px] text-[#f7c76e] bg-[#3b2e16] border border-[#534428] rounded-[9px] px-3 py-2">
-                          <b>This file has no see-through background.</b> On the shop it shows as a
-                          small picture inside its own square, beside symbols that have none. Pick
-                          a symbol above, or upload the same shape with a transparent background.
+                      hasClearBackground(b.iconUrl) ? null : (
+                        <p className="mt-2.5 text-[12px] text-[#8A5A00] bg-[#FFF7E8] border border-[#F2D9A8] rounded-[9px] px-3 py-2">
+                          <b>This file has no see-through background.</b>
                         </p>
                       )
                     )}
@@ -332,7 +308,7 @@ export default function CategoryStoryEditor({
           <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid">
             What&rsquo;s inside
           </div>
-          <Info text="The table under “Before You Order”. Keep as many lists as this category needs — a rose bouquet and a gift basket hold different things. On a product you press one and its rows are copied there; changing the list afterwards does not touch products already made from it." />
+          <Info text="The table under “Before You Order”." />
         </div>
 
         {/*  ── which list ──
@@ -383,7 +359,7 @@ export default function CategoryStoryEditor({
 
         {open && (
           <div className="rounded-[14px] border-2 border-lavender-deep bg-white overflow-hidden">
-            <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[linear-gradient(135deg,#2b1d34,#fff)] border-b border-lavender-deep">
+            <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[linear-gradient(135deg,#f6f0fa,#fff)] border-b border-lavender-deep">
               <input
                 className="ipt font-bold text-purple flex-1 min-w-0"
                 style={{ minHeight: 40 }}
@@ -414,7 +390,7 @@ export default function CategoryStoryEditor({
                   setOpenList(null);
                   removeCategorySpecList(id).catch((e: Error) => setErr(e.message));
                 }}
-                className="text-[12.5px] font-bold px-3 py-2 rounded-[10px] border-2 border-lavender-deep bg-white text-body-soft hover:border-[#4d2e2e] hover:text-[#e1837a] shrink-0"
+                className="text-[12.5px] font-bold px-3 py-2 rounded-[10px] border-2 border-lavender-deep bg-white text-body-soft hover:border-[#e0a1a1] hover:text-[#c0392b] shrink-0"
               >
                 Remove list
               </button>
@@ -456,7 +432,7 @@ export default function CategoryStoryEditor({
                         dropRow(open.id, s.id);
                         removeCategorySpec(s.id).catch(() => {});
                       }}
-                      className="w-[32px] h-[32px] rounded-[9px] grid place-items-center text-body-soft hover:text-[#e1837a] shrink-0"
+                      className="w-[32px] h-[32px] rounded-[9px] grid place-items-center text-body-soft hover:text-[#c0392b] shrink-0"
                     >
                       <Icon name="trash" size={14} />
                     </button>
@@ -518,11 +494,6 @@ export default function CategoryStoryEditor({
         <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-orchid mb-1.5">
           FAQ
         </div>
-        <p className="text-[12.5px] text-body-soft mt-0 mb-3">
-          Shown under &ldquo;Before You Order&rdquo; on every product page in this
-          category. A product can add its own questions; these come after them.
-        </p>
-
         <div className="flex flex-col gap-2.5">
           {faqs.map((f) => (
             <div key={f.id} className="border border-lavender-deep rounded-[12px] bg-white p-3">
@@ -561,7 +532,7 @@ export default function CategoryStoryEditor({
                     setFaqs((r) => r.filter((x) => x.id !== f.id));
                     removeCategoryFaq(f.id).catch(() => {});
                   }}
-                  className="w-[32px] h-[32px] shrink-0 rounded-[9px] grid place-items-center text-body-soft hover:bg-[#3b1a16] hover:text-[#e1837a] transition-colors"
+                  className="w-[32px] h-[32px] shrink-0 rounded-[9px] grid place-items-center text-body-soft hover:bg-[#fdecea] hover:text-[#c0392b] transition-colors"
                 >
                   <Icon name="trash" size={14} />
                 </button>

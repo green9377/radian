@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
-import { WRAP, TONE, PageHead, Stat, Panel, NoteBox, type Tone } from "./OrderViews";
+import { WRAP, TONE, PageHead, Stat, Panel, type Tone } from "./OrderViews";
 import { formatTaka } from "../_data/api";
 import {
   DEMO_BOARD,
@@ -21,7 +21,7 @@ import {
    Delivery-owned data only. Colourful, decision-first (§4 DESIGN RULE). Demo data. */
 
 const DemoBar = ({ text }: { text: string }) => (
-  <div className="flex items-center gap-3 bg-[#2e1a38] border border-[#432a50] text-purple rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
+  <div className="flex items-center gap-3 bg-[#f5eafb] border border-[#e3c8f2] text-purple rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
     <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-purple text-white px-2 py-1 rounded-full shrink-0">Offline</span>
     <span className="flex-1 min-w-[220px]">{text}</span>
   </div>
@@ -57,10 +57,8 @@ export function DeliveryOverview() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Operations · Delivery" title="Delivery overview">
-        Delivery is Radian&apos;s biggest promise — 2-hour, same-day, midnight and nationwide. This is what needs a rider now and how today is going.
-      </PageHead>
-      <DemoBar text="Sample operations across the whole pipeline — every screen is fully explorable." />
+      <PageHead eyebrow="Operations · Delivery" title="Delivery overview" />
+      <DemoBar text="Sample data." />
 
       <div className="rounded-[18px] p-5 mb-5 text-white shadow-lift flex items-center gap-5 flex-wrap" style={{ background: "linear-gradient(135deg,#470066 0%,#7d2ea8 55%,#cf43ea 100%)" }}>
         <div className="min-w-0 flex-1">
@@ -97,9 +95,6 @@ export function DeliveryOverview() {
         })}
       </div>
 
-      <NoteBox tone="purple">
-        Delivery executes the promise — it never owns the price or the policy. Delivery charge = Delivery rate card; free-delivery waiver = Offers; the order stores the final snapshot. Stock is committed at &quot;preparing&quot; (DEC-MOD-003), owned by Product.
-      </NoteBox>
     </div>
   );
 }
@@ -118,10 +113,8 @@ export function DispatchRiders() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Operations · Delivery" title="Dispatch & riders">
-        In-house riders for Dhaka&apos;s time-critical promises. See who is free, who is stacked up, and hand the waiting orders to the right rider.
-      </PageHead>
-      <DemoBar text="3 in-house riders + a live waiting pool. Assign an order and it moves to Preparing (stock committed)." />
+      <PageHead eyebrow="Operations · Delivery" title="Dispatch & riders" />
+      <DemoBar text="Sample data." />
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <div>
@@ -213,10 +206,8 @@ export function FailedRto() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Operations · Delivery" title="Failed & returns (RTO)">
-        A failed delivery is the fastest way to lose trust. Call, re-attempt, or send it back — every reason is recorded.
-      </PageHead>
-      <DemoBar text="Failed deliveries and returns-to-origin, with the reason and how many attempts were made." />
+      <PageHead eyebrow="Operations · Delivery" title="Failed & returns (RTO)" />
+      <DemoBar text="Sample data." />
 
       <div className="grid grid-cols-3 gap-3 mb-6">
         <Stat label="Failed" value={String(failed.length)} tone="rose" icon="shield" />
@@ -231,9 +222,6 @@ export function FailedRto() {
         {rto.length === 0 ? <div className="px-4 py-8 text-center text-[13px] text-body-soft">Nothing returning.</div> : rto.map((r) => <Row key={r.orderNo} r={r} />)}
       </Panel>
 
-      <NoteBox tone="purple">
-        A failed delivery / RTO is a <b>Delivery</b> movement. It is not the same as a Sales &quot;Return Order&quot; (a commercial decision) or a &quot;Stock Reverted&quot; on cancel — those stay separate records (One Data One Owner).
-      </NoteBox>
     </div>
   );
 }
@@ -245,10 +233,8 @@ export function TrackingConsole() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Operations · Delivery" title="Tracking & consignments">
-        Nationwide parcels handed to 3PL couriers. Today these are entered by hand — one-click consignment + auto status over the courier API is the next step (P1).
-      </PageHead>
-      <DemoBar text="Sample 3PL consignments. In production the tracking id + status sync one-click from Steadfast / Pathao / RedX." />
+      <PageHead eyebrow="Operations · Delivery" title="Tracking & consignments" />
+      <DemoBar text="Sample data." />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Stat label="In transit" value={String((counts.in_transit ?? 0) + (counts.picked ?? 0))} tone="blue" icon="truck" />
@@ -279,9 +265,6 @@ export function TrackingConsole() {
         })}
       </Panel>
 
-      <NoteBox tone="amber">
-        <b>P1 — courier API:</b> connect Steadfast · Pathao · RedX so a consignment is created with one click and the status updates itself. Until then, paste the tracking id here from the courier panel.
-      </NoteBox>
     </div>
   );
 }
@@ -290,17 +273,15 @@ export function TrackingConsole() {
 export function ProofOfDelivery() {
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Operations · Delivery" title="Proof of delivery">
-        Every order gets a &quot;made-with-care&quot; prep photo and a hand-over delivery photo. This is the gift experience — and the proof if anything is questioned.
-      </PageHead>
-      <DemoBar text="Sample prep + delivery photos. In production riders capture these in the delivery app and they upload to Cloudinary." />
+      <PageHead eyebrow="Operations · Delivery" title="Proof of delivery" />
+      <DemoBar text="Sample data." />
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {DEMO_PROOFS.map((p) => (
           <div key={p.orderNo} className="bg-white rounded-[16px] border shadow-soft overflow-hidden" style={{ borderColor: TONE.purple.border }}>
             <div className="grid grid-cols-2 gap-0.5">
               {[["Prep", p.prepBg], ["Delivery", p.deliveryBg]].map(([label, bg]) => (
-                <div key={label as string} className="aspect-[4/3] relative grid place-items-center" style={{ background: (bg as string) || "#271b36" }}>
+                <div key={label as string} className="aspect-[4/3] relative grid place-items-center" style={{ background: (bg as string) || "#f4eefb" }}>
                   <span className="absolute top-2 left-2 text-[10px] font-bold uppercase tracking-[0.05em] bg-white/80 text-purple px-1.5 py-0.5 rounded-full">{label}</span>
                   {!bg && <span className="text-[13px] text-body-soft flex flex-col items-center gap-1"><Icon name="photo" size={20} /> not yet</span>}
                 </div>
@@ -314,9 +295,6 @@ export function ProofOfDelivery() {
         ))}
       </div>
 
-      <NoteBox tone="purple">
-        Proof photos are <b>Delivery-owned</b> — Sales only displays them on the order. Upload path: delivery-app capture → Cloudinary. Sales/customer tracker reads, never writes.
-      </NoteBox>
     </div>
   );
 }

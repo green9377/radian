@@ -145,18 +145,16 @@ export default function ShopHoursView() {
   return (
     <div className={WRAP}>
       <h1 className="font-display text-[22px] text-purple mb-1">Visit the shop</h1>
-      <p className="text-[13px] text-body-soft mb-5">
-        Everything on the shop card near the bottom of every page. Saves as you click away.
-      </p>
+      <p className="text-[13px] text-body-soft mb-5">Saves as you click away.</p>
 
       <SaveBar state={saveState} onSave={() => flash("Saved")} />
 
       {err && (
-        <div className="flex items-start gap-2 bg-[#3b1a16] border border-[#532b28] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#e7847e] mb-4">
+        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-4">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
-      {ok && <div className="bg-[#213124] border border-[#324838] rounded-[11px] px-3.5 py-2 text-[12px] text-[#7ce9b4] mb-4">{ok}</div>}
+      {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
 
       {/* ---- the card's own details: photo, address, phone, map ---- */}
       {co && (
@@ -176,7 +174,7 @@ export default function ShopHoursView() {
                 {uploading && <span className="absolute inset-x-0 bottom-0 bg-purple/85 text-white text-[11px] py-1 text-center">Uploading…</span>}
                 <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => pickPhoto(e.target.files?.[0] ?? null)} />
               </label>
-              {co.shopImageUrl && <button onClick={() => patchCompany({ shopImageUrl: null })} className="text-[12.5px] text-body-soft hover:text-[#e1837a] mt-1.5">Remove</button>}
+              {co.shopImageUrl && <button onClick={() => patchCompany({ shopImageUrl: null })} className="text-[12.5px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove</button>}
             </div>
 
             <div className="space-y-3">
@@ -191,16 +189,16 @@ export default function ShopHoursView() {
                   onBlur={(e) => e.target.value !== (co.postcode ?? "") && patchCompany({ postcode: e.target.value })} /></F>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <F label="Phone" hint="the Call button dials this">
+                <F label="Phone">
                   <input className="ipt" defaultValue={co.publicPhone ?? ""} placeholder="+880 1X XXX XXXXX"
                     onBlur={(e) => e.target.value !== (co.publicPhone ?? "") && patchCompany({ publicPhone: e.target.value })} />
                 </F>
-                <F label="WhatsApp" hint="leave empty if it is the same number">
+                <F label="WhatsApp" hint="blank = same number">
                   <input className="ipt" defaultValue={co.whatsappPhone ?? ""} placeholder="same as phone"
                     onBlur={(e) => e.target.value !== (co.whatsappPhone ?? "") && patchCompany({ whatsappPhone: e.target.value })} />
                 </F>
               </div>
-              <F label="Google Maps link" hint="open your shop in Google Maps → Share → copy the link. Without it the “Get directions” button is not shown at all.">
+              <F label="Google Maps link">
                 <input className="ipt" defaultValue={co.mapUrl ?? ""} placeholder="https://maps.app.goo.gl/…"
                   onBlur={(e) => e.target.value !== (co.mapUrl ?? "") && patchCompany({ mapUrl: e.target.value })} />
               </F>
@@ -212,11 +210,11 @@ export default function ShopHoursView() {
                   screen was ever built for them. Both blank → the card is not
                   drawn, rather than a white box on the photo.  */}
               <div className="grid grid-cols-2 gap-3">
-                <F label="Card on the photo — line 1" hint="the bold line">
+                <F label="Card on the photo — line 1">
                   <input className="ipt" defaultValue={settings?.shopChipTitle ?? ""} placeholder="Dhanmondi, Dhaka"
                     onBlur={(e) => e.target.value !== (settings?.shopChipTitle ?? "") && patchSettings({ shopChipTitle: e.target.value })} />
                 </F>
-                <F label="Card on the photo — line 2" hint="blank on both lines hides the card">
+                <F label="Card on the photo — line 2">
                   <input className="ipt" defaultValue={settings?.shopChipSub ?? ""} placeholder="Watch your gift arranged by hand"
                     onBlur={(e) => e.target.value !== (settings?.shopChipSub ?? "") && patchSettings({ shopChipSub: e.target.value })} />
                 </F>
@@ -227,12 +225,12 @@ export default function ShopHoursView() {
                   (26 Aug 2026); until then it was typed into the component.
                   Blank returns the storefront's built-in wording.  */}
               <div className="grid grid-cols-2 gap-3">
-                <F label="Line under Buy Now" hint="blank = the built-in wording">
+                <F label="Line under Buy Now" hint="blank = built-in wording">
                   <input className="ipt" defaultValue={settings?.pdpUnderBuyText ?? ""}
                     placeholder="Delivery date, gift message - all on the next step. No payment until you confirm."
                     onBlur={(e) => e.target.value !== (settings?.pdpUnderBuyText ?? "") && patchSettings({ pdpUnderBuyText: e.target.value })} />
                 </F>
-                <F label="Same line on a pre-order" hint="a pre-order must not promise no-payment">
+                <F label="Same line on a pre-order">
                   <input className="ipt" defaultValue={settings?.pdpUnderBuyPreorderText ?? ""}
                     placeholder="We'll confirm the sending date with you before anything ships."
                     onBlur={(e) => e.target.value !== (settings?.pdpUnderBuyPreorderText ?? "") && patchSettings({ pdpUnderBuyPreorderText: e.target.value })} />
@@ -287,12 +285,7 @@ export default function ShopHoursView() {
         </div>
       )}
 
-      <h2 className="font-display text-[17px] text-purple mb-1">Days the shop is shut</h2>
-      <p className="text-[13px] text-body-soft mb-3">
-        Eid, a wedding, anything. On these days the website says closed no matter what the week above says.
-        {/* Said plainly because the cost of NOT doing it is a customer standing
-            outside a locked shop, and that is not recoverable. */}
-      </p>
+      <h2 className="font-display text-[17px] text-purple mb-3">Days the shop is shut</h2>
 
       <div className="flex gap-2 flex-wrap items-end mb-3">
         <div>
@@ -318,7 +311,7 @@ export default function ShopHoursView() {
               <span className="text-[13.5px] text-purple font-medium">{prettyDate(c.date)}</span>
               <span className="text-[13px] text-body-soft flex-1">{c.reason ?? ""}</span>
               <button onClick={async () => { await removeShopClosure(c.id); setClosures((cs) => cs.filter((x) => x.id !== c.id)); }}
-                className="text-body-soft hover:text-[#e1837a] p-1"><Icon name="trash" size={15} /></button>
+                className="text-body-soft hover:text-[#c0392b] p-1"><Icon name="trash" size={15} /></button>
             </div>
           ))}
         </div>

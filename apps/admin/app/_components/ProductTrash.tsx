@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import Icon from "./Icon";
 import { listTrash, restoreProduct, purgeProduct, formatTaka, genBg, type ApiProduct } from "../_data/api";
 
@@ -70,7 +69,7 @@ export default function ProductTrash() {
   async function purgeMany(list: TrashItem[]) {
     if (!list.length) return;
     const label = list.length === 1 ? `"${list[0].name}"` : `${list.length} products`;
-    if (!confirm(`Permanently delete ${label}? This cannot be undone.\n\nAnything an order ever sold will be refused by the server and kept recoverable.`)) return;
+    if (!confirm(`Permanently delete ${label}? This cannot be undone.`)) return;
     setBusy("bulk");
     const okIds = new Set<string>();
     const ok: string[] = [];
@@ -101,12 +100,6 @@ export default function ProductTrash() {
         <span className="w-[7px] h-[7px] rounded-full bg-orchid" /> Product Management · recovery
       </div>
       <h1 className="font-display text-[30px] text-purple m-0 mb-1">Deleted products</h1>
-      <p className="text-body-soft text-[14px] mt-0 mb-5 max-w-[720px]">
-        A removed product is only hidden — anything here can be put straight
-        back, with its price, stock and order history intact. Delete forever
-        works only on products no order has ever sold; anything with sales
-        history is protected and stays recoverable.
-      </p>
 
       <div className="flex gap-2.5 flex-wrap items-center mb-4">
         <div className="relative max-w-[300px] w-full">
@@ -129,8 +122,8 @@ export default function ProductTrash() {
       </div>
 
       {err && (
-        <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#3a2d16] px-4 py-3 mb-4 text-[12.5px] text-[#f4be71]">
-          <span className="text-[#f7a96e] shrink-0"><Icon name="bolt" size={18} /></span>
+        <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#fff8ec] px-4 py-3 mb-4 text-[12.5px] text-[#7a4b09]">
+          <span className="text-[#b45309] shrink-0"><Icon name="bolt" size={18} /></span>
           <div>{err}</div>
         </div>
       )}
@@ -139,12 +132,12 @@ export default function ProductTrash() {
       {flash && (
         <div className="rounded-[14px] border border-lavender-deep bg-white px-4 py-3 mb-4 text-[13px] space-y-1">
           {flash.ok.length > 0 && (
-            <div className="text-[#76efc3] font-medium">
+            <div className="text-[#0f7d55] font-medium">
               ✓ Permanently deleted: {flash.ok.length === 1 ? flash.ok[0] : `${flash.ok.length} products`}
             </div>
           )}
           {flash.refused.map((r, i) => (
-            <div key={i} className="text-[#e7847e]">✕ {r}</div>
+            <div key={i} className="text-[#a3261f]">✕ {r}</div>
           ))}
           {flash.ok.length === 0 && flash.refused.length === 0 && (
             <div className="text-body-soft">Nothing was deleted.</div>
@@ -160,7 +153,7 @@ export default function ProductTrash() {
           <button
             onClick={() => purgeMany(shown.filter((p) => sel.has(p.id)))}
             disabled={busy === "bulk"}
-            className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white border border-[#4d2e2e] text-[#e1837a] hover:bg-[#3b1a16] disabled:opacity-40"
+            className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white border border-[#e0a1a1] text-[#c0392b] hover:bg-[#fdecea] disabled:opacity-40"
           >
             {busy === "bulk" ? "Deleting…" : "Delete forever"}
           </button>
@@ -170,8 +163,7 @@ export default function ProductTrash() {
 
       {!loading && !err && shown.length === 0 && (
         <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-16 text-center">
-          <div className="font-display text-[18px] text-purple mb-1">Nothing has been deleted</div>
-          <div className="text-[13px] text-body-soft">Good — the catalog is clean.</div>
+          <div className="font-display text-[18px] text-purple">Nothing has been deleted</div>
         </div>
       )}
 
@@ -253,8 +245,8 @@ export default function ProductTrash() {
                     <button
                       onClick={() => purgeMany([p])}
                       disabled={busy === p.id || busy === "bulk"}
-                      title="Permanently delete — refused if any order ever sold it"
-                      className="ml-1.5 border border-[#4d2e2e] text-[#e1837a] hover:bg-[#3b1a16] text-[12.5px] font-semibold px-3 py-2 rounded-[10px] disabled:opacity-40 inline-flex items-center gap-1.5"
+                      title="Delete forever"
+                      className="ml-1.5 border border-[#e0a1a1] text-[#c0392b] hover:bg-[#fdecea] text-[12.5px] font-semibold px-3 py-2 rounded-[10px] disabled:opacity-40 inline-flex items-center gap-1.5"
                     >
                       <Icon name="trash" size={14} /> Delete forever
                     </button>
@@ -265,11 +257,6 @@ export default function ProductTrash() {
           </table>
         </div>
       )}
-
-      <p className="text-body-soft text-[12px] mt-4">
-        Deleted products keep their order history, so restoring one never breaks
-        an old order. See them in <Link href="/products/list" className="text-orchid hover:underline">All products</Link> once restored.
-      </p>
     </div>
   );
 }

@@ -96,7 +96,7 @@ export function ItemTrashView() {
           {filtered.map((i) => {
             const open = purging?.id === i.id;
             return (
-              <div key={i.id} style={{ borderLeft: `4px solid ${open ? "#c0392b" : "#3e3744"}` }}>
+              <div key={i.id} style={{ borderLeft: `4px solid ${open ? "#c0392b" : "#d8cfe0"}` }}>
                 <div className="grid grid-cols-[44px_88px_minmax(0,1fr)_110px_100px_auto] items-center gap-2 px-4 py-2.5">
                   <ItemThumb item={i} />
                   <TypeChip type={i.itemType} />
@@ -119,8 +119,8 @@ export function ItemTrashView() {
                       title="Remove from the database for good"
                       className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border inline-flex items-center gap-1.5"
                       style={open
-                        ? { background: "#c0392b", borderColor: "#e1837a", color: "#fff" }
-                        : { background: "#fff", borderColor: "#f0d4d0", color: "#e1837a" }}>
+                        ? { background: "#c0392b", borderColor: "#c0392b", color: "#fff" }
+                        : { background: "#fff", borderColor: "#f0d4d0", color: "#c0392b" }}>
                       <Icon name="trash" size={13} /> {open ? "Cancel" : "Destroy"}
                     </button>
                   </span>
@@ -129,7 +129,7 @@ export function ItemTrashView() {
                 {/* ITM-R14 — the confirm step. Inline rather than a modal: the row you
                     are about to destroy stays visible right above the question. */}
                 {open && (
-                  <div className="px-4 pb-4 pt-1" style={{ background: "#371b18" }}>
+                  <div className="px-4 pb-4 pt-1" style={{ background: "#fdf4f3" }}>
                     <div className="rounded-[12px] border p-4" style={{ borderColor: "#f0c8c2", background: "#fff" }}>
                       <div className="flex items-start gap-3">
                         <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white shrink-0"
@@ -137,12 +137,11 @@ export function ItemTrashView() {
                           <Icon name="bolt" size={15} />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="text-[13.5px] font-bold" style={{ color: "#e1837a" }}>
+                          <div className="text-[13.5px] font-bold" style={{ color: "#c0392b" }}>
                             This cannot be undone
                           </div>
                           <p className="text-[13px] text-body m-0 mt-1">
-                            “{i.name}” will be removed from the database completely — its photo, cost, labels and
-                            history all go with it. Restoring will no longer be possible.
+                            “{i.name}” will be removed completely.
                           </p>
 
                           {/*  The typed-code box is gone (owner, 22 Aug 2026). It
@@ -176,7 +175,7 @@ export function ItemTrashView() {
               </span>
               <div className="text-[14px] text-purple font-medium">{query ? "Nothing matches" : "Trash is empty"}</div>
               <p className="text-[13px] text-body-soft m-0 mt-1">
-                {query ? "Try a different search." : "Nothing has been deleted — that is a good sign."}
+                {query ? "Try a different search." : "Nothing has been deleted."}
               </p>
             </div>
           )}

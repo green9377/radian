@@ -107,9 +107,6 @@ export default function CustomerRisk() {
             Customer Management · risk
           </div>
           <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">Risk &amp; blocklist</h1>
-          <p className="text-body-soft text-[13.5px] m-0 max-w-[760px]">
-            Fake COD orders and refused deliveries cost real money. Blocking stops login and ordering — it never deletes the customer.
-          </p>
         </div>
         <Link href="/customers/list" className="border border-lavender-deep bg-white text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] hover:border-orchid">
           All customers
@@ -117,7 +114,7 @@ export default function CustomerRisk() {
       </div>
 
       {error && (
-        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}. Is the API (:4000) running? <button className="underline" onClick={load}>Retry</button>
         </div>
       )}
@@ -126,11 +123,11 @@ export default function CustomerRisk() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
         {[
-          { l: "High risk", v: String(stats.high), c: "#e1837a", bg: "#3b1717", icon: "shield" },
-          { l: "Watch list", v: String(stats.med), c: "#f4bd66", bg: "#3a2d16", icon: "bolt" },
-          { l: "Blocked", v: String(stats.blocked), c: "#ed8078", bg: "#371a1a", icon: "trash" },
-          { l: "Fake COD (total)", v: String(stats.fake), c: "#bb87d4", bg: "#2e1a38", icon: "cash" },
-          { l: "Failed deliveries", v: String(stats.failed), c: "#7cb1df", bg: "#192739", icon: "truck" },
+          { l: "High risk", v: String(stats.high), c: "#c0392b", bg: "#fdecec", icon: "shield" },
+          { l: "Watch list", v: String(stats.med), c: "#d98a0f", bg: "#fff8ec", icon: "bolt" },
+          { l: "Blocked", v: String(stats.blocked), c: "#b42318", bg: "#fbecec", icon: "trash" },
+          { l: "Fake COD (total)", v: String(stats.fake), c: "#8b3fb0", bg: "#f5eafb", icon: "cash" },
+          { l: "Failed deliveries", v: String(stats.failed), c: "#3182c9", bg: "#e9f1fb", icon: "truck" },
         ].map((k, i) => (
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}>
@@ -197,10 +194,10 @@ export default function CustomerRisk() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={risk.fakeCod > 0 ? "font-semibold text-[#e1837a]" : "text-body-soft"}>{risk.fakeCod}</span>
+                    <span className={risk.fakeCod > 0 ? "font-semibold text-[#c0392b]" : "text-body-soft"}>{risk.fakeCod}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={risk.failedDeliveries > 0 ? "font-semibold text-[#f7a96e]" : "text-body-soft"}>{risk.failedDeliveries}</span>
+                    <span className={risk.failedDeliveries > 0 ? "font-semibold text-[#b45309]" : "text-body-soft"}>{risk.failedDeliveries}</span>
                   </td>
                   <td className="px-4 py-3 text-body-soft">{risk.refunds}</td>
                   <td className="px-4 py-3">
@@ -210,13 +207,13 @@ export default function CustomerRisk() {
                   <td className="px-4 py-3">
                     {blocked ? (
                       <>
-                        <span className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full bg-[#3b1a16] text-[#e1837a] font-medium">
+                        <span className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full bg-[#fdecea] text-[#c0392b] font-medium">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#c0392b]" /> Blocked
                         </span>
                         {risk.blockReason && <div className="text-[13px] text-body-soft mt-1 max-w-[160px]">{risk.blockReason}</div>}
                       </>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full bg-[#213329] text-[#8fd6b7] font-medium">
+                      <span className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full bg-[#e6f4ec] text-[#2e7d5b] font-medium">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#2e7d5b]" /> Active
                       </span>
                     )}
@@ -229,7 +226,7 @@ export default function CustomerRisk() {
                         "text-[12px] font-medium px-3 py-1.5 rounded-[9px] border whitespace-nowrap disabled:opacity-50 " +
                         (blocked
                           ? "border-lavender-deep text-purple hover:border-orchid"
-                          : "border-[#4d2e2e] text-[#e1837a] hover:bg-[#3b1a16]")
+                          : "border-[#e0a1a1] text-[#c0392b] hover:bg-[#fdecea]")
                       }
                     >
                       {busy === c.id ? "…" : blocked ? "Unblock" : "Block"}
@@ -248,15 +245,10 @@ export default function CustomerRisk() {
       </div>
 
       {!isDemo && (
-        <div className="bg-[#3b2b17] border border-[#534028] text-[#f7a96e] rounded-[12px] px-4 py-3 mt-4 text-[12.5px]">
-          <b>Risk counters are placeholders.</b> Fake-COD, failed-delivery and refund counts are not on the API yet — they
-          will come from Sales &amp; Delivery, which own those events. Block / unblock below is real.
+        <div className="bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-3 mt-4 text-[12.5px]">
+          <b>Risk counters are placeholders.</b> Block / unblock below is real.
         </div>
       )}
-      <p className="text-body-soft text-[12px] mt-3.5">
-        Block / unblock is saved. Customer Management stores only the block flag and reason — the underlying order and
-        delivery facts stay owned by Sales &amp; Delivery (One Data, One Owner).
-      </p>
     </div>
   );
 }

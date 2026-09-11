@@ -79,7 +79,7 @@ function PageEditor({ row, onSaved }: { row: ApiSeoPage; onSaved: () => void }) 
   });
 
   return (
-    <div className="px-5 py-4 border-t border-[#3e3248]" style={{ background: "#2b1a34" }}>
+    <div className="px-5 py-4 border-t border-[#f3eef7]" style={{ background: "#fdfbfe" }}>
       <div className="grid lg:grid-cols-[1.3fr_1fr] gap-5">
         <div>
           <Lbl>Title — the blue line in a Google result</Lbl>
@@ -128,13 +128,13 @@ function PageEditor({ row, onSaved }: { row: ApiSeoPage; onSaved: () => void }) 
           <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-body-soft mb-2">
             How it will look in Google
           </div>
-          <div className="rounded-xl border border-[#3d3248] bg-white p-4">
-            <div className="text-[12px] text-[#dfd2e4] truncate">{WEB_HOST} › {row.slug}</div>
-            <div className="text-[17px] leading-snug mt-0.5" style={{ color: "#7c71f4" }}>
+          <div className="rounded-xl border border-[#e7dff0] bg-white p-4">
+            <div className="text-[12px] text-[#4d5156] truncate">{WEB_HOST} › {row.slug}</div>
+            <div className="text-[17px] leading-snug mt-0.5" style={{ color: "#1a0dab" }}>
               {(f.metaTitle || row.name).slice(0, TITLE_MAX)}
               {(f.metaTitle || row.name).length > TITLE_MAX && "…"}
             </div>
-            <div className="text-[13px] leading-snug mt-1 text-[#dfd2e4]">
+            <div className="text-[13px] leading-snug mt-1 text-[#4d5156]">
               {(f.metaDescription || row.description || "Google will pick a line from the page itself.").slice(0, DESC_MAX)}
               {(f.metaDescription || row.description || "").length > DESC_MAX && "…"}
             </div>
@@ -207,7 +207,6 @@ export function SeoView() {
       <FinHeader
         eyebrow="Settings"
         title="SEO"
-        sub="What Google and Facebook see when they look at the shop. Written here, and nowhere else — there is no other tool to open."
         emoji="🔍"
         tone="sky"
       />
@@ -249,26 +248,17 @@ export function SeoView() {
             <div className="p-5 space-y-3">
               {cov.products.liveAndWrong > 0 && (
                 <div className="text-[13.5px]">
-                  <strong className="text-purple">{cov.products.liveAndWrong} products are live with no title or description.</strong>{" "}
-                  <span className="text-body-soft">
-                    Google writes its own line for those, usually badly. This is the most valuable
-                    hour of work on this screen — a product page is what people actually search for.
-                  </span>
+                  <strong className="text-purple">{cov.products.liveAndWrong} products are live with no title or description.</strong>
                 </div>
               )}
               {cov.categories.wrong > 0 && (
                 <div className="text-[13.5px]">
-                  <strong className="text-purple">{cov.categories.wrong} categories need a title.</strong>{" "}
-                  <span className="text-body-soft">Fewer pages, bigger reach — a category ranks for the broad search.</span>
+                  <strong className="text-purple">{cov.categories.wrong} categories need a title.</strong>
                 </div>
               )}
               {cov.redirects === 0 && (
                 <div className="text-[13.5px]">
-                  <strong className="text-purple">No redirects set up yet.</strong>{" "}
-                  <span className="text-body-soft">
-                    Nothing wrong today — but before the shop moves off radianbd.com, every address
-                    Google knows needs to point at its new home, or the ranking behind it is lost.
-                  </span>
+                  <strong className="text-purple">No redirects set up yet.</strong>
                 </div>
               )}
               {cov.products.wrong === 0 && cov.categories.wrong === 0 && cov.redirects > 0 && (
@@ -277,12 +267,6 @@ export function SeoView() {
             </div>
           </Panel>
 
-          <p className="text-[12px] text-body-soft mt-4 max-w-[760px]">
-            Not here on purpose: which position you hold for a given search. That needs somebody
-            crawling Google every day from many places, and any number invented in this panel would
-            be a guess. Google Search Console shows it free and correctly — paste the verification
-            tag under <strong>Site-wide</strong> and it will start reporting.
-          </p>
         </>
       )}
 
@@ -394,13 +378,6 @@ function RedirectsTab({
 
   return (
     <>
-      <Banner tone="sky" emoji="↪" title="What this is for">
-        When a page&apos;s address changes, every link to the old one dies — Google&apos;s index, a
-        customer&apos;s bookmark, the WhatsApp message somebody forwarded last month. A redirect
-        sends the old address to the new page instead of a 404, and passes the search ranking along
-        with it. <strong>This is how the shop moves off radianbd.com without starting from zero on Google.</strong>
-      </Banner>
-
       <Card className="p-5 mb-4">
         <div className="grid md:grid-cols-[1fr_1fr_auto] gap-3 items-end">
           <div><Lbl>Old address</Lbl>
@@ -489,8 +466,7 @@ function SettingsTab({ onSaved, setErr }: { onSaved: () => void; setErr: (s: str
     <>
       {!s.allowIndexing && (
         <Banner tone="rose" emoji="⚠" title="The whole site is hidden from Google right now">
-          Nothing on radianbd.com will appear in any search while this is off. Correct while the new
-          site is being built — remember to switch it back on before going live.
+          Nothing on radianbd.com will appear in any search while this is off.
         </Banner>
       )}
 
@@ -528,8 +504,7 @@ function SettingsTab({ onSaved, setErr }: { onSaved: () => void; setErr: (s: str
                 placeholder="hNObJMJUvRrjkBlpXsk…"
                 onChange={(e) => set("googleVerification", e.target.value)} />
               <p className="text-[11.5px] text-body-soft mt-1 mb-0">
-                Paste only the code, not the whole tag. Once verified, Search Console shows what
-                people searched to find you — the one thing this panel cannot work out for itself.
+                Paste only the code, not the whole tag.
               </p>
             </div>
             <div><Lbl>Bing tag</Lbl>

@@ -30,9 +30,9 @@ import {
 */
 
 const PLACEMENTS: { key: BannerPlacement; label: string; hint: string }[] = [
-  { key: "HERO", label: "Homepage slider", hint: "The big picture at the top. Slides rotate." },
-  { key: "PROMO", label: "Promo strip", hint: "The seasonal band lower down the homepage." },
-  { key: "ANNOUNCEMENT", label: "Announcement line", hint: "The thin purple line above the menu." },
+  { key: "HERO", label: "Homepage slider", hint: "The big picture at the top" },
+  { key: "PROMO", label: "Promo strip", hint: "The seasonal band lower down" },
+  { key: "ANNOUNCEMENT", label: "Announcement line", hint: "The thin line above the menu" },
 ];
 
 /* null is a real, meaningful value here — "show this in every zone" — so it
@@ -126,7 +126,7 @@ export default function BannersView({ embedded, only }: { embedded?: boolean; on
   }
 
   async function remove(id: string) {
-    if (!confirm("Hide this banner? It stops showing on the website but can be brought back.")) return;
+    if (!confirm("Hide this banner? It can be brought back.")) return;
     await deleteBanner(id);
     setRows((r) => r.filter((x) => x.id !== id));
     setEditing(null);
@@ -150,19 +150,16 @@ export default function BannersView({ embedded, only }: { embedded?: boolean; on
       {!embedded && (
         <>
           <h1 className="font-display text-[22px] text-purple mb-1">Banners</h1>
-          <p className="text-[13px] text-body-soft mb-5">
-            Everything you see at the top of the website. Changes appear the moment you save.
-          </p>
         </>
       )}
 
       {err && (
-        <div className="flex items-start gap-2 bg-[#3b1a16] border border-[#532b28] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#e7847e] mb-4">
+        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-4">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
       {ok && (
-        <div className="bg-[#213124] border border-[#324838] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#7ce9b4] mb-4">{ok}</div>
+        <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#12693f] mb-4">{ok}</div>
       )}
 
       <div className={"flex gap-2 mb-5 flex-wrap " + (only ? "hidden" : "")}>
@@ -242,11 +239,11 @@ export default function BannersView({ embedded, only }: { embedded?: boolean; on
             <div key={b.id} className={"relative rounded-[14px] p-3 pl-4 flex items-center gap-3.5 border transition-all " +
               (b.isActive
                 ? "bg-white border-lavender-deep shadow-[0_1px_6px_rgba(80,40,100,0.05)]"
-                : "bg-[#2b2033] border-lavender-deep/50")}>
+                : "bg-[#efe7f5] border-lavender-deep/50")}>
               {/* the same left edge the layout rows wear — colour when it is
                   showing, grey when it is not */}
               <span aria-hidden className="absolute left-0 top-3 bottom-3 w-[4px] rounded-full"
-                style={{ background: b.isActive ? "linear-gradient(135deg,#7B2D8E,#C155D8)" : "#2e2735" }} />
+                style={{ background: b.isActive ? "linear-gradient(135deg,#7B2D8E,#C155D8)" : "#ddd3e6" }} />
 
               <div className="w-[86px] h-[56px] rounded-[11px] bg-lavender shrink-0 overflow-hidden grid place-items-center">
                 {b.imageUrl
@@ -270,7 +267,7 @@ export default function BannersView({ embedded, only }: { embedded?: boolean; on
                     </span>
                   )}
                   {b.isActive && !isLiveNow(b) && (
-                    <span className="text-[11px] font-semibold px-2 py-[3px] rounded-full bg-[#3c2a17] text-[#efbb76]">
+                    <span className="text-[11px] font-semibold px-2 py-[3px] rounded-full bg-[#fdf0e2] text-[#8a5610]">
                       scheduled — not showing yet
                     </span>
                   )}
@@ -369,7 +366,7 @@ function Editor({
       const removeBg = isHero && cutBg;
       const { url, bgRemoved } = await uploadImage(file, "banners", { removeBg });
       set("imageUrl", url);
-      if (removeBg && bgRemoved === false) onError("The background could not be removed right now — the picture was kept as it is. Try again in a minute.");
+      if (removeBg && bgRemoved === false) onError("The background could not be removed — the picture was kept as it is.");
     } catch (e) {
       onError(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -391,13 +388,13 @@ function Editor({
               {/* The announcement line is one sentence in two weights, so it
                   reuses titleMain/titleAccent rather than inventing new columns
                   that mean the same thing in a different place. */}
-              <L label="Bold part" hint="Shown in colour at the start of the line">
+              <L label="Bold part">
                 <input className="ipt" value={f.titleMain ?? ""} onChange={(e) => set("titleMain", e.target.value)} placeholder="⚡ 2-Hour Delivery" />
               </L>
               <L label="The rest of the line">
                 <input className="ipt" value={f.titleAccent ?? ""} onChange={(e) => set("titleAccent", e.target.value)} placeholder="inside Dhaka · Same Day before 6 PM" />
               </L>
-              <L label="Goes to" hint="optional — the whole line becomes a link">
+              <L label="Goes to" hint="optional">
                 <input className="ipt" value={f.cta1Href ?? ""} onChange={(e) => set("cta1Href", e.target.value)} placeholder="/collections/eid" />
               </L>
             </>
@@ -406,7 +403,7 @@ function Editor({
               <L label="Small line above the headline"><input className="ipt" value={f.eyebrow ?? ""} onChange={(e) => set("eyebrow", e.target.value)} placeholder="Limited season" /></L>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <L label="Headline — plain part"><input className="ipt" value={f.titleMain ?? ""} onChange={(e) => set("titleMain", e.target.value)} placeholder="Send love to" /></L>
-                <L label="Headline — coloured part" hint="The design colours only this half"><input className="ipt" value={f.titleAccent ?? ""} onChange={(e) => set("titleAccent", e.target.value)} placeholder="all 64 districts" /></L>
+                <L label="Headline — coloured part"><input className="ipt" value={f.titleAccent ?? ""} onChange={(e) => set("titleAccent", e.target.value)} placeholder="all 64 districts" /></L>
               </div>
               <L label="Description"><textarea className="ipt" rows={2} value={f.lead ?? ""} onChange={(e) => set("lead", e.target.value)} /></L>
 
@@ -419,7 +416,7 @@ function Editor({
 
               {isHero && (
                 <>
-                  <L label="Three short trust lines" hint="Under the buttons — comma separated. ' · ' inside one splits it into a bold line and a small line">
+                  <L label="Three short trust lines" hint="comma separated">
                     {/*  CommaListInput, not a raw input — the raw one re-parsed
                         and rewrote the box on every keystroke, so a comma or a
                         space could never survive being typed (owner, 9 Aug 2026).  */}
@@ -447,9 +444,7 @@ function Editor({
                   the strip. Same reasoning as the category screen. */}
               <L
                 label="Picture"
-                hint={isHero
-                  ? "One picture for desktop and phones · fills the right half of the banner from the bottom · with Auto the background is cut out so the flowers sit on the banner itself"
-                  : "1600 × 600 · wide · fills the strip, fading out under the words"}
+                hint={isHero ? undefined : "1600 × 600"}
               >
                 {isHero && (
                   <div className="flex items-center gap-3 mb-2">
@@ -488,10 +483,10 @@ function Editor({
                 {ZONES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
               </select>
             </L>
-            <L label="From" hint="Leave empty to start now">
+            <L label="From" hint="empty = now">
               <input type="date" className="ipt" value={dateVal(f.liveFrom)} onChange={(e) => set("liveFrom", e.target.value || null)} />
             </L>
-            <L label="Until" hint="Leave empty to never stop">
+            <L label="Until" hint="empty = never">
               <input type="date" className="ipt" value={dateVal(f.liveTo)} onChange={(e) => set("liveTo", e.target.value || null)} />
             </L>
           </div>
@@ -504,7 +499,7 @@ function Editor({
             >
               <Icon name="check" size={15} /> {saving ? "Saving…" : "Save"}
             </button>
-            <button onClick={onDelete} className="text-[13px] text-body-soft hover:text-[#e1837a]">Remove this banner</button>
+            <button onClick={onDelete} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove this banner</button>
           </div>
         </div>
       </div>
@@ -528,7 +523,7 @@ function PictureDrop({ url, uploading, shape, onPick, onClear, busyText = "Uploa
         {uploading && <span className="absolute inset-x-0 bottom-0 bg-purple/85 text-white text-[11px] py-1 text-center">{busyText}</span>}
         <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
       </label>
-      {url && !uploading && <button onClick={onClear} className="text-[13px] text-body-soft hover:text-[#e1837a] mt-1.5">Remove</button>}
+      {url && !uploading && <button onClick={onClear} className="text-[13px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove</button>}
     </>
   );
 }

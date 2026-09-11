@@ -73,7 +73,6 @@ export default function FinanceDrift() {
       <FinHeader
         eyebrow="Finance"
         title="Books vs reality"
-        sub="The ledger can be wrong and still look perfect, because it is consistent with itself. This screen compares it against what the shop actually did."
         tone={rep ? LOOK[rep.worst].tone : "brand"}
         right={
           <div className="flex gap-2">
@@ -106,7 +105,7 @@ export default function FinanceDrift() {
             sub={`checked ${new Date(rep.ranAt).toLocaleString()}`}
           >
             {rep.checks.length === 0 ? (
-              <Empty title="Nothing to compare yet" sub="Once orders and purchases start flowing, this fills up." />
+              <Empty title="Nothing to compare yet" />
             ) : (
               <div className="grid gap-3">
                 {[...rep.checks]
@@ -120,14 +119,10 @@ export default function FinanceDrift() {
             tone="slate"
             emoji="🌙"
             title="Past checks"
-            sub="runs by itself at 2 AM, and after a restart if a night was missed"
             className="mt-5"
           >
             {past.length === 0 ? (
-              <Empty
-                title="No check has been saved yet"
-                sub="The first one lands tonight at 2 AM — or press “Check and save” to start the history now."
-              />
+              <Empty title="No check has been saved yet" />
             ) : (
               <Table head={<tr><Th>When</Th><Th>Verdict</Th><Th>What did not match</Th><Th>Why it ran</Th></tr>}>
                 {past.map((h) => (
@@ -149,29 +144,6 @@ export default function FinanceDrift() {
                 ))}
               </Table>
             )}
-            <p className="text-[12.5px] text-body-soft mt-3 mb-0">
-              Every result is kept, not only the bad ones — otherwise you cannot tell
-              “the books have matched every night this month” from “nobody has checked since March”.
-              Knowing the night the difference <i>started</i> is usually what tells you what caused it.
-            </p>
-          </Panel>
-
-          <Panel tone="sky" emoji="💡" title="How to read this" className="mt-5">
-            <div className="text-[13px] text-body-soft leading-relaxed">
-              <p className="mt-0">
-                <b className="text-purple">Books say</b> is what the ledger holds.{" "}
-                <b className="text-purple">Shop says</b> is the same number worked out from orders,
-                purchases, stock and deliveries — the side where the thing actually happened.
-              </p>
-              <p>
-                A difference is not automatically theft or a bug. The three usual causes, in order of
-                how often they turn up: something was entered on one side only, a cost was edited after
-                the fact, or a posting failed while the API was down and is still sitting in the replay queue.
-              </p>
-              <p className="mb-0">
-                Nothing on this screen changes anything. Fix the cause, then check again.
-              </p>
-            </div>
           </Panel>
         </>
       )}
@@ -204,7 +176,7 @@ function Row({ c }: { c: ApiDriftCheck }) {
               <span className="text-body-soft">Shop says <b className="text-purple">{taka(c.realPaisa!)}</b></span>
               <span className="text-body-soft">
                 Difference{" "}
-                <b style={{ color: c.severity === "ok" ? "#76efc3" : t.text }}>
+                <b style={{ color: c.severity === "ok" ? "#0f7d55" : t.text }}>
                   {c.diffPaisa! > 0 ? "+" : ""}{taka(c.diffPaisa!)}
                 </b>
               </span>
@@ -213,7 +185,7 @@ function Row({ c }: { c: ApiDriftCheck }) {
 
           {c.count !== undefined && (
             <div className="mt-3 text-[13px] text-body-soft">
-              <b style={{ color: c.count ? t.text : "#76efc3" }}>{c.count}</b>{" "}
+              <b style={{ color: c.count ? t.text : "#0f7d55" }}>{c.count}</b>{" "}
               {c.count === 1 ? "item" : "items"}
               {c.examples && c.examples.length > 0 && (
                 <span className="text-[12px]"> · {c.examples.join(" · ")}
@@ -223,7 +195,7 @@ function Row({ c }: { c: ApiDriftCheck }) {
           )}
 
           <div className="mt-2.5 px-3 py-2 rounded-[10px] text-[12.5px]"
-            style={{ background: c.severity === "ok" ? "#1f3026" : t.soft, color: c.severity === "ok" ? "#76efc3" : t.text }}>
+            style={{ background: c.severity === "ok" ? "#f6fbf8" : t.soft, color: c.severity === "ok" ? "#0f7d55" : t.text }}>
             {c.advice}
           </div>
         </div>

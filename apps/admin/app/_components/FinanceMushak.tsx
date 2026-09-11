@@ -81,28 +81,24 @@ export default function FinanceMushak() {
       <FinHeader
         eyebrow="Finance"
         title="VAT challan · মূসক ৬.৩"
-        sub="The government form a VAT-registered business issues on every taxable sale. Corporate buyers ask for it by name — without it they cannot claim their own VAT."
         tone={ready?.ready ? "emerald" : "amber"}
       />
 
       <Flash ok={ok} err={err} />
 
       {ready && !ready.vatEnabled && (
-        <Banner tone="sky" emoji="ℹ" title="VAT is switched off right now">
-          No VAT is being charged, so there is nothing to certify yet. Turn it on in Finance → Settings
-          the day you register — everything here is already waiting.
+        <Banner tone="sky" emoji="ℹ" title="VAT is switched off">
+          Turn it on in Finance → Settings.
         </Banner>
       )}
 
       {ready && !ready.ready && (
-        <Banner tone="amber" emoji="✍" title="Fill these in once, then printing is one click">
-          Still needed: <b>{ready.missing.join(" · ")}</b>. Nothing on a government form may be
-          guessed, so the challan will not print until these are real.
+        <Banner tone="amber" emoji="✍" title="Challans will not print yet">
+          Still needed: <b>{ready.missing.join(" · ")}</b>
         </Banner>
       )}
 
-      <Panel tone="brand" emoji="🏛" title="Who we are on the form"
-        sub="taken straight from your VAT registration certificate">
+      <Panel tone="brand" emoji="🏛" title="Who we are on the form">
         <Card className="px-5 py-5">
           <div className="grid gap-3 md:grid-cols-2">
             <div>
@@ -114,11 +110,11 @@ export default function FinanceMushak() {
               <Lbl>BIN — 13 digits</Lbl>
               <input className={`${input} tracking-[0.12em]`} value={f.businessBin} placeholder="0000000000000"
                 onChange={(e) => setF({ ...f, businessBin: e.target.value.replace(/[^\d]/g, "").slice(0, 13) })} />
-              <p className="text-[11.5px] text-body-soft mt-1 mb-0">
-                {f.businessBin.length > 0 && f.businessBin.length !== 13
-                  ? <span style={{ color: TONE.rose.text }}>A BIN is exactly 13 digits — this one has {f.businessBin.length}.</span>
-                  : "This is the number the buyer's accountant will verify."}
-              </p>
+              {f.businessBin.length > 0 && f.businessBin.length !== 13 && (
+                <p className="text-[11.5px] mt-1 mb-0" style={{ color: TONE.rose.text }}>
+                  A BIN is exactly 13 digits — this one has {f.businessBin.length}.
+                </p>
+              )}
             </div>
             <div className="md:col-span-2">
               <Lbl>Registered address</Lbl>
@@ -152,8 +148,7 @@ export default function FinanceMushak() {
       <Panel tone="sky" emoji="🧾" title="Sales that need a challan"
         sub={`${rows.length} order${rows.length === 1 ? "" : "s"} with VAT charged`} className="mt-5">
         {rows.length === 0 ? (
-          <Empty title="No VAT sale yet"
-            sub="Once VAT is charged on an order it appears here, ready to print." />
+          <Empty title="No VAT sale yet" />
         ) : (
           <Table head={<tr><Th>Order</Th><Th>Date</Th><Th>Buyer</Th><Th>Buyer BIN</Th><Th right>VAT</Th><Th right>Total</Th><Th right></Th></tr>}>
             {rows.map((o) => (
@@ -177,11 +172,6 @@ export default function FinanceMushak() {
             ))}
           </Table>
         )}
-        <p className="text-[12.5px] text-body-soft mt-3 mb-0">
-          The challan number is the order number — one sale, one order, one challan, traceable both
-          ways. The VAT shown is the VAT that was actually charged, never a fresh calculation, so the
-          form can never disagree with the books or with what the customer paid.
-        </p>
       </Panel>
     </div>
   );
@@ -206,7 +196,7 @@ function ChallanSheet({ c, onBack }: { c: ApiMushakChallan; onBack: () => void }
         <button className={btnPrimary} style={btnPrimaryStyle} onClick={() => window.print()}>Print</button>
       </div>
 
-      <div className="challan bg-white border border-[#3c3447] rounded-lg p-8 text-[12.5px] text-[#f1eaf6]">
+      <div className="challan bg-white border border-[#d9cfe6] rounded-lg p-8 text-[12.5px] text-[#1b1420]">
         <div className="text-center border-b-2 border-[#1b1420] pb-3 mb-4">
           <div className="text-[15px] font-bold">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার</div>
           <div className="text-[13px]">জাতীয় রাজস্ব বোর্ড</div>
@@ -216,14 +206,14 @@ function ChallanSheet({ c, onBack }: { c: ApiMushakChallan; onBack: () => void }
 
         <div className="grid grid-cols-2 gap-6 mb-4">
           <div>
-            <div className="font-bold border-b border-[#3d3545] mb-1 pb-0.5">সরবরাহকারী · Supplier</div>
+            <div className="font-bold border-b border-[#c9bcd8] mb-1 pb-0.5">সরবরাহকারী · Supplier</div>
             <div><b>{c.seller.name}</b></div>
             <div>{c.seller.address}</div>
             <div>BIN: <b className="tracking-[0.08em]">{c.seller.bin}</b></div>
             {c.seller.vatCircle && <div>{c.seller.vatCircle}</div>}
           </div>
           <div>
-            <div className="font-bold border-b border-[#3d3545] mb-1 pb-0.5">ক্রেতা · Buyer</div>
+            <div className="font-bold border-b border-[#c9bcd8] mb-1 pb-0.5">ক্রেতা · Buyer</div>
             <div><b>{c.buyer.name}</b></div>
             <div>{c.buyer.address}</div>
             <div>BIN: {c.buyer.bin ? <b className="tracking-[0.08em]">{c.buyer.bin}</b> : "—"}</div>
@@ -231,14 +221,14 @@ function ChallanSheet({ c, onBack }: { c: ApiMushakChallan; onBack: () => void }
           </div>
         </div>
 
-        <div className="flex justify-between mb-3 pb-2 border-b border-[#3d3545]">
+        <div className="flex justify-between mb-3 pb-2 border-b border-[#c9bcd8]">
           <div>চালান নম্বর · Challan no: <b>{c.challanNo}</b></div>
           <div>ইস্যুর তারিখ ও সময় · Issued: <b>{new Date(c.issuedAt).toLocaleString()}</b></div>
         </div>
 
         <table className="w-full border-collapse mb-3">
           <thead>
-            <tr className="bg-[#291c35]">
+            <tr className="bg-[#f4eefa]">
               <Cell head w="34">ক্রম</Cell>
               <Cell head>পণ্যের বিবরণ · Description</Cell>
               <Cell head w="52">একক</Cell>
@@ -276,7 +266,7 @@ function ChallanSheet({ c, onBack }: { c: ApiMushakChallan; onBack: () => void }
                 <Cell right><b>{taka(c.deliveryPaisa)}</b></Cell>
               </tr>
             )}
-            <tr className="bg-[#291a35] font-bold">
+            <tr className="bg-[#faf6fd] font-bold">
               <Cell colSpan={7} right>সর্বমোট · Grand total</Cell>
               <Cell right>{taka(c.vatPaisa)}</Cell>
               <Cell right>{taka(c.totalPaisa)}</Cell>
@@ -287,15 +277,14 @@ function ChallanSheet({ c, onBack }: { c: ApiMushakChallan; onBack: () => void }
         <div className="mb-6">কথায় · In words: <b>{c.inWords}</b></div>
 
         <div className="flex justify-between items-end mt-12">
-          <div className="text-[11.5px] text-[#dfd2e4] max-w-[380px]">
+          <div className="text-[11.5px] text-[#5b4a68] max-w-[380px]">
             This challan is issued under the Value Added Tax and Supplementary Duty Act, 2012.
-            Keep it for your records — it is the document your input VAT claim rests on.
           </div>
           <div className="text-center">
             <div className="border-t border-[#1b1420] w-56 pt-1">
               <b>{c.signatory.name}</b>
               {c.signatory.designation && <div className="text-[11.5px]">{c.signatory.designation}</div>}
-              <div className="text-[11px] text-[#dfd2e4]">দায়িত্বপ্রাপ্ত ব্যক্তির স্বাক্ষর ও সিল</div>
+              <div className="text-[11px] text-[#5b4a68]">দায়িত্বপ্রাপ্ত ব্যক্তির স্বাক্ষর ও সিল</div>
             </div>
           </div>
         </div>
@@ -313,7 +302,7 @@ function Cell({
   return (
     <Tag
       colSpan={colSpan}
-      className={`border border-[#3d3545] px-2 py-1.5 align-top ${right ? "text-right" : "text-left"} ${head ? "font-bold text-[11.5px]" : ""}`}
+      className={`border border-[#c9bcd8] px-2 py-1.5 align-top ${right ? "text-right" : "text-left"} ${head ? "font-bold text-[11.5px]" : ""}`}
       style={w ? { width: `${w}px` } : undefined}
     >
       {children}

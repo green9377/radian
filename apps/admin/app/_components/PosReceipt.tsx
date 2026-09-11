@@ -339,7 +339,7 @@ export default function ReceiptDialog({ orderId, onClose }: { orderId: string; o
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
               <h3 className="font-display text-[17px] text-purple m-0">Receipt</h3>
-              <p className="text-[12px] text-body-soft m-0">{r ? r.orderNo : "…"} · prints on its own, without the admin page</p>
+              <p className="text-[12px] text-body-soft m-0">{r ? r.orderNo : "…"}</p>
             </div>
             <button type="button" onClick={onClose} className="text-[12px] text-body-soft underline shrink-0">Close</button>
           </div>
@@ -366,12 +366,9 @@ export default function ReceiptDialog({ orderId, onClose }: { orderId: string; o
                   </button>
                 ))}
               </div>
-              <p className="text-[11.5px] text-body-soft m-0 mb-3">
-                {gift
-                  ? "No prices anywhere on this slip — the copy that goes in the bag."
-                  : "Every price, the full money breakdown and how it was paid."}
-                {r.shop.giftReceiptHidePrice && !gift && " This bill is a gift, and settings say to hide the price."}
-              </p>
+              {r.shop.giftReceiptHidePrice && !gift && (
+                <p className="text-[11.5px] text-body-soft m-0 mb-3">This bill is a gift — settings hide the price.</p>
+              )}
 
               {/*  The preview is the same component that prints, on a white
                    sheet, so nobody is surprised by the paper.  */}
@@ -385,9 +382,6 @@ export default function ReceiptDialog({ orderId, onClose }: { orderId: string; o
                 className="w-full py-2.5 rounded-[11px] bg-purple hover:bg-purple-deep text-white font-bold text-[13.5px] inline-flex items-center justify-center gap-2">
                 <Icon name="hash" size={15} /> Print
               </button>
-              <p className="text-[11px] text-body-soft text-center m-0 mt-2">
-                Ctrl+P prints the same slip while this is open. 58 mm and 80 mm rolls both fit.
-              </p>
             </>
           )}
         </div>

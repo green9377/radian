@@ -109,12 +109,10 @@ const DOORS = {
   online: {
     eyebrow: "Website · Returns",
     title: "Returns from online orders",
-    blurb: "Returns raised against website and courier orders. Same book as the counter's returns — this door only hides the rest (DEC-RTN-016).",
   },
   counter: {
     eyebrow: "Shop · Returns",
     title: "Returns from counter sales",
-    blurb: "Returns raised against POS walk-in sales. Same book as the website's returns — this door only hides the rest (DEC-RTN-016).",
   },
 } as const;
 
@@ -183,7 +181,6 @@ export function ReturnsOverview() {
       <ItemPageHead
         eyebrow={door?.eyebrow ?? "Commerce · Returns & Refunds"}
         title={door?.title ?? "Returns & Refunds"}
-        blurb={door?.blurb ?? "Post-delivery returns — staff-initiated only. Refunds never exceed what was collected; returned goods restock through Inventory. Order status stays untouched (DEC-RTN)."}
         right={<NewBtn />}
       />
       {failed && <DemoBar what="returns (API offline?)" onRetry={() => load({ page })} />}
@@ -289,7 +286,7 @@ const SETTLE_LABEL: Record<ReturnResolution, string> = {
 const SETTLE_WHY: Record<ReturnResolution, string> = {
   REFUND: "The money goes back to the customer, never more than what was collected.",
   STORE_CREDIT: "No money leaves — the value waits in the customer's account for next time.",
-  REPLACEMENT: "The same goods are sent again. No money moves at all.",
+  REPLACEMENT: "Same goods sent again — no money moves.",
   PARTIAL_COMPENSATION: "The customer keeps the goods and you give back part of the price.",
 };
 
@@ -635,13 +632,11 @@ export function NewReturn() {
             {el.outsideWindow && (
               <div className="px-4 py-2.5 text-[12.5px] border-b border-lavender-deep" style={{ background: "#3b2b17", color: "#f7c06e" }}>
                 Delivered {el.daysSinceDelivery} days ago — past the shop&apos;s {el.returnWindowDays}-day return window.
-                You can still take it back; it is your call.
               </div>
             )}
             {(el.priorReturns ?? 0) > 0 && (
               <div className="px-4 py-2.5 text-[12.5px] border-b border-lavender-deep text-body-soft">
-                This order has {el.priorReturns === 1 ? "one return" : `${el.priorReturns} returns`} already
-                (rejected and cancelled ones not counted).
+                This order has {el.priorReturns === 1 ? "one return" : `${el.priorReturns} returns`} already.
               </div>
             )}
             {el.lines.map((l) => {
@@ -849,7 +844,7 @@ export function NewReturn() {
                 </div>
                 {replValue > selectedValue && (
                   <div className="text-[11.5px] mt-1" style={{ color: "#e1837a" }}>
-                    More is going out than came back. Take something off, or sell the difference as an order.
+                    More is going out than came back.
                   </div>
                 )}
               </div>
@@ -931,7 +926,7 @@ const ASK_META: Record<AskKind, {
     confirm: "Reject it",
     tone: "#e1837a",
     placeholder: "e.g. Goods were used, not faulty",
-    blurb: (no) => `${no} will be refused. The customer gets nothing back, so the reason has to stand up when they ask.`,
+    blurb: (no) => `${no} will be refused — the customer gets nothing back.`,
   },
   cancel: {
     title: "Cancel this return",
@@ -948,7 +943,7 @@ const ASK_META: Record<AskKind, {
     tone: "#e1837a",
     placeholder: "",
     blurb: (no) =>
-      `${no} disappears from the book entirely — no record of the claim, no reason, nothing on the order's timeline. If it was a real claim that you are turning down, Reject or Cancel it instead so the shop can still answer for it.`,
+      `${no} disappears from the book entirely — no claim, no reason, nothing on the order's timeline.`,
   },
 };
 
@@ -1162,9 +1157,8 @@ export function ReturnDetail({ id }: { id: string }) {
               {needsPayout && nothingPayable ? (
                 /*  audit #12 — no button at all, and the reason in one line.  */
                 <div className="text-[12.5px] leading-[1.5]" style={{ color: "#f7c06e" }}>
-                  Nothing is payable on this return: {formatTaka(r.order?.paidPaisa ?? 0)} was collected on the order
-                  and {formatTaka(r.order?.refundPaisa ?? 0)} has already gone back, so there is nothing left in hand.
-                  Cancel the return, or settle it as store credit or a replacement instead.
+                  Nothing is payable: {formatTaka(r.order?.paidPaisa ?? 0)} collected, {formatTaka(r.order?.refundPaisa ?? 0)} already
+                  returned. Cancel it, or settle as store credit or a replacement.
                 </div>
               ) : needsPayout ? (
                 <button disabled={busy} onClick={() => setPayoutOpen(true)}
@@ -1192,7 +1186,6 @@ export function ReturnDetail({ id }: { id: string }) {
           {isDraft && (
             <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4 space-y-2">
               <div className="text-[13px] font-semibold" style={{ color: ACCENT }}>Draft</div>
-              <div className="text-[12px] text-body-soft">Nothing has happened yet. Submitting sends it for approval, or approves it outright if the shop&apos;s rules do not need a signature.</div>
               <button disabled={busy} onClick={() => act(() => submitReturn(id), "Submitted")}
                 className="w-full text-white text-[13px] font-medium px-4 py-2.5 rounded-[10px]" style={{ background: ACCENT }}>
                 {busy ? "Working…" : "Submit this return"}
@@ -1207,12 +1200,12 @@ export function ReturnDetail({ id }: { id: string }) {
                    said plainly instead of a button that returns 403.  */}
               {isRequester && (
                 <div className="text-[12px] text-body-soft">
-                  You raised this return, so somebody else has to approve it — ask the owner or another manager.
+                  You raised this return — somebody else has to approve it.
                 </div>
               )}
               {!isRequester && !mayApprove && (
                 <div className="text-[12px] text-body-soft">
-                  Approving a return is the owner&apos;s or a manager&apos;s call. Ask one of them to look at it.
+                  Only the owner or a manager can approve this.
                 </div>
               )}
               <div className="flex gap-2">
@@ -1301,7 +1294,7 @@ export function ReturnDetail({ id }: { id: string }) {
               customer told "done" who then waits three days phones the shop.  */
           note={
             refundMethod === "GATEWAY"
-              ? "Goes back to the card it came from. SSLCommerz accepts it today; the customer sees it in a few days — tell them that, not \"done\"."
+              ? "Goes back to the card it came from — the customer sees it in a few days."
               : r.resolution === "PARTIAL_COMPENSATION"
                 ? `The customer keeps the goods · agreed ${formatTaka(r.compensationPaisa)}`
                 : `Return value ${formatTaka(r.returnValuePaisa)} · collected on the order ${formatTaka(r.order?.paidPaisa ?? 0)}`
@@ -1317,7 +1310,7 @@ export function ReturnDetail({ id }: { id: string }) {
             refundMethod === "CASH"
               ? "Cash out of the counter cash box — day close will count these notes gone."
               : refundMethod === "ORIGINAL"
-                ? "Back the way it was paid. On a cash-on-delivery bill that means the counter cash box."
+                ? "Back the way it was paid — on a cash-on-delivery bill, the counter cash box."
                 : refundMethod
                   ? "Sent by hand from that account — write the reference below so it can be matched later."
                   : undefined
@@ -1389,7 +1382,6 @@ export function ReturnSettingsView() {
       <ItemPageHead
         eyebrow="Commerce · Returns & Refunds"
         title="Reasons & settings"
-        blurb="Return reasons drive the default refund method and whether approval is needed. The window and threshold are admin-configurable (DEC-RTN-009/014)."
         right={<Link href="/returns" className="text-[13px] px-4 py-2.5 rounded-[10px] border border-lavender-deep">← Back</Link>}
       />
       {err && <ErrBar text={err} onClose={() => setErr("")} />}
@@ -1490,14 +1482,13 @@ function CancelRules() {
     <div className="mt-6">
       <div className="flex items-center gap-2.5 mb-3">
         <h2 className="font-display text-[17px] text-purple m-0">If an order is cancelled</h2>
-        <Info text="A cancellation is not a return — nothing was ever received. What comes back is a share of the money the customer actually PAID, never a share of the order total. So a Cash-on-Delivery order cancelled before anyone paid returns nothing, and leaves nobody owing anything." />
+        <Info text="A share of what the customer actually paid, never of the order total." />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-3.5">
           <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.04em] text-body-soft mb-2.5">
             Not made yet
-            <Info text="Cancelled while the order is still waiting — nobody has touched the flowers. Nothing has come off the shelf either, so there is nothing to lose." />
           </div>
           <div className="flex items-center gap-2">
             <input type="number" className="ipt tabular-nums font-semibold text-[17px]" style={{ minHeight: 42, maxWidth: 100 }}
@@ -1510,7 +1501,7 @@ function CancelRules() {
         <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-3.5">
           <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.04em] text-body-soft mb-2.5">
             Made, rider not out
-            <Info text="The workshop has started, so the stems are cut and the stock does not come back. This is the owner's 50% — move it if a season or a customer deserves different." />
+            <Info text="The stems are cut — the stock does not come back." />
           </div>
           <div className="flex items-center gap-2">
             <input type="number" className="ipt tabular-nums font-semibold text-[17px]" style={{ minHeight: 42, maxWidth: 100 }}
@@ -1526,7 +1517,7 @@ function CancelRules() {
         <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-3.5">
           <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.04em] text-body-soft mb-2.5">
             Rider has left
-            <Info text="Fixed at nothing, and not a setting. Once it is on the road the flowers, the trip and the rider's time are all spent. A problem found after it arrives is a Return, not a cancellation." />
+            <Info text="Fixed at nothing — not a setting." />
           </div>
           <div className="flex items-center gap-2" style={{ minHeight: 42 }}>
             <span className="font-display text-[22px] text-purple tabular-nums">0</span>

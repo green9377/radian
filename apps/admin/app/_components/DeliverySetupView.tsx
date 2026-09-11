@@ -163,16 +163,14 @@ function Carriers() {
           {couriers !== null && couriers.length === 0 && <Empty text="No courier companies yet." />}
         </div>
         <div className="mt-2 text-[12px] text-[#afa4b7]">
-          API keys for a courier live in <Link href="/administration/integrations/courier" className="text-purple underline">Administration → Courier &amp; delivery</Link>. One-time riders (Pathao ride, Uber) are typed on the order at assign time — nothing to set up here.
+          Courier API keys: <Link href="/administration/integrations/courier" className="text-purple underline">Administration → Courier &amp; delivery</Link>
         </div>
       </div>
     </div>
   );
 }
 
-const HELP =
-  "What Radian offers, where, for how much, and who carries it — set once, changed rarely. Methods & slots are made once; Zones & pricing connects them per zone with a price and capacity; " +
-  "Riders & couriers is everyone who carries a parcel; Rules holds the photo switches and blackout days.";
+const HELP = "What Radian offers, where, for how much, and who carries it.";
 
 export default function DeliverySetupView() {
   const [tab, setTab] = useState<Tab>("methods");

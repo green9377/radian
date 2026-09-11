@@ -55,12 +55,12 @@ const kindOf = (code: string): "BANK" | "WALLET" | "CASH" | "CARD" => {
 /*  each method's own colour — the ones people already know from the street.
     `tint` is the light wash the header sits on.  */
 const LOOKS: Record<string, { deep: string; tint: string; icon: string }> = {
-  CASH:  { deep: "#0e7a3d", tint: "#1f3427", icon: "cash" },
-  BKASH: { deep: "#d6146a", tint: "#3a1727", icon: "phone" },
-  NAGAD: { deep: "#e05a10", tint: "#3b2617", icon: "phone" },
-  CARD:  { deep: "#2563a8", tint: "#1c2936", icon: "register" },
-  BANK:  { deep: "#4633a5", tint: "#201c35", icon: "warehouse" },
-  OTHER: { deep: "#a05a66", tint: "#321f21", icon: "wallet" },
+  CASH:  { deep: "#0e7a3d", tint: "#eaf7ef", icon: "cash" },
+  BKASH: { deep: "#d6146a", tint: "#fdeef5", icon: "phone" },
+  NAGAD: { deep: "#e05a10", tint: "#fdf1e8", icon: "phone" },
+  CARD:  { deep: "#2563a8", tint: "#ecf3fa", icon: "register" },
+  BANK:  { deep: "#4633a5", tint: "#efedfa", icon: "warehouse" },
+  OTHER: { deep: "#a05a66", tint: "#f9f0f1", icon: "wallet" },
 };
 const lookOf = (code: string) => LOOKS[code.toUpperCase()] ?? LOOKS.OTHER;
 
@@ -148,15 +148,15 @@ export default function PaymentMethodsView() {
 
               {/* ---------- header: a light wash of the method's colour ---------- */}
               <div className="flex items-center justify-between gap-3 px-4 py-3.5"
-                style={{ background: r.isActive ? look.tint : "#29252d" }}>
+                style={{ background: r.isActive ? look.tint : "#f4f2f6" }}>
                 <span className="flex items-center gap-3 min-w-0">
                   <span className="w-[40px] h-[40px] rounded-[12px] grid place-items-center text-white shrink-0"
-                    style={{ background: r.isActive ? look.deep : "#38353c" }}>
+                    style={{ background: r.isActive ? look.deep : "#aaa1b5" }}>
                     <Icon name={look.icon} size={19} />
                   </span>
                   <span className="min-w-0">
                     <span className="block text-[16.5px] font-semibold leading-[1.2] truncate"
-                      style={{ color: r.isActive ? look.deep : "#ada6b5" }}>
+                      style={{ color: r.isActive ? look.deep : "#7c7189" }}>
                       {r.name}
                     </span>
                     <span className="block text-[11.5px] text-body-soft">
@@ -172,7 +172,7 @@ export default function PaymentMethodsView() {
                   className="shrink-0 rounded-full transition-colors"
                   style={{
                     width: 50, height: 29, padding: 3,
-                    background: r.isActive ? look.deep : "#2f2a34",
+                    background: r.isActive ? look.deep : "#d5cede",
                     opacity: busy === r.id ? 0.5 : 1,
                   }}>
                   <span className="block bg-white rounded-full transition-transform shadow-sm"
@@ -206,7 +206,7 @@ export default function PaymentMethodsView() {
                         className="text-[10.5px] font-bold tracking-[0.03em] w-[42px] py-1.5 rounded-full"
                         style={a.isActive
                           ? { background: look.tint, color: look.deep }
-                          : { background: "#2a252e", color: "#ada6b5" }}>
+                          : { background: "#f0edf3", color: "#8d8398" }}>
                         {a.isActive ? "ON" : "OFF"}
                       </button>
                     </span>
@@ -230,12 +230,12 @@ export default function PaymentMethodsView() {
         {/* ---------- the website's own two ---------- */}
         {site.length > 0 && (
           <div className="break-inside-avoid mb-5 rounded-[16px] overflow-hidden bg-white shadow-soft border border-lavender-deep">
-            <div className="flex items-center gap-3 px-4 py-3.5" style={{ background: "#2b1c35" }}>
+            <div className="flex items-center gap-3 px-4 py-3.5" style={{ background: "#f7f1fb" }}>
               <span className="w-[40px] h-[40px] rounded-[12px] grid place-items-center text-white shrink-0" style={{ background: "#470066" }}>
                 <Icon name="store" size={19} />
               </span>
               <span>
-                <span className="block text-[16.5px] font-semibold leading-[1.2]" style={{ color: "#ce6ef7" }}>The website&apos;s own</span>
+                <span className="block text-[16.5px] font-semibold leading-[1.2]" style={{ color: "#470066" }}>The website&apos;s own</span>
                 <span className="block text-[11.5px] text-body-soft">Switched where they are set up, not here</span>
               </span>
             </div>
@@ -243,15 +243,13 @@ export default function PaymentMethodsView() {
               <div key={r.id} className="flex items-center justify-between gap-3 px-4 py-3 border-t border-lavender-deep/60">
                 <span className="text-[13.5px] font-medium text-purple">{r.name}</span>
                 <span className="text-[10.5px] font-bold tracking-[0.03em] px-2.5 py-1.5 rounded-full"
-                  style={{ background: "#2b1c35", color: "#ce6ef7" }}>
+                  style={{ background: "#f7f1fb", color: "#470066" }}>
                   {r.code === "COD" ? "DELIVERY SETUP" : "GATEWAY"}
                 </span>
               </div>
             ))}
             <p className="text-[12px] text-body-soft leading-[1.55] m-0 px-4 py-3 border-t border-lavender-deep/60">
-              Off here = off at the counter, on purchase bills, supplier payments
-              and refunds, all at once. A bill already written keeps the method
-              it was paid by.
+              Off here = off everywhere at once.
             </p>
           </div>
         )}
@@ -341,7 +339,7 @@ function AccountDialog({ state, onClose, onSaved }: {
       onClose={onClose} onSave={save} busy={busy} canSave={canSave}
       saveLabel={a ? "Save changes" : "Add account"}>
 
-      {err && <div className="mb-3 text-[12.5px] text-[#e1837a] bg-[#3a1717] border border-[#502a2a] rounded-[10px] px-3 py-2">{err}</div>}
+      {err && <div className="mb-3 text-[12.5px] text-[#c0392b] bg-[#fdeeee] border border-[#f2c7c7] rounded-[10px] px-3 py-2">{err}</div>}
 
       {kind === "BANK" && (
         <>
@@ -368,7 +366,7 @@ function AccountDialog({ state, onClose, onSaved }: {
               <input className="ipt" value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="e.g. Dhanmondi" />
             </Field>
           </div>
-          <Field label="Routing number" hint="9 digits — on the cheque book; needed for transfers in">
+          <Field label="Routing number" hint="9 digits">
             <input className="ipt" inputMode="numeric" value={routing} onChange={(e) => setRouting(e.target.value)} placeholder="e.g. 090261726" />
           </Field>
         </>
@@ -401,12 +399,12 @@ function AccountDialog({ state, onClose, onSaved }: {
       {a && !a.isSystem && (
         <div className="mt-4 pt-3 border-t border-lavender-deep flex items-center justify-between gap-3">
           <span className="text-[11.5px] text-body-soft">
-            {armDelete ? "Really delete this account?" : "Added by mistake? It can go while no money has moved through it."}
+            {armDelete ? "Really delete this account?" : "Only while no money has moved through it."}
           </span>
           <button type="button" disabled={busy} onClick={remove}
             className={"text-[12.5px] font-semibold px-3 py-2 rounded-[9px] shrink-0 " + (armDelete
               ? "text-white"
-              : "text-[#e1837a] border border-[#4d2e2e] bg-white hover:bg-[#371818]")}
+              : "text-[#c0392b] border border-[#e0a1a1] bg-white hover:bg-[#fdf3f3]")}
             style={armDelete ? { background: "#c0392b" } : undefined}>
             {armDelete ? "Yes, delete" : "Delete"}
           </button>

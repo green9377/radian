@@ -37,10 +37,10 @@ import { Flash, Lbl, Table, Td, Th, WRAP, btnPrimary, btnPrimaryStyle, input, ta
     the number and the icon, `wash` is the tint the panel sits on, `edge` is the
     spine down its left side.  */
 const BRAND = {
-  purple: { ink: "#b97fdc", wash: "#f6ecfb", edge: "#a94fd0" },
-  orchid: { ink: "#ce8dc0", wash: "#fbeef7", edge: "#c86bb0" },
-  rose: { ink: "#c794a1", wash: "#fbeef0", edge: "#c9788a" },
-  lavender: { ink: "#a396c5", wash: "#f0edfa", edge: "#8f7fc4" },
+  purple: { ink: "#7a2ea8", wash: "#f6ecfb", edge: "#a94fd0" },
+  orchid: { ink: "#a4468f", wash: "#fbeef7", edge: "#c86bb0" },
+  rose: { ink: "#a4566a", wash: "#fbeef0", edge: "#c9788a" },
+  lavender: { ink: "#5b4a86", wash: "#f0edfa", edge: "#8f7fc4" },
 } as const;
 
 interface Destination { id: string; code: string; name: string; balancePaisa: number }
@@ -75,36 +75,19 @@ interface GatewaySummary {
 }
 
 const HELD_INFO =
-  "What SSLCommerz still owes us, worked out from our own ledger. Open " +
-  "report.sslcommerz.com → Accounting and compare it with 'Unsettled Payable'. " +
-  "If the two disagree, a payment is missing on one side, and it is worth " +
-  "finding out which before the next payout.";
+  "From our own ledger — compare it with 'Unsettled Payable' on the SSLCommerz panel.";
 
 const OPENING_INFO =
-  "On the day this system went live the gateway was already holding money. " +
-  "That figure is typed once, on Money accounts, against the gateway account — " +
-  "and it freezes after the opening entry is posted. It is not set here, " +
-  "because one fact with two places to type it is one fact that will disagree " +
-  "with itself.";
+  "Set once on Money accounts; it freezes after the opening entry posts.";
 
 const PAYOUT_INFO =
-  "Type what the BANK actually received, from the statement — not what you " +
-  "expect. The statement is the authority; a figure this system worked out " +
-  "for itself would agree with itself for ever while being wrong. The " +
-  "gateway's cut was already taken out of each payment as it came in, so " +
-  "nothing is deducted again here.";
+  "Type what the bank actually received, from the statement.";
 
 const THRESHOLD_INFO =
-  "The gateway only pays out once this much has built up, and not on bank " +
-  "holidays. Below it the money is not late — it is simply waiting. These are " +
-  "SSLCommerz's terms, so change them here whenever the contract changes.";
+  "The gateway pays out only once this much has built up.";
 
 const RATE_INFO =
-  "This rate never works out what you are charged — the charge booked on every " +
-  "payment is the gateway's own figure, taken from its answer at the moment " +
-  "the money settles. The rate only WATCHES: if the gateway ever keeps more " +
-  "than it predicts, that payment is listed for you to look at. Set it to 0 " +
-  "to watch nothing.";
+  "Watches only — a payment where the gateway keeps more is listed. 0 watches nothing.";
 
 /* ─────────────── the shared shapes this page is built from ─────────────── */
 
@@ -130,7 +113,7 @@ function Panel({
     >
       <header
         className="relative grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4 border-b"
-        style={{ background: `linear-gradient(135deg,${theme.wash},#1f1727)`, borderColor: `${theme.edge}2e` }}
+        style={{ background: `linear-gradient(135deg,${theme.wash},#ffffff)`, borderColor: `${theme.edge}2e` }}
       >
         <span className="absolute left-0 right-0 top-0 h-[3px]" style={{ background: theme.edge }} />
         <span
@@ -155,7 +138,7 @@ function Step({ label, value, sign, info }: { label: string; value: string; sign
         {label}
         {info ? <Info text={info} /> : null}
       </span>
-      <span className="text-[13.5px] font-semibold tabular-nums" style={{ color: "#b694d1" }}>
+      <span className="text-[13.5px] font-semibold tabular-nums" style={{ color: "#3d2352" }}>
         {sign ? <span className="text-body-soft mr-1">{sign}</span> : null}
         {value}
       </span>
@@ -212,7 +195,7 @@ export function GatewaySettlementLive() {
           {/* left: the number */}
           <div
             className="relative px-8 py-9"
-            style={{ background: `linear-gradient(135deg,${BRAND.purple.ink} 0%, #c57cdf 100%)` }}
+            style={{ background: `linear-gradient(135deg,${BRAND.purple.ink} 0%, #b558d6 100%)` }}
           >
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[11.5px] font-bold tracking-[0.14em] text-white/70 uppercase">
@@ -363,9 +346,7 @@ export function GatewaySettlementLive() {
             )}
             {tooMuch && (
               <div className="text-[12.5px] mt-4 leading-snug" style={{ color: BRAND.rose.ink }}>
-                <b>The gateway is only holding {taka(held)}.</b> Check the amount against the
-                statement — if the statement is right, a payment is missing from our books, and
-                that is worth finding before this is recorded.
+                <b>The gateway is only holding {taka(held)}.</b> Check it against the statement.
               </div>
             )}
 

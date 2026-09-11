@@ -120,11 +120,11 @@ export default function PurchaseReportsView() {
       {isDemo && <DemoBar what="sample purchases" onRetry={load} />}
 
       <Kpi items={[
-        { l: "Total bought (book)", v: formatTaka(totals.bought), c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
-        { l: "Paid", v: formatTaka(totals.paid), c: "#76efab", bg: "#1f3529", icon: "check" },
-        { l: "Still due", v: formatTaka(totals.due), c: totals.due > 0 ? "#e1837a" : "#76efab", bg: "#3b1a16", icon: "cash" },
-        { l: "Purchases", v: live.length, c: "#79abe2", bg: "#1b2838", icon: "grid" },
-        { l: "Suppliers", v: supplierBoard.length, c: "#dda37d", bg: "#38291c", icon: "user" },
+        { l: "Total bought (book)", v: formatTaka(totals.bought), c: "#470066", bg: "#f5eafb", icon: "box" },
+        { l: "Paid", v: formatTaka(totals.paid), c: "#0e7a3d", bg: "#e8f7ef", icon: "check" },
+        { l: "Still due", v: formatTaka(totals.due), c: totals.due > 0 ? "#c0392b" : "#0e7a3d", bg: "#fdecea", icon: "cash" },
+        { l: "Purchases", v: live.length, c: "#2563a8", bg: "#e8f0fa", icon: "grid" },
+        { l: "Suppliers", v: supplierBoard.length, c: "#b5642f", bg: "#f9efe6", icon: "user" },
       ]} />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5">
@@ -138,10 +138,10 @@ export default function PurchaseReportsView() {
                 <span className="text-body font-medium">{monthLabel(m.k)} <span className="text-body-soft">· {m.count} buys</span></span>
                 <span className="font-semibold text-purple">{formatTaka(m.bought)}</span>
               </div>
-              <div className="h-[10px] rounded-full overflow-hidden" style={{ background: "#2a1f34" }}>
+              <div className="h-[10px] rounded-full overflow-hidden" style={{ background: "#f1eaf7" }}>
                 <div className="h-full rounded-full" style={{ width: `${Math.round((m.bought / maxMonth) * 100)}%`, background: `linear-gradient(90deg, ${ACCENT}, #cf43ea)` }} />
               </div>
-              {m.due > 0 && <div className="text-[13px] mt-0.5" style={{ color: "#e1837a" }}>due {formatTaka(m.due)}</div>}
+              {m.due > 0 && <div className="text-[13px] mt-0.5" style={{ color: "#c0392b" }}>due {formatTaka(m.due)}</div>}
             </div>
           ))}
         </div>
@@ -159,7 +159,7 @@ export default function PurchaseReportsView() {
                 <span className="text-[13px] font-medium text-body truncate">{s.name}</span>
                 <span className="text-[12.5px] text-body-soft text-right">×{s.count}</span>
                 <span className="text-[13px] text-right">{formatTaka(s.bought)}</span>
-                <span className="text-[13px] font-semibold text-right" style={{ color: s.due > 0 ? "#e1837a" : "#b0a2b8" }}>
+                <span className="text-[13px] font-semibold text-right" style={{ color: s.due > 0 ? "#c0392b" : "#9b8aa6" }}>
                   {s.due > 0 ? formatTaka(s.due) : "—"}
                 </span>
               </Link>
@@ -188,7 +188,7 @@ export default function PurchaseReportsView() {
           )}
         </div>
 
-        {!histItem && <p className="text-[13px] text-body-soft m-0">Pick an item to see every price you have paid for it.</p>}
+        {!histItem && <p className="text-[13px] text-body-soft m-0">Pick an item.</p>}
         {histItem && histLoading && <p className="text-[13px] text-body-soft m-0">Loading…</p>}
         {histItem && !histLoading && hist && hist.lines.length === 0 && (
           <p className="text-[13px] text-body-soft m-0">Never bought yet.</p>

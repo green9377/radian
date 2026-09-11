@@ -81,11 +81,7 @@ function attemptLabel(a: ApiMoneyAttempt) {
 }
 
 const HELP =
-  "Every parcel on the road or delivered in the chosen period, one line each — plus, whatever their date, every parcel whose cash is still with a carrier or whose fare nobody has recorded yet. " +
-  "Cash: Due from customer (still out) to Cash with rider (delivered, cash taken at the door) to Received (in our hands; the click writes the remittance). Cash can be received once. " +
-  "Carrier fee = what we owe the rider or courier for this parcel, counted for every attempt including one that failed at the door; it is expensed once, on the parcel. " +
-  "Tick \"rider kept the fee from the cash\" only when he really did — otherwise the whole COD is the receipt and the fee is paid separately. " +
-  "Cost = Inventory's posted cost for the order, or the product's cost price when stock was never posted, which makes the profit an estimate. Profit = order total minus cost minus every carrier fee.";
+  "Cash can be received once. A carrier fee is expensed once, on the parcel.";
 
 export default function DeliveryMoney() {
   const [data, setData] = useState<ApiMoney | null>(null);
@@ -334,8 +330,8 @@ export default function DeliveryMoney() {
               </ActButton>
               <span className={`text-[12px] ${SOFT} basis-full`}>
                 Cash only. {bulk.feeMissing > 0
-                  ? `${bulk.feeMissing} parcel${bulk.feeMissing === 1 ? " still has" : "s still have"} no fare recorded — type those on the rows; the screen will not guess what was paid.`
-                  : "Every fare on these parcels is already recorded."}
+                  ? `${bulk.feeMissing} parcel${bulk.feeMissing === 1 ? " has" : "s have"} no fare recorded.`
+                  : ""}
               </span>
             </>
           )}
@@ -456,7 +452,7 @@ export default function DeliveryMoney() {
                                 <input type="checkbox" className="w-4 h-4 accent-purple mt-0.5" checked={feeKept} onChange={(e) => setFeeKept(e.target.checked)} />
                                 <span>
                                   Rider kept the fee from the cash
-                                  <span className={`block ${SOFT}`}>{formatTaka(c.costPaisa)} — leave it off if he handed over the whole {formatTaka(r.codCollectedPaisa)} and is paid separately</span>
+                                  <span className={`block ${SOFT}`}>{formatTaka(c.costPaisa)} — off if he handed over the whole {formatTaka(r.codCollectedPaisa)}</span>
                                 </span>
                               </label>
                             )}

@@ -144,7 +144,8 @@ export function Band({
   columns = 5,
 }: {
   title: string;
-  help: string;
+  /** optional one-line note shown behind the i bubble */
+  help?: string;
   right?: React.ReactNode;
   tiles: Tile[];
   /** key of the tile that is currently filtering the page */
@@ -159,9 +160,11 @@ export function Band({
       <div className="flex items-center justify-between gap-4 mb-4">
         <h1 className="font-display font-semibold text-[24px] leading-none m-0 inline-flex items-center gap-2.5 text-white">
           {title}
-          <span className="w-5 h-5 rounded-full border border-white/40 text-[11px] font-medium grid place-items-center font-ui cursor-help" title={help}>
-            i
-          </span>
+          {help && (
+            <span className="w-5 h-5 rounded-full border border-white/40 text-[11px] font-medium grid place-items-center font-ui cursor-help" title={help}>
+              i
+            </span>
+          )}
         </h1>
         {right}
       </div>

@@ -845,7 +845,6 @@ export default function PosSellView() {
       <div className="flex items-center gap-3 mb-5 flex-wrap">
         <div className="flex-1 min-w-0">
           <h1 className="font-display text-[22px] text-purple m-0 leading-tight">POS — Counter</h1>
-          <p className="text-body-soft text-[12.5px] m-0">Walk-in sell screen · completes as an Order (channel = POS)</p>
         </div>
         <Link href="/pos/day-close" className={"flex items-center gap-2 rounded-[11px] px-3.5 py-2 text-[12.5px] font-medium border " + (shiftOpen ? "bg-[#1c3626] border-[#2d4d3a] text-[#76efab]" : "bg-lavender border-lavender-deep text-body-soft")}>
           <Icon name="clock" size={15} />
@@ -962,7 +961,7 @@ export default function PosSellView() {
                           )}
                           {customers.length >= 25 && (
                             <div className="px-3 py-2 text-[11.5px] text-body-soft border-t border-lavender-deep">
-                              Showing the closest 25 — type more of the name or the number to narrow it.
+                              Closest 25 shown — type more to narrow it.
                             </div>
                           )}
                         </div>
@@ -1131,7 +1130,7 @@ export default function PosSellView() {
             {creditWarning && lines.length > 0 && (
               <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px] font-medium"
                 style={{ background: "rgba(224,162,58,.18)", color: "#ffd79a" }}>
-                {creditWarning} <span className="opacity-80 font-normal">The sale can still go through.</span>
+                {creditWarning}
               </div>
             )}
 
@@ -1282,7 +1281,7 @@ export default function PosSellView() {
               </div>
               {saleErr && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{saleErr}</div>}
               {heldErr && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{heldErr}</div>}
-              <div className="mt-2 text-[11px] text-[#a98ac4]">Enter adds the item you are on · F2 jumps to the tender · Enter there completes</div>
+              <div className="mt-2 text-[11px] text-[#a98ac4]">Enter adds · F2 tender · Enter completes</div>
             </div>
           </div>
         </aside>
@@ -1499,10 +1498,9 @@ export default function PosSellView() {
               <h3 className="font-display text-[18px] text-purple m-0">Held bills ({held.length})</h3>
               <button type="button" onClick={() => setShowHeld(false)} className="text-body-soft text-[20px] leading-none">{"×"}</button>
             </div>
-            <p className="text-[11.5px] text-body-soft mt-0 mb-3">Parked on the counter, not in this browser — a refresh or the other till sees the same list.</p>
             {heldErr && <div className="text-[12px] text-[#e1837a] mb-3">{heldErr}</div>}
             {held.length === 0 ? (
-              <p className="text-[13px] text-body-soft">No held bills. Use {"“"}Hold{"”"} to park a cart and serve someone else.</p>
+              <p className="text-[13px] text-body-soft">No held bills.</p>
             ) : (
               <div className="flex flex-col gap-2.5">
                 {held.map((hc) => {

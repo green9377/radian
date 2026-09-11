@@ -1202,27 +1202,21 @@ function CollectDue({ row, onlyOrderId, onClose, onDone }: {
 /* ================= SETTINGS ================= */
 
 /**
- * DEC-POS-021 — WHICH METHODS THIS COUNTER TAKES (POS audit §3 #26).
+ * ═══ ONE PLACE DECIDES WHAT THE SHOP TAKES — owner, 11 Sep 2026 ═══════════
  *
- * `PosSetting.enabledMethods` was stored, had a DTO field, had a column, and was
- * read by absolutely nothing: the till used the shop-wide payment list instead
- * (DEC-GBL-001) and the setting had no screen at all. It is editable below now,
- * and this hook is what makes it mean something — every money dialog on these
- * screens offers only the methods the shop says it takes at the counter.
+ * > *"We set up a pay method in one place and it works everywhere. Not module
+ * >  by module — that is how the system got into a mess."*
  *
- * An EMPTY list means "all of them", which is what the column's own default
- * says, so a shop that never opens this screen behaves exactly as before.
+ * So the counter no longer keeps its own shorter list. `PosSetting.enabledMethods`
+ * had a screen for one day; it is gone, the column is left unused, and every
+ * money dialog here offers exactly what Administration has switched on
+ * (DEC-GBL-001) — the same list the Sell screen, Orders and Returns use.
  */
 function useTillTenders(): string[] {
-  const [codes, setCodes] = useState<string[] | null>(null);
-  useEffect(() => {
-    posSettings()
-      .then((s) => setCodes((s.enabledMethods ?? []).map((c) => c.toUpperCase())))
-      .catch(() => setCodes(null));
-  }, []);
-  /*  while it is loading, and if it cannot be read, the built-in four: refusing
-      to take money because a settings row did not answer is the worse failure  */
-  return useMemo(() => (codes && codes.length ? codes : TILL_TENDERS), [codes]);
+  const live = usePaymentMethods(TILL_TENDERS);
+  /*  while it loads, the built-in four: refusing to take money because a
+      settings row has not answered yet is the worse failure  */
+  return useMemo(() => (live.length ? live.map((m) => m.id.toUpperCase()) : TILL_TENDERS), [live]);
 }
 
 export function PosSettings() {
@@ -1258,18 +1252,6 @@ export function PosSettings() {
     posRegisters().then(setRegisters).catch(() => setRegisters([]));
   }, []);
 
-  const enabled = (s?.enabledMethods ?? []).map((c) => c.toUpperCase());
-  const takesAll = enabled.length === 0;
-  const toggleMethod = (code: string) => {
-    const c = code.toUpperCase();
-    /*  "all of them" is an empty list, so the first tick has to start from the
-         full list and remove one — otherwise ticking a box would silently turn
-         every other method OFF  */
-    const base = takesAll ? methods.filter((m) => m.isActive).map((m) => m.code.toUpperCase()) : enabled;
-    const next = base.includes(c) ? base.filter((x) => x !== c) : [...base, c];
-    void save({ enabledMethods: next });
-  };
-
   /*  the receipt settings, on paper, as they are typed (§4 / §5 #1)  */
   const preview = sampleReceipt({
     receiptHeader: s?.receiptHeader ?? null,
@@ -1280,14 +1262,14 @@ export function PosSettings() {
 
   return (
     <div className={wrap}>
-      <Head title="POS settings" sub="What the counter is allowed to do — discounts, the cash float, the printed slip, the methods it takes and the counters themselves. No business value is hardcoded." />
+      <Head title="POS settings" sub="Discounts, the cash float, the printed slip, the counters." />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
         <div className="flex flex-col gap-5">
           <div className={card + " p-5"}>
             <h3 className="font-display text-[16px] text-purple m-0 mb-3">Discount rules</h3>
             <p className="text-[12px] text-body-soft mb-3">
-              The most a cashier may take off before a manager has to approve it (DEC-POS-006).
-              {rules.length === 0 && " No rule has been written, so nothing is capped at the counter."}
+              The most a cashier may take off before a manager approves it.
+              {rules.length === 0 && " No rule written — nothing is capped."}
             </p>
             {rules.length > 0 && (
               <table className="w-full text-[13px]">
@@ -1302,42 +1284,7 @@ export function PosSettings() {
             {/*  §3 #16 — the table was read-only and printed a raw cuid under a
                  heading that said "Category". It still cannot be edited from
                  here; saying so is better than a table that looks editable.  */}
-            <p className="text-[11.5px] text-body-soft m-0 mt-3">
-              These are read-only here. The ids are shown as stored — there is no editor for
-              discount rules yet, and `PUT /pos/discount-rules` has no screen behind it.
-            </p>
-          </div>
 
-          {/*  §3 #26 — DEC-POS-021 given a face  */}
-          <div className={card + " p-5"}>
-            <h3 className="font-display text-[16px] text-purple m-0 mb-1">Methods the counter takes</h3>
-            <p className="text-[12px] text-body-soft mb-3">
-              The shop-wide list lives in Administration (DEC-GBL-001); this narrows it to what a
-              person at the counter may be handed. {takesAll
-                ? "Nothing is ticked, which means the counter takes every active method."
-                : `${enabled.length} method(s) chosen.`}
-            </p>
-            <div className="flex flex-col gap-1.5">
-              {methods.filter((m) => m.isActive).map((m) => {
-                const on = takesAll || enabled.includes(m.code.toUpperCase());
-                return (
-                  <label key={m.id} className="flex items-center gap-2.5 cursor-pointer text-[13px]">
-                    <input type="checkbox" className="w-4 h-4 accent-[#7a2ea8]" checked={on} onChange={() => toggleMethod(m.code)} />
-                    <span className={on ? "text-purple font-medium" : "text-body-soft"}>{m.name}</span>
-                    <span className="text-[11px] text-body-soft font-mono">{m.code}</span>
-                  </label>
-                );
-              })}
-              {methods.length === 0 && <p className="text-[12.5px] text-body-soft m-0">Could not read the shop&apos;s payment methods.</p>}
-            </div>
-            {!takesAll && (
-              <button type="button" onClick={() => void save({ enabledMethods: [] })}
-                className="text-[12px] text-purple underline mt-3">Take every active method again</button>
-            )}
-            <p className="text-[11.5px] text-body-soft m-0 mt-3">
-              Honoured by the due board and the advance hand-over. The Sell screen still offers the
-              shop-wide till list — see the handover note.
-            </p>
           </div>
 
           {/*  §3 #27 — the route promised "methods, registers" and there was no
@@ -1345,7 +1292,6 @@ export function PosSettings() {
                the lazy COUNTER-1 singleton and cannot be added from a screen.  */}
           <div className={card + " p-5"}>
             <h3 className="font-display text-[16px] text-purple m-0 mb-1">Counters</h3>
-            <p className="text-[12px] text-body-soft mb-3">Where a bill is rung up. A counter is what a sale is stamped with.</p>
             <div className="flex flex-col">
               {registers.map((r) => (
                 <div key={r.id} className="flex items-center justify-between py-2 border-b border-lavender-deep last:border-0 text-[13px]">
@@ -1355,10 +1301,6 @@ export function PosSettings() {
               ))}
               {registers.length === 0 && <p className="text-[12.5px] text-body-soft m-0">No counter exists yet — the first sale creates one.</p>}
             </div>
-            <p className="text-[11.5px] text-body-soft m-0 mt-3">
-              Read-only: a counter can only be created by the shop&apos;s first sale
-              (<span className="font-mono">COUNTER-1</span>). There is no screen that adds one yet.
-            </p>
           </div>
         </div>
 
@@ -1411,9 +1353,6 @@ export function PosSettings() {
                    beside them is the paper that comes out.  */}
               <div className="border-t border-lavender-deep pt-3">
                 <b className="text-[13px] text-purple block mb-1">What is printed on the slip</b>
-                <p className="text-[11.5px] text-body-soft m-0 mb-2.5">
-                  These appear on every receipt the counter prints — reprints included.
-                </p>
                 <label className="lbl">Receipt header</label>
                 <input className="ipt mb-3" defaultValue={s?.receiptHeader ?? ""} placeholder="Radian Flower &amp; Gift"
                   onBlur={(e) => save({ receiptHeader: e.target.value || null })} />
@@ -1426,10 +1365,6 @@ export function PosSettings() {
                     onChange={(e) => save({ giftReceiptHidePrice: e.target.checked })} />
                   <span>Gift receipt hides the price</span>
                 </label>
-                <p className="text-[11.5px] text-body-soft m-0 mt-1.5">
-                  A gift bill then prints a GIFT RECEIPT with no prices anywhere on it. The shop&apos;s
-                  own copy, with prices, is always one press away on the bill.
-                </p>
               </div>
             </div>
           </div>
@@ -1447,7 +1382,7 @@ export function PosSettings() {
               </div>
             </div>
             <p className="text-[12px] text-body-soft m-0 mb-3">
-              A made-up bill at the real size (72 mm). Nothing here is a real sale — it is what the
+              A sample bill at the real size (72 mm) — it is what the
               header and the footer above will look like on the roll.
             </p>
             <ReceiptPreview r={preview} gift={giftPreview} />

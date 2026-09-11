@@ -86,15 +86,15 @@ function SourceLegend({ demo }: { demo: boolean }) {
     <div className="flex gap-2.5 flex-wrap items-center text-[11.5px] mb-4">
       <span className="text-body-soft">Where the numbers come from:</span>
       {demo ? (
-        <span className="bg-[#3a2d16] text-[#f7a96e] border border-[#f0c88a] px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1.5">
+        <span className="bg-[#fff8ec] text-[#b45309] border border-[#f0c88a] px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1.5">
           <Icon name="bolt" size={12} /> Demo data — no real orders yet
         </span>
       ) : (
         <>
-          <span className="bg-[#20342a] text-[#76efc3] px-2.5 py-1 rounded-full font-semibold">
+          <span className="bg-[#e8f6ef] text-[#0f7d55] px-2.5 py-1 rounded-full font-semibold">
             Radian database — money, authoritative
           </span>
-          <span className="bg-[#29242f] text-body-soft px-2.5 py-1 rounded-full font-semibold">
+          <span className="bg-[#f0edf4] text-body-soft px-2.5 py-1 rounded-full font-semibold">
             Web analytics — not connected yet
           </span>
         </>
@@ -127,7 +127,7 @@ function Stage({
         <span className="flex items-center gap-2">
           <b className={tracked ? "text-purple" : "text-body-soft"}>{label}</b>
           <span
-            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${tracked ? "bg-[#20342a] text-[#76efc3]" : "bg-[#29242f] text-body-soft"}`}
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${tracked ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-[#f0edf4] text-body-soft"}`}
           >
             {tracked ? "DB" : "not tracked"}
           </span>
@@ -243,17 +243,14 @@ export function CatalogFunnel() {
   return (
     <div className={WRAP}>
       <div className="flex items-end justify-between gap-4 mb-4 flex-wrap">
-        <PageHead eyebrow="Product Management · funnel" title="Product Funnel">
-          Where the whole catalog leaks, and which products cost you the most
-          money. Click any row to open that product&apos;s own analysis.
-        </PageHead>
+        <PageHead eyebrow="Product Management · funnel" title="Product Funnel" />
         <RangePicker days={days} setDays={setDays} />
       </div>
 
       <SourceLegend demo={demo} />
 
       {error && (
-        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}.{" "}
           <button className="underline" onClick={() => load(days)}>
             Retry
@@ -268,8 +265,8 @@ export function CatalogFunnel() {
         </h3>
         <p className="text-[13px] text-body-soft m-0 mb-4">
           {demo
-            ? "Demo numbers — this is exactly how the funnel will read once tracking and real orders are in."
-            : "The first three stages need web-analytics tracking. Orders and deliveries below are real."}
+            ? "Demo numbers."
+            : "The first three stages need web-analytics tracking."}
         </p>
         <div className="flex flex-col gap-3">
           <Stage
@@ -323,7 +320,7 @@ export function CatalogFunnel() {
           </div>
           <div>
             <div className="text-[13px] text-body-soft">Margin earned</div>
-            <div className="text-[19px] font-medium text-[#76efc3]">
+            <div className="text-[19px] font-medium text-[#0f7d55]">
               {formatTaka(t?.marginPaisa ?? 0)}
             </div>
           </div>
@@ -333,7 +330,7 @@ export function CatalogFunnel() {
           </div>
           <div>
             <div className="text-[13px] text-body-soft">Refunded</div>
-            <div className="text-[19px] font-medium text-[#e1837a]">
+            <div className="text-[19px] font-medium text-[#c0392b]">
               {formatTaka(t?.refundPaisa ?? 0)}
             </div>
           </div>
@@ -426,10 +423,10 @@ export function CatalogFunnel() {
                       r.conv === null
                         ? "text-body-soft"
                         : r.conv < 3
-                          ? "text-[#e1837a]"
+                          ? "text-[#c0392b]"
                           : r.conv < 6
-                            ? "text-[#f7a96e]"
-                            : "text-[#76efc3]"
+                            ? "text-[#b45309]"
+                            : "text-[#0f7d55]"
                     }`}
                   >
                     {r.conv === null ? "—" : `${r.conv.toFixed(1)}%`}
@@ -442,15 +439,15 @@ export function CatalogFunnel() {
                       <span
                         className={`text-[11.5px] font-semibold px-2.5 py-1 rounded-full ${
                           r.leak === "No orders at all" || r.leak === "View → cart"
-                            ? "bg-[#3b1a16] text-[#e1837a]"
-                            : "bg-[#3a2d16] text-[#f7a96e]"
+                            ? "bg-[#fdecea] text-[#c0392b]"
+                            : "bg-[#fff8ec] text-[#b45309]"
                         }`}
                       >
                         {r.leak}
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-semibold text-[#e1837a]">
+                  <td className="px-4 py-3 font-semibold text-[#c0392b]">
                     {r.lostPaisa > 0 ? formatTaka(r.lostPaisa) : "—"}
                   </td>
                 </tr>
@@ -470,17 +467,11 @@ export function CatalogFunnel() {
         </table>
       </div>
 
-      <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#3a2d16] px-4 py-3 mt-4 text-[12.5px] text-[#f4be71]">
-        <span className="text-[#f7a96e] shrink-0">
+      <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#fff8ec] px-4 py-3 mt-4 text-[12.5px] text-[#7a4b09]">
+        <span className="text-[#b45309] shrink-0">
           <Icon name="bolt" size={18} />
         </span>
-        <div>
-          <b>Phase 1.</b> &ldquo;Money lost&rdquo; today counts refunds and the
-          value of cancelled orders — all real. Once view / add-to-cart tracking
-          is connected, this column also counts the revenue you lose from
-          products that get seen but never bought, which is usually the bigger
-          number.
-        </div>
+        <div>&ldquo;Money lost&rdquo; counts refunds and the value of cancelled orders.</div>
       </div>
     </div>
   );
@@ -541,20 +532,20 @@ export function ProductAnalysis({ slug }: { slug: string }) {
   const diagnosis = useMemo(() => {
     if (!data || !f || !m || !p) return null;
     if (f.views && f.addToCarts !== null && pct(f.addToCarts, f.views) < 8)
-      return `${f.views.toLocaleString("en-IN")} people saw this product but only ${f.addToCarts} put it in the cart. The page is losing them, not the traffic — check the price against similar products, the main photo, and the short description.`;
+      return `${f.views.toLocaleString("en-IN")} views, ${f.addToCarts} added to cart — check the price, the main photo and the description.`;
     if (f.checkouts !== null && f.addToCarts && pct(f.checkouts, f.addToCarts) < 55)
-      return `People add this to the cart but leave before checkout. That is usually delivery: the zone may not be served, the slot may be unavailable, or the delivery charge appears too late.`;
+      return `Added to the cart but left before checkout — usually the zone, the slot or the delivery charge.`;
     if (f.checkouts && pct(f.orders, f.checkouts) < 70)
-      return `Customers start checkout but do not finish. Look at the payment step — an advance-payment requirement or a failing gateway is the usual cause.`;
+      return `Checkout started but not finished — look at the payment step.`;
     if (f.orders === 0 && p.isPublished)
-      return "This product is live but sold nothing in this period. Check that it sits in a category, has tags, a real photo and a sensible price — or that it is reachable from the storefront at all.";
+      return "Live but sold nothing in this period — check its category, tags, photo and price.";
     if (f.cancelled > 0 && f.cancelled >= f.orders * 0.2)
-      return "A high share of orders are being cancelled. Usually that means the stock number was wrong, the lead time was too long, or the delivery zone could not actually serve the customer.";
+      return "A high share of orders are cancelled — usually stock, lead time or the delivery zone.";
     if (p.costPaisa <= 0)
-      return "No cost price is set, so margin cannot be measured. Add the cost on the product page to see whether this item actually makes money.";
+      return "No cost price is set, so margin cannot be measured.";
     if (m.refundPaisa > 0)
-      return "Money was refunded on this product. Check the order notes — repeated refunds usually point at quality or delivery-condition problems.";
-    return "No problems detected from order data. Connect web-analytics tracking to see whether people are viewing this product and dropping off before they buy.";
+      return "Money was refunded on this product — check the order notes.";
+    return "No problems detected from order data.";
   }, [data, f, m, p]);
 
   return (
@@ -567,17 +558,14 @@ export function ProductAnalysis({ slug }: { slug: string }) {
       </Link>
 
       <div className="flex items-end justify-between gap-4 mb-4 flex-wrap">
-        <PageHead eyebrow="Product Management · analysis" title={p?.name ?? "Product analysis"}>
-          Everything this product did in the last {days} days — from order to
-          delivery, and where the money went.
-        </PageHead>
+        <PageHead eyebrow="Product Management · analysis" title={p?.name ?? "Product analysis"} />
         <RangePicker days={days} setDays={setDays} />
       </div>
 
       <SourceLegend demo={demo} />
 
       {error && (
-        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}
         </div>
       )}
@@ -652,12 +640,9 @@ export function ProductAnalysis({ slug }: { slug: string }) {
             </div>
 
             <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5">
-              <h3 className="font-display text-[16px] text-purple m-0 mb-1">
+              <h3 className="font-display text-[16px] text-purple m-0 mb-4">
                 Orders per day
               </h3>
-              <p className="text-[13px] text-body-soft m-0 mb-4">
-                Spot the day it changed — then check what was edited that day.
-              </p>
               {data && data.daily.length > 0 ? (
                 <div className="flex items-end gap-[3px] h-[110px]">
                   {data.daily.map((d) => (

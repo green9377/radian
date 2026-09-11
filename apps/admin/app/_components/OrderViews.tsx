@@ -272,9 +272,7 @@ export function OrdersOverview() {
             <Icon name="plus" size={18} /> New order
           </Link>
         }
-      >
-        What needs you now, what is being fulfilled, and what money is still out. Walk-in POS is a separate module.
-      </PageHead>
+      />
       {error && <ErrorBox error={error} onRetry={reload} />}
 
       {/* hero — the one thing to do next */}
@@ -283,9 +281,6 @@ export function OrdersOverview() {
           <div className="text-[12px] uppercase tracking-[0.08em] opacity-80">Waiting on you</div>
           <div className="font-display text-[34px] leading-none mt-1">
             {loading ? "…" : s.needsAction} order{s.needsAction === 1 ? "" : "s"} to confirm
-          </div>
-          <div className="text-[12.5px] opacity-85 mt-1.5">
-            Paid ones just need a quick check · cash-on-delivery ones need a call first
           </div>
         </div>
         <Link href="/orders/action" className="bg-white text-purple text-[14px] font-medium px-5 py-3 rounded-[12px] inline-flex items-center gap-2 shrink-0 hover:bg-lavender">
@@ -336,7 +331,6 @@ export function OrdersOverview() {
                 <div className="text-[16px] font-medium" style={{ color: TONE.rose.text }}>{formatTaka(s.refundOwed)}</div>
               </div>
             </div>
-            <NoteBox tone="purple">Revenue and customer lifetime value only count once an order is delivered — pending and cancelled orders never do.</NoteBox>
           </div>
         </Panel>
       </div>
@@ -404,9 +398,7 @@ export function OrdersActionQueue() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Commerce · Sales" title="Action queue">
-        Everything waiting on staff, split by what you actually have to do. Confirming only accepts the order — stock still drops later, when Delivery starts preparing.
-      </PageHead>
+      <PageHead eyebrow="Commerce · Sales" title="Action queue" />
       <Said say={say} />
       {error && <ErrorBox error={error} onRetry={reload} />}
 
@@ -416,27 +408,23 @@ export function OrdersActionQueue() {
         <Stat label="Unpaid — chase" value={loading ? "…" : String(unpaidOnline.length)} tone="rose" icon="bolt" />
       </div>
 
-      <Panel title="Paid — verify and confirm" icon="check" tone="green" count={paid.length} hint="money is already in">
+      <Panel title="Paid" icon="check" tone="green" count={paid.length}>
         {loading ? <EmptyRow text="Loading…" tone="green" /> : paid.length === 0 ? <EmptyRow text="All clear — nothing waiting." tone="green" /> : paid.map((o) => (
           <OrderRow key={o.id} o={o} tone="green" right={<>{amountEl(o.totalPaisa)}<Chip meta={{ ...PAYMENT_STATUS_META[o.paymentStatus], label: paymentLabel(o.paymentStatus, o.paymentMethod) }} />{confirmBtn(o, "green")}</>} />
         ))}
       </Panel>
 
-      <Panel title="Cash on delivery — call, then confirm" icon="phone" tone="amber" count={cod.length} hint="confirm by voice before you accept">
+      <Panel title="Cash on delivery" icon="phone" tone="amber" count={cod.length}>
         {loading ? <EmptyRow text="Loading…" tone="amber" /> : cod.length === 0 ? <EmptyRow text="Nothing to call right now." tone="amber" /> : cod.map((o) => (
           <OrderRow key={o.id} o={o} tone="amber" right={<>{amountEl(o.totalPaisa)}{callBtn(o)}{confirmBtn(o, "amber")}</>} />
         ))}
       </Panel>
 
-      <Panel title="Online but unpaid — payment never completed" icon="bolt" tone="rose" count={unpaidOnline.length} hint="follow up before it goes cold">
+      <Panel title="Online but unpaid" icon="bolt" tone="rose" count={unpaidOnline.length}>
         {loading ? <EmptyRow text="Loading…" tone="rose" /> : unpaidOnline.length === 0 ? <EmptyRow text="No stuck payments." tone="rose" /> : unpaidOnline.map((o) => (
           <OrderRow key={o.id} o={o} tone="rose" right={<>{amountEl(o.totalPaisa)}{callBtn(o)}<Link href="/orders/recovery" className="text-[12.5px] font-medium underline" style={{ color: TONE.rose.text }}>Recovery</Link></>} />
         ))}
       </Panel>
-
-      <NoteBox tone="amber">
-        Cash on delivery is never offered on gift orders or on made-to-order (crafted) items — those always need advance payment.
-      </NoteBox>
     </div>
   );
 }
@@ -456,9 +444,7 @@ export function OrdersPayments() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Commerce · Sales" title="Payments & dues">
-        What money is still out and what has been refunded. Radian records collection and refunds here — the accounting entry itself belongs to Finance.
-      </PageHead>
+      <PageHead eyebrow="Commerce · Sales" title="Payments & dues" />
       {error && <ErrorBox error={error} onRetry={reload} />}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -484,7 +470,6 @@ export function OrdersPayments() {
         ))}
       </Panel>
 
-      <NoteBox tone="purple">Cancellation refunds are per line — a readymade item comes back in full, a crafted item keeps its advance once preparation has started.</NoteBox>
     </div>
   );
 }
@@ -508,9 +493,7 @@ export function OrdersScheduled() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Commerce · Sales" title="Scheduled & occasions">
-        Everything still to be delivered, grouped by the date you promised. Midnight surprises and gifts are the ones that hurt most if they slip.
-      </PageHead>
+      <PageHead eyebrow="Commerce · Sales" title="Scheduled & occasions" />
       {error && <ErrorBox error={error} onRetry={reload} />}
 
       <div className="grid grid-cols-3 gap-3 mb-6">
@@ -532,7 +515,6 @@ export function OrdersScheduled() {
             </Panel>
           ))}
 
-      <NoteBox tone="blue">Delivery method, slot capacity and cut-offs belong to the Delivery module — Sales only shows what was promised to the customer.</NoteBox>
     </div>
   );
 }
@@ -601,9 +583,7 @@ export function OrdersReports() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Commerce · Sales" title="Order reports">
-        Where the orders and the money come from.
-      </PageHead>
+      <PageHead eyebrow="Commerce · Sales" title="Order reports" />
       {error && <ErrorBox error={error} onRetry={() => void reload()} />}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -631,10 +611,6 @@ export function OrdersReports() {
         <Bars title="By payment method" icon="cash" tone="green" rows={rep?.payment ?? []} />
         <Bars title="Self vs gift" icon="heart" tone="gold" rows={rep?.type ?? []} />
       </div>
-
-      <NoteBox tone="purple">
-        Every order the shop has taken is counted, walk-in counter sales apart — those have their own reports. Revenue and the average order count delivered orders only, because that is the moment Radian recognises a sale. Product-level and day-by-day breakdowns are still to come.
-      </NoteBox>
     </div>
   );
 }
@@ -646,27 +622,18 @@ export function OrdersRecovery() {
   const atRisk = items.filter((o) => o.salesStatus === "placed" && o.paymentMethod === "online" && o.paymentStatus === "unpaid");
   const value = atRisk.reduce((n, o) => n + o.totalPaisa, 0);
 
-  const future: [string, string, Tone][] = [
-    ["Awaiting payment", "sent to the gateway, not paid yet", "amber"],
-    ["Payment failed", "the gateway returned a failure", "rose"],
-    ["Abandoned", "never came back — timed out", "blue"],
-    ["Flagged risk", "odd address, repeat canceller, big COD", "purple"],
-  ];
-
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Commerce · Sales" title="Recovery — incomplete orders">
-        People who gave their details but never finished: payment failed, the connection dropped, or they simply left. Their information is kept so the team can follow up by call, WhatsApp or email — nothing is lost.
-      </PageHead>
+      <PageHead eyebrow="Commerce · Sales" title="Recovery — incomplete orders" />
       {error && <ErrorBox error={error} onRetry={reload} />}
 
       <div className="grid grid-cols-3 gap-3 mb-6">
         <Stat label="Awaiting payment" value={loading ? "…" : String(atRisk.length)} tone="amber" icon="clock" />
         <Stat label="Value at risk" value={loading ? "…" : formatTaka(value)} tone="rose" icon="cash" />
-        <Stat label="Recovered" value="—" tone="green" icon="heart" sub="needs follow-up tracking" />
+        <Stat label="Recovered" value="—" tone="green" icon="heart" />
       </div>
 
-      <Panel title="Placed but not paid — follow up now" icon="phone" tone="amber" count={atRisk.length} hint="the warmest leads you have">
+      <Panel title="Placed but not paid" icon="phone" tone="amber" count={atRisk.length}>
         {loading ? <EmptyRow text="Loading…" tone="amber" /> : atRisk.length === 0 ? <EmptyRow text="Nothing waiting on payment." tone="green" /> : atRisk.map((o) => (
           <OrderRow key={o.id} o={o} tone="amber" right={<>
             {amountEl(o.totalPaisa)}
@@ -675,28 +642,6 @@ export function OrdersRecovery() {
             </a>
           </>} />
         ))}
-      </Panel>
-
-      <Panel title="What this screen becomes" icon="sparkle" tone="purple" hint="once checkout saves on click">
-        <div className="p-5">
-          <p className="text-[13px] text-body-soft m-0 mb-3.5">
-            Today it can only show orders that reached the server. To catch every drop-off, the storefront must save the order the moment “Place order” is pressed — before the payment gateway — so a lost connection or a failed payment still leaves a full record.
-          </p>
-          <div className="grid md:grid-cols-2 gap-2.5">
-            {future.map(([t, d, tone]) => {
-              const c = TONE[tone];
-              return (
-                <div key={t} className="rounded-[12px] px-3.5 py-2.5 border" style={{ background: c.bg, borderColor: c.border }}>
-                  <b className="font-medium text-[13px]" style={{ color: c.text }}>{t}</b>
-                  <div className="text-[11.5px] opacity-80" style={{ color: c.text }}>{d}</div>
-                </div>
-              );
-            })}
-          </div>
-          <NoteBox tone="blue">
-            Each record will also carry why it did not complete, plus a follow-up thread (call · WhatsApp · email) with its outcome. Sending the messages is the Automation module’s job; the result stays on the order.
-          </NoteBox>
-        </div>
       </Panel>
     </div>
   );
@@ -709,12 +654,10 @@ export function OrdersReturns() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Commerce · Sales" title="Returns & refunds">
-        Returns are always started by staff, never by the customer directly. Fresh flowers and made-to-order items are judged case by case.
-      </PageHead>
+      <PageHead eyebrow="Commerce · Sales" title="Returns & refunds" />
       {error && <ErrorBox error={error} onRetry={reload} />}
 
-      <Panel title="Delivered — eligible for a return request" icon="box" tone="blue" count={delivered.length}>
+      <Panel title="Delivered" icon="box" tone="blue" count={delivered.length}>
         {loading ? <EmptyRow text="Loading…" tone="blue" /> : delivered.length === 0 ? <EmptyRow text="No delivered orders yet." tone="blue" /> : delivered.map((o) => (
           <OrderRow key={o.id} o={o} tone="blue" right={<>
             {amountEl(o.totalPaisa)}
@@ -725,10 +668,6 @@ export function OrdersReturns() {
           </>} />
         ))}
       </Panel>
-
-      <NoteBox tone="purple">
-        A Sales “Return Order” is not the same thing as Delivery’s “Stock Reverted” — one is a commercial decision, the other a warehouse movement. They stay separate records.
-      </NoteBox>
     </div>
   );
 }
@@ -741,9 +680,7 @@ export function OrdersCancelled() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Commerce · Sales" title="Cancelled orders">
-        Cancelled orders are never deleted — they stay for the audit trail with the refund that was issued. Nothing here counts towards revenue or lifetime value.
-      </PageHead>
+      <PageHead eyebrow="Commerce · Sales" title="Cancelled orders" />
       {error && <ErrorBox error={error} onRetry={reload} />}
 
       <div className="grid grid-cols-3 gap-3 mb-6">

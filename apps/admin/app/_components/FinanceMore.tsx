@@ -61,7 +61,6 @@ export function CarrierMoneyLive() {
         title="Cash with riders & couriers"
         emoji="🛵"
         tone="amber"
-        sub="When a courier collects COD the money is theirs to hold — not yours yet. It becomes your cash only when they hand it over, usually days later and minus their charge."
       />
       <Flash ok={ok} err={err} />
 
@@ -76,7 +75,7 @@ export function CarrierMoneyLive() {
       <Panel title="Who is holding our cash" emoji="🤲" tone="amber" className="mb-5">
         <Table head={<><Th>Carrier</Th><Th>Type</Th><Th right>Holding</Th><Th right>Waiting</Th><Th right w="160px" /></>}>
           {(!data || data.carriers.length === 0) && (
-            <tr><Td className="text-center text-body-soft py-8" >Nobody is holding our cash right now — all handed over.</Td><Td /><Td /><Td /><Td /></tr>
+            <tr><Td className="text-center text-body-soft py-8" >Nobody is holding our cash right now.</Td><Td /><Td /><Td /><Td /></tr>
           )}
           {data?.carriers.map((c) => (
             <tr key={c.carrierId}>
@@ -84,7 +83,7 @@ export function CarrierMoneyLive() {
               <Td><Chip tone={c.type === "COURIER" ? "sky" : "brand"}>{c.type === "COURIER" ? "Courier" : "Rider"}</Chip></Td>
               <Td right><span className="font-bold">{taka(c.paisa)}</span></Td>
               <Td right>
-                <span className="font-semibold" style={{ color: c.daysHeld > 7 ? TONE.rose.text : "#adadad" }}>{c.daysHeld} days</span>
+                <span className="font-semibold" style={{ color: c.daysHeld > 7 ? TONE.rose.text : "#6b6b6b" }}>{c.daysHeld} days</span>
               </Td>
               <Td right>
                 <button className={btnGhost} onClick={() => setF({ ...f, carrierId: c.carrierId, carrierName: c.name, carrierType: c.type, gross: String(c.paisa / 100) })}>
@@ -197,7 +196,6 @@ export function AssetsLoansLive() {
         title="Assets, advances & loans"
         emoji="🏛"
         tone="sky"
-        sub="A fridge is not this month's expense — it wears out over years. Six months' rent paid up front is not one month's cost either. And a loan instalment is part debt, part cost."
         right={
           <button className={btnGhost} onClick={async () => {
             try {
@@ -246,17 +244,17 @@ export function AssetsLoansLive() {
                     }}>Add</button>
                 </div>
               </div>
-              <div className="text-[12.5px] text-body-soft mt-3">
-                {a.cost && a.life
-                  ? <>About <b className="text-purple">{taka(Math.round(toPaisa(a.cost) / Number(a.life || 48)))}</b> a month of wear and tear — it joins the fixed costs.</>
-                  : "The monthly wear and tear becomes a fixed cost, so break-even stays honest."}
-              </div>
+              {a.cost && a.life && (
+                <div className="text-[12.5px] text-body-soft mt-3">
+                  About <b className="text-purple">{taka(Math.round(toPaisa(a.cost) / Number(a.life || 48)))}</b> a month of wear and tear.
+                </div>
+              )}
             </div>
           </Panel>
 
           <Panel title="What we own" emoji="🧊" tone="sky">
             <Table head={<><Th>Asset</Th><Th right>Cost</Th><Th right>Per month</Th><Th right>Worn off</Th><Th right>Worth now</Th><Th right w="110px">This month</Th></>}>
-              {assets.length === 0 && <tr><Td className="py-8"><Empty emoji="🧊" title="Nothing added yet" sub="Fridge, delivery van, computer, shop fittings — anything that lasts more than a year." /></Td><Td /><Td /><Td /><Td /><Td /></tr>}
+              {assets.length === 0 && <tr><Td className="py-8"><Empty emoji="🧊" title="Nothing added yet" /></Td><Td /><Td /><Td /><Td /><Td /></tr>}
               {assets.map((x) => (
                 <tr key={x.id}>
                   <Td>
@@ -305,14 +303,14 @@ export function AssetsLoansLive() {
                 </div>
               </div>
               <div className="text-[12.5px] text-body-soft mt-3">
-                Months <b>0</b> means a refundable deposit — it stays an asset and never becomes a cost.
+                Months <b>0</b> means a refundable deposit.
               </div>
             </div>
           </Panel>
 
           <Panel title="Paid in advance" emoji="📆" tone="brand">
             <Table head={<><Th>What</Th><Th right>Paid</Th><Th right>Per month</Th><Th right>Used up</Th><Th right>Left</Th></>}>
-              {prepaid.length === 0 && <tr><Td className="py-8"><Empty emoji="📆" title="Nothing added yet" sub="Advance rent, a year of hosting, the shop security deposit." /></Td><Td /><Td /><Td /><Td /></tr>}
+              {prepaid.length === 0 && <tr><Td className="py-8"><Empty emoji="📆" title="Nothing added yet" /></Td><Td /><Td /><Td /><Td /></tr>}
               {prepaid.map((x) => (
                 <tr key={x.id}>
                   <Td>
@@ -366,7 +364,7 @@ export function AssetsLoansLive() {
 
           <Panel title="Money borrowed" emoji="🏦" tone="amber" className="mb-5">
             <Table head={<><Th>Lender</Th><Th right>Borrowed</Th><Th right>Paid back</Th><Th right>Interest paid</Th><Th right>Still owed</Th><Th right w="150px" /></>}>
-              {loans.length === 0 && <tr><Td className="py-8"><Empty emoji="🌤" title="No loans" sub="A good place to be." /></Td><Td /><Td /><Td /><Td /><Td /></tr>}
+              {loans.length === 0 && <tr><Td className="py-8"><Empty emoji="🌤" title="No loans" /></Td><Td /><Td /><Td /><Td /><Td /></tr>}
               {loans.map((x) => (
                 <tr key={x.id}>
                   <Td>
@@ -389,7 +387,7 @@ export function AssetsLoansLive() {
             <Panel title={`Instalment — ${pay.loan.lenderName}`} emoji="💵" tone="emerald">
               <div className="px-5 py-4">
                 <div className="text-[12.5px] text-body-soft mb-3">
-                  Split it: the principal reduces what you owe, the interest is a real cost of this month.
+                  The principal reduces what you owe; the interest is this month's cost.
                 </div>
                 <div className="grid md:grid-cols-4 gap-3 items-end">
                   <div><Lbl>Principal (৳)</Lbl><input className={input} value={pay.principal} onChange={(e) => setPay({ ...pay, principal: e.target.value })} autoFocus /></div>
@@ -481,7 +479,6 @@ export function ReportsLive() {
         title="Reports"
         emoji="📊"
         tone="emerald"
-        sub="Every figure is worked out on the server from the ledger — nothing is added up in the browser, so what you see is what the books say."
       />
       <Flash ok="" err={err} />
 
@@ -509,11 +506,10 @@ export function ReportsLive() {
             </Banner>
           )}
 
-          <Panel title="What goes out every month" emoji="📋" tone="amber" className="mb-5"
-            sub="salary, rent, internet, wear and tear — the costs that arrive whether or not anything sells">
+          <Panel title="What goes out every month" emoji="📋" tone="amber" className="mb-5">
             <Table head={<><Th>What</Th><Th>Kind</Th><Th right>Per month</Th><Th right>Share</Th><Th right w="110px">This month</Th></>}>
               {com.items.length === 0 && (
-                <tr><Td className="py-8"><Empty emoji="🧾" title="Nothing set up yet" sub="Add your monthly bills and partner salaries and this fills in." /></Td><Td /><Td /><Td /><Td /></tr>
+                <tr><Td className="py-8"><Empty emoji="🧾" title="Nothing set up yet" /></Td><Td /><Td /><Td /><Td /></tr>
               )}
               {com.items.map((i, k) => {
                 const m = KIND_META[i.kind] ?? KIND_META.BILL;
@@ -543,10 +539,10 @@ export function ReportsLive() {
             </Table>
           </Panel>
 
-          <Panel title="Salary history" emoji="👥" tone="sky" sub="what each person has actually been paid, out of the books">
+          <Panel title="Salary history" emoji="👥" tone="sky">
             <Table head={<><Th>Person</Th><Th right>Average a month</Th><Th right>This month</Th><Th right>Months paid</Th></>}>
               {com.staff.length === 0 && (
-                <tr><Td className="py-8"><Empty emoji="👥" title="No staff salary paid yet" sub="Pay a salary on the Staff advance & salary screen and it shows up here." /></Td><Td /><Td /><Td /></tr>
+                <tr><Td className="py-8"><Empty emoji="👥" title="No staff salary paid yet" /></Td><Td /><Td /><Td /></tr>
               )}
               {com.staff.map((s) => (
                 <tr key={s.name}>
@@ -578,7 +574,7 @@ export function ReportsLive() {
               <div className="px-5 py-3">
                 {pnl.income.length === 0 && <div className="text-[13px] text-body-soft py-3">Nothing earned in this period.</div>}
                 {pnl.income.map((r) => (
-                  <div key={r.code} className="flex justify-between py-2 border-b border-[#3f3248] last:border-0 text-[13.5px]">
+                  <div key={r.code} className="flex justify-between py-2 border-b border-[#f6f2f9] last:border-0 text-[13.5px]">
                     <span className="text-body-soft">{r.name}</span><span className="font-semibold text-purple">{taka(r.paisa)}</span>
                   </div>
                 ))}
@@ -616,17 +612,17 @@ export function ReportsLive() {
                   {d.buckets.map((b) => {
                     const bad = b.bucket === "over 30 days" && b.paisa > 0;
                     return (
-                      <div key={b.bucket} className="text-center px-2 py-2.5 rounded-xl" style={{ background: bad ? TONE.rose.soft : "#271f30" }}>
+                      <div key={b.bucket} className="text-center px-2 py-2.5 rounded-xl" style={{ background: bad ? TONE.rose.soft : "#faf8fc" }}>
                         <div className="text-[10px] uppercase text-body-soft font-bold">{b.bucket}</div>
-                        <div className="text-[13px] font-bold mt-0.5" style={{ color: bad ? TONE.rose.text : "#b694d1" }}>{taka(b.paisa)}</div>
+                        <div className="text-[13px] font-bold mt-0.5" style={{ color: bad ? TONE.rose.text : "#3d2352" }}>{taka(b.paisa)}</div>
                       </div>
                     );
                   })}
                 </div>
                 {d.rows.slice(0, 12).map((r) => (
-                  <div key={r.ref} className="flex justify-between py-1.5 text-[12.5px] border-b border-[#3f3248] last:border-0">
+                  <div key={r.ref} className="flex justify-between py-1.5 text-[12.5px] border-b border-[#f6f2f9] last:border-0">
                     <span className="text-body-soft">{r.ref} · {r.who}</span>
-                    <span><b>{taka(r.paisa)}</b> <span style={{ color: r.days > 30 ? TONE.rose.text : "#adadad" }}>{r.days}d</span></span>
+                    <span><b>{taka(r.paisa)}</b> <span style={{ color: r.days > 30 ? TONE.rose.text : "#6b6b6b" }}>{r.days}d</span></span>
                   </div>
                 ))}
                 {d.rows.length === 0 && <div className="text-[13px] text-body-soft">Nothing outstanding — clean.</div>}
@@ -660,14 +656,14 @@ export function ReportsLive() {
           <Panel title="Goods that left but never arrived" emoji="📦" tone={leak.goodsStuckOut.overdueCount > 0 ? "rose" : "slate"}
             sub="out of the warehouse, not delivered and not returned">
             <div className="px-5 py-4">
-              <div className="text-[21px] font-bold mb-3" style={{ color: leak.goodsStuckOut.overdueCount > 0 ? TONE.rose.text : "#b694d1" }}>
+              <div className="text-[21px] font-bold mb-3" style={{ color: leak.goodsStuckOut.overdueCount > 0 ? TONE.rose.text : "#3d2352" }}>
                 {taka(leak.goodsStuckOut.totalPaisa)}
                 <span className="text-[12px] font-normal text-body-soft ml-2">{leak.goodsStuckOut.overdueCount} over a week</span>
               </div>
               {leak.goodsStuckOut.rows.map((r) => (
-                <div key={r.orderNo} className="flex justify-between py-1.5 text-[12.5px] border-b border-[#3f3248] last:border-0">
+                <div key={r.orderNo} className="flex justify-between py-1.5 text-[12.5px] border-b border-[#f6f2f9] last:border-0">
                   <span className="text-body-soft">{r.orderNo}</span>
-                  <span><b>{taka(r.paisa)}</b> <span style={{ color: r.days > 7 ? TONE.rose.text : "#adadad" }}>{r.days}d</span></span>
+                  <span><b>{taka(r.paisa)}</b> <span style={{ color: r.days > 7 ? TONE.rose.text : "#6b6b6b" }}>{r.days}d</span></span>
                 </div>
               ))}
               {leak.goodsStuckOut.rows.length === 0 && <div className="text-[13px] text-body-soft">Nothing stuck — good.</div>}
@@ -678,7 +674,7 @@ export function ReportsLive() {
             <div className="px-5 py-4">
               {leak.writeOffs.length === 0 && <div className="text-[13px] text-body-soft">Nothing written off yet.</div>}
               {leak.writeOffs.map((w) => (
-                <div key={w.actor} className="flex justify-between py-2 border-b border-[#3f3248] last:border-0 text-[13px]">
+                <div key={w.actor} className="flex justify-between py-2 border-b border-[#f6f2f9] last:border-0 text-[13px]">
                   <span className="text-body-soft">{w.actor} <span className="text-[11.5px]">({w.count} times)</span></span>
                   <span><b>{taka(w.wastagePaisa)}</b> spoiled · {taka(w.giftPaisa)} given</span>
                 </div>
@@ -689,7 +685,7 @@ export function ReportsLive() {
           <Panel title="Price given away" emoji="🏷" tone="brand" sub="discounts and counter adjustments, newest first">
             <div className="px-5 py-4">
               {leak.discounts.rows.slice(0, 10).map((d) => (
-                <div key={d.orderNo} className="flex justify-between py-1.5 text-[12.5px] border-b border-[#3f3248] last:border-0">
+                <div key={d.orderNo} className="flex justify-between py-1.5 text-[12.5px] border-b border-[#f6f2f9] last:border-0">
                   <span className="text-body-soft">{d.orderNo}{d.counter ? " · counter" : ""}</span>
                   <span>
                     {d.discountPaisa > 0 && <span style={{ color: TONE.amber.text }}>−{taka(d.discountPaisa)}</span>}
@@ -708,7 +704,7 @@ export function ReportsLive() {
                 { l: "Store credit given / used", v: -1, text: `${taka(leak.storeCredit.issuedPaisa)} / ${taka(leak.storeCredit.usedPaisa)}` },
                 { l: "Staff advances not yet recovered", v: leak.staffAdvanceOutstandingPaisa, bold: true },
               ].map((r) => (
-                <div key={r.l} className="flex justify-between py-2 border-b border-[#3f3248] last:border-0 text-[13.5px]">
+                <div key={r.l} className="flex justify-between py-2 border-b border-[#f6f2f9] last:border-0 text-[13.5px]">
                   <span className="text-body-soft">{r.l}</span>
                   <span className={r.bold ? "font-bold" : "text-body-soft"}>{r.text ?? taka(r.v)}</span>
                 </div>

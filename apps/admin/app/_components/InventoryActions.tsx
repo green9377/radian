@@ -78,7 +78,7 @@ function WhPills({ whs, value, onChange, exclude }: {
           className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
           style={value === w.id
             ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-            : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
+            : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
           {w.name}
         </button>
       ))}
@@ -152,7 +152,7 @@ function LinesEditor({ lines, setLines, items, byId, showValue, showExpiry, have
                  the API allows it (INV-RULE-006 never blocks), so the warning
                  has to be here, before the press, not after */
               <span className="text-right text-[13px]"
-                style={{ color: tooMuch ? "#e1837a" : "#dfd2e4" }}>
+                style={{ color: tooMuch ? "#c0392b" : "#5c4a6b" }}>
                 {item ? `${fmtQty(stock)}${tooMuch ? " ⚠" : ""}` : "—"}
               </span>
             )}
@@ -246,7 +246,7 @@ function SummaryCard({ rows }: { rows: { label: string; value: string; big?: boo
         <div key={r.label} className={i ? "mt-3" : ""}>
           <span className="block text-[12.5px] text-body-soft">{r.label}</span>
           {r.big
-            ? <b className="block text-[24px] font-semibold leading-tight" style={{ color: r.tone ?? "#ce6ef7" }}>{r.value}</b>
+            ? <b className="block text-[24px] font-semibold leading-tight" style={{ color: r.tone ?? "#470066" }}>{r.value}</b>
             : <b className="block text-[15px] text-body">{r.value}</b>}
         </div>
       ))}
@@ -254,7 +254,7 @@ function SummaryCard({ rows }: { rows: { label: string; value: string; big?: boo
   );
 }
 
-const PanelHint = ({ tone = "#8a5a00", bg = "#3b2b17", children }: {
+const PanelHint = ({ tone = "#8a5a00", bg = "#fff4e6", children }: {
   tone?: string; bg?: string; children: React.ReactNode;
 }) => (
   <div className="rounded-[12px] px-3 py-2.5" style={{ background: bg }}>
@@ -326,7 +326,7 @@ export function InvOpeningView() {
         lines: ls.map((l) => ({ ...l, warehouseId })),
         note: note || undefined,
       });
-      setOk(`Opening posted — ${r.posted} item(s). Counted numbers are now the truth.`);
+      setOk(`Opening posted — ${r.posted} item(s).`);
       setLines([]); setNote("");
     } catch (e) { setErr(msg(e, "Could not post opening stock")); }
     finally { setBusy(false); }
@@ -352,11 +352,9 @@ export function InvOpeningView() {
             <div className="px-4 py-3">
               <LinesEditor lines={lines} setLines={setLines} items={openable} byId={byId} showExpiry showValue
                 nothingLeft={
-                  <div className="rounded-[12px] px-3.5 py-3 text-[12.5px]" style={{ background: "#3b2b17", color: "#f7c76e" }}>
-                    Every item already moves in <b>{whName}</b>, so there is nothing left to open here —
-                    an opening only STARTS a ledger (DEC-INV-012). To correct a count, use{" "}
-                    <Link href="/inventory/stock" className="font-semibold underline">Adjust on the Stock board</Link>;
-                    a brand-new item appears here as soon as it is created.
+                  <div className="rounded-[12px] px-3.5 py-3 text-[12.5px]" style={{ background: "#fff4e6", color: "#8a5a00" }}>
+                    Every item already moves in <b>{whName}</b>. To correct a count, use{" "}
+                    <Link href="/inventory/stock" className="font-semibold underline">Adjust on the Stock board</Link>.
                   </div>
                 } />
             </div>
@@ -374,7 +372,7 @@ export function InvOpeningView() {
             {hiddenCount > 0 && (
               <PanelHint>
                 <b>{hiddenCount} item{hiddenCount > 1 ? "s" : ""}</b> already moving in {whName} {hiddenCount > 1 ? "are" : "is"} not
-                in the list — opening only starts a ledger. Change one on the Stock board with Adjust.
+                in the list.
               </PanelHint>
             )}
           </>
@@ -435,7 +433,7 @@ export function InvTransferView() {
     setBusy(true); setErr(""); setOk("");
     try {
       const t = await postInvTransfer({ fromWarehouseId: fromId, toWarehouseId: toId, lines: ls, note: note || undefined });
-      setOk(`${t.transferNo} posted — OUT and IN in one transaction (DEC-INV-004).`);
+      setOk(`${t.transferNo} posted.`);
       setLines([]); setNote("");
       loadHistory();
     } catch (e) { setErr(msg(e, "Could not post transfer")); }
@@ -481,7 +479,7 @@ export function InvTransferView() {
               <LinesEditor lines={lines} setLines={setLines} items={transferable} byId={byId}
                 have={{ label: `In ${fromName || "source"}`, qtyMilliOf: stockInFrom }}
                 nothingLeft={
-                  <div className="rounded-[12px] px-3.5 py-3 text-[12.5px]" style={{ background: "#3b2b17", color: "#f7c76e" }}>
+                  <div className="rounded-[12px] px-3.5 py-3 text-[12.5px]" style={{ background: "#fff4e6", color: "#8a5a00" }}>
                     <b>{fromName || "This store"}</b> holds nothing to move. Goods appear here
                     once a purchase lands there or a count puts them there.
                   </div>
@@ -503,7 +501,7 @@ export function InvTransferView() {
             {shortLines > 0 && (
               <PanelHint>
                 <b>{shortLines} line{shortLines > 1 ? "s" : ""}</b> ask{shortLines > 1 ? "" : "s"} for more than {fromName} holds.
-                It will still post and show as negative — count that store first if that is not what you meant.
+                It will still post and show as negative.
               </PanelHint>
             )}
           </>
@@ -644,7 +642,7 @@ export function InvIssueView() {
         kind, warehouseId, reason: reason || undefined, note: note || undefined,
         lines: ls.map(({ itemId, qtyMilli }) => ({ itemId, qtyMilli })),
       });
-      setOk(`${doc.issueNo} posted — ${formatTaka(doc.totalValuePaisa)} written off at AVCO cost.`);
+      setOk(`${doc.issueNo} posted — ${formatTaka(doc.totalValuePaisa)} written off.`);
       setLines([]); setReason(""); setNote("");
       loadHistory();
     } catch (e) { setErr(msg(e, "Could not post the entry")); }
@@ -674,7 +672,7 @@ export function InvIssueView() {
             className="text-[13px] font-medium px-4 py-2 rounded-[10px] border"
             style={tab === id
               ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-              : { background: "#fff", borderColor: "#e3d7ec", color: "#b0a1ba" }}>
+              : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
             {label}
           </button>
         ))}
@@ -694,7 +692,7 @@ export function InvIssueView() {
                     className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
                     style={kind === k
                       ? { background: k === "WASTAGE" ? "#c0392b" : "#cf43ea", color: "#fff", borderColor: "transparent" }
-                      : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
+                      : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
                     {k === "WASTAGE" ? "Wastage" : "Gift (free out)"}
                   </button>
                 ))}
@@ -724,7 +722,7 @@ export function InvIssueView() {
                   <span key={r.id} className="group inline-flex items-center rounded-full border transition-colors"
                     style={reason === r.label
                       ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-                      : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
+                      : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
                     <button type="button" onClick={() => setReason(r.label)}
                       className="text-[12.5px] font-medium pl-3 pr-1.5 py-1.5">{r.label}</button>
                     <span className="hidden group-hover:inline-flex items-center pr-1.5 gap-0.5">
@@ -762,8 +760,8 @@ export function InvIssueView() {
               <LinesEditor lines={lines} setLines={setLines} items={issuable} byId={byId} showValue
                 have={{ label: "In store", qtyMilliOf: stockHere }}
                 nothingLeft={
-                  <div className="rounded-[12px] px-3.5 py-3 text-[12.5px]" style={{ background: "#3b2b17", color: "#f7c76e" }}>
-                    This store holds nothing right now — there is nothing to waste or give away from it.
+                  <div className="rounded-[12px] px-3.5 py-3 text-[12.5px]" style={{ background: "#fff4e6", color: "#8a5a00" }}>
+                    This store holds nothing.
                   </div>
                 } />
             </div>
@@ -786,7 +784,7 @@ export function InvIssueView() {
               disabled={!warehouseId || !reason || validLines(lines).length === 0}
               label={kind === "WASTAGE" ? "Post wastage" : "Post gift"} full />
             {!reason && validLines(lines).length > 0 && (
-              <PanelHint>Pick a reason first — this is money leaving, and the report is only useful if it says why.</PanelHint>
+              <PanelHint>Pick a reason first — this is money leaving.</PanelHint>
             )}
           </>
         }
@@ -799,13 +797,13 @@ export function InvIssueView() {
             className="text-[12px] font-medium px-3 py-1.5 rounded-full border transition-colors"
             style={histKind === k
               ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-              : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
+              : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
             {k === "" ? "All" : k === "WASTAGE" ? "Wastage" : "Gift"}
           </button>
         ))}
         <span className="ml-auto text-[12.5px] text-body-soft">
-          This month — wastage <b style={{ color: "#e1837a" }}>{formatTaka(monthTotal("WASTAGE"))}</b> ·
-          gift <b style={{ color: "#da6cef" }}> {formatTaka(monthTotal("GIFT"))}</b>
+          This month — wastage <b style={{ color: "#c0392b" }}>{formatTaka(monthTotal("WASTAGE"))}</b> ·
+          gift <b style={{ color: "#cf43ea" }}> {formatTaka(monthTotal("GIFT"))}</b>
         </span>
       </div>
       {histDemo && <DemoBar what="sample entries" onRetry={() => loadHistory()} />}
@@ -821,15 +819,15 @@ export function InvIssueView() {
             <span className="text-[13px] font-semibold text-purple">{i.issueNo}</span>
             <span className="text-[11px] font-semibold px-2 py-1 rounded-full justify-self-start"
               style={i.kind === "WASTAGE"
-                ? { background: "#3b1a16", color: "#e1837a" }
-                : { background: "#35163b", color: "#eb7ae9" }}>
+                ? { background: "#fdecea", color: "#c0392b" }
+                : { background: "#fbeafe", color: "#a2189f" }}>
               {i.kind === "WASTAGE" ? "Wastage" : "Gift"}
             </span>
             <span className="text-[12.5px] text-body-soft min-w-0 truncate">
               {i.lines.map((l) => `${l.item.name} ×${fmtQty(l.qtyMilli)}`).join(", ")}
             </span>
             <span className="text-[12.5px] text-body">{i.reason ?? "—"}</span>
-            <span className="text-right text-[13px] font-semibold" style={{ color: i.kind === "WASTAGE" ? "#e1837a" : "#eb7ae9" }}>
+            <span className="text-right text-[13px] font-semibold" style={{ color: i.kind === "WASTAGE" ? "#c0392b" : "#a2189f" }}>
               {formatTaka(i.totalValuePaisa)}
             </span>
             <span className="text-right text-[12px] text-body-soft">
@@ -880,7 +878,7 @@ function IssueAnalysisView() {
             className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border"
             style={days === d
               ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-              : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
+              : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
             {d === 365 ? "1 year" : `${d} days`}
           </button>
         ))}
@@ -889,10 +887,10 @@ function IssueAnalysisView() {
       {/* ---- the four numbers ---- */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { l: "Wasted", v: formatTaka(a.totalWastagePaisa), c: W_RED, bg: "#3b1a16", icon: "trash" },
-          { l: "Gifted", v: formatTaka(a.totalGiftPaisa), c: G_PINK, bg: "#35163b", icon: "heart" },
-          { l: "Total lost", v: formatTaka(total), c: "#ce6ef7", bg: "#2e1a38", icon: "chart" },
-          { l: "Entries", v: String(a.entryCount), c: "#79abe2", bg: "#1b2838", icon: "layers" },
+          { l: "Wasted", v: formatTaka(a.totalWastagePaisa), c: W_RED, bg: "#fdecea", icon: "trash" },
+          { l: "Gifted", v: formatTaka(a.totalGiftPaisa), c: G_PINK, bg: "#fbeafe", icon: "heart" },
+          { l: "Total lost", v: formatTaka(total), c: "#470066", bg: "#f5eafb", icon: "chart" },
+          { l: "Entries", v: String(a.entryCount), c: "#2563a8", bg: "#e8f0fa", icon: "layers" },
         ].map((k) => (
           <div key={k.l} className="rounded-[14px] px-4 py-3.5 flex items-center gap-3" style={{ background: k.bg }}>
             <span className="w-[36px] h-[36px] rounded-[11px] grid place-items-center text-white shrink-0" style={{ background: k.c }}>
@@ -941,10 +939,10 @@ function IssueAnalysisView() {
               <div key={m.month} className="flex items-center justify-between py-2 border-b border-lavender-deep/50 last:border-0">
                 <b className="text-[13px] text-purple">{m.month}</b>
                 <span className="flex gap-2 text-[12px]">
-                  <span className="px-2 py-0.5 rounded-full" style={{ background: "#3b1a16", color: W_RED }}>
+                  <span className="px-2 py-0.5 rounded-full" style={{ background: "#fdecea", color: W_RED }}>
                     wasted <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(m.wastagePaisa)}</b>
                   </span>
-                  <span className="px-2 py-0.5 rounded-full" style={{ background: "#35163b", color: G_PINK }}>
+                  <span className="px-2 py-0.5 rounded-full" style={{ background: "#fbeafe", color: G_PINK }}>
                     gifted <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(m.giftPaisa)}</b>
                   </span>
                 </span>
@@ -993,7 +991,7 @@ function IssueAnalysisView() {
                     </span>
                     <b className="text-[13px] shrink-0" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(sum)}</b>
                   </div>
-                  <div className="flex mt-1.5 rounded-full overflow-hidden" style={{ height: 7, background: "#292230" }}>
+                  <div className="flex mt-1.5 rounded-full overflow-hidden" style={{ height: 7, background: "#f2eef6" }}>
                     <span style={{ width: `${(i.wastagePaisa / maxItem) * 100}%`, background: W_RED }} />
                     <span style={{ width: `${(i.giftPaisa / maxItem) * 100}%`, background: G_PINK }} />
                   </div>
@@ -1015,8 +1013,8 @@ function IssueAnalysisView() {
                     {r.reason}
                     <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full align-middle"
                       style={r.kind === "WASTAGE"
-                        ? { background: "#3b1a16", color: W_RED }
-                        : { background: "#35163b", color: G_PINK }}>
+                        ? { background: "#fdecea", color: W_RED }
+                        : { background: "#fbeafe", color: G_PINK }}>
                       {r.kind === "WASTAGE" ? "WASTE" : "GIFT"}
                     </span>
                   </span>
@@ -1024,7 +1022,7 @@ function IssueAnalysisView() {
                     {r.count}× · <b className="text-body" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(r.paisa)}</b>
                   </span>
                 </div>
-                <div className="mt-1.5 rounded-full overflow-hidden" style={{ height: 6, background: "#292230" }}>
+                <div className="mt-1.5 rounded-full overflow-hidden" style={{ height: 6, background: "#f2eef6" }}>
                   <span className="block h-full" style={{ width: `${(r.paisa / maxReason) * 100}%`, background: r.kind === "WASTAGE" ? W_RED : G_PINK }} />
                 </div>
               </div>
@@ -1082,14 +1080,14 @@ export function InvAdjustModal({ row, whs, onClose, onDone }: {
         <WhPills whs={whs} value={warehouseId} onChange={setWarehouseId} />
       </Field>
       <Field label={`Counted qty (${row.unitShort})`} required
-        hint={`Ledger says ${fmtQty(current)} ${row.unitShort} here — enter what you actually counted`}>
+        hint={`Ledger says ${fmtQty(current)} ${row.unitShort} here`}>
         <input className="ipt w-full" inputMode="decimal" autoFocus
           value={counted} onChange={(e) => setCounted(e.target.value)} />
       </Field>
       {counted !== "" && (
-        <p className="text-[13px] mb-3" style={{ color: delta === 0 ? "#dfd2e4" : delta > 0 ? "#76efab" : "#e1837a" }}>
+        <p className="text-[13px] mb-3" style={{ color: delta === 0 ? "#5c4a6b" : delta > 0 ? "#0e7a3d" : "#c0392b" }}>
           {delta === 0 ? "No difference — nothing to post."
-            : `Adjustment: ${delta > 0 ? "+" : ""}${fmtQty(delta)} ${row.unitShort} (ADJUSTMENT movement, audited)`}
+            : `Adjustment: ${delta > 0 ? "+" : ""}${fmtQty(delta)} ${row.unitShort}`}
         </p>
       )}
       <Field label="Note">
@@ -1178,7 +1176,7 @@ export function InvStocktakeView() {
         warehouseId, note: note || undefined,
         lines: filled.map((r) => ({ itemId: r.itemId, countedQtyMilli: toMilli(counts[r.itemId]) })),
       });
-      setOk(`${doc.stocktakeNo} saved as draft — review below, then Apply to post the adjustments.`);
+      setOk(`${doc.stocktakeNo} saved as draft.`);
       setCounting(false); setNote(""); setCounts({});
       loadSessions();
     } catch (e) { setErr(msg(e, "Could not save the stocktake")); }
@@ -1257,11 +1255,11 @@ export function InvStocktakeView() {
                   <input className="ipt" inputMode="decimal" placeholder="—" value={v}
                     onChange={(e) => setCounts({ ...counts, [r.itemId]: e.target.value })} />
                   <span className="text-right text-[13px] font-semibold"
-                    style={{ color: diff === null || diff === 0 ? "#b0a3b7" : diff > 0 ? "#76efab" : "#e1837a" }}>
+                    style={{ color: diff === null || diff === 0 ? "#8d7a97" : diff > 0 ? "#0e7a3d" : "#c0392b" }}>
                     {diff === null ? "—" : `${diff > 0 ? "+" : ""}${fmtQty(diff)}`}
                   </span>
                   <span className="text-right text-[13px]"
-                    style={{ color: diffPaisa === null || diffPaisa === 0 ? "#b0a3b7" : diffPaisa > 0 ? "#76efab" : "#e1837a" }}>
+                    style={{ color: diffPaisa === null || diffPaisa === 0 ? "#8d7a97" : diffPaisa > 0 ? "#0e7a3d" : "#c0392b" }}>
                     {diffPaisa === null ? "—" : formatTaka(diffPaisa)}
                   </span>
                 </div>
@@ -1341,7 +1339,7 @@ export function InvStocktakeView() {
                   {s.lines.length} counted · {diffCount} differ{s.note ? ` · ${s.note}` : ""}
                 </span>
                 <span className="text-right text-[13px] font-semibold"
-                  style={{ color: net === 0 ? "#b0a3b7" : net > 0 ? "#76efab" : "#e1837a" }}>
+                  style={{ color: net === 0 ? "#8d7a97" : net > 0 ? "#0e7a3d" : "#c0392b" }}>
                   {formatTaka(net)}
                 </span>
                 <span className="text-right text-[12px] text-body-soft">
@@ -1355,7 +1353,7 @@ export function InvStocktakeView() {
                   </button>
                 ) : (
                   <span className="text-[11px] font-semibold px-2 py-1 rounded-full justify-self-end"
-                    style={{ background: "#1f3529", color: "#76efab" }}>Applied</span>
+                    style={{ background: "#e8f7ef", color: "#0e7a3d" }}>Applied</span>
                 )}
               </div>
               {open && (
@@ -1366,7 +1364,7 @@ export function InvStocktakeView() {
                       <span className="text-right text-body-soft">ledger {fmtQty(l.ledgerQtyMilli)}</span>
                       <span className="text-right text-body">counted {fmtQty(l.countedQtyMilli)}</span>
                       <span className="text-right font-medium"
-                        style={{ color: l.diffValuePaisa === 0 ? "#b0a3b7" : l.diffValuePaisa > 0 ? "#76efab" : "#e1837a" }}>
+                        style={{ color: l.diffValuePaisa === 0 ? "#8d7a97" : l.diffValuePaisa > 0 ? "#0e7a3d" : "#c0392b" }}>
                         {formatTaka(l.diffValuePaisa)}
                       </span>
                     </div>

@@ -124,17 +124,12 @@ export default function CapacityView() {
       <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-orchid mb-1.5">
         Product management · Capacity
       </div>
-      <h1 className="font-display text-[30px] text-purple leading-tight m-0">
+      <h1 className="font-display text-[30px] text-purple leading-tight m-0 mb-7">
         What we can make in a day
       </h1>
-      <p className="text-[14px] text-body-soft mt-1.5 mb-7 max-w-[760px]">
-        Counted in time, not in number of products — a fifteen-minute bunch and a
-        six-hour arrangement are not the same job. Set how many people are making,
-        for how long; each order takes its own minutes out.
-      </p>
 
       {err && (
-        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-5 text-[13.5px]">
+        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-5 text-[13.5px]">
           {err}
         </div>
       )}
@@ -166,11 +161,6 @@ export default function CapacityView() {
       ) : board.length === 0 ? (
         <div className="border border-dashed border-lavender-deep rounded-[16px] bg-white px-6 py-8 text-center mb-10">
           <div className="font-display text-[18px] text-purple">No teams yet</div>
-          <p className="text-[13.5px] text-body-soft mt-1.5 mb-0 max-w-[520px] mx-auto">
-            A team is a group of people who make the same kind of thing — the
-            florists, the bakers. Add one below, then say which categories they
-            make.
-          </p>
         </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4 mb-10">
@@ -198,7 +188,7 @@ export default function CapacityView() {
                 <div
                   className={
                     "font-display text-[30px] font-medium mt-3 leading-none " +
-                    (over ? "text-[#e1837a]" : tight ? "text-[#f7a96e]" : "text-[#7ce9b4]")
+                    (over ? "text-[#c0392b]" : tight ? "text-[#b45309]" : "text-[#12693f]")
                   }
                 >
                   {r.freeLabel}
@@ -220,7 +210,7 @@ export default function CapacityView() {
 
                 <div className="text-[12.5px] text-body-soft mt-3">
                   {r.categories.length === 0 ? (
-                    <span className="text-[#f7a96e]">
+                    <span className="text-[#b45309]">
                       No categories — nothing draws on this team yet
                     </span>
                   ) : (
@@ -235,12 +225,6 @@ export default function CapacityView() {
 
       {/* ── the teams ───────────────────────────────────────────────────── */}
       <h2 className="font-display text-[19px] text-purple m-0 mb-1">Teams</h2>
-      <p className="text-[13.5px] text-body-soft mt-0 mb-4 max-w-[720px]">
-        Change the number of people when the number of people changes — that is the
-        only thing to keep up to date. Nothing resets at midnight; each day counts
-        on its own.
-      </p>
-
       <div className="flex flex-col gap-3 mb-5">
         {groups.map((g) => (
           <div
@@ -299,7 +283,7 @@ export default function CapacityView() {
                 type="button"
                 title="Remove this team"
                 onClick={() => void deleteCapacityGroup(g.id).then(reload)}
-                className="ml-auto w-[38px] h-[38px] rounded-[10px] grid place-items-center border border-lavender-deep bg-white text-body-soft hover:text-[#e1837a] hover:border-[#c0392b] transition-colors"
+                className="ml-auto w-[38px] h-[38px] rounded-[10px] grid place-items-center border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#c0392b] transition-colors"
               >
                 <Icon name="trash" size={16} />
               </button>
@@ -324,7 +308,7 @@ export default function CapacityView() {
                       disabled={elsewhere}
                       title={
                         elsewhere
-                          ? "Already made by another team — a category belongs to one"
+                          ? "Already made by another team"
                           : undefined
                       }
                       onClick={() => void toggleCategory(g, c.id)}
@@ -365,10 +349,7 @@ export default function CapacityView() {
         </button>
       </div>
 
-      <p className="text-[13px] text-body-soft mt-8 mb-0 max-w-[720px]">
-        How long each product takes is set on the product itself — Stock &amp; lead
-        time → <b className="font-medium text-body">Minutes to make one</b>. Leave it
-        empty for anything taken off a shelf; that costs no making time.{" "}
+      <p className="text-[13px] text-body-soft mt-8 mb-0">
         <Link href="/products/list" className="text-orchid font-medium hover:underline">
           Open products
         </Link>

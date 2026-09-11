@@ -253,11 +253,7 @@ function Row({
 }
 
 const HEADS = ["", "Deliver by", "Order No", "Going to", "Items", "Carrier", "Photo", "COD", "Status", "Action"];
-const HELP =
-  "The chosen day's parcels that are not delivered yet, plus anything overdue from earlier, sorted by the time we promised; the Delivery successful tile holds the day's finished ones. " +
-  "The buttons are the order page's own: start preparing, then a carrier, then the customer's photo when they asked for one, then it can leave. " +
-  "Delivered records the COD as cash with the carrier until it is received on Delivery money. Failed takes the reason and the decision here: retry (assign again), keep as failed, or cancel the order. " +
-  "Counts, search and paging are done by the server over the whole day; the list refreshes itself every minute while no panel is open.";
+const HELP = "Undelivered parcels for the chosen day, plus anything overdue.";
 
 export default function FulfilmentBoard() {
   const [data, setData] = useState<ApiBoardPage | null>(null);
@@ -652,7 +648,7 @@ function BoardPanel({
             <div className="text-[12.5px]">
               <div className="font-medium text-body">{photoDone ? "Photo saved" : "Customer asked for a photo before delivery"}</div>
               <div className={SOFT}>
-                {!photoDone ? "Upload it below — it is sent by itself: WhatsApp first, email if the number has no WhatsApp, and it is on their account either way."
+                {!photoDone ? "Upload it below — it is sent automatically."
                   : !photoMsg ? "On their account. Sending…"
                     : photoMsg.status === "SENT" ? `Sent on ${photoMsg.channel === "WHATSAPP" ? "WhatsApp" : photoMsg.channel === "EMAIL" ? "email" : photoMsg.channel} · also on their account`
                       : photoMsg.status === "QUEUED" ? "Sending…" : `On their account only — ${photoMsg.error ?? "could not send"}`}

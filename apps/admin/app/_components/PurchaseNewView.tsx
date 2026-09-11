@@ -110,7 +110,7 @@ export function ItemPicker({
                 className="text-[12px] font-medium px-2.5 py-1.5 rounded-[9px] border"
                 style={tab === t
                   ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                  : { background: "#fff", borderColor: "#e3d7ec", color: "#b0a1ba" }}>
+                  : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
                 {t === "ALL" ? "All" : ITEM_TYPE_META[t].short}
               </button>
             ))}
@@ -119,9 +119,9 @@ export function ItemPicker({
         </div>
 
         {/* the shelf */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4" style={{ background: "#271a34" }}>
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4" style={{ background: "#faf7fd" }}>
           {shown.length === 0 && (
-            <p className="text-[13px] text-body-soft">Nothing matches. Items are created under <b>Items → New item</b>.</p>
+            <p className="text-[13px] text-body-soft">Nothing matches.</p>
           )}
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
             {shown.map((i) => {
@@ -346,8 +346,8 @@ export default function PurchaseNewView() {
       {err && <ErrBar text={err} onClose={() => setErr(null)} />}
 
       {costJump && (
-        <div className="rounded-[14px] border-2 px-5 py-4 mb-4" style={{ background: "#3b2b17", borderColor: "#f0b95e" }}>
-          <b className="text-[13.5px] block mb-1" style={{ color: "#f6bb6f" }}>⚠ Price looks unusual</b>
+        <div className="rounded-[14px] border-2 px-5 py-4 mb-4" style={{ background: "#fff4e6", borderColor: "#f0b95e" }}>
+          <b className="text-[13.5px] block mb-1" style={{ color: "#8a5209" }}>⚠ Price looks unusual</b>
           <p className="text-[13px] text-body m-0 mb-3">{costJump}</p>
           <div className="flex gap-2">
             <button onClick={() => setCostJump(null)} className="border border-lavender-deep bg-white text-purple text-[13px] font-medium px-4 py-2 rounded-[10px]">
@@ -432,7 +432,7 @@ export default function PurchaseNewView() {
             <div className="divide-y divide-lavender-deep">
               {lines.length === 0 && (
                 <div className="px-4 py-8 text-center text-[13px] text-body-soft">
-                  Nothing on the bill yet — press <b>Add items</b> and pick from your shelf.
+                  Nothing on the bill yet.
                 </div>
               )}
               {lines.map((l) => (
@@ -532,12 +532,12 @@ export default function PurchaseNewView() {
               <MoneyResult pay={payRows} totalPaisa={grand}
                 dueLabel="Still owed" settledLabel="Nothing owed" />
 
-              {pay > grand && <p className="text-[12px] text-[#ff9b9b] mt-2 mb-0">Payment cannot exceed the grand total (PUR-R04).</p>}
+              {pay > grand && <p className="text-[12px] text-[#ff9b9b] mt-2 mb-0">Payment cannot exceed the grand total.</p>}
               {advance && pay === 0 && <p className="text-[12px] text-[#f0b46a] mt-2 mb-0">An advance order needs money now.</p>}
 
               <button disabled={!ready || busy} onClick={() => save(false)}
-                className="w-full bg-white hover:bg-[#2c1d35] text-[14.5px] font-semibold px-4 py-3 rounded-[12px] shadow-soft disabled:opacity-40 mt-3 inline-flex items-center justify-center gap-2"
-                style={{ color: advance ? "#f7a96e" : "#c37de8" }}>
+                className="w-full bg-white hover:bg-[#f4ecf9] text-[14.5px] font-semibold px-4 py-3 rounded-[12px] shadow-soft disabled:opacity-40 mt-3 inline-flex items-center justify-center gap-2"
+                style={{ color: advance ? "#b45309" : "#4a1268" }}>
                 <Icon name="check" size={17} />
                 {busy ? "Saving…" : advance ? "Save advance order" : `Save purchase${grand > 0 ? " · " + formatTaka(grand) : ""}`}
               </button>

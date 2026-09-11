@@ -31,25 +31,18 @@ import {
   Both are said on the screen, not buried in a document nobody opens.
 */
 
-type FieldDef = { key: keyof ApiTracking; label: string; hint: string; where: string };
+type FieldDef = { key: keyof ApiTracking; label: string; hint: string };
 
 const FIELDS: FieldDef[] = [
-  { key: "gtmId", label: "Google Tag Manager", hint: "GTM-XXXXXXX",
-    where: "tagmanager.google.com → your container → the code at the top" },
-  { key: "metaPixelId", label: "Meta Pixel — Facebook & Instagram", hint: "15–16 digits",
-    where: "business.facebook.com → Events Manager → Data sources" },
-  { key: "ga4MeasurementId", label: "Google Analytics 4", hint: "G-XXXXXXXXXX",
-    where: "analytics.google.com → Admin → Data streams" },
-  { key: "googleAdsId", label: "Google Ads", hint: "AW-XXXXXXXXX",
-    where: "ads.google.com → Tools → Conversions" },
-  { key: "googleAdsConversionLabel", label: "Google Ads conversion label", hint: "optional",
-    where: "beside the AW- id, on the conversion action" },
-  { key: "tiktokPixelId", label: "TikTok Pixel", hint: "from Events Manager",
-    where: "ads.tiktok.com → Assets → Events" },
-  { key: "snapPixelId", label: "Snapchat Pixel", hint: "optional", where: "Snapchat Ads Manager" },
-  { key: "pinterestTagId", label: "Pinterest Tag", hint: "optional", where: "Pinterest Ads → Conversions" },
-  { key: "clarityId", label: "Microsoft Clarity", hint: "free session recording",
-    where: "clarity.microsoft.com — watch how people actually use the site" },
+  { key: "gtmId", label: "Google Tag Manager", hint: "GTM-XXXXXXX" },
+  { key: "metaPixelId", label: "Meta Pixel — Facebook & Instagram", hint: "15–16 digits" },
+  { key: "ga4MeasurementId", label: "Google Analytics 4", hint: "G-XXXXXXXXXX" },
+  { key: "googleAdsId", label: "Google Ads", hint: "AW-XXXXXXXXX" },
+  { key: "googleAdsConversionLabel", label: "Google Ads conversion label", hint: "optional" },
+  { key: "tiktokPixelId", label: "TikTok Pixel", hint: "from Events Manager" },
+  { key: "snapPixelId", label: "Snapchat Pixel", hint: "optional" },
+  { key: "pinterestTagId", label: "Pinterest Tag", hint: "optional" },
+  { key: "clarityId", label: "Microsoft Clarity", hint: "free session recording" },
 ];
 
 export function TrackingView() {
@@ -95,7 +88,6 @@ export function TrackingView() {
       <FinHeader
         eyebrow="Marketing"
         title="Tracking codes"
-        sub="Every pixel and tag in one place. Paste an id here and the storefront picks it up — no code change, no separate Tag Manager account to open."
         emoji="🎯"
         tone="brand"
         right={
@@ -107,22 +99,10 @@ export function TrackingView() {
       <Flash ok={ok} err={err} />
 
       {purchaseBlocked && (
-        <Banner tone="amber" emoji="⚠" title="These codes will not see a sale yet — and that matters">
-          The new storefront has a cart and a checkout page and no way to actually place an order,
-          so <strong>Purchase never fires</strong>. Facebook learns from outcomes: give it only
-          PageView and it learns to find people who look and leave, then spends the budget doing
-          exactly that. <strong>Teaching it the wrong lesson costs more than teaching it nothing.</strong>
-          <br />
-          Everything else here works today, and the moment checkout is real, Purchase starts on its
-          own — nothing on this screen needs changing.
+        <Banner tone="amber" emoji="⚠" title="Purchase does not fire yet">
+          Checkout is not live, so no sale event is sent.
         </Banner>
       )}
-
-      <Banner tone="sky" emoji="💡" title="Where the customers actually are today">
-        radianbd.com is the live shop and it already carries its own Google Tag Manager container.
-        Codes pasted here apply to the <em>new</em> storefront. Until that one is taking orders, the
-        pixels that earn anything are the ones inside the old site&apos;s container.
-      </Banner>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <Kpi label="Codes in place" value={`${st.liveCount}/${st.platforms.length}`} emoji="🎯"
@@ -136,7 +116,7 @@ export function TrackingView() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <Panel title="The codes" emoji="🎯" tone="brand" sub="paste the id only, not the whole script tag">
+        <Panel title="The codes" emoji="🎯" tone="brand">
           <div className="p-5 space-y-4">
             {FIELDS.map((f) => (
               <div key={f.key as string}>
@@ -145,7 +125,6 @@ export function TrackingView() {
                   value={(s[f.key] as string | null) ?? ""}
                   placeholder={f.hint}
                   onChange={(e) => set(f.key, e.target.value)} />
-                <p className="text-[11px] text-body-soft mt-1 mb-0">{f.where}</p>
               </div>
             ))}
           </div>
@@ -169,15 +148,8 @@ export function TrackingView() {
             </div>
           </Panel>
 
-          <Panel title="Server-side to Meta" emoji="🛰" tone={st.capi.ready ? "emerald" : "slate"}
-            sub="the part no browser pixel can do">
+          <Panel title="Server-side to Meta" emoji="🛰" tone={st.capi.ready ? "emerald" : "slate"}>
             <div className="p-5">
-              <p className="text-[12.5px] text-body-soft mt-0 mb-4">
-                A browser pixel loses a third to a half of everything — ad blockers, iPhones, people
-                closing the tab. And it never sees a phone order, a walk-in, or a foodpanda sale at
-                all, which for this shop is most of the business. Sending the event from Radian
-                instead means Meta learns from your <em>real</em> customers, not just the website ones.
-              </p>
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-[13px] cursor-pointer">
                   <input type="checkbox" checked={s.capiEnabled}
@@ -201,10 +173,6 @@ export function TrackingView() {
                     data-1p-ignore data-lpignore="true"
                     placeholder={s.capiTokenSet ? "leave blank to keep the saved one" : "paste the token"}
                     onChange={(e) => setToken(e.target.value)} />
-                  <p className="text-[11px] text-body-soft mt-1 mb-0">
-                    Treated as a password — it is never sent back to this screen and never written
-                    into the audit trail.
-                  </p>
                 </div>
               </div>
               {s.capiEnabled && !st.capi.ready && (

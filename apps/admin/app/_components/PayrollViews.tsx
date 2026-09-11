@@ -65,20 +65,9 @@ export function PayrollListView() {
         title="Payroll"
         emoji="🧾"
         tone="brand"
-        sub="Days and hours come straight from the attendance sheet. Nothing touches the books until you approve — and then it is frozen."
         right={<><Link href="/employees" className={btnGhost}>Staff</Link><Link href="/employees/attendance" className={btnGhost}>Attendance</Link></>}
       />
       <Flash ok={ok} err={err} />
-
-      <Banner tone="sky" emoji="?" title="How payroll works here">
-        A run is one month. You build it, and every active person appears with their days and hours
-        already counted from the attendance sheet — nothing to add up by hand. Monthly staff get
-        their agreed figure whatever the days; where somebody was absent the screen offers the
-        deduction with the arithmetic shown, and you decide whether to use it. Daily staff are days
-        x rate, hourly staff are hours x rate. While it says <b>Draft</b> nothing has reached the
-        books, so change it as often as you like. Pressing <b>Approve</b> pays it, writes it to the
-        accounts and freezes it for good.
-      </Banner>
 
       <Card className="px-5 py-5 mb-5">
         <h3 className="font-display text-[17px] text-purple mt-0 mb-3">Start a run</h3>
@@ -90,10 +79,6 @@ export function PayrollListView() {
           <button className={btnPrimary} style={btnPrimaryStyle} disabled={busy} onClick={build}>
             {busy ? "Building…" : `Build ${monthName(p)}`}
           </button>
-          <p className="text-[12px] text-body-soft m-0 max-w-[420px]">
-            Everyone active is pulled in with their days already counted. You can drop people,
-            add a bonus, or set a deduction before approving.
-          </p>
         </div>
       </Card>
 
@@ -104,8 +89,7 @@ export function PayrollListView() {
         </>}>
           {rows.length === 0 && (
             <tr><td colSpan={8} className="px-4 py-10">
-              <Empty emoji="🧾" title="No payroll runs yet"
-                sub="Nothing is wrong — a run only exists once you build one. Pick a month above and press Build." />
+              <Empty emoji="🧾" title="No payroll runs yet" sub="Pick a month above and press Build." />
             </td></tr>
           )}
           {rows.map((r) => (
@@ -269,8 +253,8 @@ export function PayrollDetailView({ id }: { id: string }) {
         emoji="🧾"
         tone={frozen ? "emerald" : "amber"}
         sub={frozen
-          ? `Approved${run.approvedAt ? ` on ${new Date(run.approvedAt).toLocaleDateString("en-GB")}` : ""}${run.approvedBy ? ` by ${run.approvedBy}` : ""} — this run is frozen.`
-          : "Draft. Nothing has reached the books yet, so edit freely."}
+          ? `Approved${run.approvedAt ? ` on ${new Date(run.approvedAt).toLocaleDateString("en-GB")}` : ""}${run.approvedBy ? ` by ${run.approvedBy}` : ""} · frozen`
+          : "Draft — nothing posted yet."}
         right={<Link href="/employees/payroll" className={btnGhost}>← All runs</Link>}
       />
       <Flash ok={ok} err={err} />
@@ -389,7 +373,7 @@ export function PayrollDetailView({ id }: { id: string }) {
               </tr>
             );
           })}
-          <tr className="bg-[#291e31]">
+          <tr className="bg-[#faf7fc]">
             <Td><b className="text-purple">Total</b></Td>
             <Td />
             <Td right><b>{taka(totals.base)}</b></Td>
@@ -406,11 +390,7 @@ export function PayrollDetailView({ id }: { id: string }) {
         <Card className="px-5 py-5 mt-4">
           <h3 className="font-display text-[17px] text-purple mt-0 mb-1">Approve &amp; pay</h3>
           <p className="text-[12.5px] text-body-soft mt-0 mb-4">
-            Approving writes one balanced entry: the salary cost goes to <b>5420 Employee Salary</b>,
-            whatever advance you are taking back comes off <b>1210 Employee Advance</b>, and{" "}
-            <b>{taka(totals.net)}</b> leaves the account below. Each line carries the person, so every
-            payslip can be traced back. After this the run is frozen — a mistake is corrected by
-            reversing the entry in Finance, never by editing history.
+            Once approved the run is frozen — correct it by reversing the entry in Finance.
           </p>
           <div className="flex items-end gap-3 flex-wrap">
             <div>
@@ -436,8 +416,7 @@ export function PayrollDetailView({ id }: { id: string }) {
       ) : (
         <Card className="px-5 py-4 mt-4">
           <p className="text-[12.5px] text-body-soft m-0">
-            Posted to the books{run.journalEntryId ? " — the journal entry is in Finance → Ledger" : ""}. To
-            correct it, reverse that entry in Finance; this run stays exactly as it was approved.
+            Posted to the books{run.journalEntryId ? " — journal entry in Finance → Ledger" : ""}.
           </p>
         </Card>
       )}

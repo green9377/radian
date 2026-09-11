@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
 import CategoryEditor from "./CategoryEditor";
-import { Info } from "./ItemEditor";
 import {
   listCategoriesSafe,
   createCategory,
@@ -181,9 +180,6 @@ export default function CategoriesView() {
           </div>
           <div className="flex items-center gap-2">
             <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">Categories</h1>
-            {/*  house rule 17 — the explanation lives behind the i, not as a
-                paragraph on the page  */}
-            <Info text="The category tree behind every product and the storefront menu. Pick one on the left to edit its page, images and SEO on the right." />
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -197,18 +193,17 @@ export default function CategoriesView() {
       </div>
 
       {err && (
-        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
+        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
           <span>{err}</span>
           <button className="underline shrink-0" onClick={() => setErr(null)}>Dismiss</button>
         </div>
       )}
       {isDemo && (
-        <div className="flex items-center gap-3 bg-[#3b2b17] border border-[#534028] text-[#f7a96e] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
+        <div className="flex items-center gap-3 bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
           <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[#b45309] text-white px-2 py-1 rounded-full shrink-0">Offline</span>
           <span className="flex-1 min-w-[220px]">
-            The API is not reachable, so nothing can be shown. Start it and
+            The API is not reachable.
             <button className="underline font-medium mx-1" onClick={load}>retry</button>
-            to see what is really there.
           </span>
         </div>
       )}
@@ -221,22 +216,21 @@ export default function CategoriesView() {
           this screen wore was the old off-brand palette.  */}
       <div className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-3.5 mb-6">
         {[
-          { l: "Categories", v: String(stats.total), c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34", icon: "grid" },
-          { l: "Top-level", v: String(stats.tops), c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35", icon: "layers", tip: "The aisles — what the storefront menu shows." },
-          { l: "Sub-categories", v: String(stats.subs), c: "#bb87d4", edge: "#cf43ea", bg: "#30183a", icon: "hash", tip: "The shelves inside an aisle. Every product sits on one." },
-          { l: "Products classified", v: String(stats.classified), c: "#c794a1", edge: "#c9788a", bg: "#361b1f", icon: "box", tip: "Products that live in some category. The rest are unreachable from the menu." },
-          { l: "Empty categories", v: String(stats.empty), c: "#c794a1", edge: "#c9788a", bg: "#361b1f", icon: "bolt", tip: "Categories with nothing in them - a page with nothing on it." },
-          { l: "Hidden", v: String(stats.inactive), c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35", icon: "eye", tip: "Switched off - kept here, absent from the shop." },
+          { l: "Categories", v: String(stats.total), c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8", icon: "grid" },
+          { l: "Top-level", v: String(stats.tops), c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "layers" },
+          { l: "Sub-categories", v: String(stats.subs), c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc", icon: "hash" },
+          { l: "Products classified", v: String(stats.classified), c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "box" },
+          { l: "Empty categories", v: String(stats.empty), c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "bolt" },
+          { l: "Hidden", v: String(stats.inactive), c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "eye" },
         ].map((k, i) => (
           <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
-            style={{ background: `linear-gradient(150deg,${k.bg},#1f1727 130%)` }}>
+            style={{ background: `linear-gradient(150deg,${k.bg},#ffffff 130%)` }}>
             <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: k.edge }} />
             <div className="flex items-center justify-between gap-2">
               <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center text-white shrink-0"
                 style={{ background: k.edge, boxShadow: `0 3px 9px ${k.edge}45` }}>
                 <Icon name={k.icon} size={14} />
               </span>
-              {k.tip && <Info text={k.tip} />}
             </div>
             <div className="font-display text-[25px] leading-none mt-3 tabular-nums" style={{ color: k.c }}>{k.v}</div>
             <div className="text-[12px] font-semibold mt-1.5" style={{ color: k.c, opacity: 0.65 }}>{k.l}</div>
@@ -284,7 +278,6 @@ export default function CategoriesView() {
           {isEmpty && !isDemo && (
             <div className="rounded-[14px] border border-dashed p-6 text-center" style={{ borderColor: "rgba(255,255,255,0.16)" }}>
               <div className="font-display text-[17px] text-white mb-1">No categories yet</div>
-              <p className="text-[13px]" style={{ color: "rgba(237,233,245,0.7)" }}>Add your first with the button above.</p>
             </div>
           )}
 
@@ -373,7 +366,7 @@ export default function CategoriesView() {
              min-height keeps this column at least a full screen tall even when
              nothing is selected, so the left sticky card ALWAYS has room to
              travel and never scrolls away. (6 Aug 2026.)  */}
-        <div className="xl:rounded-[22px] xl:p-3.5 xl:min-h-[calc(100vh-1rem)]" style={{ background: "#2a1b36" }}>
+        <div className="xl:rounded-[22px] xl:p-3.5 xl:min-h-[calc(100vh-1rem)]" style={{ background: "#f5eefb" }}>
           {selected === "new" || selNode ? (
             <CategoryEditor
               key={selected}
@@ -402,7 +395,6 @@ export default function CategoriesView() {
             <div className="bg-white border border-dashed border-lavender-deep rounded-[18px] shadow-soft p-10 text-center">
               <span className="w-[46px] h-[46px] rounded-[13px] grid place-items-center text-white bg-orchid mx-auto mb-3"><Icon name="grid" size={22} /></span>
               <div className="font-display text-[18px] text-purple mb-1">Select a category to edit</div>
-              <p className="text-body-soft text-[13px] max-w-[420px] mx-auto mb-4">Click any category on the left to edit its name, page content, images, SEO and visibility — or start a new one.</p>
               <button onClick={() => startNew(null)} className="bg-purple hover:bg-purple-deep text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2"><Icon name="plus" size={16} /> Add category</button>
             </div>
           )}
@@ -421,7 +413,7 @@ function Switch({ on, onClick, small, dark }: { on: boolean; onClick: () => void
     <button
       onClick={onClick}
       className="relative rounded-full transition-colors shrink-0"
-      style={{ width: w, height: h, background: on ? "#A93FC9" : dark ? "rgba(255,255,255,0.16)" : "#2d213c" }}
+      style={{ width: w, height: h, background: on ? "#A93FC9" : dark ? "rgba(255,255,255,0.16)" : "#d8c6ee" }}
       title={on ? "Active — visible to customers" : "Hidden from customers"}
     >
       <span className="absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow-sm transition-all" style={{ width: k, height: k, left: on ? w - k - 3 : 3 }} />

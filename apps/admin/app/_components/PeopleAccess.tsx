@@ -166,9 +166,9 @@ export default function PeopleAccess() {
     <select
       className="appearance-none w-full text-[13px] font-bold rounded-[10px] pl-3 pr-8 py-2 cursor-pointer"
       style={{
-        color: value ? "#b97fdc" : "#aaa4b7",
-        background: `${value ? "#2e1a38" : "#271f31"} url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a2ea8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center`,
-        border: "1.5px solid " + (value ? "#422c4f" : "#3b3248"),
+        color: value ? "#7a2ea8" : "#8f87a0",
+        background: `${value ? "#f5eafb" : "#f6f3fa"} url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a2ea8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center`,
+        border: "1.5px solid " + (value ? "#d9b8ec" : "#e4ddef"),
       }}
       value={value}
       onChange={(e) => onChange(e.target.value)}
@@ -202,7 +202,7 @@ export default function PeopleAccess() {
       <div className="grid gap-4 lg:grid-cols-2 mb-4 items-start">
 
         {/* door 1 — from the staff list */}
-        <div className="rounded-[16px] bg-white border border-[#3c3249] overflow-hidden"
+        <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
           style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
           <div className="px-4 py-2.5 flex items-center gap-2.5" style={{ background: GRAD }}>
             <span className="text-white"><Icon name="users" size={15} strokeWidth={2.3} /></span>
@@ -214,9 +214,7 @@ export default function PeopleAccess() {
 
           <div className="p-3">
             {employees.length === 0 ? (
-              <p className="text-[12.5px] text-body-soft m-0 px-1 py-2">
-                No staff in HR yet — add them under Staff, or use the email door on the right.
-              </p>
+              <p className="text-[12.5px] text-body-soft m-0 px-1 py-2">No staff in HR yet.</p>
             ) : (
               <>
                 <input className={`${input} mb-2`} placeholder="Search staff…"
@@ -226,21 +224,21 @@ export default function PeopleAccess() {
                     const linked = emp.appUserId && accountIds.has(emp.appUserId);
                     const opening = giving?.id === emp.id;
                     return (
-                      <div key={emp.id} className="rounded-[11px] border border-[#3c304a]">
+                      <div key={emp.id} className="rounded-[11px] border border-[#efe9f6]">
                         <div className="flex items-center gap-2.5 px-2.5 py-2">
                           <span className="w-[28px] h-[28px] rounded-full grid place-items-center text-[12px] font-bold text-white shrink-0"
-                            style={{ background: linked ? "linear-gradient(135deg,#75f0c7,#85d6bd)" : GRAD }}>
+                            style={{ background: linked ? "linear-gradient(135deg,#12a172,#5ec9a8)" : GRAD }}>
                             {emp.name.slice(0, 1).toUpperCase()}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <div className="text-[13px] font-bold text-[#dfd2e4] truncate">{emp.name}</div>
+                            <div className="text-[13px] font-bold text-[#2d2838] truncate">{emp.name}</div>
                             <div className="text-[10.5px] text-body-soft truncate">
                               {emp.employeeNo}{emp.role?.name ? ` · ${emp.role.name}` : ""}
                             </div>
                           </div>
                           {linked ? (
                             <span className="text-[10.5px] font-bold px-2 py-1 rounded-full shrink-0"
-                              style={{ background: "#1c3629", color: "#73f2c6" }}>
+                              style={{ background: "#e9f9f1", color: "#0e9767" }}>
                               has access ✓
                             </span>
                           ) : (
@@ -257,7 +255,7 @@ export default function PeopleAccess() {
                         </div>
 
                         {opening && (
-                          <div className="px-2.5 pb-2.5 pt-1 space-y-2 border-t border-[#3d304a]">
+                          <div className="px-2.5 pb-2.5 pt-1 space-y-2 border-t border-[#f3eef8]">
                             <input className={input} type="email" placeholder="Their email — the invite goes there"
                               autoFocus autoComplete="new-password"
                               value={empEmail} onChange={(e) => setEmpEmail(e.target.value)} />
@@ -269,10 +267,6 @@ export default function PeopleAccess() {
                               onClick={() => void giveToEmployee()}>
                               {busy === "door1" ? "Creating…" : "Create the invite & link to this employee"}
                             </button>
-                            <p className="text-[10.5px] text-body-soft m-0 leading-snug">
-                              They choose their own password from a one-time link. The account is
-                              tied to this staff record.
-                            </p>
                           </div>
                         )}
                       </div>
@@ -285,7 +279,7 @@ export default function PeopleAccess() {
         </div>
 
         {/* door 2 — by email */}
-        <div className="rounded-[16px] bg-white border border-[#3c3249] overflow-hidden"
+        <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
           style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
           <div className="px-4 py-2.5 flex items-center gap-2.5" style={{ background: GRAD }}>
             <span className="text-white"><Icon name="mail" size={15} strokeWidth={2.3} /></span>
@@ -310,8 +304,7 @@ export default function PeopleAccess() {
               {busy === "door2" ? "Creating…" : "Create the invite"}
             </button>
             <p className="text-[10.5px] text-body-soft m-0 leading-snug">
-              For someone not on the payroll — an accountant, a partner. No password is
-              typed here; they choose their own from the one-time link.
+              For someone not on the payroll — an accountant, a partner.
             </p>
           </div>
         </div>
@@ -328,7 +321,7 @@ export default function PeopleAccess() {
               One-time link — send it yourself
             </span>
             <button className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/90"
-              style={{ color: "#73f2c6" }} onClick={() => setLink(null)}>Done</button>
+              style={{ color: "#0e9767" }} onClick={() => setLink(null)}>Done</button>
           </div>
           <div className="p-4">
             <p className="text-[12.5px] text-body m-0 mb-2">For <b>{link.who}</b>. {link.note}</p>
@@ -346,15 +339,14 @@ export default function PeopleAccess() {
               </button>
             </div>
             <p className="text-[10.5px] text-body-soft mt-2 mb-0">
-              Works once, then stops. Expires {new Date(link.expiresAt).toLocaleString()}.
-              Asking again replaces it — the old link dies immediately.
+              Works once. Expires {new Date(link.expiresAt).toLocaleString()}.
             </p>
           </div>
         </div>
       )}
 
       {/* ── who has access ───────────────────────────────────────────── */}
-      <div className="rounded-[16px] bg-white border border-[#3c3249] overflow-hidden"
+      <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
         style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
         <div className="px-4 py-2.5 flex items-center gap-2.5" style={{ background: GRAD }}>
           <span className="text-white"><Icon name="shield" size={15} strokeWidth={2.3} /></span>
@@ -370,13 +362,13 @@ export default function PeopleAccess() {
               || p.legacyRole === "OWNER";
             return (
               <div key={p.id}
-                className={"flex items-center gap-3 px-4 py-2.5 border-b border-[#3c3149] last:border-0 flex-wrap " + (p.isActive ? "" : "opacity-55")}>
+                className={"flex items-center gap-3 px-4 py-2.5 border-b border-[#f3eff8] last:border-0 flex-wrap " + (p.isActive ? "" : "opacity-55")}>
                 <span className="w-[32px] h-[32px] rounded-full grid place-items-center text-[13px] font-bold text-white shrink-0"
-                  style={{ background: isOwnerAcct ? "linear-gradient(135deg,#b76e79,#432926)" : GRAD }}>
+                  style={{ background: isOwnerAcct ? "linear-gradient(135deg,#b76e79,#e0a8a0)" : GRAD }}>
                   {p.name.slice(0, 1).toUpperCase()}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[13.5px] font-bold text-[#dfd2e4] truncate">
+                  <div className="text-[13.5px] font-bold text-[#2d2838] truncate">
                     {p.name}
                     {p.id === me?.id && <span className="text-[10.5px] font-semibold text-body-soft"> · you</span>}
                   </div>
@@ -388,21 +380,21 @@ export default function PeopleAccess() {
 
                 <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                   {!p.hasPassword && (
-                    <span className="text-[10px] font-bold px-2 py-[3px] rounded-full" style={{ background: "#3c2f17", color: "#edc278" }}>no password yet</span>
+                    <span className="text-[10px] font-bold px-2 py-[3px] rounded-full" style={{ background: "#fdf3e2", color: "#b07818" }}>no password yet</span>
                   )}
                   {p.pending && (
-                    <span className="text-[10px] font-bold px-2 py-[3px] rounded-full" style={{ background: "#17273a", color: "#82a7d9" }}>
+                    <span className="text-[10px] font-bold px-2 py-[3px] rounded-full" style={{ background: "#eef5fd", color: "#3b76c4" }}>
                       {p.pending.kind === "INVITE" ? "invite open" : "reset open"}
                     </span>
                   )}
                   {!p.isActive && (
-                    <span className="text-[10px] font-bold px-2 py-[3px] rounded-full" style={{ background: "#3b1a16", color: "#e1837a" }}>off</span>
+                    <span className="text-[10px] font-bold px-2 py-[3px] rounded-full" style={{ background: "#fdecea", color: "#c0392b" }}>off</span>
                   )}
                 </div>
 
                 {isOwnerAcct ? (
                   <span className="text-[11px] font-bold px-2.5 py-1.5 rounded-full shrink-0"
-                    style={{ background: "#37221a", color: "#c9929a" }}>OWNER — everything</span>
+                    style={{ background: "#fbf0ec", color: "#b76e79" }}>OWNER — everything</span>
                 ) : (
                   <div className="w-[180px] shrink-0">
                     {posSelect(p.positionId ?? "", (v) => void assign(p, v || null))}
@@ -437,7 +429,7 @@ function RowBtn({ label, onClick, disabled, tone }: {
       className="text-[11px] font-bold px-2.5 py-1.5 rounded-[8px] border transition-colors disabled:opacity-40"
       style={{
         borderColor: tone === "danger" ? "#f2c8c2" : "#e4ddef",
-        color: tone === "danger" ? "#e1837a" : "#b97fdc",
+        color: tone === "danger" ? "#c0392b" : "#7a2ea8",
         background: "#fff",
       }}
       disabled={disabled}

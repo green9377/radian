@@ -502,7 +502,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               k: "variants" as const, icon: "sparkle", title: "An item with variants",
               lead: "The same thing in several colours or sizes",
               examples: ["Rose → Red · Yellow · White", "Gift Box → Small · Medium · Large"],
-              note: "One form creates several items — each gets its own code, cost and photo.",
+              note: "One form creates several items.",
             },
           ]).map((o) => (
             <button key={o.k} onClick={() => setMode(o.k)}
@@ -556,7 +556,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
             {isNew && (
               <button onClick={() => setMode(null)}
                 className="text-[12.5px] font-semibold mt-1 inline-flex items-center gap-1.5 px-2 py-1 rounded-full"
-                style={{ background: "#34163b", color: "#bd73e8" }}
+                style={{ background: "#f9e9fd", color: "#8b21c9" }}
                 title="Change what you are adding">
                 <Icon name={mode === "variants" ? "sparkle" : "box"} size={11} />
                 {mode === "variants" ? "With variants" : "Single item"}
@@ -572,7 +572,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
           {!isNew && (
             <button onClick={removeThis} disabled={saving}
               className="text-[13.5px] font-semibold px-4 py-2.5 rounded-[11px] border inline-flex items-center gap-2 disabled:opacity-50"
-              style={{ background: "#fff", borderColor: "#f0d4d0", color: "#e1837a" }}>
+              style={{ background: "#fff", borderColor: "#f0d4d0", color: "#c0392b" }}>
               <Icon name="trash" size={14} /> Delete
             </button>
           )}
@@ -607,7 +607,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
             return (
               <button key={s.key} onClick={() => !disabled && setSection(s.key)} disabled={disabled}
                 className="w-full text-left text-[13.5px] font-semibold px-3 py-2.5 rounded-[10px] flex items-center gap-2.5 mb-0.5 disabled:opacity-35"
-                style={on ? { background: ACCENT, color: "#fff" } : { color: "#dfd2e4" }}>
+                style={on ? { background: ACCENT, color: "#fff" } : { color: "#5b4166" }}>
                 <Icon name={s.icon} size={14} />
                 {s.key === "photo" && variantMode ? "Photos" : s.label}
               </button>
@@ -619,14 +619,14 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
         <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft p-5">
           {section === "basics" && (
             <Sect title="Basics">
-              <Row label="Name" required hint="The name your staff uses in the stockroom.">
+              <Row label="Name" required>
                 <input className="ipt w-full" placeholder="e.g. Red Rose (fresh cut)" value={draft.name} onChange={(e) => set("name", e.target.value)} />
               </Row>
 
               {/* DEC-ITM-017 — the owner's own list, plus a "+ New type" that opens a
                   small dialog. He can name it anything; he just has to say which of the
                   five it behaves like, because that is what the stock and cost rules read. */}
-              <Row label="Type" required hint="Pick a type, or add your own with “+ New type”. Rename or delete types on Items → Item types.">
+              <Row label="Type" required>
                 <div className="flex gap-1.5 flex-wrap items-center">
                   {types.filter((t) => t.isActive !== false).map((t) => {
                     const tone = t.colour ?? ITEM_TYPE_META[t.behaviour].colour;
@@ -661,7 +661,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               </Row>
 
               <Pair>
-                <Row label="Unit" required hint="How you count it — stem, kg, piece. Type a new one to create it here.">
+                <Row label="Unit" required hint="How you count it — stem, kg, piece.">
                   <QuickSelect
                     value={draft.unitId}
                     placeholder={units.length === 0 ? "No units yet — type one" : "Pick a unit"}
@@ -688,7 +688,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                   />
                 </Row>
 
-                <Row label="SKU" required hint="One code used everywhere — orders, packing slips, stock. Auto-built from the name unless you type your own.">
+                <Row label="SKU" required hint="Auto-built from the name unless you type your own.">
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                     <input className="ipt w-full font-mono" placeholder={autoSku || "auto"} value={skuTouched ? draft.sku : autoSku}
                       onChange={(e) => { setSkuTouched(true); set("sku", e.target.value.toUpperCase()); }} />
@@ -700,7 +700,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                 </Row>
               </Pair>
 
-              <Row label="Note" hint="Anything the team should know.">
+              <Row label="Note">
                 <textarea className="ipt w-full" rows={2} placeholder="Optional" value={draft.description} onChange={(e) => set("description", e.target.value)} />
               </Row>
 
@@ -723,8 +723,8 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
             <Sect
               title={isNew && mode === "variants" ? "Photos" : "Photo"}
               hint={isNew && mode === "variants"
-                ? "One photo per variant. The group photo is the fallback for any variant you leave blank."
-                : "The stockroom shot — one clear photo on a plain background. The marketing gallery belongs to the Product, not here. Saved at 256px so the list stays fast."}
+                ? "One photo per variant. The group photo is the fallback."
+                : "One clear photo on a plain background. The marketing gallery belongs to the Product."}
             >
               {isNew && mode === "variants" ? (
                 variantPreview.length === 0 ? (
@@ -766,7 +766,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                 <div className="font-mono text-[12px] text-body-soft truncate">{v.sku}</div>
                               </div>
                               <span className="text-[12px] font-semibold shrink-0"
-                                style={{ color: vImages[k] ? "#76efab" : "#b0a4b7" }}>
+                                style={{ color: vImages[k] ? "#0e7a3d" : "#8b7a95" }}>
                                 {vImages[k] ? "own photo" : "uses group photo"}
                               </span>
                             </div>
@@ -787,10 +787,10 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
           )}
 
           {section === "classify" && (
-            <Sect title="Category & labels" hint="Where it sits in the stockroom, and which colour or size it is.">
+            <Sect title="Category & labels">
               <Pair>
               {/* main first, sub only after — the flat "Parent › Child" list read as a mess (owner, 20 Aug) */}
-              <Row label="Item category" hint="Your stockroom tree, e.g. Fresh Flowers → Roses. Pick the main category; its sub-categories appear next.">
+              <Row label="Item category" hint="Pick the main category; its sub-categories appear next.">
                 <QuickSelect
                   value={rootCatId}
                   placeholder="— no category —"
@@ -827,7 +827,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                 </Row>
               )}
 
-              <Row label="Brand" hint="Mostly gifts carry a brand; flowers usually don't.">
+              <Row label="Brand">
                 <QuickSelect
                   value={draft.brandId}
                   placeholder="— none —"
@@ -850,7 +850,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               {/* DEC-SUP-004 — whose product this is. For fulfillment-vendor items
                   (cake) this labels the vendor on the website; for stocked items it
                   is the usual reorder source. */}
-              <Row label="Supplier" hint="Who supplies this item.">
+              <Row label="Supplier">
                 <QuickSelect
                   value={draft.supplierId}
                   placeholder="— none —"
@@ -890,7 +890,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                     <>
                       <div className="flex items-center gap-2">
                         <span className="text-[12.5px] font-bold text-purple">Which variants?</span>
-                        <Info text="Every value you tick becomes a real item of its own — its own code, its own cost, its own stock. Two attributes multiply: 3 colours × 2 sizes = 6 items." />
+                        <Info text="Every value you tick becomes an item of its own: 3 colours × 2 sizes = 6 items." />
                         {variantPreview.length > 0 && (
                           <button type="button" onClick={() => { setVGroups({}); setVImages({}); }}
                             className="ml-auto text-[12px] font-semibold underline text-body-soft">clear all</button>
@@ -913,11 +913,11 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                             <div key={a.id} className="rounded-[14px] border overflow-hidden"
                               style={{ borderColor: picked.length ? "#d9c0ea" : "#e8dcf0" }}>
                               <div className="px-3.5 py-2.5 flex items-center gap-2 border-b"
-                                style={{ background: picked.length ? "#2e1a38" : "#291a35", borderColor: "#e8dcf0" }}>
+                                style={{ background: picked.length ? "#f5eafb" : "#faf6fd", borderColor: "#e8dcf0" }}>
                                 <Icon name={isColour ? "sparkle" : "grid"} size={13} />
                                 <span className="text-[13px] font-bold text-purple">{isColour ? a.name : `Size — ${a.name}`}</span>
                                 <span className="ml-auto text-[12px] font-semibold"
-                                  style={{ color: picked.length ? ACCENT : "#b0a4b7" }}>
+                                  style={{ color: picked.length ? ACCENT : "#8b7a95" }}>
                                   {picked.length ? `${picked.length} picked` : "none"}
                                 </span>
                               </div>
@@ -931,12 +931,12 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                         <button key={v.id} type="button" onClick={() => toggle(v.id)} title={v.label}
                                           className="w-[34px] h-[34px] rounded-full grid place-items-center transition-transform hover:scale-105"
                                           style={{
-                                            background: v.swatch ?? "#2e2235",
+                                            background: v.swatch ?? "#e8dcf0",
                                             boxShadow: on
                                               ? `0 0 0 2px #fff, 0 0 0 4px ${ACCENT}`
                                               : "inset 0 0 0 1px rgba(0,0,0,.10)",
                                           }}>
-                                          {on && <Icon name="check" size={15} style={{ color: isPale(v.swatch) ? "#f1eaf6" : "#fff" }} />}
+                                          {on && <Icon name="check" size={15} style={{ color: isPale(v.swatch) ? "#2c0f3d" : "#fff" }} />}
                                         </button>
                                       );
                                     })}
@@ -951,7 +951,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                           className="text-[13px] font-semibold px-3 py-1.5 rounded-[9px] border-2 transition-colors"
                                           style={on
                                             ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                                            : { background: "#fff", borderColor: "#e8dcf0", color: "#dfd2e4" }}>
+                                            : { background: "#fff", borderColor: "#e8dcf0", color: "#5b4166" }}>
                                           {v.label}
                                         </button>
                                       );
@@ -1024,10 +1024,10 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                         });
                       return (
                         <div key={a.id} className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
-                          <div className="px-3.5 py-2.5 flex items-center gap-2 border-b" style={{ background: "#291a35", borderColor: "#e8dcf0" }}>
+                          <div className="px-3.5 py-2.5 flex items-center gap-2 border-b" style={{ background: "#faf6fd", borderColor: "#e8dcf0" }}>
                             <Icon name={isColour ? "sparkle" : "grid"} size={13} />
                             <span className="text-[13px] font-bold text-purple">{isColour ? a.name : `Size — ${a.name}`}</span>
-                            <span className="ml-auto text-[12px]" style={{ color: chosen ? ACCENT : "#b0a4b7" }}>
+                            <span className="ml-auto text-[12px]" style={{ color: chosen ? ACCENT : "#8b7a95" }}>
                               {chosen?.label ?? "not set"}
                             </span>
                           </div>
@@ -1041,7 +1041,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                     <button key={v.id} type="button" onClick={() => pick(v.id)} title={v.label}
                                       className="w-[34px] h-[34px] rounded-full grid place-items-center transition-transform hover:scale-105"
                                       style={{
-                                        background: v.swatch ?? "#2e2235",
+                                        background: v.swatch ?? "#e8dcf0",
                                         boxShadow: on
                                           ? `0 0 0 2px #fff, 0 0 0 4px ${ACCENT}`
                                           : "inset 0 0 0 1px rgba(0,0,0,.10)",
@@ -1049,7 +1049,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                       {on && (
                                         <Icon name="check" size={15}
                                           /* dark tick on pale swatches, white on dark ones */
-                                          style={{ color: isPale(v.swatch) ? "#f1eaf6" : "#fff" }} />
+                                          style={{ color: isPale(v.swatch) ? "#2c0f3d" : "#fff" }} />
                                       )}
                                     </button>
                                   );
@@ -1065,7 +1065,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                       className="text-[13px] font-semibold px-3 py-1.5 rounded-[9px] border-2 transition-colors"
                                       style={on
                                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                                        : { background: "#fff", borderColor: "#e8dcf0", color: "#dfd2e4" }}>
+                                        : { background: "#fff", borderColor: "#e8dcf0", color: "#5b4166" }}>
                                       {v.label}
                                     </button>
                                   );
@@ -1092,13 +1092,12 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               an item is a list entry — those rules will be asked where they are used
               (Returns, Inventory expiry, Orders/POS). The columns stay in the schema. */}
           {section === "behaviour" && (
-            <Sect title="How it is used" hint="Set what this item can be used for.">
+            <Sect title="How it is used">
               {/*  ITM-R13 — a service is sold and never bought; the switches would
                    only be two ways to break it, so they are locked and say why.  */}
               {draft.itemType === "SERVICE" ? (
                 <Note tone="purple">
-                  A service is always on sale and never bought — it goes to the counter as
-                  soon as it has a price.
+                  A service is always on sale and never bought.
                 </Note>
               ) : (
                 <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0", borderTopColor: "#e8dcf0" }}>
@@ -1112,7 +1111,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               )}
 
               <Pair>
-                <Row label="Weight (grams)" hint="Couriers charge by weight — needed for shipping quotes.">
+                <Row label="Weight (grams)" hint="Couriers charge by weight.">
                   <input className="ipt w-full" inputMode="numeric" placeholder="e.g. 250" value={draft.weightGram} onChange={(e) => set("weightGram", e.target.value)} />
                 </Row>
               </Pair>
@@ -1131,10 +1130,10 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               <Pair>
                 <Row
                   label={`Cost per ${units.find((u) => u.id === draft.unitId)?.name?.toLowerCase() ?? "unit"}`}
-                  hint="The average of what you have actually paid. Purchases keep it up to date."
+                  hint="The average of what you have actually paid."
                 >
                   {costIsAuto ? (
-                    <div className="ipt w-full flex items-center justify-between" style={{ background: "#291a35" }}>
+                    <div className="ipt w-full flex items-center justify-between" style={{ background: "#faf6fd" }}>
                       <b className="text-body">{formatTaka(costPaisa)}</b>
                       <span className="text-[12px] text-body-soft">
                         {item?.costMode === "AUTO" ? "from its recipe" : "average of your purchases"}
@@ -1144,13 +1143,13 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                     <TakaInput value={draft.costTaka} onChange={(v) => set("costTaka", v)} placeholder="0.00" />
                   )}
                 </Row>
-                <Row label="VAT" hint="The default VAT rate for this item.">
+                <Row label="VAT">
                   <PercentInput value={draft.vatPercent} onChange={(v) => set("vatPercent", v)} placeholder="0" />
                 </Row>
               </Pair>
               {!costIsAuto && (
                 <p className="text-[12px] text-body-soft m-0 -mt-2">
-                  Starting cost — from the first purchase onward this becomes the average and stops being typed.
+                  Starting cost — purchases take over from here.
                 </p>
               )}
 
@@ -1159,10 +1158,10 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                    fixing it by hand is the exception, and it says so.  */}
               {(draft.isSaleable || draft.itemType === "SERVICE") && (
                 <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
-                  <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "#291a35", borderColor: "#e8dcf0" }}>
+                  <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "#faf6fd", borderColor: "#e8dcf0" }}>
                     <Icon name="cash" size={13} />
                     <span className="text-[13px] font-bold text-purple">Counter price</span>
-                    <Info text="What the till charges. It follows the cost automatically; a website product may price differently." />
+                    <Info text="What the till charges; a website product may price differently." />
                     <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#d9c7e6" }}>
                       {([
                         { k: false, label: "Automatic" },
@@ -1173,8 +1172,8 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                           className="text-[12.5px] font-bold px-3.5 py-1"
                           style={{
                             background: (draft.sellTaka.trim() !== "") === o.k ? ACCENT : "#fff",
-                            color: (draft.sellTaka.trim() !== "") === o.k ? "#fff" : "#dfd2e4",
-                            borderLeft: i ? "1px solid #403149" : undefined,
+                            color: (draft.sellTaka.trim() !== "") === o.k ? "#fff" : "#6b5077",
+                            borderLeft: i ? "1px solid #e8dcf0" : undefined,
                           }}>
                           {o.label}
                         </button>
@@ -1199,7 +1198,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                           </span>
                         </span>
                         <span className="text-body-soft">→</span>
-                        <b className="font-display text-[22px] leading-none" style={{ color: "#76efab" }}>
+                        <b className="font-display text-[22px] leading-none" style={{ color: "#0e7a3d" }}>
                           {suggestedPaisa === null ? "—" : formatTaka(suggestedPaisa)}
                         </b>
                         {suggestedPaisa === null && (
@@ -1219,7 +1218,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                       </div>
                     )}
                     {sellPaisa !== null && floorPaisa !== null && sellPaisa < floorPaisa && (
-                      <p className="text-[12px] text-[#e1837a] m-0 mt-2">
+                      <p className="text-[12px] text-[#c0392b] m-0 mt-2">
                         Below the floor — {formatTaka(floorPaisa)} is the least this may sell for.
                       </p>
                     )}
@@ -1236,10 +1235,10 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
 
               {/* the minimum-profit rule the owner asked for */}
               <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
-                <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "#291a35", borderColor: "#e8dcf0" }}>
+                <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "#faf6fd", borderColor: "#e8dcf0" }}>
                   <Icon name="shield" size={13} />
                   <span className="text-[13px] font-bold text-purple">Minimum profit</span>
-                  <Info text="The lowest this may ever be sold for. The till refuses to go under it, however the price was worked out." />
+                  <Info text="The till refuses to sell under it." />
                   <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#d9c7e6" }}>
                     {([
                       { k: "none" as const, label: "Off" },
@@ -1250,8 +1249,8 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                         className="text-[12.5px] font-bold px-3.5 py-1"
                         style={{
                           background: draft.marginMode === o.k ? ACCENT : "#fff",
-                          color: draft.marginMode === o.k ? "#fff" : "#dfd2e4",
-                          borderLeft: i ? "1px solid #403149" : undefined,
+                          color: draft.marginMode === o.k ? "#fff" : "#6b5077",
+                          borderLeft: i ? "1px solid #e8dcf0" : undefined,
                         }}>
                         {o.label}
                       </button>
@@ -1276,7 +1275,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
 
                       {/* the sum, spelled out — a rule you cannot see the effect of is a rule nobody trusts */}
                       <div className="mt-3.5 rounded-[12px] px-4 py-3 flex items-center gap-3 flex-wrap"
-                        style={{ background: "linear-gradient(120deg,#1d3325,#1f352a)" }}>
+                        style={{ background: "linear-gradient(120deg,#f3fbf6,#e6f6ee)" }}>
                         <span className="text-[13px] text-body">
                           {formatTaka(costPaisa)}
                           <span className="text-body-soft"> cost</span>
@@ -1287,10 +1286,10 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                           <span className="text-body-soft"> profit</span>
                         </span>
                         <span className="text-body-soft">→</span>
-                        <span className="font-display text-[22px] leading-none" style={{ color: "#76efab" }}>
+                        <span className="font-display text-[22px] leading-none" style={{ color: "#0e7a3d" }}>
                           {floorPaisa === null ? "—" : formatTaka(floorPaisa)}
                         </span>
-                        <span className="text-[12.5px] font-semibold" style={{ color: "#76efab" }}>
+                        <span className="text-[12.5px] font-semibold" style={{ color: "#0e7a3d" }}>
                           lowest you may sell it for
                         </span>
                       </div>
@@ -1323,14 +1322,14 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                       </span>
                     </div>
                   </Row>
-                  <Row label="Current stock" hint="Read-only — live from Inventory.">
-                    <div className="ipt w-full flex items-center text-body-soft" style={{ background: "#291a35" }}>
+                  <Row label="Current stock" hint="Live from Inventory.">
+                    <div className="ipt w-full flex items-center text-body-soft" style={{ background: "#faf6fd" }}>
                       {stock.text}
                     </div>
                   </Row>
                 </Pair>
               ) : (
-                <Note tone="grey">Not counted. Services and one-off items usually sit here.</Note>
+                <Note tone="grey">Not counted.</Note>
               )}
             </Sect>
           )}
@@ -1348,42 +1347,38 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0" }}>
                 <SwitchRow on={draft.isOnline && draft.isSaleable}
                   onClick={() => draft.isSaleable && set("isOnline", !draft.isOnline)}
-                  icon="link" tone="#bd73e8"
+                  icon="link" tone="#8b21c9"
                   title="Sell online" sub="Off keeps it off the product page — the counter still sells it" />
               </div>
 
               {!draft.isSaleable ? (
                 <Note tone="grey">
-                  Switch on <b>We sell it</b> under &ldquo;How it is used&rdquo; first — the website sells
-                  what the shop sells.
+                  Switch on <b>We sell it</b> under &ldquo;How it is used&rdquo; first.
                 </Note>
               ) : !draft.isOnline ? (
                 <Note tone="grey">
-                  Counter only. It will not appear when a product page looks for an item.
+                  Counter only.
                   {(item?._count?.products ?? 0) > 0 && (
                     <> {item!._count!.products} product{item!._count!.products === 1 ? "" : "s"} already
-                    point at it — they keep working until someone saves them again.</>
+                    point at it.</>
                   )}
                 </Note>
               ) : isNew ? (
                 <Note tone="purple">
-                  Create the item first. The connect button appears here straight after — a Product has to point at a
-                  saved item's SKU.
+                  Create the item first — the connect button appears here straight after.
                 </Note>
               ) : (item?._count?.products ?? 0) > 0 ? (
                 <Note tone="green">
-                  Connected to <b>{item!._count!.products}</b> product{item!._count!.products === 1 ? "" : "s"}.
-                  They share the code <b className="font-mono">{item!.sku}</b>, so stock and cost are read from this
-                  item — there is no second number to keep in step.
+                  Connected to <b>{item!._count!.products}</b> product{item!._count!.products === 1 ? "" : "s"},
+                  sharing the code <b className="font-mono">{item!.sku}</b>.
                   <Link href="/products" className="underline ml-2 font-semibold">open products</Link>
                 </Note>
               ) : (
-                <div className="rounded-[16px] border p-5" style={{ borderColor: "#e8dcf0", background: "linear-gradient(140deg,#291a35,#2c1b37)" }}>
+                <div className="rounded-[16px] border p-5" style={{ borderColor: "#e8dcf0", background: "linear-gradient(140deg,#faf6fd,#f4ebfa)" }}>
                   <div className="font-display text-[17px] text-purple">Not on the website yet</div>
                   <p className="text-[13px] text-body m-0 mt-1.5 max-w-[440px]">
-                    Creating a product from this item copies the code <b className="font-mono">{item?.sku}</b> across.
-                    From then on the product page shows this item&apos;s stock and cost — one item, one code, one
-                    number in both places.
+                    Creating a product copies the code <b className="font-mono">{item?.sku}</b> across; the
+                    product page then shows this item&apos;s stock and cost.
                   </p>
                   <Link href={`/products/new?itemId=${itemId}`}
                     className="inline-flex items-center gap-2 mt-4 text-white text-[13.5px] font-semibold px-5 py-2.5 rounded-[11px] shadow-soft"
@@ -1420,7 +1415,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                 <dt className="text-body-soft">Purchase</dt>
                 <dd className="m-0 text-body">
                   {item?.costMode === "AUTO"
-                    ? <span className="text-[#76efab]">{formatTaka(item.computedCostPaisa ?? 0)} <span className="text-[11px]">auto</span></span>
+                    ? <span className="text-[#0e7a3d]">{formatTaka(item.computedCostPaisa ?? 0)} <span className="text-[11px]">auto</span></span>
                     : formatTaka(costPaisa)}
                 </dd>
                 {/* DEC-ITM-018 — the floor is the number that actually constrains selling,
@@ -1435,7 +1430,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                     )}
                   </dd></>)}
                 <dt className="text-body-soft">Sell above</dt>
-                <dd className="m-0 font-semibold" style={{ color: floorPaisa === null ? "#b0a4b7" : "#76efab" }}>
+                <dd className="m-0 font-semibold" style={{ color: floorPaisa === null ? "#8b7a95" : "#0e7a3d" }}>
                   {floorPaisa === null ? "no floor" : formatTaka(floorPaisa)}
                 </dd>
                 {vatBp > 0 && (<><dt className="text-body-soft">VAT</dt>
@@ -1448,7 +1443,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               <div className="flex gap-1.5 flex-wrap mt-3">
                 {draft.isPurchasable && <Pill text="bought" />}
                 {draft.isSaleable && <Pill text="sold" />}
-                {!draft.isStockTracked && <Pill text="not stocked" tone="#2563a8" bg="#1b2838" />}
+                {!draft.isStockTracked && <Pill text="not stocked" tone="#2563a8" bg="#e8f0fa" />}
               </div>
             </div>
           </div>
@@ -1502,8 +1497,8 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
             <div className="px-5 py-4">
               <p className="text-[13px] text-body m-0">
                 {(item._count?.products ?? 0) > 0
-                  ? `${item._count!.products} linked product${item._count!.products === 1 ? " keeps" : "s keep"} name, price and photos — only the link is removed. The item moves to the trash and can be restored.`
-                  : "It moves to the trash — hidden, not destroyed. Restore it whenever you like."}
+                  ? `${item._count!.products} linked product${item._count!.products === 1 ? "" : "s"} keep name, price and photos — only the link is removed.`
+                  : "It moves to the trash and can be restored."}
               </p>
             </div>
             <div className="px-5 py-3.5 flex items-center gap-2 justify-end border-t border-lavender-deep bg-lavender/25">
@@ -1604,7 +1599,7 @@ export function Info({ text }: { text: string }) {
         tabIndex={0}
         aria-label={text}
         className="w-[16px] h-[16px] rounded-full grid place-items-center text-[10px] font-bold cursor-help shrink-0 select-none align-middle inline-grid"
-        style={{ background: "#2c1e37", color: "#b29cbf" }}
+        style={{ background: "#efe4f7", color: "#7a5b8c" }}
         onMouseEnter={place}
         onMouseLeave={() => setBox(null)}
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); box ? setBox(null) : place(); }}
@@ -1641,7 +1636,7 @@ export function Row({
     <div className={wide ? "md:col-span-2" : undefined}>
       <label className="flex items-center gap-1.5 text-[12.5px] font-bold text-purple mb-1.5">
         {label}
-        {required && <span className="text-[#e1837a]">*</span>}
+        {required && <span className="text-[#c0392b]">*</span>}
         {hint && <Info text={hint} />}
       </label>
       {children}
@@ -1654,7 +1649,7 @@ export function Pair({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>;
 }
 
-function Pill({ text, tone = "#470066", bg = "#2b1c35" }: { text: string; tone?: string; bg?: string }) {
+function Pill({ text, tone = "#470066", bg = "#f7f1fb" }: { text: string; tone?: string; bg?: string }) {
   return <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: bg, color: tone }}>{text}</span>;
 }
 
@@ -1671,15 +1666,15 @@ export function SwitchRow({
       className="w-full text-left px-4 py-3 grid grid-cols-[34px_minmax(0,1fr)_44px] items-center gap-3 hover:bg-lavender/25 transition-colors"
       style={{ borderColor: "#e8dcf0" }}>
       <span className="w-[32px] h-[32px] rounded-[10px] grid place-items-center transition-colors"
-        style={{ background: on ? tone : "#2b2034", color: on ? "#fff" : "#a08fb0" }}>
+        style={{ background: on ? tone : "#f0e8f6", color: on ? "#fff" : "#a08fb0" }}>
         <Icon name={icon} size={15} />
       </span>
       <span className="min-w-0">
-        <span className="block text-[13.5px] font-bold" style={{ color: on ? "#f1eaf6" : "#afa5b6" }}>{title}</span>
+        <span className="block text-[13.5px] font-bold" style={{ color: on ? "#2c0f3d" : "#7a6b85" }}>{title}</span>
         <span className="block text-[12.5px] text-body-soft truncate">{sub}</span>
       </span>
       <span className="w-[40px] h-[22px] rounded-full relative justify-self-end transition-colors"
-        style={{ background: on ? tone : "#302936" }}>
+        style={{ background: on ? tone : "#d6cbdf" }}>
         <span className="absolute top-[3px] w-[16px] h-[16px] bg-white rounded-full transition-all"
           style={{ left: on ? 21 : 3 }} />
       </span>
@@ -1690,10 +1685,10 @@ export function SwitchRow({
 /** the one place a coloured explanation box is allowed — and it is one line, not three */
 export function Note({ tone, children }: { tone: "green" | "grey" | "purple" | "amber"; children: React.ReactNode }) {
   const T = {
-    green: { bg: "#1f3529", fg: "#76efab" },
-    grey: { bg: "#2a232e", fg: "#dfd2e4" },
-    purple: { bg: "#2b1c35", fg: "#ce6ef7" },
-    amber: { bg: "#3b2d18", fg: "#f6bb6f" },
+    green: { bg: "#e8f7ef", fg: "#0e7a3d" },
+    grey: { bg: "#f5f2f7", fg: "#6b5077" },
+    purple: { bg: "#f7f1fb", fg: "#470066" },
+    amber: { bg: "#fbf1e2", fg: "#8a5209" },
   }[tone];
   return (
     <div className="rounded-[12px] px-4 py-3 text-[13px]" style={{ background: T.bg, color: T.fg }}>
@@ -1708,7 +1703,7 @@ export function TakaInput({
 }: { value: string; onChange: (v: string) => void; placeholder?: string; disabled?: boolean }) {
   return (
     <div className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-semibold pointer-events-none" style={{ color: "#b0a4b7" }}>৳</span>
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-semibold pointer-events-none" style={{ color: "#8b7a95" }}>৳</span>
       <input className="ipt ipt-icon w-full" inputMode="decimal" placeholder={placeholder}
         value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)} />
     </div>
@@ -1722,7 +1717,7 @@ export function PercentInput({
     <div className="relative">
       <input className="ipt w-full" inputMode="decimal" placeholder={placeholder}
         value={value} onChange={(e) => onChange(e.target.value)} style={{ paddingRight: 34 }} />
-      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13.5px] font-semibold pointer-events-none" style={{ color: "#b0a4b7" }}>%</span>
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13.5px] font-semibold pointer-events-none" style={{ color: "#8b7a95" }}>%</span>
     </div>
   );
 }
@@ -1769,7 +1764,7 @@ export function PhotoDrop({
         className="relative w-[300px] max-w-full h-[190px] rounded-[16px] border-2 border-dashed grid place-items-center cursor-pointer transition-colors overflow-hidden"
         style={{
           borderColor: over ? ACCENT : "#ddcfe8",
-          background: over ? "#2b1c35" : "#2a1e30",
+          background: over ? "#f7f1fb" : "#fcfaFd",
         }}
       >
         <input type="file" accept="image/*" className="hidden"
@@ -1787,7 +1782,7 @@ export function PhotoDrop({
         ) : (
           <span className="text-center px-6">
             <span className="w-[42px] h-[42px] rounded-[13px] grid place-items-center mx-auto mb-2.5"
-              style={{ background: "#2d1c38", color: ACCENT }}>
+              style={{ background: "#f0e4f8", color: ACCENT }}>
               <Icon name="photo" size={20} />
             </span>
             <span className="block text-[13.5px] font-bold text-purple">
@@ -1802,7 +1797,7 @@ export function PhotoDrop({
         <div className="flex flex-col gap-2">
           <ItemThumb item={item} size={54} />
           <button type="button" onClick={() => onImage(null)}
-            className="text-[12.5px] font-semibold text-[#e1837a] underline">
+            className="text-[12.5px] font-semibold text-[#c0392b] underline">
             remove
           </button>
         </div>
@@ -1839,7 +1834,7 @@ export function TypeKindFields({
             style={{
               background: kind === o.k ? ACCENT : "#fff",
               color: kind === o.k ? "#fff" : ACCENT,
-              borderLeft: i ? "1px solid #40314a" : undefined,
+              borderLeft: i ? "1px solid #e2d2ec" : undefined,
             }}>
             {o.label}
           </button>
@@ -1927,7 +1922,7 @@ function NewTypeButton({
         <input className="ipt w-full" autoFocus placeholder="Dry Flower, Imported Chocolate…"
           value={name} onChange={(e) => setName(e.target.value)} />
         {name.trim() && dup && (
-          <p className="text-[12px] text-[#e1837a] m-0 mt-1">&ldquo;{name.trim()}&rdquo; already exists.</p>
+          <p className="text-[12px] text-[#c0392b] m-0 mt-1">&ldquo;{name.trim()}&rdquo; already exists.</p>
         )}
       </Field>
       <TypeKindFields
@@ -2019,8 +2014,7 @@ function UsagePanel({ itemId, item }: { itemId: string; item: ApiItem }) {
 
         {!loading && total > 0 && (
           <p className="text-[13px] text-body-soft m-0 mt-3 pt-3 border-t border-lavender-deep">
-            Changing the cost here moves every recipe above. And while this list is not empty the item cannot be
-            deleted — nothing breaks silently.
+            Changing the cost here moves every recipe above. It cannot be deleted while this list is not empty.
           </p>
         )}
       </div>
@@ -2098,10 +2092,10 @@ function AttrStarter({ onDone, onErr }: { onDone: () => Promise<void> | void; on
   }
 
   return (
-    <div className="rounded-[12px] border px-4 py-3.5" style={{ background: "#2b1c35", borderColor: "#efe4f7" }}>
-      <div className="text-[13px] font-semibold mb-1" style={{ color: "#ce6ef7" }}>No labels yet</div>
+    <div className="rounded-[12px] border px-4 py-3.5" style={{ background: "#f7f1fb", borderColor: "#efe4f7" }}>
+      <div className="text-[13px] font-semibold mb-1" style={{ color: "#470066" }}>No labels yet</div>
       <p className="text-[13px] text-body m-0 mb-2.5 leading-relaxed">
-        Labels are how you tell a red rose from a white one. Create them right here — you do not have to leave this page.
+        Labels tell a red rose from a white one.
       </p>
       <div className="flex gap-1.5 flex-wrap">
         {["Colour", "Size"].map((n) => (
@@ -2116,7 +2110,7 @@ function AttrStarter({ onDone, onErr }: { onDone: () => Promise<void> | void; on
   );
 }
 
-const QUICK_SWATCHES = ["#c62828", "#1f1727", "#f9c623", "#e87ba4", "#ef7028", "#7a2ea8", "#2563a8", "#0e8f74"];
+const QUICK_SWATCHES = ["#c62828", "#fafafa", "#f9c623", "#e87ba4", "#ef7028", "#7a2ea8", "#2563a8", "#0e8f74"];
 
 /** a "+" chip that turns into a small "name + optional colour" form, in place */
 function InlineValueAdd({
@@ -2156,7 +2150,7 @@ function InlineValueAdd({
   }
 
   return (
-    <div className="w-full rounded-[14px] border-2 p-3.5 mt-1" style={{ borderColor: "#d9c7e6", background: "#291a35" }}>
+    <div className="w-full rounded-[14px] border-2 p-3.5 mt-1" style={{ borderColor: "#d9c7e6", background: "#faf6fd" }}>
       <div className="flex items-center gap-2 mb-2.5">
         <span className="text-[12.5px] font-bold text-purple">New {attrName.toLowerCase()}</span>
         <button type="button" onClick={() => setOpen(false)}
@@ -2175,7 +2169,7 @@ function InlineValueAdd({
               {QUICK_SWATCHES.map((c) => (
                 <button key={c} type="button" onClick={() => setSwatch(swatch === c ? null : c)} title={c}
                   className="w-[26px] h-[26px] rounded-full border-2 shrink-0 transition-transform hover:scale-110"
-                  style={{ background: c, borderColor: swatch === c ? "#f1eaf6" : "#e3d7ec" }} />
+                  style={{ background: c, borderColor: swatch === c ? "#2c0f3d" : "#e3d7ec" }} />
               ))}
             </span>
             <input className="ipt font-mono" style={{ minHeight: 38, width: 110 }}
@@ -2227,9 +2221,9 @@ export function VariantPhoto({
       <label
         className="w-[44px] h-[44px] rounded-[11px] overflow-hidden cursor-pointer grid place-items-center text-[10.5px] font-bold"
         style={{
-          background: url ? "#fff" : "#2b2034",
+          background: url ? "#fff" : "#f0e8f6",
           color: "#a08fb0",
-          boxShadow: own ? `0 0 0 2px #fff, 0 0 0 3px ${ACCENT}` : "inset 0 0 0 1px #302337",
+          boxShadow: own ? `0 0 0 2px #fff, 0 0 0 3px ${ACCENT}` : "inset 0 0 0 1px #e2d2ec",
         }}
         title={own ? "Has its own photo — click to replace" : "Click to give this one its own photo"}
       >

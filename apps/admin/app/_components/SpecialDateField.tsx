@@ -94,26 +94,26 @@ export default function SpecialDateField({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="ipt h-[40px] flex items-center justify-between gap-2 flex-1 min-w-0 text-left"
-        style={open ? { borderColor: "#da6cef", boxShadow: "0 0 0 3px #34163b" } : undefined}
+        style={open ? { borderColor: "#cf43ea", boxShadow: "0 0 0 3px #f9e9fd" } : undefined}
       >
         <span className="truncate text-[13px]">
           {readDate(date, year)}
-          {!year && <span style={{ color: "#c9929a" }}> · every year</span>}
+          {!year && <span style={{ color: "#b76e79" }}> · every year</span>}
         </span>
-        <span style={{ color: "#da6cef" }} className="shrink-0"><Icon name="clock" size={15} /></span>
+        <span style={{ color: "#cf43ea" }} className="shrink-0"><Icon name="clock" size={15} /></span>
       </button>
 
       <button
         type="button"
         onClick={() => onChange({ date, year: year ? null : thisYear })}
         className="text-[11.5px] font-medium shrink-0 hover:underline"
-        style={{ color: year ? "#da6cef" : "#b0a2b8" }}
+        style={{ color: year ? "#cf43ea" : "#9b8aa6" }}
       >
         {year ? "no year" : "add year"}
       </button>
 
       {year ? (
-        <span className="text-[11.5px] shrink-0" style={{ color: "#c9929a" }}>
+        <span className="text-[11.5px] shrink-0" style={{ color: "#b76e79" }}>
           {ordinal(thisYear - year)} this year
         </span>
       ) : null}
@@ -139,8 +139,8 @@ export default function SpecialDateField({
                   className="h-[30px] rounded-[8px] text-[12.5px] transition-colors"
                   style={on
                     ? { background: "#470066", color: "#fff", fontWeight: 500 }
-                    : { color: "#dfd2e4" }}
-                  onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = "#2b1c35"; }}
+                    : { color: "#3d2b4a" }}
+                  onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = "#f7f1fb"; }}
                   onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = "transparent"; }}>
                   {d}
                 </button>
@@ -166,11 +166,7 @@ export default function SpecialDateField({
                   className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-purple hover:bg-lavender">›</button>
               </span>
             </div>
-          ) : (
-            <p className="text-[11.5px] text-body-soft mt-2.5 mb-0">
-              Day and month only — it comes round every year.
-            </p>
-          )}
+          ) : null}
         </div>
       )}
     </span>

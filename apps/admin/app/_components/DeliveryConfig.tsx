@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Icon from "./Icon";
-import { TONE, Panel, Stat, NoteBox, type Tone } from "./OrderViews";
+import { TONE, Panel, Stat, type Tone } from "./OrderViews";
 import { WRAP, Header, DemoBadge, StatCards, Section, Field, ToggleField, Switch, EditorEmpty, EditorShell } from "./DeliveryUI";
 import { formatTaka } from "../_data/api";
 import {
@@ -35,22 +35,22 @@ export function CouriersMaster() {
   function remove(id: string) { setFleet((b) => b.filter((f) => f.id !== id)); setSel(null); }
 
   const stats = [
-    { l: "Riders (in-house)", v: String(riders.length), c: "#b97fdc", bg: "#2e1a38", icon: "user" },
-    { l: "3PL couriers", v: String(couriers.length), c: "#7cb1df", bg: "#18283a", icon: "truck" },
-    { l: "Active", v: String(fleet.filter((f) => f.active).length), c: "#75f0c7", bg: "#1e362b", icon: "check" },
-    { l: "API connected", v: String(couriers.filter((f) => f.apiConfigured).length), c: "#f4bd66", bg: "#3b2d18", icon: "bolt" },
-    { l: "Deliveries 30d", v: String(fleet.reduce((n, f) => n + f.deliveries30d, 0)), c: "#bb87d4", bg: "#2c1939", icon: "box" },
-    { l: "Avg on-time", v: (Math.round(fleet.filter((f) => f.onTimePct).reduce((n, f) => n + f.onTimePct, 0) / Math.max(1, fleet.filter((f) => f.onTimePct).length))) + "%", c: "#75f0c7", bg: "#1e362b", icon: "clock" },
+    { l: "Riders (in-house)", v: String(riders.length), c: "#7a2ea8", bg: "#f5eafb", icon: "user" },
+    { l: "3PL couriers", v: String(couriers.length), c: "#3182c9", bg: "#e9f2fc", icon: "truck" },
+    { l: "Active", v: String(fleet.filter((f) => f.active).length), c: "#12a172", bg: "#e6f7ef", icon: "check" },
+    { l: "API connected", v: String(couriers.filter((f) => f.apiConfigured).length), c: "#d98a0f", bg: "#fbf1e2", icon: "bolt" },
+    { l: "Deliveries 30d", v: String(fleet.reduce((n, f) => n + f.deliveries30d, 0)), c: "#8b3fb0", bg: "#f3e8fb", icon: "box" },
+    { l: "Avg on-time", v: (Math.round(fleet.filter((f) => f.onTimePct).reduce((n, f) => n + f.onTimePct, 0) / Math.max(1, fleet.filter((f) => f.onTimePct).length))) + "%", c: "#12a172", bg: "#e6f7ef", icon: "clock" },
   ];
 
   const Rowlet = ({ f }: { f: FleetMember }) => {
     const on = sel === f.id;
     return (
-      <div className={"grid grid-cols-[1fr_auto] items-center gap-2 rounded-[11px] px-3 py-2.5 cursor-pointer border " + (on ? "bg-orchid-soft border-orchid" : f.active ? "bg-white border-lavender-deep hover:border-orchid" : "bg-white border-[#4f3f2b]")} onClick={() => setSel(f.id)}>
+      <div className={"grid grid-cols-[1fr_auto] items-center gap-2 rounded-[11px] px-3 py-2.5 cursor-pointer border " + (on ? "bg-orchid-soft border-orchid" : f.active ? "bg-white border-lavender-deep hover:border-orchid" : "bg-white border-[#f0dcc4]")} onClick={() => setSel(f.id)}>
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="w-8 h-8 rounded-[9px] grid place-items-center text-white shrink-0" style={{ background: f.kind === "RIDER" ? TONE.purple.solid : TONE.blue.solid }}><Icon name={f.kind === "RIDER" ? "user" : "truck"} size={15} /></span>
           <div className="min-w-0">
-            <div className="text-[13.5px] font-medium text-purple truncate">{f.name}{!f.active && <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#402c18] text-[#f7a96e]">Off</span>}</div>
+            <div className="text-[13.5px] font-medium text-purple truncate">{f.name}{!f.active && <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbe4cd] text-[#b45309]">Off</span>}</div>
             <div className="text-[13px] text-body-soft">{PROVIDER_LABEL[f.provider]} · {f.onTimePct}% · {formatTaka(f.baseCostPaisa)}</div>
           </div>
         </div>
@@ -62,12 +62,11 @@ export function CouriersMaster() {
   return (
     <div className={WRAP}>
       <Header eyebrow="Operations · Delivery" title="Couriers & riders"
-        desc="Who Radian hands parcels to — in-house riders for Dhaka's time-critical promises, 3PL couriers for nationwide. Add, edit, and wire the courier API here."
         actions={<>
           <button onClick={() => setSel("new-rider")} className="border border-lavender-deep bg-white text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] hover:border-orchid inline-flex items-center gap-1.5"><Icon name="plus" size={16} /> Add rider</button>
           <button onClick={() => setSel("new-courier")} className="bg-purple hover:bg-purple-deep text-white text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-1.5"><Icon name="plus" size={16} /> Add courier</button>
         </>} />
-      <DemoBadge text="Sample fleet — every add / edit / toggle works. In production these persist to the database." />
+      <DemoBadge text="Sample fleet" />
       <StatCards items={stats} />
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(320px,1fr)_1.5fr] gap-6 items-start">
@@ -86,12 +85,11 @@ export function CouriersMaster() {
           {editing ? (
             <FleetEditor key={sel} member={selMember} kind={editKind} onSave={save} onDelete={selMember ? () => remove(selMember.id) : undefined} onCancel={() => setSel(null)} />
           ) : (
-            <EditorEmpty icon="truck" title="Select or add someone" desc="Pick a rider or courier on the left to edit them, or add a new one. Couriers can hold their consignment API keys here." onAdd={() => setSel("new-courier")} addLabel="Add courier" />
+            <EditorEmpty icon="truck" title="Select or add someone" desc="Pick one on the left, or add a new one." onAdd={() => setSel("new-courier")} addLabel="Add courier" />
           )}
         </div>
       </div>
 
-      <NoteBox tone="purple">A rider is Delivery-owned for now; once the Employee module lands it links to an Employee record (One Data One Owner). Base cost feeds delivery analytics — it never changes the customer&apos;s delivery charge (that&apos;s the Zones &amp; rates card).</NoteBox>
     </div>
   );
 }
@@ -135,7 +133,7 @@ function FleetEditor({ member, kind, onSave, onDelete, onCancel }: {
       onCancel={onCancel} onSave={submit} saveLabel={isNew ? "Add" : "Save"} canSave={!!name.trim()}
       footer={!isNew && onDelete ? (
         <div className="flex justify-between items-center pt-2 border-t border-lavender-deep">
-          <button onClick={onDelete} className="text-[13px] font-medium text-[#e1837a] hover:underline inline-flex items-center gap-1.5"><Icon name="trash" size={15} /> Remove</button>
+          <button onClick={onDelete} className="text-[13px] font-medium text-[#c0392b] hover:underline inline-flex items-center gap-1.5"><Icon name="trash" size={15} /> Remove</button>
           <button onClick={submit} disabled={!name.trim()} className="bg-purple hover:bg-purple-deep disabled:opacity-60 text-white text-[13.5px] font-medium px-6 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-1.5"><Icon name="check" size={15} /> Save</button>
         </div>
       ) : null}
@@ -173,13 +171,12 @@ function FleetEditor({ member, kind, onSave, onDelete, onCancel }: {
             </div>
           </Section>
           <Section title="Consignment API" icon="bolt">
-            <div className="rounded-[11px] bg-[#3a2b16] border border-[#534228] px-3.5 py-2.5 text-[12px] text-[#f7a96e]">One-click consignment + auto tracking (P1). Fill these when the courier gives merchant API access. Keys are stored server-side, never shown to customers.</div>
             <div className="grid md:grid-cols-2 gap-4">
               <Field label="API base URL"><input className="ipt" placeholder="https://portal.courier.com/api/v1" value={apiBaseUrl} onChange={(e) => setApiBaseUrl(e.target.value)} /></Field>
               <Field label="Merchant / store ID"><input className="ipt" value={merchantId} onChange={(e) => setMerchantId(e.target.value)} /></Field>
             </div>
             <Field label="API key / secret"><input className="ipt" type="password" placeholder="••••••••••" value={apiKey} onChange={(e) => setApiKey(e.target.value)} /></Field>
-            <ToggleField label="API connected" hint="one-click consignment enabled for this courier" on={apiConfigured} onToggle={() => setApiConfigured((v) => !v)} />
+            <ToggleField label="API connected" hint="" on={apiConfigured} onToggle={() => setApiConfigured((v) => !v)} />
           </Section>
         </>
       )}
@@ -211,20 +208,19 @@ export function ZonesRates() {
   function removeZone(id: string) { setZones((b) => b.filter((z) => z.id !== id)); setRates((b) => b.filter((r) => r.zoneId !== id)); setSlots((b) => b.filter((s) => s.zoneId !== id)); setSel(null); }
 
   const stats = [
-    { l: "Zones", v: String(zones.length), c: "#b97fdc", bg: "#2e1a38", icon: "pin" },
-    { l: "Active types", v: String(rates.filter((r) => r.active).length), c: "#7cb1df", bg: "#18283a", icon: "bolt" },
-    { l: "Time slots", v: String(slots.length), c: "#bb87d4", bg: "#2c1939", icon: "clock" },
-    { l: "Avg charge", v: formatTaka(Math.round(rates.reduce((n, r) => n + r.chargePaisa, 0) / Math.max(1, rates.length))), c: "#75f0c7", bg: "#1e362b", icon: "cash" },
-    { l: "Slot capacity", v: String(slots.reduce((n, s) => n + s.capacity, 0)), c: "#f4bd66", bg: "#3b2d18", icon: "box" },
-    { l: "Blackout dates", v: String(DEMO_BLACKOUTS.length), c: "#dda37d", bg: "#362a1e", icon: "shield" },
+    { l: "Zones", v: String(zones.length), c: "#7a2ea8", bg: "#f5eafb", icon: "pin" },
+    { l: "Active types", v: String(rates.filter((r) => r.active).length), c: "#3182c9", bg: "#e9f2fc", icon: "bolt" },
+    { l: "Time slots", v: String(slots.length), c: "#8b3fb0", bg: "#f3e8fb", icon: "clock" },
+    { l: "Avg charge", v: formatTaka(Math.round(rates.reduce((n, r) => n + r.chargePaisa, 0) / Math.max(1, rates.length))), c: "#12a172", bg: "#e6f7ef", icon: "cash" },
+    { l: "Slot capacity", v: String(slots.reduce((n, s) => n + s.capacity, 0)), c: "#d98a0f", bg: "#fbf1e2", icon: "box" },
+    { l: "Blackout dates", v: String(DEMO_BLACKOUTS.length), c: "#b5642f", bg: "#f6ece3", icon: "shield" },
   ];
 
   return (
     <div className={WRAP}>
       <Header eyebrow="Operations · Delivery" title="Zones · slots · rates"
-        desc="Where each delivery type is switched on, what it costs, its cut-off, and the time slots + capacity. A table — Dhaka can be split into areas later with no rebuild."
         actions={<button onClick={() => setSel("new")} className="bg-purple hover:bg-purple-deep text-white text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-1.5"><Icon name="plus" size={16} /> Add zone</button>} />
-      <DemoBadge text="Dhaka Metro + Nationwide seeded. Edit charges, cut-offs and slots; add a zone to see the full editor." />
+      <DemoBadge text="Sample zones" />
       <StatCards items={stats} />
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(300px,1fr)_1.6fr] gap-6 items-start">
@@ -233,11 +229,11 @@ export function ZonesRates() {
             const on = sel === z.id;
             const zt = rates.filter((r) => r.zoneId === z.id && r.active).length;
             return (
-              <div key={z.id} className={"rounded-[12px] px-3.5 py-3 cursor-pointer border " + (on ? "bg-orchid-soft border-orchid" : z.active ? "bg-white border-lavender-deep hover:border-orchid" : "bg-white border-[#4f3f2b]")} onClick={() => setSel(z.id)}>
+              <div key={z.id} className={"rounded-[12px] px-3.5 py-3 cursor-pointer border " + (on ? "bg-orchid-soft border-orchid" : z.active ? "bg-white border-lavender-deep hover:border-orchid" : "bg-white border-[#f0dcc4]")} onClick={() => setSel(z.id)}>
                 <div className="flex items-center gap-2">
                   <span className="w-8 h-8 rounded-[9px] grid place-items-center text-white shrink-0" style={{ background: z.id === "z-dhaka" ? TONE.purple.solid : TONE.blue.solid }}><Icon name="pin" size={15} /></span>
                   <div className="min-w-0 flex-1"><div className="text-[14px] font-medium text-purple truncate">{z.name}</div><div className="text-[13px] text-body-soft capitalize">{z.kind.toLowerCase()} · {zt} type{zt === 1 ? "" : "s"} on</div></div>
-                  {!z.active && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#402c18] text-[#f7a96e]">Off</span>}
+                  {!z.active && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbe4cd] text-[#b45309]">Off</span>}
                 </div>
               </div>
             );
@@ -259,12 +255,11 @@ export function ZonesRates() {
           {editing ? (
             <ZoneEditor key={sel} zone={selZone} rates={rates.filter((r) => r.zoneId === selZone?.id)} slots={slots.filter((s) => s.zoneId === selZone?.id)} onSave={saveZone} onDelete={selZone ? () => removeZone(selZone.id) : undefined} onCancel={() => setSel(null)} />
           ) : (
-            <EditorEmpty icon="pin" title="Select or add a zone" desc="Pick a zone to set which delivery types are on, their charge and cut-off, and the time slots with capacity." onAdd={() => setSel("new")} addLabel="Add zone" />
+            <EditorEmpty icon="pin" title="Select or add a zone" desc="Pick a zone on the left, or add a new one." onAdd={() => setSel("new")} addLabel="Add zone" />
           )}
         </div>
       </div>
 
-      <NoteBox tone="amber">Delivery owns this <b>rate card</b> (what a delivery costs). The <b>free-delivery threshold / waiver</b> lives in Offers, and checkout stores the final computed charge as a snapshot on the order — so the two never conflict. A &quot;full&quot; slot blocks booking at checkout (enforced in the backend pass).</NoteBox>
     </div>
   );
 }
@@ -311,7 +306,7 @@ function ZoneEditor({ zone, rates, slots, onSave, onDelete, onCancel }: {
       onCancel={onCancel} onSave={submit} saveLabel={isNew ? "Add zone" : "Save"} canSave={!!name.trim()}
       footer={!isNew && onDelete ? (
         <div className="flex justify-between items-center pt-2 border-t border-lavender-deep">
-          <button onClick={onDelete} className="text-[13px] font-medium text-[#e1837a] hover:underline inline-flex items-center gap-1.5"><Icon name="trash" size={15} /> Remove zone</button>
+          <button onClick={onDelete} className="text-[13px] font-medium text-[#c0392b] hover:underline inline-flex items-center gap-1.5"><Icon name="trash" size={15} /> Remove zone</button>
           <button onClick={submit} disabled={!name.trim()} className="bg-purple hover:bg-purple-deep disabled:opacity-60 text-white text-[13.5px] font-medium px-6 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-1.5"><Icon name="check" size={15} /> Save</button>
         </div>
       ) : null}
@@ -329,7 +324,7 @@ function ZoneEditor({ zone, rates, slots, onSave, onDelete, onCancel }: {
           {TYPES.map((t) => {
             const m = DELIVERY_TYPE_META[t]; const d = rd[t]; const tn = TONE[m.tone as Tone];
             return (
-              <div key={t} className="rounded-[12px] border px-3 py-2.5" style={{ borderColor: d.on ? tn.border : "#3d3149", background: d.on ? tn.bg : "#271f30" }}>
+              <div key={t} className="rounded-[12px] border px-3 py-2.5" style={{ borderColor: d.on ? tn.border : "#e6ddf0", background: d.on ? tn.bg : "#faf8fc" }}>
                 <div className="flex items-center gap-2 mb-2">
                   <Icon name={m.icon} size={14} /><span className="text-[13px] font-semibold" style={{ color: tn.text }}>{m.label}</span>
                   <div className="ml-auto"><Switch on={d.on} onClick={() => setR(t, { on: !d.on })} small /></div>
@@ -356,7 +351,7 @@ function ZoneEditor({ zone, rates, slots, onSave, onDelete, onCancel }: {
               <input className="ipt" value={s.window} onChange={(e) => setSlot(s.id, { window: e.target.value })} placeholder="4pm-6pm" />
               <input className="ipt !w-[86px]" type="number" value={s.capacity} onChange={(e) => setSlot(s.id, { capacity: Number(e.target.value) })} title="capacity" />
               <div title="active"><Switch on={s.active} onClick={() => setSlot(s.id, { active: !s.active })} small /></div>
-              <button onClick={() => delSlot(s.id)} className="text-body-soft hover:text-[#e1837a]" title="remove"><Icon name="trash" size={16} /></button>
+              <button onClick={() => delSlot(s.id)} className="text-body-soft hover:text-[#c0392b]" title="remove"><Icon name="trash" size={16} /></button>
             </div>
           ))}
           <button onClick={addSlot} className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-orchid hover:text-purple px-1 py-1"><Icon name="plus" size={14} /> Add time slot</button>
@@ -373,15 +368,15 @@ export function DeliverySettingsView() {
 
   return (
     <div className={WRAP}>
-      <Header eyebrow="Operations · Delivery" title="Delivery settings" desc="The rules that govern how Delivery behaves — all admin-configurable, nothing hardcoded." />
-      <DemoBadge text="Sample defaults. In production these persist and the backend enforces them." />
+      <Header eyebrow="Operations · Delivery" title="Delivery settings" />
+      <DemoBadge text="Sample defaults" />
 
       <div className="grid md:grid-cols-2 gap-5">
         <Panel title="Assignment & proof" icon="shield" tone="purple">
           <div className="p-4 space-y-3">
-            <ToggleField label="Auto-assign riders" hint="suggest the freest rider by zone and load" on={s.autoAssign} onToggle={() => set("autoAssign", !s.autoAssign)} />
-            <ToggleField label="Require prep photo" hint="cannot mark out for delivery without a prep photo" on={s.requirePrepPhoto} onToggle={() => set("requirePrepPhoto", !s.requirePrepPhoto)} />
-            <ToggleField label="Require delivery photo" hint="cannot mark delivered without a hand-over photo" on={s.requireDeliveryPhoto} onToggle={() => set("requireDeliveryPhoto", !s.requireDeliveryPhoto)} />
+            <ToggleField label="Auto-assign riders" hint="picks the freest rider" on={s.autoAssign} onToggle={() => set("autoAssign", !s.autoAssign)} />
+            <ToggleField label="Require prep photo" hint="" on={s.requirePrepPhoto} onToggle={() => set("requirePrepPhoto", !s.requirePrepPhoto)} />
+            <ToggleField label="Require delivery photo" hint="" on={s.requireDeliveryPhoto} onToggle={() => set("requireDeliveryPhoto", !s.requireDeliveryPhoto)} />
           </div>
         </Panel>
         <Panel title="Attempts & returns" icon="box" tone="amber">
@@ -391,14 +386,11 @@ export function DeliverySettingsView() {
             <div className="col-span-2"><Field label="Midnight cut-off"><input className="ipt" value={s.midnightCutoff} onChange={(e) => set("midnightCutoff", e.target.value)} /></Field></div>
           </div>
         </Panel>
-        <Panel title="Customer notifications" icon="phone" tone="blue" hint="Delivery triggers; Automation module sends">
+        <Panel title="Customer notifications" icon="phone" tone="blue">
           <div className="p-4 space-y-3">
             <ToggleField label="Notify on out-for-delivery" hint="SMS / WhatsApp when the rider leaves" on={s.notifyOnOutForDelivery} onToggle={() => set("notifyOnOutForDelivery", !s.notifyOnOutForDelivery)} />
             <ToggleField label="Notify on delivered" hint="confirmation + proof photo link" on={s.notifyOnDelivered} onToggle={() => set("notifyOnDelivered", !s.notifyOnDelivered)} />
           </div>
-        </Panel>
-        <Panel title="Ownership" icon="shield" tone="green">
-          <div className="p-4 text-[13px] text-body-soft">Sending the message belongs to the Automation module — Delivery only emits the event. Who may assign / mark delivered / edit this comes from Roles &amp; Permissions (admin-configurable), never hardcoded.</div>
         </Panel>
       </div>
     </div>
@@ -428,8 +420,8 @@ export function DeliveryAnalyticsView() {
 
   return (
     <div className={WRAP}>
-      <Header eyebrow="Operations · Delivery" title="Delivery performance" desc="How the promise is actually kept — on-time rate, failures, average time, by courier and by zone." />
-      <DemoBadge text="Sample 30-day performance. Real figures come from Radian's own database — never GA4." />
+      <Header eyebrow="Operations · Delivery" title="Delivery performance" />
+      <DemoBadge text="Sample 30-day performance" />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Stat label="On-time" value={`${a.onTimePct}%`} tone="green" icon="check" sub="last 30 days" />
@@ -438,7 +430,7 @@ export function DeliveryAnalyticsView() {
         <Stat label="Delivered" value={String(a.delivered30d)} tone="purple" icon="truck" sub="30 days" />
       </div>
 
-      <Panel title="Delivered vs failed — daily" icon="chart" tone="purple" hint="Source: Radian DB">
+      <Panel title="Delivered vs failed — daily" icon="chart" tone="purple">
         <div className="p-4 flex items-end gap-3 h-[160px]">
           {a.daily.map((d, i) => {
             const h = Math.round(((d.delivered + d.failed) / maxDay) * 120);
@@ -461,9 +453,6 @@ export function DeliveryAnalyticsView() {
         <Bars title="By courier / rider" icon="user" tone="blue" rows={a.byCourier.map((c) => ({ name: c.name, value: c.delivered, sub: `${c.delivered} · ${c.onTimePct}% on-time` }))} />
         <Bars title="By zone" icon="pin" tone="purple" rows={a.byZone.map((z) => ({ name: z.name, value: z.delivered, sub: `${z.delivered} · ${z.onTimePct}% · ${z.avgMins < 120 ? z.avgMins + "m" : Math.round(z.avgMins / 60) + "h"} avg` }))} />
         <Bars title="By delivery type" icon="bolt" tone="amber" rows={a.byType.map((ty) => ({ name: DELIVERY_TYPE_META[ty.type].label, value: ty.delivered, sub: `${ty.delivered} · ${ty.onTimePct}% on-time` }))} />
-        <Panel title="Where the numbers come from" icon="shield" tone="green">
-          <div className="p-4 text-[13px] text-body-soft">On-time %, failures and delivery time come from Radian&apos;s own delivery records — never GA4 (ad-blockers, phone/POS orders and 24-48h delay make GA4 unreliable for operations). GA4 is only for the upper funnel.</div>
-        </Panel>
       </div>
     </div>
   );

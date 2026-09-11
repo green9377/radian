@@ -160,7 +160,7 @@ export default function HomeContentView() {
           <section key={g.key} className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
             <header
               className="px-5 py-4 border-b border-lavender-deep"
-              style={{ background: "linear-gradient(120deg,#2b1b34 0%,#2d1c36 60%,#37191f 100%)" }}
+              style={{ background: "linear-gradient(120deg,#f9f4fc 0%,#f5ecfa 60%,#fdf4f6 100%)" }}
             >
               <div className="flex items-baseline gap-2.5 flex-wrap">
                 <h3 className="font-display text-[18px] text-purple m-0 leading-tight">{g.title}</h3>
@@ -170,7 +170,7 @@ export default function HomeContentView() {
               </div>
               <p className="text-[12.5px] text-body-soft m-0 mt-1">{g.hint}</p>
               {g.warning && (
-                <p className="text-[12px] text-[#edbe78] bg-[#3c3017] border border-[#524528] rounded-[9px] px-3 py-1.5 m-0 mt-2.5">
+                <p className="text-[12px] text-[#8a5a12] bg-[#fdf6e7] border border-[#f0dcae] rounded-[9px] px-3 py-1.5 m-0 mt-2.5">
                   {g.warning}
                 </p>
               )}
@@ -199,9 +199,7 @@ export default function HomeContentView() {
                   {item.children && open[item.id] && (
                     <div className="ml-[46px] mr-1 mb-3 pl-3 border-l-2 border-lavender-deep">
                       {item.children.length === 0 ? (
-                        <p className="text-[13px] text-body-soft py-3 m-0">
-                          This tab has no cards yet. Add them under Master Data → Tags.
-                        </p>
+                        <p className="text-[13px] text-body-soft py-3 m-0">No cards yet — add them under Master Data → Tags.</p>
                       ) : (
                         item.children.map((c, ci) => (
                           <Row
@@ -265,7 +263,7 @@ function Row({
         type="button"
         onClick={onTick}
         disabled={dead}
-        title={dead ? "Switched off — turn it back on first" : item.shown ? "On the homepage — click to remove" : "Click to put it on the homepage"}
+        title={dead ? "Switched off" : item.shown ? "Remove from homepage" : "Put on homepage"}
         className={
           "relative rounded-full shrink-0 transition-colors " +
           (dead ? "bg-lavender-deep cursor-not-allowed opacity-50" : item.shown ? "bg-orchid" : "bg-lavender-deep")
@@ -284,7 +282,7 @@ function Row({
           width: size,
           height: size,
           backgroundImage: item.imageUrl ? `url(${item.imageUrl})` : undefined,
-          background: item.imageUrl ? undefined : "#2c1e34",
+          background: item.imageUrl ? undefined : "#f3ebf8",
           opacity: item.shown && !dead ? 1 : 0.5,
         }}
       >
@@ -296,7 +294,7 @@ function Row({
           {item.name}
         </div>
         <div className="text-[12px] text-body-soft truncate">
-          {dead ? "Switched off — it will not appear anywhere" : item.note || "—"}
+          {dead ? "Switched off" : item.note || "—"}
         </div>
       </div>
 
@@ -305,7 +303,7 @@ function Row({
           value={item.zone ?? ""}
           disabled={dead}
           onChange={(e) => onZone(e.target.value || null)}
-          title="Which zone's homepage shows this card"
+          title="Zone"
           className="shrink-0 text-[12.5px] border border-lavender-deep rounded-[9px] px-2 py-1.5 bg-white text-purple outline-none focus:border-orchid disabled:opacity-50"
         >
           <option value="">Every zone</option>
@@ -357,7 +355,7 @@ function Note({ children, tone }: { children: React.ReactNode; tone?: "bad" }) {
       className={
         "text-[13px] rounded-[11px] px-4 py-3 m-0 " +
         (tone === "bad"
-          ? "text-[#ed8078] bg-[#381b18] border border-[#502f2a]"
+          ? "text-[#b42318] bg-[#fdf3f2] border border-[#f1c9c4]"
           : "text-body-soft")
       }
     >

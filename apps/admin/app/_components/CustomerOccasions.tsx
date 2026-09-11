@@ -20,9 +20,9 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const OCC_META: Record<string, { label: string; c: string; icon: string; bg: string }> = {
-  BIRTHDAY: { label: "Birthday", c: "#db70eb", icon: "sparkle", bg: "#36163b" },
-  ANNIVERSARY: { label: "Anniversary", c: "#e07bb8", icon: "heart", bg: "#371a24" },
-  CUSTOM: { label: "Special day", c: "#7cb1df", icon: "star", bg: "#192739" },
+  BIRTHDAY: { label: "Birthday", c: "#c01fd8", icon: "sparkle", bg: "#fbe8fe" },
+  ANNIVERSARY: { label: "Anniversary", c: "#d64fa0", icon: "heart", bg: "#fbecf1" },
+  CUSTOM: { label: "Special day", c: "#3182c9", icon: "star", bg: "#e9f1fb" },
 };
 
 function nextOccurrence(raw: string): { label: string; daysAway: number; month: number } | null {
@@ -162,9 +162,6 @@ export default function CustomerOccasions() {
             Customer Management · occasions
           </div>
           <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">Occasion board</h1>
-          <p className="text-body-soft text-[13.5px] m-0 max-w-[760px]">
-            Every birthday and anniversary saved in your customers&apos; recipient books — your demand calendar and outreach list.
-          </p>
         </div>
         <Link href="/customers" className="border border-lavender-deep bg-white text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] hover:border-orchid">
           Overview
@@ -172,7 +169,7 @@ export default function CustomerOccasions() {
       </div>
 
       {error && (
-        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}. Is the API (:4000) running? <button className="underline" onClick={load}>Retry</button>
         </div>
       )}
@@ -182,11 +179,11 @@ export default function CustomerOccasions() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
         {[
-          { l: "This week", v: String(within7), c: "#e378b5", bg: "#3b172a", icon: "bolt" },
-          { l: "Next 30 days", v: String(within30), c: "#b97fdc", bg: "#2e1a38", icon: "clock" },
-          { l: "Birthdays", v: String(birthdays), c: "#db70eb", bg: "#36163b", icon: "sparkle" },
-          { l: "Anniversaries", v: String(annivs), c: "#e07bb8", bg: "#371a24", icon: "heart" },
-          { l: "Total saved dates", v: String(allRows.length), c: "#75f0c7", bg: "#1e362b", icon: "star" },
+          { l: "This week", v: String(within7), c: "#c0287f", bg: "#fdecf5", icon: "bolt" },
+          { l: "Next 30 days", v: String(within30), c: "#7a2ea8", bg: "#f5eafb", icon: "clock" },
+          { l: "Birthdays", v: String(birthdays), c: "#c01fd8", bg: "#fbe8fe", icon: "sparkle" },
+          { l: "Anniversaries", v: String(annivs), c: "#d64fa0", bg: "#fbecf1", icon: "heart" },
+          { l: "Total saved dates", v: String(allRows.length), c: "#12a172", bg: "#e6f7ef", icon: "star" },
         ].map((k, i) => (
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}>
@@ -206,7 +203,6 @@ export default function CustomerOccasions() {
           </span>
           <div>
             <div className="font-display text-[16px] text-purple leading-tight">Demand calendar</div>
-            <div className="text-[13px] text-body-soft">saved occasions per month — plan stock and campaigns around the peaks</div>
           </div>
         </div>
         <div className="flex items-end gap-2 h-[130px]">
@@ -221,7 +217,7 @@ export default function CustomerOccasions() {
                   style={{
                     height: `${(n / maxMonth) * 82}%`,
                     minHeight: n ? 6 : 2,
-                    background: isNow ? "linear-gradient(180deg,#cf43ea,#470066)" : "linear-gradient(180deg,#391f41,#b57cd0)",
+                    background: isNow ? "linear-gradient(180deg,#cf43ea,#470066)" : "linear-gradient(180deg,#e3b8f0,#b57cd0)",
                   }}
                 />
                 <div className={"text-[11px] " + (isNow ? "text-purple font-bold" : "text-body-soft")}>{MONTHS[i]}</div>
@@ -271,10 +267,10 @@ export default function CustomerOccasions() {
               const meta = OCC_META[r.occ.type] ?? OCC_META.CUSTOM;
               const soon = r.daysAway <= 7;
               return (
-                <tr key={i} className={"border-t border-lavender-deep hover:bg-lavender/50 " + (soon ? "bg-[#38152a]" : "")}>
+                <tr key={i} className={"border-t border-lavender-deep hover:bg-lavender/50 " + (soon ? "bg-[#fffafd]" : "")}>
                   <td className="px-5 py-3">
                     <div className="font-semibold text-purple">{r.label}</div>
-                    <div className={"text-[11px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 " + (soon ? "bg-[#3b172a] text-[#e378b5]" : "bg-lavender-deep/60 text-body-soft")}>
+                    <div className={"text-[11px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 " + (soon ? "bg-[#fdecf5] text-[#c0287f]" : "bg-lavender-deep/60 text-body-soft")}>
                       {r.daysAway === 0 ? "today" : r.daysAway === 1 ? "tomorrow" : `in ${r.daysAway}d`}
                     </div>
                   </td>
@@ -301,7 +297,7 @@ export default function CustomerOccasions() {
                       className={
                         "border text-[12px] font-medium px-3 py-1.5 rounded-[9px] whitespace-nowrap transition-colors " +
                         (copied === r.rec.id + r.occ.id
-                          ? "border-[#0e7a3d] text-[#76efab] bg-[#1c3726]"
+                          ? "border-[#0e7a3d] text-[#0e7a3d] bg-[#e8f9ee]"
                           : "border-lavender-deep hover:border-orchid text-purple")
                       }
                       title="Copy a ready WhatsApp message"
@@ -318,10 +314,6 @@ export default function CustomerOccasions() {
                   {allRows.length === 0 && !isDemo ? (
                     <>
                       <div className="text-purple font-medium">No saved occasions yet</div>
-                      <p className="text-body-soft text-[13px] mt-1 max-w-[460px] mx-auto">
-                        Your live customers have no birthdays or anniversaries in their recipient book, so there is
-                        nothing to show. Add them in a customer&apos;s profile — or explore this screen with sample data.
-                      </p>
                       <button
                         onClick={() => {
                           setDemoMode(true);

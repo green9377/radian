@@ -146,15 +146,10 @@ export function DeliverySettle() {
           Delivery · settle
         </div>
         <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">Delivered — accounts unfinished</h1>
-        <p className="text-body-soft text-[13.5px] m-0 max-w-[760px]">
-          Every parcel that arrived but is not squared away: what it cost us to
-          deliver, and — if it was cash on delivery — whether that cash has come
-          back. A parcel leaves this list when both are true.
-        </p>
       </div>
 
-      {err && <div className="bg-[#391719] text-[#ed8078] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">{err}</div>}
-      {ok && <div className="bg-[#1c3626] text-[#76efab] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">{ok}</div>}
+      {err && <div className="bg-[#fdeff0] text-[#b42318] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">{err}</div>}
+      {ok && <div className="bg-[#e9f9ef] text-[#0e7a3d] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">{ok}</div>}
 
       <div className="flex items-end gap-3 flex-wrap mb-5">
         <div className="min-w-[220px]">
@@ -182,10 +177,10 @@ export function DeliverySettle() {
       {picked.size > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           {[
-            { l: "Parcels", v: String(picked.size), c: "#bb7fdc" },
-            { l: "Cash expected", v: formatTaka(totals.expected), c: "#70bcf5" },
-            { l: "Cash received", v: formatTaka(totals.gross), c: totals.gross < totals.expected ? "#ed8078" : "#76efab" },
-            { l: "Their charge", v: formatTaka(totals.charge), c: "#f7a96e" },
+            { l: "Parcels", v: String(picked.size), c: "#7d2ea8" },
+            { l: "Cash expected", v: formatTaka(totals.expected), c: "#0b5f9e" },
+            { l: "Cash received", v: formatTaka(totals.gross), c: totals.gross < totals.expected ? "#b42318" : "#0e7a3d" },
+            { l: "Their charge", v: formatTaka(totals.charge), c: "#b45309" },
           ].map((s) => (
             <div key={s.l} className="bg-white border border-lavender-deep rounded-[13px] px-4 py-3">
               <div className="text-[12px] text-body-soft">{s.l}</div>
@@ -198,8 +193,8 @@ export function DeliverySettle() {
       {/*  Short payment is shown, never blocked. "They handed over less than was
           due" is a fact worth recording and chasing, not an input error. */}
       {picked.size > 0 && totals.gross > 0 && totals.gross < totals.expected && (
-        <div className="bg-[#3c2e17] text-[#f7a96e] text-[13px] px-4 py-3 rounded-[12px] mb-4">
-          {formatTaka(totals.expected - totals.gross)} less than was due on these parcels. That is recorded as it stands — the shortfall stays visible against this carrier.
+        <div className="bg-[#fff4e2] text-[#b45309] text-[13px] px-4 py-3 rounded-[12px] mb-4">
+          {formatTaka(totals.expected - totals.gross)} less than was due on these parcels.
         </div>
       )}
 
@@ -222,7 +217,7 @@ export function DeliverySettle() {
                 const stale = (r.daysSince ?? 0) >= 7 && r.codDuePaisa > 0;
                 const prepaid = r.codDuePaisa === 0;
                 return (
-                  <tr key={r.assignmentId} className={`border-t border-lavender-deep ${stale ? "bg-[#3c2e17]" : "hover:bg-lavender/40"}`}>
+                  <tr key={r.assignmentId} className={`border-t border-lavender-deep ${stale ? "bg-[#fff4e2]" : "hover:bg-lavender/40"}`}>
                     <td className="px-3 py-2.5 text-center">
                       <input type="checkbox" checked={picked.has(r.assignmentId)} onChange={() => toggle(r.assignmentId)} aria-label={`Select ${r.orderNo}`} />
                     </td>
@@ -265,7 +260,7 @@ export function DeliverySettle() {
               })}
               {rows !== null && rows.length === 0 && (
                 <tr><td colSpan={7} className="text-center text-body-soft py-14 border-t border-lavender-deep">
-                  Nothing outstanding. Every delivered parcel has its cost recorded and its cash back.
+                  Nothing outstanding.
                 </td></tr>
               )}
             </tbody>
@@ -284,12 +279,6 @@ export function DeliverySettle() {
           </button>
         </div>
       </div>
-
-      <p className="text-[12px] text-body-soft mt-4 max-w-[760px]">
-        A row turns amber once its cash is a week old. Cost is typed every time
-        and never suggested — delivery is not a fixed price, and a pre-filled
-        number is a number nobody checks.
-      </p>
     </div>
   );
 }

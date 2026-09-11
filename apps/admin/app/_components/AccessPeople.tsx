@@ -116,7 +116,7 @@ export default function AccessPeople({
         <div className="p-3.5">
 
         {adding && position && (
-          <div className="mb-3 space-y-2 rounded-[13px] p-3" style={{ background: "#2e1a38" }}>
+          <div className="mb-3 space-y-2 rounded-[13px] p-3" style={{ background: "#f5eafb" }}>
             <div>
               <Lbl>Email address</Lbl>
               <input
@@ -137,17 +137,12 @@ export default function AccessPeople({
               <Lbl>Name (optional)</Lbl>
               <input
                 className={input}
-                placeholder="taken from the email if left blank"
                 value={form.name}
                 autoComplete="new-password"
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 onKeyDown={(e) => e.key === "Enter" && void add()}
               />
             </div>
-            <p className="text-[11px] text-body-soft leading-relaxed">
-              No password is set here. They choose their own from a one-time
-              link, so nobody else ever knows it.
-            </p>
             <button className={btnPrimary} style={btnPrimaryStyle} onClick={() => void add()}>
               Create account &amp; get link
             </button>
@@ -197,7 +192,7 @@ export default function AccessPeople({
       )}
 
       {link && (
-        <Panel emoji="🔗" tone="emerald" title="One-time link — send it yourself">
+        <Panel emoji="🔗" tone="emerald" title="One-time link">
           <div className="p-4">
             <p className="text-[12.5px] text-body leading-relaxed mb-2">
               For <strong>{link.who}</strong>. {link.note}
@@ -216,8 +211,7 @@ export default function AccessPeople({
               </button>
             </div>
             <p className="text-[11px] text-body-soft mt-2">
-              Works once, then stops. Expires {new Date(link.expiresAt).toLocaleString()}.
-              Asking again replaces it — the old link dies immediately.
+              Works once. Expires {new Date(link.expiresAt).toLocaleString()}.
             </p>
             <button className={`${btnGhost} mt-3`} onClick={() => setLink(null)}>Done</button>
           </div>
@@ -237,10 +231,10 @@ function PersonRow({
   onLink: (p: ApiPerson) => void | Promise<void>;
 }) {
   return (
-    <div className="rounded-[13px] border border-[#3c3149] px-3 py-2.5 bg-white">
+    <div className="rounded-[13px] border border-[#eee8f5] px-3 py-2.5 bg-white">
       <div className="flex items-start gap-2.5">
         <span className="w-[30px] h-[30px] rounded-full grid place-items-center text-[12px] font-bold text-white shrink-0 mt-0.5"
-          style={{ background: p.isActive ? "linear-gradient(135deg,#8a2bb0,#cf43ea)" : "#302c37" }}>
+          style={{ background: p.isActive ? "linear-gradient(135deg,#8a2bb0,#cf43ea)" : "#c9c2d6" }}>
           {p.name.slice(0, 1).toUpperCase()}
         </span>
         <div className="min-w-0 flex-1">

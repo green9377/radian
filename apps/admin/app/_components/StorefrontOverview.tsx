@@ -42,10 +42,10 @@ import {
 type Tone = "brand" | "sky" | "emerald" | "amber";
 
 const TONE: Record<Tone, { grad: string; ring: string; text: string; soft: string }> = {
-  brand: { grad: "linear-gradient(135deg,#7B2D8E,#C155D8)", ring: "#43304b", text: "#ca88dd", soft: "#2c1b35" },
-  sky: { grad: "linear-gradient(135deg,#1f5fa8,#57a8e0)", ring: "#2c3d4f", text: "#7fb3e6", soft: "#192838" },
-  emerald: { grad: "linear-gradient(135deg,#12795a,#3ec294)", ring: "#324940", text: "#7de8c0", soft: "#1f332a" },
-  amber: { grad: "linear-gradient(135deg,#a2650f,#e5a733)", ring: "#50432b", text: "#efbb76", soft: "#3c2e17" },
+  brand: { grad: "linear-gradient(135deg,#7B2D8E,#C155D8)", ring: "#e6d3ee", text: "#6b2480", soft: "#f7f0fb" },
+  sky: { grad: "linear-gradient(135deg,#1f5fa8,#57a8e0)", ring: "#cfe0f2", text: "#1d5a96", soft: "#eef5fc" },
+  emerald: { grad: "linear-gradient(135deg,#12795a,#3ec294)", ring: "#cfe9df", text: "#136b4a", soft: "#edf8f3" },
+  amber: { grad: "linear-gradient(135deg,#a2650f,#e5a733)", ring: "#f0e0c2", text: "#8a5610", soft: "#fdf5e7" },
 };
 
 const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
@@ -98,20 +98,19 @@ export default function StorefrontOverview() {
   const n = (v: number | null | undefined) => (v === null || v === undefined ? "—" : String(v));
   const pctOf = (a: number, b: number) => (b === 0 ? null : Math.round((a / b) * 100));
 
-  const groups: { title: string; blurb: string; tone: Tone; rows: Row[] }[] = [
+  const groups: { title: string; tone: Tone; rows: Row[] }[] = [
     {
       title: "Pages",
-      blurb: "How a page is arranged, top to bottom.",
       tone: "brand",
       rows: [
         {
           href: "/storefront/layout", label: "Homepage", icon: "grid",
-          blurb: "Order, wording, banners, trust strip and budget cards — all inside it.",
+          blurb: "Sections, wording, banners",
           value: n(liveBanners), hint: "banners live",
         },
         {
           href: "/storefront/category-page", label: "Category pages", icon: "layers",
-          blurb: "One screen per category page — banner, sections, questions.",
+          blurb: "Banner, sections, questions",
           value: n(tops.length || null), hint: "category pages",
           progress: pctOf(withBanner, tops.length),
         },
@@ -124,19 +123,18 @@ export default function StorefrontOverview() {
         here is what is NOT part of one page.
       */
       title: "Every page",
-      blurb: "Not part of one page — these show up all over the site.",
       tone: "emerald",
       rows: [
         {
           href: "/storefront/reviews", label: "Reviews", icon: "star",
-          blurb: "Google, customer-submitted and hand-entered. Moderation is on.",
+          blurb: "Google, customer and hand-entered",
           value: n(pending), hint: "waiting for you",
           alert: (pending ?? 0) > 0,
           progress: reviews ? pctOf(published ?? 0, reviews.length) : null,
         },
         {
           href: "/storefront/journal", label: "Journal", icon: "book",
-          blurb: "Articles, and the cards that link to them.",
+          blurb: "Articles and their cards",
           value: n(livePosts), hint: "published",
           progress: posts ? pctOf(livePosts ?? 0, posts.length) : null,
         },
@@ -144,16 +142,15 @@ export default function StorefrontOverview() {
     },
     {
       title: "Shop details",
-      blurb: "Facts about the business, on every page.",
       tone: "amber",
       rows: [
         {
           href: "/storefront/hours", label: "Visit the shop", icon: "pin",
-          blurb: "Address, opening hours, closures and the map.",
+          blurb: "Address, hours, closures, map",
         },
         {
           href: "/storefront/footer", label: "Footer & menus", icon: "hash",
-          blurb: "Link groups, social profiles and payment badges.",
+          blurb: "Link groups, social, payment badges",
         },
       ],
     },
@@ -181,16 +178,12 @@ export default function StorefrontOverview() {
         <span
           aria-hidden
           className="absolute -right-10 -top-14 w-[230px] h-[230px] rounded-[50%_50%_50%_0] -rotate-45 opacity-[0.13]"
-          style={{ background: "linear-gradient(150deg,#1f1727,#351840)" }}
+          style={{ background: "linear-gradient(150deg,#ffffff,#f0c9ff)" }}
         />
         <div className="relative flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
             <div className="text-[11.5px] font-semibold uppercase tracking-[0.18em] text-[#e9c9f5] mb-1.5">Storefront</div>
             <h1 className="font-display text-[26px] md:text-[30px] font-medium m-0 leading-tight">The shop, as a customer sees it</h1>
-            <p className="text-[13px] text-[#e6d3ee] mt-2 mb-0 max-w-[76ch]">
-              Everything on the public site is set here. Marketing owns what goes
-              out to people; this owns what they find when they arrive.
-            </p>
           </div>
           <a
             href={WEB_BASE}
@@ -229,9 +222,8 @@ export default function StorefrontOverview() {
               </span>
               <div className="min-w-0">
                 <div className="font-display text-[16px]" style={{ color: TONE[g.tone].text }}>{g.title}</div>
-                <div className="text-[11.5px] text-body-soft truncate">{g.blurb}</div>
               </div>
-              <span className="ml-auto text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ color: TONE[g.tone].text, background: "#1f1727" }}>
+              <span className="ml-auto text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ color: TONE[g.tone].text, background: "#ffffff" }}>
                 {g.rows.length} screens
               </span>
             </div>
@@ -250,7 +242,7 @@ export default function StorefrontOverview() {
                     <div className="text-[13.5px] font-medium text-purple group-hover:text-orchid flex items-center gap-2">
                       {r.label}
                       {r.alert && (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#3c2a17] text-[#efbb76]">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#fdf0e2] text-[#8a5610]">
                           needs you
                         </span>
                       )}
@@ -282,14 +274,6 @@ export default function StorefrontOverview() {
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="mt-5 rounded-[14px] border border-lavender-deep bg-lavender/40 px-5 py-4 text-[12.5px] text-body-soft">
-        <b className="text-purple">Where things are NOT.</b> A category&apos;s name,
-        its place in the menu and its card art are in <b>Categories</b> — that is
-        what the category <i>is</i>. What its page <i>says</i> is here. Product
-        photos and prices are in <b>Products</b>; this only decides which of them
-        a page shows.
       </div>
     </div>
   );

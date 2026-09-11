@@ -87,7 +87,7 @@ export default function CustomerSegments() {
       load();
       return;
     }
-    setError("Creating segments needs the write endpoint (POST /segments). Switch to demo data to try it.");
+    setError("Creating segments is not available yet.");
   }
   function saveEdit(id: string) {
     const n = editName.trim();
@@ -119,9 +119,6 @@ export default function CustomerSegments() {
             Customer Management · segments
           </div>
           <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">Segments</h1>
-          <p className="text-body-soft text-[13.5px] m-0 max-w-[720px]">
-            Groups you can target — VIP, Corporate, occasion buyers. A customer can carry many segments.
-          </p>
         </div>
         <Link href="/customers/list" className="border border-lavender-deep bg-white text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] hover:border-orchid">
           All customers
@@ -129,7 +126,7 @@ export default function CustomerSegments() {
       </div>
 
       {error && (
-        <div className="bg-[#3b1a16] border border-[#4d2e2e] text-[#e1837a] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}. Is the API (:4000) running? <button className="underline" onClick={load}>Retry</button>
         </div>
       )}
@@ -139,10 +136,10 @@ export default function CustomerSegments() {
       {/* summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
         {[
-          { l: "Segments", v: String(segs.length), c: "#b97fdc", bg: "#2e1a38", icon: "hash" },
-          { l: "Tagged customers", v: String(customers.length - untagged), c: "#75f0c7", bg: "#1e362b", icon: "user" },
-          { l: "Untagged", v: String(untagged), c: untagged ? "#f4bd66" : "#75f0c7", bg: "#3b2d18", icon: "bolt" },
-          { l: "Value in segments", v: formatTaka(enriched.reduce((s, e) => s + e.ltv, 0)), c: "#db70eb", bg: "#36163b", icon: "cash" },
+          { l: "Segments", v: String(segs.length), c: "#7a2ea8", bg: "#f5eafb", icon: "hash" },
+          { l: "Tagged customers", v: String(customers.length - untagged), c: "#12a172", bg: "#e6f7ef", icon: "user" },
+          { l: "Untagged", v: String(untagged), c: untagged ? "#d98a0f" : "#12a172", bg: "#fbf1e2", icon: "bolt" },
+          { l: "Value in segments", v: formatTaka(enriched.reduce((s, e) => s + e.ltv, 0)), c: "#c01fd8", bg: "#fbe8fe", icon: "cash" },
         ].map((k, i) => (
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}>
@@ -160,10 +157,7 @@ export default function CustomerSegments() {
           <span className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-white" style={{ background: "#cf43ea" }}>
             <Icon name="plus" size={16} />
           </span>
-          <div>
-            <div className="font-display text-[16px] text-purple leading-tight">Create a segment</div>
-            <div className="text-[13px] text-body-soft">e.g. “Mother&apos;s Day buyer”, “Bulk corporate”, “Midnight delivery lover”</div>
-          </div>
+          <div className="font-display text-[16px] text-purple leading-tight">Create a segment</div>
         </div>
         <div className="flex gap-2.5 flex-wrap">
           <input
@@ -234,7 +228,7 @@ export default function CustomerSegments() {
                     </button>
                     <button
                       onClick={() => remove(e.seg.id, e.count)}
-                      className="border border-lavender-deep hover:border-[#4d2e2e] hover:text-[#e1837a] text-body-soft w-[32px] h-[32px] rounded-[9px] grid place-items-center"
+                      className="border border-lavender-deep hover:border-[#e0a1a1] hover:text-[#c0392b] text-body-soft w-[32px] h-[32px] rounded-[9px] grid place-items-center"
                       title="Remove"
                     >
                       <Icon name="trash" size={16} />
@@ -253,11 +247,6 @@ export default function CustomerSegments() {
           </tbody>
         </table>
       </div>
-
-      <p className="text-body-soft text-[12px] mt-3.5">
-        Creating / renaming here is a <b>prototype</b> — segment write endpoints arrive with the Customer API. Segments are
-        Customer-owned; Marketing only reads them to build audiences.
-      </p>
     </div>
   );
 }

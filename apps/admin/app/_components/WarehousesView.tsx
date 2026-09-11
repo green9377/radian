@@ -98,7 +98,7 @@ export default function WarehousesView() {
         {loading && <div className="px-4 py-6 text-[13px] text-body-soft">Loading…</div>}
         {!loading && rows.length === 0 && (
           <div className="px-4 py-8 text-center text-[13px] text-body-soft">
-            No warehouse yet — the first received purchase creates one automatically.
+            No warehouse yet.
           </div>
         )}
         {rows.map((w) => (
@@ -110,12 +110,12 @@ export default function WarehousesView() {
               )}
             </span>
             <span className="text-[12px] font-semibold px-2 py-1 rounded-[7px] justify-self-start"
-              style={{ background: "#2e1a38", color: "#ce6ef7" }}>{w.code}</span>
+              style={{ background: "#f5eafb", color: "#470066" }}>{w.code}</span>
             <span className="text-[13px] text-body-soft min-w-0 truncate">{w.address || "—"}</span>
             <span className="text-[11px] font-semibold px-2 py-1 rounded-full justify-self-start"
               style={w.isActive
-                ? { background: "#20332e", color: "#74f1d7" }
-                : { background: "#29242e", color: "#aea4b7" }}>
+                ? { background: "#e7f5f1", color: "#0e8f74" }
+                : { background: "#f1eef4", color: "#7b6b88" }}>
               {w.isActive ? "Open" : "Closed"}
             </span>
             <span className="flex gap-2 justify-self-end">
@@ -142,11 +142,6 @@ export default function WarehousesView() {
         ))}
       </DataTable>
 
-      <p className="text-[12.5px] text-body-soft mt-3">
-        Which store sales leave from, and which one purchases land in — set on{" "}
-        <a href="/inventory/settings" className="underline font-medium" style={{ color: ACCENT }}>Settings</a>.
-      </p>
-
       {/* ---------------- new ---------------- */}
       {addOpen && (
         <Modal title="New warehouse" onClose={() => setAddOpen(false)}
@@ -162,7 +157,7 @@ export default function WarehousesView() {
           </Field>
           <Field label="Short code" required>
             <input className="ipt" value={draft.code}
-              onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase() })} placeholder="STORE — set once, never changes" />
+              onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase() })} placeholder="STORE" />
           </Field>
           <Field label="Address">
             <input className="ipt" value={draft.address}
@@ -187,10 +182,6 @@ export default function WarehousesView() {
             <input className="ipt" value={edit.address ?? ""}
               onChange={(e) => setEdit({ ...edit, address: e.target.value })} />
           </Field>
-          <p className="text-[12.5px] text-body-soft mt-1 mb-3">
-            The short code <b className="text-body">{edit.code}</b> cannot change — old stock
-            records point at it.
-          </p>
           {/* Destructive, so kept away from Save. Refused by the API once the store
               has any history — closing keeps the old records readable. */}
           <button disabled={busy}
@@ -199,11 +190,11 @@ export default function WarehousesView() {
               `${edit.name} deleted.`,
             )}
             className="text-[12.5px] font-medium underline disabled:opacity-40"
-            style={{ color: "#e1837a" }}>
+            style={{ color: "#c0392b" }}>
             Delete this warehouse
           </button>
           <span className="block text-[12px] text-body-soft mt-1">
-            Only possible while it has never held stock. After that, close it instead.
+            Only while it has never held stock.
           </span>
         </Modal>
       )}

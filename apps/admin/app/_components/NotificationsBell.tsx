@@ -42,9 +42,9 @@ interface Notice {
 }
 
 const TONE = {
-  rose: { bg: "#3b1a16", fg: "#e1837a" },
-  amber: { bg: "#3c2f17", fg: "#edc278" },
-  sky: { bg: "#17273a", fg: "#82a7d9" },
+  rose: { bg: "#fdecea", fg: "#c0392b" },
+  amber: { bg: "#fdf3e2", fg: "#b07818" },
+  sky: { bg: "#eef5fd", fg: "#3b76c4" },
 } as const;
 
 export default function NotificationsBell() {
@@ -64,7 +64,7 @@ export default function NotificationsBell() {
           out.push({
             id: "backup-never", tone: "rose", icon: "download",
             title: "No backup has ever been recorded",
-            body: "The whole business is in one database. Run the backup once, then schedule it nightly.",
+            body: "The whole business is in one database.",
             href: "/administration/backup",
           });
         else if (b.state === "stale" || b.state === "bad")
@@ -81,7 +81,7 @@ export default function NotificationsBell() {
           out.push({
             id: "guard-refused", tone: "amber", icon: "shield",
             title: `${g.rows.length} request${g.rows.length === 1 ? "" : "s"} refused by access templates`,
-            body: "Someone tried a part of the system their template does not open.",
+            body: "",
             href: "/administration",
           });
       }),
@@ -104,7 +104,7 @@ export default function NotificationsBell() {
           out.push({
             id: "pay-off", tone: "rose", icon: "cash",
             title: "Checkout cannot take money",
-            body: "No payment gateway is switched on - the website shows a total and then takes nothing.",
+            body: "The website shows a total and takes nothing.",
             href: "/administration/integrations",
           });
         else if (sandboxOn.length)
@@ -121,7 +121,7 @@ export default function NotificationsBell() {
           out.push({
             id: "undecided", tone: "sky", icon: "layers",
             title: `${u.length} new screen${u.length === 1 ? "" : "s"} reach nobody yet`,
-            body: "A new screen is handed to no one until you decide.",
+            body: "",
             href: "/administration/access",
           });
       }),
@@ -131,14 +131,14 @@ export default function NotificationsBell() {
           out.push({
             id: "licence", tone: c.licence.daysLeft < 30 ? "rose" : "amber", icon: "store",
             title: `Trade licence expires in ${c.licence.daysLeft} days`,
-            body: "Renew it before the number on the challan goes stale.",
+            body: "",
             href: "/administration/company",
           });
         if (!c.ready && c.missing.length)
           out.push({
             id: "papers", tone: "sky", icon: "store",
             title: `${c.missing.length} company paper${c.missing.length === 1 ? "" : "s"} missing`,
-            body: "The Mushak 6.3 challan refuses to print until these exist.",
+            body: "Mushak 6.3 will not print until these exist.",
             href: "/administration/company",
           });
       }),
@@ -189,7 +189,7 @@ export default function NotificationsBell() {
           just to the right of it, bottom-aligned with the bell's home.  */}
       {open && (
         <div className="fixed left-[258px] bottom-[14px] w-[310px] z-50 rounded-[16px] overflow-hidden bg-white"
-          style={{ boxShadow: "0 12px 40px rgba(40,20,55,0.38)", border: "1px solid #3c3249" }}>
+          style={{ boxShadow: "0 12px 40px rgba(40,20,55,0.38)", border: "1px solid #e9e2f2" }}>
           <div className="px-3.5 py-2.5 flex items-center gap-2"
             style={{ background: "linear-gradient(120deg,#8a2bb0,#cf43ea)" }}>
             <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">Notifications</span>
@@ -197,21 +197,19 @@ export default function NotificationsBell() {
           </div>
 
           {notices.length === 0 ? (
-            <p className="text-[12.5px] text-body-soft px-4 py-4 m-0">
-              Nothing needs you — everything the system watches is in order.
-            </p>
+            <p className="text-[12.5px] text-body-soft px-4 py-4 m-0">Nothing needs you.</p>
           ) : (
             <div className="max-h-[340px] overflow-y-auto">
               {notices.map((n) => (
                 <Link key={n.id} href={n.href} onClick={() => setOpen(false)}
-                  className="flex items-start gap-2.5 px-3.5 py-3 border-b border-[#3c3149] last:border-0 hover:bg-[#271a34] transition-colors">
+                  className="flex items-start gap-2.5 px-3.5 py-3 border-b border-[#f3eff8] last:border-0 hover:bg-[#faf7fd] transition-colors">
                   <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center shrink-0 mt-[1px]"
                     style={{ background: TONE[n.tone].bg, color: TONE[n.tone].fg }}>
                     <Icon name={n.icon} size={13} strokeWidth={2.3} />
                   </span>
                   <span className="min-w-0">
                     <span className="block text-[12.5px] font-bold leading-snug" style={{ color: TONE[n.tone].fg }}>{n.title}</span>
-                    <span className="block text-[11px] text-body-soft leading-snug mt-0.5">{n.body}</span>
+                    {n.body && <span className="block text-[11px] text-body-soft leading-snug mt-0.5">{n.body}</span>}
                   </span>
                 </Link>
               ))}

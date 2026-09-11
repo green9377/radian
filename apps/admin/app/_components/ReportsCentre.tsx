@@ -26,7 +26,7 @@ import {
     accountant. No new dependency on either side — the API still has none
     beyond Nest and Prisma.  */
 
-const btn = "rounded-[10px] border border-[#3f2d4e] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#291a35] disabled:opacity-50";
+const btn = "rounded-[10px] border border-[#e4d3f2] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#faf6fd] disabled:opacity-50";
 
 function todayIso() { return new Date().toISOString().slice(0, 10); }
 function monthStartIso() {
@@ -114,11 +114,7 @@ export function ReportsCentre() {
       `}</style>
 
       <div className="no-print">
-        <Header
-          eyebrow="Intelligence"
-          title="Reports"
-          desc="Everything the system already works out, in one place — with a date range and a way to get it out."
-        />
+        <Header eyebrow="Intelligence" title="Reports" />
       </div>
 
       {/* ---- pick a report ---- */}
@@ -133,12 +129,12 @@ export function ReportsCentre() {
                   <button
                     key={m.key}
                     onClick={() => setActive(m.key)}
-                    title={`${m.description}  ·  usually asked for by: ${m.audience}`}
+                    title={m.description}
                     className="rounded-full px-3.5 py-1.5 text-[12.5px] border"
                     style={{
-                      borderColor: on ? "#bb7fdc" : "#e4d3f2",
+                      borderColor: on ? "#7d2ea8" : "#e4d3f2",
                       background: on ? "#7d2ea8" : "#fff",
-                      color: on ? "#fff" : "#ce6ef7",
+                      color: on ? "#fff" : "#470066",
                     }}
                   >
                     {m.title}
@@ -157,18 +153,18 @@ export function ReportsCentre() {
             <label className="text-[11.5px] text-body-soft">
               From
               <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-                className="block rounded-[9px] border border-[#3f2d4e] px-2 py-1 text-[12.5px] mt-0.5" />
+                className="block rounded-[9px] border border-[#e4d3f2] px-2 py-1 text-[12.5px] mt-0.5" />
             </label>
             <label className="text-[11.5px] text-body-soft">
               To
               <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-                className="block rounded-[9px] border border-[#3f2d4e] px-2 py-1 text-[12.5px] mt-0.5" />
+                className="block rounded-[9px] border border-[#e4d3f2] px-2 py-1 text-[12.5px] mt-0.5" />
             </label>
           </>
         ) : (
           /*  A stock valuation has no date range, and offering one that does
               nothing is worse than not offering it. */
-          <span className="text-[12px] text-body-soft pb-1.5">This report has no date range — it is as things stand right now.</span>
+          <span className="text-[12px] text-body-soft pb-1.5">No date range — as things stand now.</span>
         )}
 
         <button className={btn} onClick={() => void load()} disabled={loading}>
@@ -191,13 +187,13 @@ export function ReportsCentre() {
       </div>
 
       {err && (
-        <div className="no-print rounded-[12px] border border-[#52282b] bg-[#391719] text-[#ed8078] px-4 py-3 text-[13px] mb-4">{err}</div>
+        <div className="no-print rounded-[12px] border border-[#f6cfd2] bg-[#fdeff0] text-[#b42318] px-4 py-3 text-[13px] mb-4">{err}</div>
       )}
 
       {loading && !data && <p className="text-body-soft text-[13.5px]">Loading…</p>}
 
       {data && (
-        <div className="sheet bg-white border border-[#3f3149] rounded-[16px] px-5 py-4">
+        <div className="sheet bg-white border border-[#eee6f4] rounded-[16px] px-5 py-4">
           <div className="mb-3">
             <h2 className="font-display text-[20px] text-purple leading-tight m-0">{data.title}</h2>
             <p className="text-[12.5px] text-body-soft m-0 mt-0.5">{data.subtitle}</p>
@@ -212,7 +208,7 @@ export function ReportsCentre() {
               ABOVE the table and it prints — a footnote nobody reads is how a
               partial figure gets quoted as a whole one. */}
           {data.caveat && (
-            <div className="rounded-[10px] border border-[#534228] bg-[#3a2b16] text-[#f7a96e] px-3.5 py-2 text-[12px] mb-3 leading-relaxed">
+            <div className="rounded-[10px] border border-[#fadfb4] bg-[#fff7ec] text-[#b45309] px-3.5 py-2 text-[12px] mb-3 leading-relaxed">
               {data.caveat}
             </div>
           )}
@@ -223,7 +219,7 @@ export function ReportsCentre() {
             <div className="overflow-x-auto">
               <table className="w-full text-[12.5px] border-collapse">
                 <thead>
-                  <tr className="border-b-2 border-[#3f2d4e]">
+                  <tr className="border-b-2 border-[#e4d3f2]">
                     {data.columns.map((c) => (
                       <th key={c.key} className={`py-1.5 px-2 font-medium text-purple ${c.numeric ? "text-right" : "text-left"}`}>
                         {c.label}
@@ -233,7 +229,7 @@ export function ReportsCentre() {
                 </thead>
                 <tbody>
                   {data.rows.map((row, i) => (
-                    <tr key={i} className="border-b border-[#3f3149]">
+                    <tr key={i} className="border-b border-[#f4eff8]">
                       {data.columns.map((c) => (
                         <td key={c.key} className={`py-1.5 px-2 ${c.numeric ? "text-right tabular-nums" : ""}`}>
                           {formatReportCell(row[c.key], c.format)}
@@ -244,7 +240,7 @@ export function ReportsCentre() {
                 </tbody>
                 {data.totals && (
                   <tfoot>
-                    <tr className="border-t-2 border-[#3f2d4e] font-medium">
+                    <tr className="border-t-2 border-[#e4d3f2] font-medium">
                       {data.columns.map((c) => (
                         <td key={c.key} className={`py-2 px-2 text-purple ${c.numeric ? "text-right tabular-nums" : ""}`}>
                           {formatReportCell(data.totals![c.key], c.format)}
@@ -267,8 +263,7 @@ export function ReportsCentre() {
           per-order government form with its own layout. Sending the reader
           there beats reproducing it badly. */}
       <p className="no-print text-[12px] text-body-soft mt-4">
-        Looking for the VAT challan? Mushak 6.3 is issued per order and prints on the government form —
-        it lives in <a href="/finance/vat" className="text-purple underline">Finance → VAT challan</a>.
+        Mushak 6.3 VAT challan: <a href="/finance/vat" className="text-purple underline">Finance → VAT challan</a>
       </p>
     </div>
   );

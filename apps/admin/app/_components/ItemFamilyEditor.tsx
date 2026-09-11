@@ -5,12 +5,12 @@ import Link from "next/link";
 import Icon from "./Icon";
 import { WRAP, ACCENT, msg, ErrBar, OkBar, ItemThumb, QuickSelect } from "./ItemUI";
 import {
-  Sect, Row, Pair, SwitchRow, Note, TakaInput, PercentInput, PhotoDrop, VariantPhoto,
+  Sect, Row, Pair, SwitchRow, TakaInput, PercentInput, PhotoDrop, VariantPhoto,
 } from "./ItemEditor";
 import {
   listItems, updateItem, getItemSettings, loadItemCategoriesSafe, loadBrandsSafe,
   createItemCategory, createBrand,
-  formatTaka, ITEM_TYPE_META,
+  formatTaka,
   type ApiItem, type ApiItemCategory, type ApiBrand,
 } from "../_data/api";
 
@@ -90,7 +90,6 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
   }, []);
 
   const base = members[0]?.name.split(" — ")[0] ?? "Family";
-  const typeMeta = members[0] ? ITEM_TYPE_META[members[0].itemType] : null;
 
   /* what the family currently agrees on — the starting state of every control */
   const cur = useMemo(() => ({
@@ -177,7 +176,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
             <div className="text-[11px] font-bold tracking-[0.08em] uppercase" style={{ color: ACCENT }}>master data · item group</div>
             <h1 className="font-display text-[25px] text-purple mt-1 mb-0 leading-tight">{base}</h1>
             <span className="text-[12.5px] font-semibold mt-1 inline-flex items-center gap-1.5 px-2 py-1 rounded-full"
-              style={{ background: "#34163b", color: "#bd73e8" }}>
+              style={{ background: "#f9e9fd", color: "#8b21c9" }}>
               <Icon name="sparkle" size={11} /> {members.length} variants
             </span>
           </div>
@@ -201,7 +200,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
           {SECTIONS.map((s) => (
             <button key={s.key} onClick={() => setSection(s.key)}
               className="w-full text-left text-[13.5px] font-semibold px-3 py-2.5 rounded-[10px] flex items-center gap-2.5 mb-0.5"
-              style={section === s.key ? { background: ACCENT, color: "#fff" } : { color: "#dfd2e4" }}>
+              style={section === s.key ? { background: ACCENT, color: "#fff" } : { color: "#5b4166" }}>
               <Icon name={s.icon} size={14} /> {s.label}
             </button>
           ))}
@@ -210,7 +209,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
         {/* ---- the sections ---- */}
         <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft p-5">
           {section === "basics" && (
-            <Sect title="Basics" hint="Names and codes belong to each variant — open one to rename it.">
+            <Sect title="Basics">
               <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
                 {members.map((m) => (
                   <Link key={m.id} href={`/items/${m.id}`}
@@ -228,16 +227,11 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                   </Link>
                 ))}
               </div>
-              {typeMeta && (
-                <Note tone="grey">
-                  Every variant is a <b>{typeMeta.label}</b>. Changing that is a per-item decision — open the one that needs it.
-                </Note>
-              )}
             </Sect>
           )}
 
           {section === "classify" && (
-            <Sect title="Category & labels" hint="Applied to every variant at once.">
+            <Sect title="Category & labels" hint="Applied to every variant">
               <Pair>
                 <Row label="Item category">
                   <QuickSelect
@@ -279,14 +273,11 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                   />
                 </Row>
               </Pair>
-              <Note tone="grey">
-                Colour and size are what make these variants different, so they stay on each one.
-              </Note>
             </Sect>
           )}
 
           {section === "photo" && (
-            <Sect title="Photos" hint="One picture per variant. The group photo fills any that are still empty.">
+            <Sect title="Photos">
               <Row label="Group photo — fills the empty ones">
                 <PhotoDrop
                   item={{ sku: base, name: base, imageUrl: groupPhoto }}
@@ -312,7 +303,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                           <div className="font-mono text-[12px] text-body-soft truncate">{m.sku}</div>
                         </div>
                         <span className="text-[12px] font-semibold shrink-0"
-                          style={{ color: own ? "#76efab" : "#b0a4b7" }}>
+                          style={{ color: own ? "#0e7a3d" : "#8b7a95" }}>
                           {own ? "own photo" : "uses group photo"}
                         </span>
                       </div>
@@ -324,25 +315,22 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
           )}
 
           {section === "behaviour" && (
-            <Sect title="How it is used" hint="Applied to every variant at once.">
+            <Sect title="How it is used" hint="Applied to every variant">
               <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0" }}>
                 <SwitchRow on={val(isPurchasable, cur.isPurchasable) ?? false}
                   onClick={() => setIsPurchasable(!(val(isPurchasable, cur.isPurchasable) ?? false))}
                   icon="download" tone="#0e8f74"
-                  title="We buy it" sub={cur.isPurchasable === null && isPurchasable === null ? "they differ — one press sets them all" : "Can go on a purchase order"} />
+                  title="We buy it" sub={cur.isPurchasable === null && isPurchasable === null ? "they differ" : ""} />
                 <SwitchRow on={val(isActive, cur.isActive) ?? false}
                   onClick={() => setIsActive(!(val(isActive, cur.isActive) ?? false))}
                   icon="check" tone="#8b21c9"
-                  title="Show in the shop" sub={cur.isActive === null && isActive === null ? "they differ — one press sets them all" : "Hidden variants sell nowhere"} />
+                  title="Show in the shop" sub={cur.isActive === null && isActive === null ? "they differ" : ""} />
               </div>
-              <Note tone="grey">
-                Everything in the item list is for selling (DEC-ITM-025); the counter shows whatever is shown in the shop.
-              </Note>
             </Sect>
           )}
 
           {section === "price" && (
-            <Sect title="Price & cost" hint="The cost is each variant's own purchase average; the rule below applies to all.">
+            <Sect title="Price & cost">
               <Row label="Counter price">
                 <div className="flex gap-1.5 mb-3 flex-wrap">
                   {([
@@ -354,7 +342,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                       className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-2"
                       style={priceMode === k
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#e8dcf0", color: "#dfd2e4" }}>
+                        : { background: "#fff", borderColor: "#e8dcf0", color: "#5b4166" }}>
                       {label}
                     </button>
                   ))}
@@ -366,7 +354,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                 )}
               </Row>
 
-              <Row label="Profit %" hint="Blank uses the shop default. Applied to every variant.">
+              <Row label="Profit %" hint="blank = shop default">
                 <div className="max-w-[140px]">
                   <PercentInput
                     value={markupNow ?? ""}
@@ -377,7 +365,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
               </Row>
 
               <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
-                <div className="px-4 py-2.5 border-b text-[12.5px] font-bold text-purple" style={{ background: "#291a35", borderColor: "#e8dcf0" }}>
+                <div className="px-4 py-2.5 border-b text-[12.5px] font-bold text-purple" style={{ background: "#faf6fd", borderColor: "#e8dcf0" }}>
                   What each one costs and sells for now
                 </div>
                 <div className="divide-y divide-lavender-deep">
@@ -385,7 +373,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                     <div key={m.id} className="px-4 py-2 grid grid-cols-[minmax(0,1fr)_100px_120px] gap-3 items-center text-[13px]">
                       <span className="truncate text-body">{m.name}</span>
                       <span className="text-right text-body-soft">{formatTaka(m.effectiveCostPaisa ?? 0)}</span>
-                      <span className="text-right font-semibold" style={{ color: m.effectiveSellPricePaisa == null ? "#e1837a" : "#76efab" }}>
+                      <span className="text-right font-semibold" style={{ color: m.effectiveSellPricePaisa == null ? "#c0392b" : "#0e7a3d" }}>
                         {m.effectiveSellPricePaisa == null ? "no price" : formatTaka(m.effectiveSellPricePaisa)}
                         {m.sellPriceIsManual && <span className="text-[11px] font-normal text-body-soft"> fixed</span>}
                       </span>
@@ -397,7 +385,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
           )}
 
           {section === "stock" && (
-            <Sect title="Stock & alerts" hint="The count itself lives in Inventory; this is only the alert level.">
+            <Sect title="Stock & alerts">
               <Row label="Low stock point">
                 <div className="max-w-[200px]">
                   <input className="ipt w-full" inputMode="numeric"
@@ -410,12 +398,12 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
           )}
 
           {section === "connect" && (
-            <Sect title="Sell online" hint="Whether these variants may sit behind a product page.">
+            <Sect title="Sell online">
               <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0" }}>
                 <SwitchRow on={val(isOnline, cur.isOnline) ?? false}
                   onClick={() => setIsOnline(!(val(isOnline, cur.isOnline) ?? false))}
-                  icon="link" tone="#bd73e8"
-                  title="Sell online" sub={cur.isOnline === null && isOnline === null ? "they differ — one press sets them all" : "Off keeps them off the product page; the counter still sells them"} />
+                  icon="link" tone="#8b21c9"
+                  title="Sell online" sub={cur.isOnline === null && isOnline === null ? "they differ" : ""} />
               </div>
             </Sect>
           )}
@@ -426,7 +414,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
             <div className="px-4 py-2.5 th border-b border-lavender-deep bg-lavender/30">What will change</div>
             <div className="p-4 text-[12.5px]">
-              {!dirty && <span className="text-body-soft">Nothing yet — every field is as the family has it.</span>}
+              {!dirty && <span className="text-body-soft">Nothing yet.</span>}
               <ul className="m-0 pl-4 space-y-1 text-body">
                 {isActive !== null && <li>{isActive ? "Show" : "Hide"} all {members.length}</li>}
                 {isPurchasable !== null && <li>{isPurchasable ? "Can" : "Cannot"} be bought</li>}

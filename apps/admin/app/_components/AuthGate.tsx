@@ -143,13 +143,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (offline)
     return (
-      <div className="min-h-screen grid place-items-center p-6" style={{ background: "#291e31" }}>
+      <div className="min-h-screen grid place-items-center p-6" style={{ background: "#faf7fc" }}>
         <Card className="px-8 py-10 text-center max-w-[420px]">
           <div className="text-[28px] mb-2">⚡</div>
           <div className="font-display text-[20px] text-purple mb-1">The API is not answering</div>
           <p className="text-[13.5px] text-body-soft mb-3">
-            Checking again every few seconds — this page will come back on its own
-            the moment the API does. Nothing needs pressing.
+            Checking again every few seconds.
           </p>
           <p className="text-[12.5px] text-body-soft mb-4">
             If it stays here: start Docker, then run
@@ -158,7 +157,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           </p>
           <button
             onClick={() => void boot()}
-            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-[13px] font-semibold border border-[#3d3248] bg-white text-purple hover:border-orchid transition-all"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-[13px] font-semibold border border-[#e7dff0] bg-white text-purple hover:border-orchid transition-all"
           >
             Try now
           </button>
@@ -178,7 +177,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <div className="text-[24px] mb-1">🔒</div>
             <div className="font-display text-[19px] text-purple mb-1">Confirm it is you</div>
             <p className="text-[13px] text-body-soft mt-0 mb-4">
-              Money is about to move. Enter your 4-digit PIN — the ledger will record it against <b>{me.name}</b>.
+              The ledger will record this against <b>{me.name}</b>.
             </p>
             {pinErr && <div className="mb-3 px-3 py-2 rounded-xl text-[12.5px] font-semibold"
               style={{ background: TONE.rose.soft, color: TONE.rose.text }}>{pinErr}</div>}
@@ -227,7 +226,7 @@ function SetupForm({ onDone }: { onDone: (m: Me) => void }) {
   const [err, setErr] = useState("");
 
   return (
-    <Shell title="Set up the first owner" sub="Nobody has access yet. Create the owner account — this is the only time this screen appears.">
+    <Shell title="Set up the first owner" sub="Nobody has access yet.">
       <Flash ok="" err={err} />
       <Lbl>Your name</Lbl>
       <input className={input} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Sobuj" />
@@ -294,7 +293,7 @@ function LoginForm({ onDone }: { onDone: (m: Me) => void }) {
             such account" would turn this box into a way to find out who works
             here, and the owner's own address is one of them.  */}
         {forgotSaid && (
-          <p className="text-[12.5px] mt-3 leading-relaxed" style={{ color: "#75f0c5" }}>
+          <p className="text-[12.5px] mt-3 leading-relaxed" style={{ color: "#0b6244" }}>
             {forgotSaid}
           </p>
         )}
@@ -304,8 +303,7 @@ function LoginForm({ onDone }: { onDone: (m: Me) => void }) {
           Send me a link
         </button>
         <p className="text-[11px] text-body-soft leading-relaxed mt-3">
-          No email provider is connected yet, so ask the owner for a link in the
-          meantime. This resets a password only — never a PIN.
+          No email provider is connected yet — ask the owner for a link.
         </p>
         <button className="text-[12.5px] font-semibold text-purple mt-4"
           onClick={() => { setForgot(false); setForgotSaid(""); }}>
@@ -340,7 +338,7 @@ function LoginForm({ onDone }: { onDone: (m: Me) => void }) {
 
 function Shell({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   return (
-    <div className="min-h-screen grid place-items-center p-6" style={{ background: "linear-gradient(140deg,#301c36,#1b2736 60%,#351a25)" }}>
+    <div className="min-h-screen grid place-items-center p-6" style={{ background: "linear-gradient(140deg,#f7ecfa,#eef4fb 60%,#fdf6f9)" }}>
       <div className="w-full max-w-[400px]">
         <div className="text-center mb-5">
           <div className="w-14 h-14 rounded-2xl grid place-items-center text-[26px] mx-auto mb-3 text-white shadow-[0_6px_20px_rgba(160,33,184,0.3)]"

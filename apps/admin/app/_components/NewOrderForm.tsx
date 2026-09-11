@@ -288,9 +288,6 @@ export default function NewOrderForm() {
         </Link>
         <div className="flex-1">
           <h1 className="font-display text-[22px] text-purple m-0 leading-tight">New order</h1>
-          <p className="text-body-soft text-[12.5px] m-0">
-            Staff-taken order — same Sales record as a website order.
-          </p>
         </div>
         <button
           type="button"
@@ -342,7 +339,6 @@ export default function NewOrderForm() {
                       </div>
                     </div>
                   )}
-                  {!selected && <p className="text-[13px] text-body-soft mt-2 mb-0">Pick an existing customer from the list (search + Call inside), or choose “Create new customer”.</p>}
                 </>
               )}
             </div>
@@ -515,9 +511,6 @@ export default function NewOrderForm() {
                   </span>
                 )}
               </div>
-              <p className="text-[11.5px] mt-1.5 mb-0" style={{ color: "#76efab" }}>
-                Money taken in hand at the counter or against a phone order — recorded on the order straight away.
-              </p>
             </div>
 
             {!codAllowed && (

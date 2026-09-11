@@ -87,8 +87,8 @@ export function MessagingView() {
         channel,
         ok: r.ok,
         text: r.ok
-          ? `Sent${r.providerRef ? ` — the provider's id is ${r.providerRef}` : ""}. Check the inbox or the handset.`
-          : (r.error ?? "The provider refused it, and said nothing useful about why."),
+          ? `Sent${r.providerRef ? ` · ${r.providerRef}` : ""}`
+          : (r.error ?? "The provider refused it."),
       });
       await load();
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
@@ -99,7 +99,6 @@ export function MessagingView() {
       <FinHeader
         eyebrow="Marketing"
         title="Email & SMS"
-        sub="Pick a provider, paste the key, press Test. Both work the same way and neither needs anything installed — every provider worth using speaks plain HTTP."
         emoji="📨"
         tone="sky"
         right={
@@ -134,7 +133,7 @@ export function MessagingView() {
                   onChange={(e) => set("emailEnabled", e.target.checked)} />
                 <span>
                   <strong>Email is switched on</strong>
-                  <div className="text-[11.5px] text-body-soft">Off means nothing sends, whatever is filled in below.</div>
+                  <div className="text-[11.5px] text-body-soft">Off means nothing sends.</div>
                 </span>
               </label>
 
@@ -216,14 +215,12 @@ export function MessagingView() {
               </button>
               {!st.email.ready && (
                 <p className="text-[11.5px] text-body-soft mt-0 mb-0">
-                  Switch it on, save a key (or the SMTP login) and a from-address first. Save before testing.
+                  Save a key and a from-address first.
                 </p>
               )}
 
-              <p className="text-[12px] text-body-soft border-t border-[#3e3248] pt-3 mb-0">
-                <strong>Worth knowing:</strong> the from-address has to be one the service has
-                verified. Sending as <code>@radianbd.com</code> means proving you own the domain —
-                a DNS record they will show you. Without it the mail goes to spam, or nowhere.
+              <p className="text-[12px] text-body-soft border-t border-[#f3eef7] pt-3 mb-0">
+                The from-address must be verified with the service, or the mail goes to spam.
               </p>
             </div>
           </Panel>
@@ -237,7 +234,7 @@ export function MessagingView() {
                   onChange={(e) => set("smsEnabled", e.target.checked)} />
                 <span>
                   <strong>SMS is switched on</strong>
-                  <div className="text-[11.5px] text-body-soft">Every message costs money — this switch is the brake.</div>
+                  <div className="text-[11.5px] text-body-soft">Every message costs money.</div>
                 </span>
               </label>
 
@@ -265,7 +262,7 @@ export function MessagingView() {
                 <input className={input} value={s.smsSenderId ?? ""} placeholder="Radian"
                   onChange={(e) => set("smsSenderId", e.target.value)} />
                 <p className="text-[11.5px] text-body-soft mt-1 mb-0">
-                  The name that shows on the phone. It has to be approved by the gateway first.
+                  Must be approved by the gateway first.
                 </p></div>
 
               {s.smsProvider === "CUSTOM" && (
@@ -289,27 +286,12 @@ export function MessagingView() {
                 Send a test SMS
               </button>
 
-              <p className="text-[12px] text-body-soft border-t border-[#3e3248] pt-3 mb-0">
-                <strong>Worth knowing:</strong> several gateways here answer with HTTP 200 and put
-                the failure in the body. So a test that says &ldquo;it went&rdquo; still deserves a
-                look at the handset — and the log below keeps the raw answer either way.
+              <p className="text-[12px] text-body-soft border-t border-[#f3eef7] pt-3 mb-0">
+                Some gateways answer 200 and put the failure in the body — check the handset.
               </p>
             </div>
           </Panel>
 
-          <Card className="p-5 lg:col-span-2" tone="amber">
-            <div className="text-[13px]">
-              <strong className="text-purple">My honest view on these two, unchanged</strong>
-              <p className="text-body-soft mt-1 mb-0 text-[12.5px]">
-                In Bangladesh, WhatsApp does the work of both. Email is worth having for corporate
-                quotes and order confirmations — things people need to keep — rather than for
-                promotion, because personal customers rarely open it. SMS costs money per message
-                and cannot carry a picture, and for a flower shop the picture <em>is</em> the
-                product. Built because you asked, and they will work properly. Use them where they
-                fit and let WhatsApp carry the rest.
-              </p>
-            </div>
-          </Card>
         </div>
       )}
 
@@ -448,7 +430,7 @@ function Wording({ setErr }: { setErr: (s: string) => void }) {
 
       <Card className="overflow-hidden">
         {rows.length === 0 ? (
-          <Empty emoji="✎" title="No templates yet" sub="Write one per message and channel; the system picks the newest active one." />
+          <Empty emoji="✎" title="No templates yet" />
         ) : (
           <Table head={<><Th>Message</Th><Th>Channel</Th><Th>Name</Th><Th>Words</Th><Th>Active</Th><Th></Th></>}>
             {rows.map((r) => (
@@ -508,8 +490,7 @@ function History({ setErr }: { setErr: (s: string) => void }) {
 
       <Card className="overflow-hidden">
         {!d || d.items.length === 0 ? (
-          <Empty emoji="📜" title="Nothing sent yet"
-            sub="Every message handed to a provider lands here with whatever the provider said back." />
+          <Empty emoji="📜" title="Nothing sent yet" />
         ) : (
           <Table head={<><Th>When</Th><Th>How</Th><Th>To</Th><Th>What</Th><Th>Result</Th></>}>
             {d.items.map((m) => (

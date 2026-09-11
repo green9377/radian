@@ -247,7 +247,7 @@ export default function OrdersOverviewView() {
           {([
             ["Placed · to confirm", c?.toConfirm, c ? `${c.toConfirmPaid} paid · ${c.toConfirmCod} COD need a call` : "", "att", 70],
             ["Preparing", c?.preparing, c ? `${c.photoPending} waiting for a photo` : "", "", 22],
-            ["Ready to go", c?.ready, "carrier + photo done", "", 8],
+            ["Ready to go", c?.ready, "", "", 8],
             ["On the road", c?.onRoad, c ? `${c.late} late` : "", "late", 35],
             ["Delivered " + (isToday ? "today" : "that day"), c?.deliveredToday, c ? `${c.failed} failed · ${c.cancelled} cancelled ${rangeLabel}` : "", "ok", 100],
           ] as [string, number | undefined, string, string, number][]).map(([label, n, sub, kind, w], i) => (
@@ -311,7 +311,6 @@ export default function OrdersOverviewView() {
               <div className="grid gap-1">
                 <Legend colour={T.orchid}>Gift {data ? pct(data.mix.gift, data.mix.total) : "…"}</Legend>
                 <Legend colour={T.lav2}>Self {data ? pct(data.mix.self, data.mix.total) : "…"}</Legend>
-                <span className="text-[11px]" style={{ color: T.grey }}>Gift orders carry a card message</span>
               </div>
             </div>
           </div>
@@ -382,7 +381,7 @@ export default function OrdersOverviewView() {
                 <div className="grid gap-1">
                   <Legend colour={T.green}>Repeat · {data?.customers.repeatCount ?? "…"} customers · {money(data?.customers.repeatPaisa)}</Legend>
                   <Legend colour={T.orchid}>New · {data?.customers.newCount ?? "…"} customers · {money(data?.customers.newPaisa)}</Legend>
-                  <span className="text-[11px]" style={{ color: T.grey }}>{data ? `${pct(data.customers.repeatPaisa, data.customers.repeatPaisa + data.customers.newPaisa)} of revenue from people who came back` : ""}</span>
+                  <span className="text-[11px]" style={{ color: T.grey }}>{data ? `${pct(data.customers.repeatPaisa, data.customers.repeatPaisa + data.customers.newPaisa)} of revenue` : ""}</span>
                 </div>
               </div>
             </div>
@@ -411,8 +410,8 @@ export default function OrdersOverviewView() {
           <div style={card}>
             <H3 hint={rangeLabel}>Lost orders</H3>
             <div className="text-[26px] leading-none font-semibold tabular-nums" style={{ color: (data?.lost.count ?? 0) > 0 ? T.amber : T.ink }}>{loading ? "…" : data?.lost.count ?? 0}</div>
-            <div className="text-[12px] mt-1.5" style={{ color: T.grey }}>checkouts left unfinished · {money(data?.lost.paisa)} in baskets</div>
-            <div className="text-[12px] mt-1" style={{ color: T.grey }}>{data ? `${data.lost.open} still open (inside the 15-minute window)` : ""}</div>
+            <div className="text-[12px] mt-1.5" style={{ color: T.grey }}>{money(data?.lost.paisa)} in baskets</div>
+            <div className="text-[12px] mt-1" style={{ color: T.grey }}>{data ? `${data.lost.open} still open` : ""}</div>
             <div className="mt-3"><Btn href="/orders/lost">Open Lost orders</Btn></div>
           </div>
           <div style={card}>

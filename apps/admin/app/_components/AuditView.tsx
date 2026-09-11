@@ -32,10 +32,10 @@ import {
 */
 
 const TAB_DEFS = [
-  { key: "MONEY", label: "Money actions", icon: "cash", fg: "#edc278", bg: "#3c2f17", grad: "linear-gradient(135deg,#b07818,#d9a53a)" },
-  { key: "ALL", label: "Everything", icon: "layers", fg: "#b97fdc", bg: "#2e1a38", grad: "linear-gradient(135deg,#8a2bb0,#cf43ea)" },
-  { key: "ACTIVITY", label: "In plain words", icon: "mail", fg: "#82a7d9", bg: "#17273a", grad: "linear-gradient(135deg,#3b76c4,#6ba3e8)" },
-  { key: "BACKUPS", label: "Backups", icon: "download", fg: "#73f2c6", bg: "#1e352b", grad: "linear-gradient(135deg,#0e9767,#22c08b)" },
+  { key: "MONEY", label: "Money actions", icon: "cash", fg: "#b07818", bg: "#fdf3e2", grad: "linear-gradient(135deg,#b07818,#d9a53a)" },
+  { key: "ALL", label: "Everything", icon: "layers", fg: "#7a2ea8", bg: "#f5eafb", grad: "linear-gradient(135deg,#8a2bb0,#cf43ea)" },
+  { key: "ACTIVITY", label: "In plain words", icon: "mail", fg: "#3b76c4", bg: "#eef5fd", grad: "linear-gradient(135deg,#3b76c4,#6ba3e8)" },
+  { key: "BACKUPS", label: "Backups", icon: "download", fg: "#0e9767", bg: "#e7f7f0", grad: "linear-gradient(135deg,#0e9767,#22c08b)" },
 ] as const;
 
 const ACTION_LABEL: Record<AuditAction, string> = {
@@ -195,7 +195,6 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
         <FinHeader
           eyebrow="Administration"
           title="Activity & audit"
-          sub="Who did what, and when. Search for a record, or click any row to see everything that ever happened to it. Nothing on this page can be edited or deleted, on purpose."
           emoji="🕰"
           tone="slate"
         />
@@ -206,15 +205,15 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
           18 Aug 2026: system notices collect in one place, never on top of a
           working page). The KPI tile below still shows the state in colour.  */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <StatTile icon="clock" grad="linear-gradient(135deg,#8a2bb0,#cf43ea)" fg="#b97fdc"
+        <StatTile icon="clock" grad="linear-gradient(135deg,#8a2bb0,#cf43ea)" fg="#7a2ea8"
           label="Recorded today" value={String(stats?.today ?? 0)} />
-        <StatTile icon="chart" grad="linear-gradient(135deg,#3b76c4,#7fb4f0)" fg="#82a7d9"
+        <StatTile icon="chart" grad="linear-gradient(135deg,#3b76c4,#7fb4f0)" fg="#3b76c4"
           label="This week" value={String(stats?.week ?? 0)} />
-        <StatTile icon="cash" grad="linear-gradient(135deg,#b07818,#e9c46a)" fg="#edc278"
+        <StatTile icon="cash" grad="linear-gradient(135deg,#b07818,#e9c46a)" fg="#b07818"
           label="Money actions · 7d" value={String(stats?.money7 ?? 0)} />
         <StatTile icon="download"
           grad={stats?.backupStale ? "linear-gradient(135deg,#c62f20,#e8604f)" : "linear-gradient(135deg,#0e9767,#22c08b)"}
-          fg={stats?.backupStale ? "#e1837a" : "#73f2c6"}
+          fg={stats?.backupStale ? "#c0392b" : "#0e9767"}
           label="Last backup" value={stats?.lastBackupAt ? ago(stats.lastBackupAt) : "never"} />
       </div>
 
@@ -228,7 +227,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
               className="flex items-center gap-2 px-4 py-2.5 rounded-[13px] text-[12.5px] font-bold border transition-all"
               style={on
                 ? { background: t.grad, color: "#fff", borderColor: "transparent", boxShadow: `0 4px 14px ${t.fg}55` }
-                : { background: "#fff", color: "#dfd2e4", borderColor: "#e9e2f2" }}>
+                : { background: "#fff", color: "#2d2838", borderColor: "#e9e2f2" }}>
               <span className="w-[22px] h-[22px] rounded-[7px] grid place-items-center"
                 style={on ? { background: "rgba(255,255,255,0.22)", color: "#fff" } : { background: t.bg, color: t.fg }}>
                 <Icon name={t.icon} size={12} strokeWidth={2.4} />
@@ -275,8 +274,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
                 <div className="p-6 text-[13px] text-body-soft">Reading the trail…</div>
               ) : trace.audit.length === 0 && trace.activity.length === 0 ? (
                 <div className="p-6">
-                  <Empty emoji="🕰" title="Nothing recorded for this record"
-                    sub="Which is itself worth knowing — it means no module has ever written a change against this id." />
+                  <Empty emoji="🕰" title="Nothing recorded for this record" />
                 </div>
               ) : (
                 <div className="p-4 space-y-5">
@@ -284,7 +282,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[12px] font-extrabold tracking-[0.08em] uppercase text-purple">Field by field</span>
-                        <span className="text-[10px] font-bold px-2 py-[1px] rounded-full" style={{ background: "#2e1a38", color: "#b97fdc" }}>{trace.audit.length}</span>
+                        <span className="text-[10px] font-bold px-2 py-[1px] rounded-full" style={{ background: "#f5eafb", color: "#7a2ea8" }}>{trace.audit.length}</span>
                       </div>
                       <Table head={<><Th>When</Th><Th>Who</Th><Th>What</Th><Th>Changed</Th></>}>
                         {trace.audit.map((r) => (
@@ -307,7 +305,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[12px] font-extrabold tracking-[0.08em] uppercase text-purple">In plain words</span>
-                        <span className="text-[10px] font-bold px-2 py-[1px] rounded-full" style={{ background: "#17273a", color: "#82a7d9" }}>{trace.activity.length}</span>
+                        <span className="text-[10px] font-bold px-2 py-[1px] rounded-full" style={{ background: "#eef5fd", color: "#3b76c4" }}>{trace.activity.length}</span>
                       </div>
                       <Table head={<><Th>When</Th><Th>What</Th><Th>Who</Th></>}>
                         {trace.activity.map((e) => (
@@ -347,7 +345,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
               <input
                 className={input}
                 style={{ paddingLeft: 36 }}
-                placeholder="An order number, a name, anything — e.g. RAD-58217"
+                placeholder="Order number, name or id"
                 value={searchLive}
                 onChange={(e) => setSearchLive(e.target.value)}
               />
@@ -394,13 +392,12 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
 
           <Card className="overflow-hidden">
             {rows.length === 0 ? (
-              <Empty emoji="🕰" title="Nothing matches"
-                sub="Widen the dates, or switch to Everything — the money filter only shows the entity types where a mistake costs taka." />
+              <Empty emoji="🕰" title="Nothing matches" sub="Widen the dates, or switch to Everything." />
             ) : (
               <>
                 <Table head={<><Th>When</Th><Th>Who</Th><Th>What</Th><Th>Changed</Th><Th /></>}>
                   {rows.map((r) => (
-                    <tr key={r.id} className="cursor-pointer hover:bg-[#271a34] transition-colors"
+                    <tr key={r.id} className="cursor-pointer hover:bg-[#faf7fd] transition-colors"
                       onClick={() => void openTrace(r.entityType, r.entityId)}>
                       <Td>
                         <div className="text-[12.5px]">{ago(r.createdAt)}</div>
@@ -422,7 +419,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
                              this one.  */}
                         <button
                           className="text-[11px] font-bold px-2.5 py-1.5 rounded-[8px] border bg-white whitespace-nowrap"
-                          style={{ borderColor: "#e4ddef", color: "#b97fdc" }}
+                          style={{ borderColor: "#e4ddef", color: "#7a2ea8" }}
                           onClick={(e) => { e.stopPropagation(); void openTrace(r.entityType, r.entityId); }}
                         >
                           Full history
@@ -431,7 +428,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
                     </tr>
                   ))}
                 </Table>
-                <div className="px-4 py-3 border-t border-[#3e3248] flex items-center justify-between gap-3">
+                <div className="px-4 py-3 border-t border-[#f3eef7] flex items-center justify-between gap-3">
                   <span className="text-[12px] text-body-soft">
                     {total.toLocaleString()} records · page {page} of {totalPages}
                   </span>
@@ -449,7 +446,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
       )}
 
       {tab === "ACTIVITY" && (
-        <div className="rounded-[16px] bg-white border border-[#3c3249] overflow-hidden"
+        <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
           style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
           <div className="px-4 py-2.5 flex items-center gap-2.5"
             style={{ background: "linear-gradient(120deg,#3b76c4,#6ba3e8)" }}>
@@ -477,7 +474,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
       )}
 
       {tab === "BACKUPS" && (
-        <div className="rounded-[16px] bg-white border border-[#3c3249] overflow-hidden"
+        <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
           style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
           <div className="px-4 py-2.5 flex items-center gap-2.5"
             style={{ background: "linear-gradient(120deg,#0e9767,#22c08b)" }}>
@@ -486,7 +483,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
           </div>
           {backups.length === 0 ? (
             <Empty emoji="💾" title="No backup has ever been recorded"
-              sub="Run D:\radian\radian_backup.bat once, then radian_backup_schedule.bat so it happens every night without anybody remembering." />
+              sub="Run radian_backup.bat, then radian_backup_schedule.bat for nightly copies." />
           ) : (
             <Table head={<><Th>When</Th><Th>File</Th><Th right>Size</Th><Th>By</Th></>}>
               {backups.map((b) => {
@@ -505,7 +502,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
               })}
             </Table>
           )}
-          <div className="px-5 py-4 border-t border-[#3e3248] text-[12px] text-body-soft">
+          <div className="px-5 py-4 border-t border-[#f3eef7] text-[12px] text-body-soft">
             A copy on the same disk as the database survives a mistake, not a dead drive. Copy
             <code className="mx-1">D:\radian\backups\</code> somewhere else now and then.
           </div>

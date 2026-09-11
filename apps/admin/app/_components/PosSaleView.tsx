@@ -80,7 +80,7 @@ function VoidDialog({
 
   async function go() {
     const r = reason.trim();
-    if (!r) { setErr("Say why this bill is being voided — it goes on the record."); return; }
+    if (!r) { setErr("Say why this bill is being voided."); return; }
     setBusy(true); setErr(null);
     try { await onDone(r); }
     catch (e) { setErr(e instanceof Error ? e.message : "Could not void the bill"); setBusy(false); }
@@ -97,13 +97,10 @@ function VoidDialog({
           <b className="block mb-1.5">What happens when you press it</b>
           <ul className="m-0 pl-4 space-y-1">
             {bill.advance
-              ? <li>The order is cancelled. No stock moves — an advance order never took any off the shelf.</li>
+              ? <li>The order is cancelled — no stock moves.</li>
               : <li>Every item goes back on the shelf.</li>}
-            {bill.paidPaisa > 0
-              ? <li>{formatTaka(bill.paidPaisa)} of payment is reversed.</li>
-              : <li>Nothing was paid on this bill, so no money moves.</li>}
-            {cashBack > 0 && <li>{formatTaka(cashBack)} comes back OUT of the cash box — take the notes out of the drawer now.</li>}
-            <li>The bill is marked cancelled and stays visible, with your reason on it.</li>
+            {bill.paidPaisa > 0 && <li>{formatTaka(bill.paidPaisa)} of payment is reversed.</li>}
+            {cashBack > 0 && <li>{formatTaka(cashBack)} comes back OUT of the cash box.</li>}
           </ul>
         </div>
 
@@ -174,25 +171,25 @@ export default function PosSaleView({ id }: { id: string }) {
       if (!o || !rc) return;
       if (rc.voided) { if (live) setVoidBlock(null); return; }   // its own banner handles this
       if (rc.refundedPaisa > 0) {
-        if (live) setVoidBlock("Returns has already paid money back on this bill, so it belongs to Returns now — finish it there.");
+        if (live) setVoidBlock("Returns has already paid money back on this bill — finish it there.");
         return;
       }
       try {
         const d = await posDay();
         if (!live) return;
         if (!d.drawer.isOpen) {
-          setVoidBlock("The cash box is closed. A bill from a day that has been counted is unwound in Returns, not voided at the till.");
+          setVoidBlock("The cash box is closed — unwind it in Returns.");
           return;
         }
         if (+new Date(rc.placedAt) < +new Date(d.drawer.openedAt)) {
-          setVoidBlock("This bill belongs to a cash box that has already been counted and closed. Unwind it in Returns.");
+          setVoidBlock("That cash box is closed — unwind it in Returns.");
           return;
         }
         setVoidBlock(null);
       } catch {
         /*  the day could not be read — say so rather than offering a button
             whose consequences we cannot describe  */
-        if (live) setVoidBlock("Could not read today's cash box, so the void is not offered. Reload the page.");
+        if (live) setVoidBlock("Could not read today's cash box. Reload the page.");
       }
     })();
     return () => { live = false; };
@@ -288,8 +285,7 @@ export default function PosSaleView({ id }: { id: string }) {
 
       {voided && (
         <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px]" style={{ background: "#3a1616", color: "#ff9c92" }}>
-          <b>This bill was voided.</b> The stock went back, the payments were reversed and nothing is owed on it.
-          It is kept so the receipt number is never reused — the reason is on the timeline below.
+          <b>This bill was voided.</b> The stock went back and the payments were reversed.
         </div>
       )}
 
@@ -421,16 +417,14 @@ export default function PosSaleView({ id }: { id: string }) {
                        owner's list in POS_C.md.)  */}
                   {advance && (
                     <p className="text-[12px] m-0 mt-2" style={{ color: "#f0b46a" }}>
-                      This is an advance order that was never handed over, and Returns cannot
-                      take it either — it only handles delivered bills. There is no way to cancel
-                      it from any screen today. Ask the owner.
+                      No screen can cancel this advance order today — ask the owner.
                     </p>
                   )}
                 </>
               ) : (
                 <>
                   <p className="text-[12px] text-body-soft m-0 mb-2.5">
-                    Voiding puts the stock back, reverses the money{cashBack > 0 ? ` and takes ${formatTaka(cashBack)} back out of the cash box` : ""}, and cancels the bill.
+                    Puts the stock back and reverses the money{cashBack > 0 ? `, ${formatTaka(cashBack)} out of the cash box` : ""}.
                   </p>
                   <button type="button" onClick={() => setVoidOpen(true)}
                     className="w-full text-[13px] font-bold text-[#ff9c92] border rounded-[10px] py-2.5"
@@ -453,7 +447,7 @@ export default function PosSaleView({ id }: { id: string }) {
           onDone={async (reason) => {
             await posVoidSale(id, { reason });
             setVoidOpen(false);
-            setFlash("The bill is voided. The stock is back on the shelf and the payments are reversed.");
+            setFlash("The bill is voided.");
             await load();
           }}
         />

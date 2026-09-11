@@ -29,43 +29,22 @@ import { Info } from "./ItemEditor";
 import { Flash, Table, Td, Th, WRAP, input, taka } from "./FinanceUI";
 
 const BRAND = {
-  purple: { ink: "#b97fdc", wash: "#f6ecfb", edge: "#a94fd0" },
-  rose: { ink: "#c794a1", wash: "#fbeef0", edge: "#c9788a" },
+  purple: { ink: "#7a2ea8", wash: "#f6ecfb", edge: "#a94fd0" },
+  rose: { ink: "#a4566a", wash: "#fbeef0", edge: "#c9788a" },
 } as const;
 
 /*  The gateway's four words, in the shop's own. `tone` inks the pill; the
     order is the story a session travels: started → one of three endings.  */
-const STATE: Record<string, { label: string; bg: string; fg: string; hint: string }> = {
+const STATE: Record<string, { label: string; bg: string; fg: string; hint?: string }> = {
   INITIATED: {
     label: "Went to pay",
-    bg: "#3c2f17",
-    fg: "#eaba7b",
-    hint:
-      "They were sent to the gateway and it never came back to us. Usually they " +
-      "changed their mind — but if the customer has a bank SMS, this is the row " +
-      "that matters: they were charged and we were not told. Give SSLCommerz the " +
-      "transaction id below.",
+    bg: "#fff4e0",
+    fg: "#9a6218",
+    hint: "May have been charged without us being told — check the transaction id with SSLCommerz.",
   },
-  SUCCESS: {
-    label: "Paid",
-    bg: "#1e3528",
-    fg: "#83e2b1",
-    hint:
-      "SSLCommerz confirmed it to us directly, on our own request — never from " +
-      "the customer's browser. The money is real.",
-  },
-  FAILED: {
-    label: "Refused",
-    bg: "#3b161e",
-    fg: "#e48197",
-    hint: "The bank or the gateway refused it. Nothing was charged.",
-  },
-  CANCELLED: {
-    label: "Backed out",
-    bg: "#211b36",
-    fg: "#a396c5",
-    hint: "They closed the gateway page without paying. Nothing was charged.",
-  },
+  SUCCESS: { label: "Paid", bg: "#e7f7ee", fg: "#1c7a4a" },
+  FAILED: { label: "Refused", bg: "#fdeaee", fg: "#a42340" },
+  CANCELLED: { label: "Backed out", bg: "#f1eefb", fg: "#5b4a86" },
 };
 
 const TABS: { key: string; label: string }[] = [
@@ -75,17 +54,6 @@ const TABS: { key: string; label: string }[] = [
   { key: "FAILED", label: "Refused" },
   { key: "CANCELLED", label: "Backed out" },
 ];
-
-const SEARCH_INFO =
-  "Search by whatever the customer is holding: the order number, the " +
-  "transaction id, or the bank reference off their SMS.";
-
-const PAGE_INFO =
-  "Every trip to the gateway, including the ones that went nowhere. Nothing " +
-  "here can be edited — a payment is only ever written when SSLCommerz " +
-  "confirms it to us directly, and a button that could mark an order paid " +
-  "would be a way for money to appear in the books without appearing in the " +
-  "bank.";
 
 export interface OnlinePaymentRow {
   id: string;
@@ -105,7 +73,7 @@ export interface OnlinePaymentRow {
 }
 
 function Pill({ status }: { status: string }) {
-  const s = STATE[status] ?? { label: status, bg: "#eee", fg: "#555", hint: "" };
+  const s = STATE[status] ?? { label: status, bg: "#eee", fg: "#555" };
   return (
     <span className="inline-flex items-center gap-1">
       <span
@@ -140,7 +108,7 @@ function Panel({
     >
       <header
         className="relative grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4 border-b"
-        style={{ background: `linear-gradient(135deg,${theme.wash},#1f1727)`, borderColor: `${theme.edge}2e` }}
+        style={{ background: `linear-gradient(135deg,${theme.wash},#ffffff)`, borderColor: `${theme.edge}2e` }}
       >
         <span className="absolute left-0 right-0 top-0 h-[3px]" style={{ background: theme.edge }} />
         <span
@@ -195,11 +163,6 @@ export function OnlinePaymentsLive() {
       <Panel
         title="Online payments"
         icon="💳"
-        right={
-          <span className="flex items-center gap-2">
-            <Info text={PAGE_INFO} />
-          </span>
-        }
       >
         {/* the filter row */}
         <div className="px-5 py-4 flex flex-wrap items-center gap-3 border-b" style={{ borderColor: "#efe9f5" }}>
@@ -220,7 +183,7 @@ export function OnlinePaymentsLive() {
                           borderColor: BRAND.purple.ink,
                           boxShadow: "0 2px 8px rgba(122,46,168,0.25)",
                         }
-                      : { background: "#fff", color: "#adadad", borderColor: "#e7dff0" }
+                      : { background: "#fff", color: "#6b6b6b", borderColor: "#e7dff0" }
                   }
                 >
                   {t.label}
@@ -229,15 +192,12 @@ export function OnlinePaymentsLive() {
               );
             })}
           </div>
-          <span className="ml-auto flex items-center gap-1.5">
-            <input
-              className={`${input} w-[260px]`}
-              placeholder="Order no, transaction id, bank reference"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-            <Info text={SEARCH_INFO} />
-          </span>
+          <input
+            className={`${input} w-[260px] ml-auto`}
+            placeholder="Order no, transaction id, bank reference"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
         </div>
 
         <Table
@@ -343,7 +303,7 @@ function Ref({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
       <div className="text-[11px] font-bold tracking-[0.1em] text-body-soft uppercase mb-1">{label}</div>
-      <div className="text-[12.5px] font-semibold break-all" style={{ color: value ? "#b694d1" : "#aca7b4" }}>
+      <div className="text-[12.5px] font-semibold break-all" style={{ color: value ? "#3d2352" : "#9a94a3" }}>
         {value || "—"}
       </div>
     </div>

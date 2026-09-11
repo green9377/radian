@@ -67,7 +67,7 @@ export function InvReportsView() {
                 className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
                 style={days === r
                   ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-                  : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
+                  : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
                 {r} days
               </button>
             ))}
@@ -78,11 +78,11 @@ export function InvReportsView() {
 
       {report && valuation && (
         <Kpi items={[
-          { l: `Wastage (${days}d)`, v: formatTaka(report.totalWastagePaisa), c: "#e1837a", bg: "#3b1a16", icon: "bolt" },
-          { l: `Given free (${days}d)`, v: formatTaka(report.totalGiftPaisa), c: "#da6cef", bg: "#35163b", icon: "heart" },
-          { l: "Stock value now (AVCO)", v: formatTaka(valuation.totalPaisa), c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
+          { l: `Wastage (${days}d)`, v: formatTaka(report.totalWastagePaisa), c: "#c0392b", bg: "#fdecea", icon: "bolt" },
+          { l: `Given free (${days}d)`, v: formatTaka(report.totalGiftPaisa), c: "#cf43ea", bg: "#fbeafe", icon: "heart" },
+          { l: "Stock value now (AVCO)", v: formatTaka(valuation.totalPaisa), c: "#470066", bg: "#f5eafb", icon: "box" },
           {
-            l: "Worst day", c: "#f7a96e", bg: "#3b2b17", icon: "clock",
+            l: "Worst day", c: "#b45309", bg: "#fff4e6", icon: "clock",
             v: worstDay
               ? `${new Date(worstDay.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · ${formatTaka(worstDay.wastagePaisa + worstDay.giftPaisa)}`
               : "—",
@@ -115,12 +115,12 @@ export function InvReportsView() {
                 <div key={s.date} className="flex-1 min-w-[4px] flex flex-col justify-end items-stretch group relative" style={{ height: 150 }}>
                   <div className="hidden group-hover:block absolute -top-1 left-1/2 -translate-x-1/2 -translate-y-full bg-white border border-lavender-deep rounded-[8px] shadow-soft px-2.5 py-1.5 text-[11.5px] whitespace-nowrap z-10">
                     <b>{new Date(s.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</b>
-                    {" · "}<span style={{ color: "#e1837a" }}>{formatTaka(s.wastagePaisa)}</span>
-                    {s.giftPaisa > 0 && <> · <span style={{ color: "#da6cef" }}>{formatTaka(s.giftPaisa)}</span></>}
+                    {" · "}<span style={{ color: "#c0392b" }}>{formatTaka(s.wastagePaisa)}</span>
+                    {s.giftPaisa > 0 && <> · <span style={{ color: "#cf43ea" }}>{formatTaka(s.giftPaisa)}</span></>}
                   </div>
                   <div style={{ height: hG, background: "#cf43ea" }} className={hG > 0 ? "rounded-t-[3px]" : ""} />
                   <div style={{ height: hW, background: "#c0392b" }} className={hG === 0 && hW > 0 ? "rounded-t-[3px]" : ""} />
-                  {total === 0 && <div style={{ height: 2, background: "#2b2034" }} />}
+                  {total === 0 && <div style={{ height: 2, background: "#eee6f5" }} />}
                 </div>
               );
             })}
@@ -149,11 +149,11 @@ export function InvReportsView() {
             </span>
             <span className="text-right text-[13px] text-body">{fmtQty(r.totalQtyMilli)} {r.unitShort}</span>
             <span className="text-right text-[12.5px] text-body-soft">{formatTaka(r.unitCostPaisa)}</span>
-            <span className="h-[10px] rounded-full overflow-hidden" style={{ background: "#291e35" }}>
+            <span className="h-[10px] rounded-full overflow-hidden" style={{ background: "#f1eaf8" }}>
               <span className="block h-full rounded-full"
                 style={{ width: `${Math.round((Math.abs(r.valuePaisa) / maxValue) * 100)}%`, background: r.valuePaisa < 0 ? "#c0392b" : ACCENT }} />
             </span>
-            <span className="text-right text-[13px] font-semibold" style={{ color: r.valuePaisa < 0 ? "#e1837a" : undefined }}>
+            <span className="text-right text-[13px] font-semibold" style={{ color: r.valuePaisa < 0 ? "#c0392b" : undefined }}>
               {formatTaka(r.valuePaisa)}
             </span>
           </div>
@@ -222,7 +222,7 @@ export function InvSettingsView() {
       className="text-[12.5px] font-medium px-4 py-2 rounded-full border transition-colors disabled:opacity-60"
       style={on
         ? { background: tone, color: "#fff", borderColor: tone }
-        : { background: "#fff", color: "#dfd2e4", borderColor: "#e4d9ef" }}>
+        : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
       {children}
     </button>
   );
@@ -278,9 +278,9 @@ export function InvSettingsView() {
                    cannot trust behaviour nobody told him about. */
                 others.length > 0 ? (
                   <span className="block text-[12px] rounded-[9px] px-2.5 py-2"
-                    style={{ background: "#20332e", color: "#78edd3" }}>
+                    style={{ background: "#e7f5f1", color: "#0e6b56" }}>
                     Runs out here? The rest comes from{" "}
-                    <b>{others.map((w) => w.name).join(" / ")}</b> automatically (DEC-INV-018).
+                    <b>{others.map((w) => w.name).join(" / ")}</b> automatically.
                   </span>
                 ) : (
                   <span className="text-[12px] text-body-soft">{holdLine(settings.defaultSaleWarehouseId)}</span>
@@ -301,7 +301,7 @@ export function InvSettingsView() {
               blurb="Where bouquet components are taken from"
               value={settings.defaultAssemblyComponentWarehouseId ?? null}
               onPick={(id) => save({ defaultAssemblyComponentWarehouseId: id })}
-              foot={<span className="text-[12px] text-body-soft">Finished goods land back in the sales store unless a transfer says otherwise.</span>}
+              foot={<span className="text-[12px] text-body-soft">{holdLine(settings.defaultAssemblyComponentWarehouseId ?? null)}</span>}
             />
           </div>
 

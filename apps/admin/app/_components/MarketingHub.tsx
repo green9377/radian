@@ -45,13 +45,6 @@ const SOURCE_LABEL: Record<AttributionSource, string> = {
 const SOURCE_TONE: Record<AttributionSource, Tone> = {
   REF_CODE: "emerald", COUPON: "emerald", UTM: "sky", MANUAL: "amber", UNATTRIBUTED: "rose",
 };
-const SOURCE_NOTE: Record<AttributionSource, string> = {
-  REF_CODE: "The customer arrived on somebody's link. Certain — commission depends on it.",
-  COUPON: "They typed a code that belongs to a campaign. Certain, and it works on the phone and at the counter too.",
-  UTM: "The website passed the campaign along. Reliable, but website orders only.",
-  MANUAL: "Somebody chose it. Only as good as the person's memory.",
-  UNATTRIBUTED: "We do not know, and we will not pretend. These are never spread across campaigns.",
-};
 
 /* ============================================================
    CAMPAIGNS — sub-module overview
@@ -81,7 +74,6 @@ export function CampaignsOverview() {
       <FinHeader
         eyebrow="Marketing · Campaigns"
         title="What we paid for, and what came back"
-        sub="One row per push, not per advertisement. Which ad performed better is a question Facebook answers for free; how the whole occasion went across website, phone, walk-in and foodpanda is one only Radian can answer."
         emoji="🚀"
         right={
           <>
@@ -103,11 +95,9 @@ export function CampaignsOverview() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <Panel title="Best return so far" emoji="🏆" tone="emerald"
-          sub="contribution against spend — not revenue against spend">
+        <Panel title="Best return so far" emoji="🏆" tone="emerald">
           {best.length === 0 ? (
-            <Empty emoji="🚀" title="Nothing to rank yet"
-              sub="A campaign needs both a tagged expense and an attributed order before a return can be worked out." />
+            <Empty emoji="🚀" title="Nothing to rank yet" />
           ) : (
             <Table head={<><Th>Campaign</Th><Th right>Spent</Th><Th right>Left</Th><Th right>Return</Th></>}>
               {best.slice(0, 6).map((c) => (
@@ -131,10 +121,9 @@ export function CampaignsOverview() {
           )}
         </Panel>
 
-        <Panel title="Running now" emoji="⏱" tone="sky" sub="what is live today">
+        <Panel title="Running now" emoji="⏱" tone="sky">
           {live.length === 0 ? (
-            <Empty emoji="⏱" title="Nothing running"
-              sub="Set a campaign's status to Running when the money starts going out." />
+            <Empty emoji="⏱" title="Nothing running" />
           ) : (
             <Table head={<><Th>Campaign</Th><Th>Ends</Th><Th right>Budget used</Th></>}>
               {live.map((c) => (
@@ -212,7 +201,6 @@ export function OrderSourcesView() {
       <FinHeader
         eyebrow="Marketing · Campaigns"
         title="Where did the orders come from?"
-        sub="Five rungs, checked in order. An order takes the highest rung that answers — and if none does, it stays unknown rather than being handed to whichever campaign happened to be running."
         emoji="🔎"
         tone="brand"
         right={
@@ -234,9 +222,6 @@ export function OrderSourcesView() {
       {q && q.totalOrders > 0 && unknownPct >= 40 && (
         <Banner tone="rose" emoji="⚠"
           title={`${unknown?.orders ?? 0} of ${q.totalOrders} orders have no known origin (${unknownPct}%)`}>
-          This is not a fault in the report — it is the truth about the evidence. The way to shrink
-          it is a coupon code on every campaign and a ref link for every affiliate, so an order
-          carries proof of where it came from. A cleverer report would only be a nicer guess.
         </Banner>
       )}
 
@@ -251,7 +236,6 @@ export function OrderSourcesView() {
                 </div>
                 <div>
                   <div className="font-display text-[15px] text-purple">{SOURCE_LABEL[r.source]}</div>
-                  <p className="text-[12px] text-body-soft mt-0.5 mb-0 max-w-[640px]">{SOURCE_NOTE[r.source]}</p>
                 </div>
               </div>
               <div className="text-right">
@@ -267,11 +251,6 @@ export function OrderSourcesView() {
         ))}
       </div>
 
-      <p className="text-[12px] text-body-soft mt-4 max-w-[760px]">
-        A person&apos;s decision always beats the machine: setting a campaign by hand on an order
-        marks it <em>Set by staff</em> and a later re-check will not overwrite it. Rung 3 stays
-        empty until the new storefront starts passing <code>utm_campaign</code> along.
-      </p>
     </div>
   );
 }
@@ -308,7 +287,6 @@ export function AffiliatesOverview() {
       <FinHeader
         eyebrow="Marketing · Affiliates"
         title="Who sends us customers"
-        sub="An influencer with a link and a wedding hall that walks people in are the same shape: they bring business, they earn a share, and they get paid. One ledger, one way out for the money."
         emoji="🤝"
         right={
           <>
@@ -327,8 +305,7 @@ export function AffiliatesOverview() {
         <Banner tone="amber" emoji="৳"
           title={`${payable.length} ${payable.length === 1 ? "person is" : "people are"} waiting to be paid`}
           right={<Link className={btnGhost} href="/marketing/affiliates/payouts">Payout history</Link>}>
-          Their hold period is over and they are above the minimum. Open the person to pay them —
-          owner and PIN, every time, because this is cash leaving the shop to somebody outside it.
+          Cash leaving the shop — owner and PIN, every time.
         </Banner>
       )}
 
@@ -345,10 +322,9 @@ export function AffiliatesOverview() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <Panel title="Who brings the most" emoji="🏆" tone="emerald" sub="by the value of goods they sold">
+        <Panel title="Who brings the most" emoji="🏆" tone="emerald">
           {(o?.leaderboard.length ?? 0) === 0 ? (
-            <Empty emoji="🤝" title="Nobody has earned yet"
-              sub="Commission appears once an order carrying somebody's code has actually been delivered." />
+            <Empty emoji="🤝" title="Nobody has earned yet" />
           ) : (
             <Table head={<><Th>Who</Th><Th right>Orders</Th><Th right>Sold</Th><Th right>Earned</Th></>}>
               {o!.leaderboard.map((r) => (
@@ -372,8 +348,7 @@ export function AffiliatesOverview() {
         <Panel title="Waiting to be paid" emoji="৳" tone="amber"
           sub={o ? `minimum ${taka(o.minWithdrawPaisa)} · ${o.holdDays} days on hold after delivery` : ""}>
           {ready.length === 0 ? (
-            <Empty emoji="⏳" title="Nothing to pay right now"
-              sub="Commission sits on hold until the return window has passed. Money handed over before that is money to chase afterwards." />
+            <Empty emoji="⏳" title="Nothing to pay right now" />
           ) : (
             <Table head={<><Th>Who</Th><Th>Pay by</Th><Th right>Amount</Th><Th right></Th></>}>
               {ready.map((r) => (
@@ -456,7 +431,6 @@ export function CommissionsView() {
       <FinHeader
         eyebrow="Marketing · Affiliates"
         title="Commission ledger"
-        sub="One row per order, per affiliate. It appears when the order is delivered, becomes withdrawable when the return window closes, and disappears into a payout after that. A returned order turns it red."
         emoji="📒"
         tone="slate"
         right={<Link className={btnGhost} href="/marketing/affiliates">Overview</Link>}
@@ -473,8 +447,7 @@ export function CommissionsView() {
 
       <Card className="overflow-hidden">
         {rows.length === 0 ? (
-          <Empty emoji="📒" title="Nothing here"
-            sub="Commission is recorded the moment an order carrying somebody's code is marked delivered." />
+          <Empty emoji="📒" title="Nothing here" />
         ) : (
           <>
             <Table head={
@@ -515,7 +488,7 @@ export function CommissionsView() {
                 </tr>
               ))}
             </Table>
-            <div className="px-4 py-3 border-t border-[#3e3248] flex items-center justify-between">
+            <div className="px-4 py-3 border-t border-[#f3eef7] flex items-center justify-between">
               <span className="text-[12px] text-body-soft">{rows.length} rows shown</span>
               <span className="text-[14px] font-bold text-purple">{taka(total)}</span>
             </div>
@@ -523,11 +496,6 @@ export function CommissionsView() {
         )}
       </Card>
 
-      <p className="text-[12px] text-body-soft mt-3 max-w-[760px]">
-        The <strong>Ledger</strong> column is not decoration. Every commission must have a real
-        journal entry behind it — a row that says money is owed while the books say nothing
-        happened is the exact bug that went unnoticed in payroll for a month.
-      </p>
     </div>
   );
 }
@@ -557,7 +525,6 @@ export function PayoutsView() {
       <FinHeader
         eyebrow="Marketing · Affiliates"
         title="Payouts"
-        sub="Every time money left the shop for somebody outside it. Owner and PIN each time, and if the ledger refuses the entry the payout is refused with it — nothing is ever recorded as paid when the books say otherwise."
         emoji="↗"
         tone="slate"
         right={<Link className={btnGhost} href="/marketing/affiliates">Overview</Link>}
@@ -575,8 +542,7 @@ export function PayoutsView() {
 
       <Card className="overflow-hidden">
         {rows.length === 0 ? (
-          <Empty emoji="↗" title="Nothing has been paid out yet"
-            sub="A payout is made from the affiliate's own page, once their commission is off hold and above the minimum." />
+          <Empty emoji="↗" title="Nothing has been paid out yet" />
         ) : (
           <Table head={
             <><Th>No.</Th><Th>When</Th><Th>Who</Th><Th>How</Th>

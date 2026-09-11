@@ -12,7 +12,6 @@ import { TONE, Panel, type Tone } from "./OrderViews";
 import ProductPicker from "./ProductPicker";
 import Icon from "./Icon";
 import { TakaInput } from "./MoneyBlock";
-import { Info } from "./ItemEditor";
 import QtyStepper from "./QtyStepper";
 
 /*
@@ -307,11 +306,7 @@ export default function OrderEditForm({ id }: { id: string }) {
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <Link href={`/orders/${o.id}`} className="border border-lavender-deep bg-white text-body-soft hover:text-purple w-[40px] h-[40px] rounded-[12px] grid place-items-center shrink-0"><Icon name="chevronLeft" size={20} /></Link>
         <div className="flex-1 min-w-0">
-          {/*  House rule 17 — the header paragraph rides behind the ⓘ.  */}
-          <h1 className="font-display text-[24px] text-purple m-0 leading-none inline-flex items-center gap-2">
-            Edit order {o.orderNo ?? ""}
-            <Info text="Change items, charges, delivery and notes. The price on the right updates as you go, and nothing is committed until you press Save changes." />
-          </h1>
+          <h1 className="font-display text-[24px] text-purple m-0 leading-none">Edit order {o.orderNo ?? ""}</h1>
         </div>
         <Link href={`/orders/${o.id}`} className="border border-lavender-deep bg-white text-[13.5px] px-4 py-2.5 rounded-[12px] font-medium hover:text-purple text-body-soft">Cancel</Link>
         <button type="button" disabled={saving} onClick={save} className="bg-purple hover:bg-purple-deep disabled:opacity-50 text-white text-[13.5px] px-5 py-2.5 rounded-[12px] font-medium inline-flex items-center gap-2 shadow-soft">
@@ -329,7 +324,7 @@ export default function OrderEditForm({ id }: { id: string }) {
           {o.isGift ? (
             <Panel title="Recipient & gift" icon="pin" tone="gold">
               <div className="p-5">
-                {!gates.recipient && <Lock text="Recipient is locked — the order is already out for delivery." />}
+                {!gates.recipient && <Lock text="Recipient locked — out for delivery." />}
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
                   <div><label className={labelCls}>Recipient name</label><input className="ipt h-[42px]" value={recipientName} disabled={!gates.recipient} onChange={(e) => setRecipientName(e.target.value)} /></div>
                   <div><label className={labelCls}>Recipient phone (rider calls this)</label><input className="ipt h-[42px]" value={recipientPhone} disabled={!gates.recipient} onChange={(e) => setRecipientPhone(e.target.value)} /></div>
@@ -340,7 +335,7 @@ export default function OrderEditForm({ id }: { id: string }) {
           ) : (
             <Panel title="Customer" icon="user" tone="purple">
               <div className="p-5 text-[13px] text-body-soft">
-                Self order for <Link href={`/customers/${o.customerId}`} className="text-purple underline font-medium">{o.sender.name}</Link> · {o.sender.phone}. Name and phone are edited in the customer profile.
+                Self order for <Link href={`/customers/${o.customerId}`} className="text-purple underline font-medium">{o.sender.name}</Link> · {o.sender.phone}
               </div>
             </Panel>
           )}
@@ -348,7 +343,7 @@ export default function OrderEditForm({ id }: { id: string }) {
           {/* delivery */}
           <Panel title="Delivery" icon="truck" tone="blue">
             <div className="p-5">
-              {!gates.delivery && <Lock text="Address and slot are locked — the order is out for delivery." />}
+              {!gates.delivery && <Lock text="Address and slot locked — out for delivery." />}
               <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
                 <div className="col-span-full"><label className={labelCls}>Delivery address</label><input className="ipt h-[42px]" value={address} disabled={!gates.delivery} onChange={(e) => setAddress(e.target.value)} /></div>
                 {/*  ⚠️ PICKERS, NOT FREE TEXT — audit 11 Sep 2026.
@@ -396,8 +391,8 @@ export default function OrderEditForm({ id }: { id: string }) {
                 <Lock
                   text={
                     canAdd
-                      ? "Preparing has started, so existing items can't be changed or removed (stock is committed, DEC-MOD-003). You can still add something and apply discounts."
-                      : "The order is out for delivery — items are locked. Discounts and charges are still open."
+                      ? "Preparing has started — existing items are locked. You can still add items and discounts."
+                      : "Items locked — out for delivery. Discounts and charges are still open."
                   }
                 />
               )}
@@ -554,7 +549,7 @@ export default function OrderEditForm({ id }: { id: string }) {
           </Panel>
 
           {/* charges */}
-          <Panel title="Charges & adjustments" icon="cash" tone="gold" hint="delivery charge, extra charges, or a goodwill discount">
+          <Panel title="Charges & adjustments" icon="cash" tone="gold">
             <div className="p-5">
               <div className="max-w-[280px]">
                 <label className={labelCls}>Delivery charge ৳</label>
@@ -567,7 +562,7 @@ export default function OrderEditForm({ id }: { id: string }) {
                   <p className="text-[13px] text-body-soft mt-0 mb-2">
                     None added here.{" "}
                     {baseAdjustment !== 0
-                      ? `This order already carries an adjustment of ${formatTaka(Math.abs(baseAdjustment))}${baseAdjustment < 0 ? " off" : ""} — it is kept as it is unless you add something below.`
+                      ? `Existing adjustment ${formatTaka(Math.abs(baseAdjustment))}${baseAdjustment < 0 ? " off" : ""} is kept.`
                       : "Add a charge (＋) or a goodwill discount (−)."}
                   </p>
                 )}
@@ -692,13 +687,6 @@ export default function OrderEditForm({ id }: { id: string }) {
                 <Icon name="check" size={17} /> {saving ? "Saving…" : "Save changes"}
               </button>
               <Link href={`/orders/${o.id}`} className="block text-center text-[13px] text-body-soft mt-2 hover:text-purple">Cancel without saving</Link>
-              {/*  House rule 17 — the paragraph that used to sit here moves
-                   behind the ⓘ. It is still there for whoever wants it and
-                   silent for everyone else.  */}
-              <div className="flex items-center justify-center gap-1.5 mt-3 text-[12.5px] text-body-soft">
-                <span>What can still be changed</span>
-                <Info text="Items lock once preparing starts, because stock is committed then (DEC-MOD-003). Discounts and charges stay open until the order closes, and every change is written to the activity log with who made it." />
-              </div>
             </div>
           </div>
         </aside>

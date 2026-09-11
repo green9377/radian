@@ -130,7 +130,7 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 /* ---------------- atoms ---------------- */
 function DemoPill() {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.05em] bg-[#3a2d16] text-[#f7a96e] border border-[#f0c88a] px-2.5 py-1 rounded-full">
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.05em] bg-[#fff8ec] text-[#b45309] border border-[#f0c88a] px-2.5 py-1 rounded-full">
       <Icon name="bolt" size={12} /> Demo data
     </span>
   );
@@ -175,7 +175,7 @@ function PageHead({
   );
 }
 
-const PLACEMENT_COLOR = ["#7d2ea8", "#cf43ea", "#3e1c46"]; // product · cart · checkout
+const PLACEMENT_COLOR = ["#7d2ea8", "#cf43ea", "#e6a8f5"]; // product · cart · checkout
 
 /* a stable colour per group id, so the same group is always the same colour
    on the card chips, the group rail and the preview tabs */
@@ -213,14 +213,14 @@ const HUE: Record<string, string> = {
     here. Hues map into the brand family — red and amber stay warnings,
     because "selling at a loss" must look like one.  */
 const KPI_TONE: Record<string, { c: string; edge: string; bg: string }> = {
-  purple: { c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34" },
-  orchid: { c: "#bb87d4", edge: "#cf43ea", bg: "#30183a" },
-  rose:   { c: "#c794a1", edge: "#c9788a", bg: "#361b1f" },
-  green:  { c: "#76efc3", edge: "#37a97c", bg: "#20332a" },
-  teal:   { c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35" },
-  blue:   { c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35" },
-  amber:  { c: "#f7a96e", edge: "#e29a34", bg: "#3c2d17" },
-  red:    { c: "#e1837a", edge: "#e0705f", bg: "#3b1b17" },
+  purple: { c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8" },
+  orchid: { c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc" },
+  rose:   { c: "#a4566a", edge: "#c9788a", bg: "#fbeef0" },
+  green:  { c: "#0f7d55", edge: "#37a97c", bg: "#e9f6f0" },
+  teal:   { c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9" },
+  blue:   { c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9" },
+  amber:  { c: "#b45309", edge: "#e29a34", bg: "#fdf3e4" },
+  red:    { c: "#c0392b", edge: "#e0705f", bg: "#fdeeec" },
 };
 function Kpi({
   n,
@@ -236,7 +236,7 @@ function Kpi({
   const t = KPI_TONE[hue] ?? KPI_TONE.purple;
   return (
     <div className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
-      style={{ background: `linear-gradient(150deg,${t.bg},#1f1727 130%)` }}>
+      style={{ background: `linear-gradient(150deg,${t.bg},#ffffff 130%)` }}>
       <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: t.edge }} />
       <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center text-white"
         style={{ background: t.edge, boxShadow: `0 3px 9px ${t.edge}45` }}>
@@ -266,17 +266,6 @@ function Card({
         <div className="mb-3" />
       )}
       {children}
-    </div>
-  );
-}
-
-function HowTo({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-orchid-mid bg-orchid-soft/60 px-4 py-3 mb-5 text-[12.5px] text-purple">
-      <span className="shrink-0 text-orchid">
-        <Icon name="sparkle" size={17} />
-      </span>
-      <div>{children}</div>
     </div>
   );
 }
@@ -432,10 +421,7 @@ export function ProductsOverview() {
           eyebrow="Product Management · overview"
           title="Product Overview"
           demo={demo}
-        >
-          Your whole catalog at a glance — what sells, what is stuck, and where
-          money is leaking.
-        </PageHead>
+        />
         <Link
           href="/products/new"
           className="bg-purple hover:bg-purple-deep text-white text-[14px] font-medium px-5 py-3 rounded-[12px] inline-flex items-center gap-2 shadow-soft transition-colors"
@@ -482,7 +468,7 @@ export function ProductsOverview() {
         </Card>
       </div>
 
-      <Card title="Extras at a glance" sub="Add-ons, upgrades and variant templates — tap to manage">
+      <Card title="Extras at a glance" sub="Add-ons, upgrades and variant templates">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <ExtraTile href="/products/addons" icon="tag" n={extras ? extras.addons : "…"} l="Live add-ons" sub={extras ? `${extras.groups} groups · ${extras.rules} rules` : ""} />
           <ExtraTile href="/products/addons" icon="bolt" n={extras ? extras.rules : "…"} l="Active auto-rules" sub="attach add-ons by condition" />
@@ -521,7 +507,7 @@ function MiniList({
     <div className="flex flex-col gap-2.5">
       {rows.map((p) => {
         const t = tone?.(p);
-        const c = t === "danger" ? "text-[#e1837a]" : t === "warn" ? "text-[#f7a96e]" : "text-purple";
+        const c = t === "danger" ? "text-[#c0392b]" : t === "warn" ? "text-[#b45309]" : "text-purple";
         return (
           <Link
             key={p.id}
@@ -578,10 +564,10 @@ function Attn({
   tone: "warn" | "danger";
 }) {
   const c = !n
-    ? "text-[#76efc3] bg-[#20342a] border-[#31493e]"
+    ? "text-[#0f7d55] bg-[#e8f6ef] border-[#bfe3d2]"
     : tone === "danger"
-      ? "text-[#e1837a] bg-[#3b1a16] border-[#4d2e2e]"
-      : "text-[#f7a96e] bg-[#3a2d16] border-[#f0c88a]";
+      ? "text-[#c0392b] bg-[#fdecea] border-[#e0a1a1]"
+      : "text-[#b45309] bg-[#fff8ec] border-[#f0c88a]";
   return (
     <Link href={href} className={`border rounded-[14px] px-4 py-3.5 block hover:opacity-80 ${c}`}>
       <div className="text-[24px] font-medium font-display leading-none">{n}</div>
@@ -624,18 +610,10 @@ export function StockBoard() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Product Management · stock" title="Stock Board" demo={demo}>
-        Set stock for every product in one place, without opening each one.
-      </PageHead>
+      <PageHead eyebrow="Product Management · stock" title="Stock Board" demo={demo} />
 
       <Said say={say} />
 
-      <HowTo>
-        <b>How to read this:</b> the number is how many you can still sell. Use −
-        / + or type a number — it saves as soon as you leave the box. Each order
-        drops it by 1 automatically. <b>Show on site</b> off means the customer
-        never sees a number, but the product still sells.
-      </HowTo>
 
       <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
         <Kpi n={String(items.length)} l="Products" hue="purple" icon="box" />
@@ -729,17 +707,17 @@ export function StockBoard() {
                       +
                     </button>
                     {p.stockQty <= 0 && (
-                      <span className="text-[11px] font-bold text-[#e1837a] ml-1">OUT</span>
+                      <span className="text-[11px] font-bold text-[#c0392b] ml-1">OUT</span>
                     )}
                     {p.stockQty > 0 && p.stockQty <= 5 && (
-                      <span className="text-[11px] font-bold text-[#f7a96e] ml-1">LOW</span>
+                      <span className="text-[11px] font-bold text-[#b45309] ml-1">LOW</span>
                     )}
                   </div>
                 </td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() => patch(p.id, { showStock: !p.showStock })}
-                    className={`w-[38px] h-[22px] rounded-full relative transition-colors ${p.showStock ? "bg-[#0f7d55]" : "bg-[#322a39]"}`}
+                    className={`w-[38px] h-[22px] rounded-full relative transition-colors ${p.showStock ? "bg-[#0f7d55]" : "bg-[#cdbfda]"}`}
                   >
                     <span
                       className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white transition-all ${p.showStock ? "left-[18px]" : "left-[2px]"}`}
@@ -805,7 +783,7 @@ export function MarginBoard() {
         eyebrow="Product Management · money"
         title="Price & Margin"
         demo={demo}
-        tip="Cost against selling price for the whole catalog - so nothing quietly sells at a loss. Cost = what you pay. Customer pays = price after any product discount. Margin = what is left for Radian. Green is healthy, amber is thin (under 20%), red means you lose money on every sale. Coupons are separate - they live in Offers."
+        tip="Green is healthy, amber is under 20%, red loses money on every sale."
       />
 
       <Said say={say} />
@@ -859,10 +837,10 @@ export function MarginBoard() {
               const c = noC
                 ? "text-body-soft"
                 : m < 0
-                  ? "text-[#e1837a]"
+                  ? "text-[#c0392b]"
                   : pct < 20
-                    ? "text-[#f7a96e]"
-                    : "text-[#76efc3]";
+                    ? "text-[#b45309]"
+                    : "text-[#0f7d55]";
               const bar = noC ? 0 : Math.max(0, Math.min(100, pct));
               return (
                 <tr key={p.id} className="hover:bg-lavender/70 border-t border-lavender-deep">
@@ -905,7 +883,7 @@ export function MarginBoard() {
                         onChange={(e) => typeLocal(p.id, { sellingPricePaisa: (Number(e.target.value) || 0) * 100 })}
                         onBlur={(e) => commit(p.id, { sellingPricePaisa: (Number(e.target.value) || 0) * 100 })}
                       />
-                      {saved === p.id && <span className="text-[#76efc3]"><Icon name="check" size={15} /></span>}
+                      {saved === p.id && <span className="text-[#0f7d55]"><Icon name="check" size={15} /></span>}
                     </div>
                     <span className="text-[13px] text-body-soft">pays {formatTaka(p.offerPricePaisa)}</span>
                   </td>
@@ -963,15 +941,8 @@ export function HealthBoard() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Product Management · quality" title="Product Health" demo={demo}>
-        Which products are missing something before they are ready to sell.
-      </PageHead>
+      <PageHead eyebrow="Product Management · quality" title="Product Health" demo={demo} />
 
-      <HowTo>
-        <b>How to read this:</b> each product is checked on {CHECKS.length} basics.
-        Green chip = done, red chip = missing. Click the product name to fix it.
-        100% means it is ready for the storefront.
-      </HowTo>
 
       <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
         <Kpi n={`${avg}%`} l="Catalog completeness" hue={avg >= 80 ? "green" : "amber"} icon="check" />
@@ -1011,7 +982,7 @@ export function HealthBoard() {
                 return (
                   <span
                     key={c.key}
-                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${ok ? "bg-[#20342a] text-[#76efc3]" : "bg-[#3b1a16] text-[#e1837a]"}`}
+                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${ok ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-[#fdecea] text-[#c0392b]"}`}
                   >
                     {ok ? "✓" : "✕"} {c.label}
                   </span>
@@ -1019,7 +990,7 @@ export function HealthBoard() {
               })}
             </div>
             <div
-              className={`text-[18px] font-display font-medium shrink-0 ${pct === 100 ? "text-[#76efc3]" : pct >= 70 ? "text-[#f7a96e]" : "text-[#e1837a]"}`}
+              className={`text-[18px] font-display font-medium shrink-0 ${pct === 100 ? "text-[#0f7d55]" : pct >= 70 ? "text-[#b45309]" : "text-[#c0392b]"}`}
             >
               {pct}%
             </div>
@@ -1230,33 +1201,21 @@ export function BulkActions() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Product Management · bulk" title="Bulk Actions" demo={demo}>
-        Change many products at once — publish a season, shift prices before
-        Valentine&apos;s, switch delivery zone.
-      </PageHead>
+      <PageHead eyebrow="Product Management · bulk" title="Bulk Actions" demo={demo} />
 
       <Said say={say} />
 
-      <HowTo>
-        <b>How to use:</b> click rows in the table to tick them, then press an
-        action above. Nothing happens until you choose an action, and every
-        change is confirmed first.
-      </HowTo>
 
       {/* ---------- IMPORT / EXPORT ---------- */}
       <div className="grid lg:grid-cols-2 gap-4 mb-4">
         {/* download */}
         <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5 border-t-[5px] border-t-[#0f7d55]">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[#76efc3]"><Icon name="download" size={18} /></span>
+            <span className="text-[#0f7d55]"><Icon name="download" size={18} /></span>
             <h3 className="font-display text-[16px] text-purple m-0">Download</h3>
           </div>
           <p className="text-[13px] text-body-soft mt-0 mb-3.5">
-            Get a spreadsheet, edit it in Excel, then upload it back. The SKU
-            column links a row to a product — never change it. The last column,{" "}
-            <span className="font-mono">offerPriceTk_readonly</span>, is what the
-            customer pays; it is worked out from price and discount, so edit{" "}
-            <span className="font-mono">discountValue</span> to move it.
+            Never change the <span className="font-mono">sku</span> column.
           </p>
           <div className="flex gap-2.5 flex-wrap">
             <button onClick={() => exportCsv(items, "radian-products")} className="bg-purple hover:bg-purple-deep text-white text-[13px] font-semibold px-4 py-2.5 rounded-[11px] inline-flex items-center gap-1.5">
@@ -1274,12 +1233,11 @@ export function BulkActions() {
         {/* upload */}
         <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5 border-t-[5px] border-t-[#3b5bdb]">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[#758ce6]"><Icon name="upload" size={18} /></span>
+            <span className="text-[#3b5bdb]"><Icon name="upload" size={18} /></span>
             <h3 className="font-display text-[16px] text-purple m-0">Upload</h3>
           </div>
           <p className="text-[13px] text-body-soft mt-0 mb-3.5">
-            Pick your edited file. <b>Nothing is saved until you press Apply</b> —
-            you see every change first.
+            <b>Nothing is saved until you press Apply.</b>
           </p>
           <label className="flex flex-col items-center justify-center gap-1.5 border-[1.5px] border-dashed border-orchid-mid rounded-[14px] py-6 cursor-pointer hover:bg-orchid-soft/40 transition-colors">
             <input type="file" accept=".csv,text/csv" className="hidden" onChange={onPickFile} />
@@ -1288,7 +1246,7 @@ export function BulkActions() {
             <span className="text-[13px] text-body-soft">{importName || "no file chosen yet"}</span>
           </label>
           {importError && (
-            <p className="text-[12.5px] text-[#e1837a] mt-3 mb-0">{importError}</p>
+            <p className="text-[12.5px] text-[#c0392b] mt-3 mb-0">{importError}</p>
           )}
         </div>
       </div>
@@ -1300,9 +1258,9 @@ export function BulkActions() {
             <div>
               <h3 className="font-display text-[16px] text-purple m-0">Check before saving</h3>
               <div className="text-[13px] text-body-soft mt-0.5">
-                <b className="text-[#76efc3]">{okRows.length} ready</b>
-                {skipRows.length > 0 && <> · <b className="text-[#f7a96e]">{skipRows.length} nothing changed</b></>}
-                {badRows.length > 0 && <> · <b className="text-[#e1837a]">{badRows.length} SKU not found</b></>}
+                <b className="text-[#0f7d55]">{okRows.length} ready</b>
+                {skipRows.length > 0 && <> · <b className="text-[#b45309]">{skipRows.length} nothing changed</b></>}
+                {badRows.length > 0 && <> · <b className="text-[#c0392b]">{badRows.length} SKU not found</b></>}
               </div>
             </div>
             <div className="flex gap-2.5">
@@ -1336,13 +1294,13 @@ export function BulkActions() {
                     <td className="px-4 py-2.5 text-purple">{r.product?.name ?? <span className="text-body-soft">not in catalog</span>}</td>
                     <td className="px-4 py-2.5">
                       {!r.product ? (
-                        <span className="text-[11.5px] bg-[#3b1a16] text-[#e1837a] px-2 py-1 rounded-full">SKU not found — row skipped</span>
+                        <span className="text-[11.5px] bg-[#fdecea] text-[#c0392b] px-2 py-1 rounded-full">SKU not found — row skipped</span>
                       ) : r.changes.length === 0 ? (
                         <span className="text-[11.5px] bg-lavender text-body-soft px-2 py-1 rounded-full">nothing changed</span>
                       ) : (
                         <div className="flex flex-wrap gap-1.5">
                           {r.changes.map((c) => (
-                            <span key={c.field} className="text-[11.5px] bg-[#172a3a] text-[#84b5e1] border border-[#2d3f4e] px-2 py-1 rounded-full">
+                            <span key={c.field} className="text-[11.5px] bg-[#eef6fd] text-[#1e4e79] border border-[#b8d4ea] px-2 py-1 rounded-full">
                               {c.field}: <s className="opacity-60">{c.from}</s> → <b>{c.to}</b>
                             </span>
                           ))}
@@ -1412,7 +1370,7 @@ export function BulkActions() {
         </div>
         {busy && <p className="text-[13px] text-body-soft mt-3 mb-0">Saving…</p>}
         {done && (
-          <p className="text-[12.5px] font-semibold text-[#76efc3] mt-3 mb-0 inline-flex items-center gap-1.5">
+          <p className="text-[12.5px] font-semibold text-[#0f7d55] mt-3 mb-0 inline-flex items-center gap-1.5">
             <Icon name="check" size={15} /> {done}
           </p>
         )}
@@ -1479,7 +1437,7 @@ export function BulkActions() {
                   <td className="px-4 py-3">{formatTaka(p.offerPricePaisa)}</td>
                   <td className="px-4 py-3 text-body-soft">{p.zone === "DHAKA" ? "Dhaka" : "Nationwide"}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${p.isPublished ? "bg-[#20342a] text-[#76efc3]" : "bg-[#29242f] text-body-soft"}`}>
+                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${p.isPublished ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-[#f0edf4] text-body-soft"}`}>
                       {p.isPublished ? "Published" : "Draft"}
                     </span>
                   </td>
@@ -1489,11 +1447,6 @@ export function BulkActions() {
           </tbody>
         </table>
       </div>
-      {!demo && (
-        <p className="text-body-soft text-[12px] mt-3.5">
-          Bulk changes save one by one to the catalog and are written to the audit trail.
-        </p>
-      )}
     </div>
   );
 }
@@ -1578,7 +1531,7 @@ function HexBox({ value, onCommit }: { value: string; onCommit: (hex: string) =>
   const ok = v.trim() === "" || /^#[0-9a-fA-F]{6}$/.test(v.trim());
   return (
     <input
-      className={"ipt w-full font-mono text-[12.5px]" + (ok ? "" : " !border-[#4d2e2e]")}
+      className={"ipt w-full font-mono text-[12.5px]" + (ok ? "" : " !border-[#e0a1a1]")}
       style={{ minHeight: 34 }}
       placeholder="#e0203c"
       value={v}
@@ -1725,7 +1678,7 @@ export function VariantAttributes() {
     setAttrs((a) =>
       a.map((x) => {
         if (x.id !== aid) return x;
-        const values = [...x.values, v(label, x.display === "SWATCH" ? "#2a2033" : undefined)];
+        const values = [...x.values, v(label, x.display === "SWATCH" ? "#CCCCCC" : undefined)];
         persistValues(aid, values);
         return { ...x, values };
       }),
@@ -1784,12 +1737,12 @@ export function VariantAttributes() {
   return (
     <div className={WRAP}>
       {img.err && (
-        <div className="mb-4 rounded-[12px] border border-[#502f2a] bg-[#381b18] px-4 py-2.5 text-[13px] text-[#ed8078]">
+        <div className="mb-4 rounded-[12px] border border-[#f1c9c4] bg-[#fdf3f2] px-4 py-2.5 text-[13px] text-[#b42318]">
           {img.err}
         </div>
       )}
       {saveErr && (
-        <div className="mb-4 rounded-[12px] border border-[#502f2a] bg-[#381b18] px-4 py-2.5 text-[13px] text-[#ed8078] flex items-center justify-between gap-3">
+        <div className="mb-4 rounded-[12px] border border-[#f1c9c4] bg-[#fdf3f2] px-4 py-2.5 text-[13px] text-[#b42318] flex items-center justify-between gap-3">
           <span className="font-semibold">{saveErr}</span>
           <button className="underline shrink-0 font-semibold" onClick={() => setSaveErr(null)}>Dismiss</button>
         </div>
@@ -1816,13 +1769,13 @@ export function VariantAttributes() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         {[
-          { l: "Lists", v: attrs.length, c: "#ce6ef7", edge: "#6d3a9c", bg: "#2c1e34", icon: "layers" },
-          { l: "Options", v: totalValues, c: "#bb87d4", edge: "#cf43ea", bg: "#30183a", icon: "grid" },
-          { l: "Colours", v: attrs.filter((a) => a.display === "SWATCH").reduce((s, a) => s + a.values.length, 0), c: "#c794a1", edge: "#c9788a", bg: "#361b1f", icon: "sparkle", tip: "Options on a colour list. These are what the shopper taps as swatches on a product page." },
-          { l: "Hidden", v: attrs.reduce((s, a) => s + a.values.filter((x) => !x.active).length, 0), c: "#ad94d1", edge: "#8b6fc4", bg: "#241d35", icon: "eye", tip: "Options switched off. They stay here and disappear from the product page." },
+          { l: "Lists", v: attrs.length, c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8", icon: "layers" },
+          { l: "Options", v: totalValues, c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc", icon: "grid" },
+          { l: "Colours", v: attrs.filter((a) => a.display === "SWATCH").reduce((s, a) => s + a.values.length, 0), c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "sparkle", tip: "Options on a colour list. These are what the shopper taps as swatches on a product page." },
+          { l: "Hidden", v: attrs.reduce((s, a) => s + a.values.filter((x) => !x.active).length, 0), c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "eye", tip: "Options switched off. They stay here and disappear from the product page." },
         ].map((k, i) => (
           <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
-            style={{ background: `linear-gradient(150deg,${k.bg},#1f1727 130%)` }}>
+            style={{ background: `linear-gradient(150deg,${k.bg},#ffffff 130%)` }}>
             <span className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: k.edge }} />
             <div className="flex items-center justify-between gap-2">
               <span className="w-[28px] h-[28px] rounded-[9px] grid place-items-center text-white shrink-0"
@@ -1928,7 +1881,7 @@ export function VariantAttributes() {
                    here (22 Aug 2026). Buttons in this house are bold and
                    clear: the live half carries the colour, an icon and a
                    shadow, so which mode is on reads across the room.  */}
-              <div className="inline-flex rounded-[12px] p-1 gap-1 ml-auto" style={{ background: "#2c1e34", border: "1px solid #6d3a9c33" }}>
+              <div className="inline-flex rounded-[12px] p-1 gap-1 ml-auto" style={{ background: "#f3ebf8", border: "1px solid #6d3a9c33" }}>
                 {(["SWATCH", "PHOTO", "TEXT"] as const).map((d) => {
                   const on = open.display === d;
                   return (
@@ -1939,7 +1892,7 @@ export function VariantAttributes() {
                       className={`text-[13px] font-bold px-3.5 py-2 rounded-[9px] inline-flex items-center gap-2 transition-all ${on ? "text-white" : "hover:bg-white/70"}`}
                       style={on
                         ? { background: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
-                        : { color: "#ce6ef7" }}
+                        : { color: "#470066" }}
                     >
                       <Icon name={d === "SWATCH" ? "sparkle" : d === "PHOTO" ? "photo" : "hash"} size={14} />
                       {DISPLAY_LABEL[d]}
@@ -1959,7 +1912,7 @@ export function VariantAttributes() {
                   setSelId(null);
                 }}
                 title="Delete this list"
-                className="w-9 h-9 grid place-items-center rounded-[10px] text-body-soft hover:text-[#e1837a] hover:bg-[#3b171b]"
+                className="w-9 h-9 grid place-items-center rounded-[10px] text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]"
               >
                 <Icon name="trash" size={15} />
               </button>
@@ -1980,14 +1933,14 @@ export function VariantAttributes() {
 
               <div className="divide-y divide-lavender-deep">
                 {open.values.map((val) => (
-                  <div key={val.id} className={vRowCls(open.display) + " py-2 " + (val.active ? "hover:bg-lavender/15" : "bg-[#291e31] opacity-70")}>
+                  <div key={val.id} className={vRowCls(open.display) + " py-2 " + (val.active ? "hover:bg-lavender/15" : "bg-[#faf7fc] opacity-70")}>
                     {open.display === "SWATCH" && (
                       <>
                         <label className="relative w-[52px] h-[34px] rounded-[9px] border border-lavender-deep cursor-pointer overflow-hidden"
                           title="Pick a colour"
-                          style={{ background: val.hex || "repeating-linear-gradient(45deg,#2a2131,#2a2131 5px,#2d2434 5px,#2d2434 10px)" }}>
+                          style={{ background: val.hex || "repeating-linear-gradient(45deg,#f3eef7,#f3eef7 5px,#e6dcee 5px,#e6dcee 10px)" }}>
                           <input type="color" className="absolute inset-0 opacity-0 cursor-pointer"
-                            value={/^#[0-9a-fA-F]{6}$/.test(val.hex ?? "") ? val.hex : "#2a2033"}
+                            value={/^#[0-9a-fA-F]{6}$/.test(val.hex ?? "") ? val.hex : "#cccccc"}
                             onChange={(e) => setValue(open.id, val.id, { hex: e.target.value })} />
                         </label>
                         <input className="ipt w-full" style={{ minHeight: 36 }}
@@ -2001,7 +1954,7 @@ export function VariantAttributes() {
                       <>
                         <label className="relative w-[52px] h-[38px] rounded-[9px] border border-lavender-deep cursor-pointer overflow-hidden bg-cover bg-center grid place-items-center text-body-soft"
                           title={val.imageUrl ? "Replace the photo" : "Upload a photo"}
-                          style={val.imageUrl ? { backgroundImage: `url(${val.imageUrl})` } : { background: "#291c34" }}>
+                          style={val.imageUrl ? { backgroundImage: `url(${val.imageUrl})` } : { background: "#f7f2fb" }}>
                           <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden"
                             disabled={img.busyId === val.id}
                             onChange={(e) => {
@@ -2021,7 +1974,7 @@ export function VariantAttributes() {
                           {val.imageUrl && (
                             <button title="Remove photo"
                               onClick={() => setValue(open.id, val.id, { imageUrl: "" })}
-                              className="shrink-0 w-[30px] h-[30px] grid place-items-center rounded-[8px] text-body-soft hover:text-[#e1837a] hover:bg-[#3b171b]">
+                              className="shrink-0 w-[30px] h-[30px] grid place-items-center rounded-[8px] text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]">
                               ×
                             </button>
                           )}
@@ -2049,7 +2002,7 @@ export function VariantAttributes() {
                           }),
                         )
                       }
-                      className="justify-self-end w-[30px] h-[30px] grid place-items-center rounded-[8px] text-body-soft hover:text-[#e1837a] hover:bg-[#3b171b]"
+                      className="justify-self-end w-[30px] h-[30px] grid place-items-center rounded-[8px] text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]"
                       title="Delete"
                     >
                       <Icon name="trash" size={14} />
@@ -2248,34 +2201,10 @@ export function UpgradeProducts() {
 
   return (
     <div className={WRAP}>
-      <PageHead eyebrow="Product Management · catalog" title="Upgrade Products" demo={demo}>
-        A bigger or premium version of a product — its own name and its own extra
-        price. The customer picks it instead of the standard one.
-      </PageHead>
+      <PageHead eyebrow="Product Management · catalog" title="Upgrade Products" demo={demo} />
 
       <Said say={say} />
 
-      <HowTo>
-        <b>An upgrade is a different thing, not a top-up.</b> 50 roses → 100
-        roses is its own product: it carries its <b>own cost, own price, own
-        discount and own margin</b>. Nothing is inherited from the product it
-        upgrades, so the customer pays the upgrade&apos;s price — never base +
-        extra. <br />
-        <b>Add-on is the opposite:</b> a ৳500 bouquet + a ৳50 card = ৳550, added
-        on top. That lives in Add-ons &amp; services.
-      </HowTo>
-
-      <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#2d3f4e] bg-[#172a3a] px-4 py-3 mb-5 text-[12.5px] text-[#84b5e1]">
-        <span className="shrink-0"><Icon name="shield" size={18} /></span>
-        <div>
-          <b>Storefront rule — an upgrade has no page of its own.</b> On the
-          product page an upgrade is a <b>choice, not a link</b>: clicking it
-          selects that version and updates the price, photo and stock right
-          there. The customer never leaves the page and the URL never changes.
-          Even when the upgrade is an existing catalog product, it is used as an
-          option here — it is not opened as a separate product.
-        </div>
-      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
         <Kpi n={String(ups.length)} l="Upgrades" hue="purple" icon="layers" />
@@ -2316,9 +2245,7 @@ export function UpgradeProducts() {
       <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5 mb-4">
         <h3 className="font-display text-[16px] text-purple m-0 mb-1">Add an upgrade</h3>
         <p className="text-[13px] text-body-soft mt-0 mb-4">
-          An upgrade is a real product from your catalog — pick the base, then pick
-          the bigger version. Need a product that does not exist yet?{" "}
-          <Link href="/products/new" className="text-orchid hover:underline">create it first</Link>.
+          <Link href="/products/new" className="text-orchid hover:underline">Create a new product</Link>
         </p>
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2.5 items-center">
           <select className="ipt" value={base} onChange={(e) => setBase(e.target.value)}>
@@ -2425,7 +2352,7 @@ export function UpgradeProducts() {
                         {linked && (
                           <div className="flex items-center gap-1.5 flex-wrap mt-1">
                             <span
-                              className="text-[10px] font-bold uppercase tracking-[0.04em] px-1.5 py-0.5 rounded-full bg-[#172a3a] text-[#84b5e1] border border-[#2d3f4e]"
+                              className="text-[10px] font-bold uppercase tracking-[0.04em] px-1.5 py-0.5 rounded-full bg-[#eef6fd] text-[#1e4e79] border border-[#b8d4ea]"
                               title="On the website this only switches the option — it never opens its own page"
                             >
                               option only · no own page
@@ -2499,7 +2426,7 @@ export function UpgradeProducts() {
                         )}
                       </div>
                       <div
-                        className={`text-[13.5px] font-semibold ${noCost ? "text-[#f7a96e]" : margin < 0 ? "text-[#e1837a]" : mPct < 20 ? "text-[#f7a96e]" : "text-[#76efc3]"}`}
+                        className={`text-[13.5px] font-semibold ${noCost ? "text-[#b45309]" : margin < 0 ? "text-[#c0392b]" : mPct < 20 ? "text-[#b45309]" : "text-[#0f7d55]"}`}
                       >
                         {noCost ? (
                           <span className="text-[11px]">no cost</span>
@@ -2513,7 +2440,7 @@ export function UpgradeProducts() {
                       <button
                         onClick={() => set(u.id, { active: !u.active })}
                         title={u.active ? "Turn off" : "Turn on"}
-                        className={`w-[38px] h-[22px] rounded-full relative transition-colors justify-self-start ${u.active ? "bg-[#0f7d55]" : "bg-[#322a39]"}`}
+                        className={`w-[38px] h-[22px] rounded-full relative transition-colors justify-self-start ${u.active ? "bg-[#0f7d55]" : "bg-[#cdbfda]"}`}
                       >
                         <span
                           className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white transition-all ${u.active ? "left-[18px]" : "left-[2px]"}`}
@@ -2522,7 +2449,7 @@ export function UpgradeProducts() {
                       <button
                         onClick={() => { if (confirm(`Remove "${u.name}" as an upgrade? The product stays in your catalog.`)) unlink(u); }}
                         title="Remove as upgrade (the product itself stays)"
-                        className="border border-lavender-deep bg-white text-body-soft hover:text-[#e1837a] hover:border-[#4d2e2e] rounded-[10px] w-[38px] h-[38px] grid place-items-center justify-self-end"
+                        className="border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#e0a1a1] rounded-[10px] w-[38px] h-[38px] grid place-items-center justify-self-end"
                       >
                         <Icon name="trash" size={16} />
                       </button>
@@ -2591,13 +2518,6 @@ export function UpgradeProducts() {
 
       {tab === "perf" && (
         <>
-          <HowTo>
-            An upgrade replaces the standard product, so the question is not
-            &ldquo;how much extra&rdquo; but <b>how many customers moved up</b>.
-            That is the <b>take rate</b>. A high take rate with a small price gap
-            means you are leaving money on the table; a very low take rate means
-            the jump is too big or the upgrade is not explained well.
-          </HowTo>
 
           <div className="flex gap-2 flex-wrap items-center mb-4">
             <div className="inline-flex rounded-[11px] border border-lavender-deep bg-white overflow-hidden">
@@ -2639,12 +2559,12 @@ export function UpgradeProducts() {
                   className="rounded-[16px] border-[1.5px] shadow-soft px-5 py-4"
                   style={{
                     borderColor: tone === "good" ? "#9fd8bf" : "#f0b8b0",
-                    background: tone === "good" ? "linear-gradient(135deg,#1c3429,#1f1727)" : "linear-gradient(135deg,#391c17,#1f1727)",
+                    background: tone === "good" ? "linear-gradient(135deg,#f2fbf7,#ffffff)" : "linear-gradient(135deg,#fdf2f0,#ffffff)",
                   }}
                 >
                   <div
                     className="text-[11px] font-bold uppercase tracking-[0.05em] mb-1.5"
-                    style={{ color: tone === "good" ? "#76efc3" : "#e1837a" }}
+                    style={{ color: tone === "good" ? "#0f7d55" : "#c0392b" }}
                   >
                     {tone === "good" ? "Best performer" : "Weakest link"}
                   </div>
@@ -2662,7 +2582,7 @@ export function UpgradeProducts() {
                       </div>
                     ))}
                   </div>
-                  <div className="text-[12px] mt-3" style={{ color: tone === "good" ? "#76efc3" : "#e1837a" }}>
+                  <div className="text-[12px] mt-3" style={{ color: tone === "good" ? "#0f7d55" : "#c0392b" }}>
                     {tone === "good"
                       ? "Copy this pattern — same kind of jump on your other products."
                       : "Start here: shrink the jump, or show the upgrade better on the page."}
@@ -2675,14 +2595,11 @@ export function UpgradeProducts() {
           {/* where the sweet spot is */}
           <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5 mb-4">
             <div className="font-display text-[15px] text-purple">Price jump vs. how many take it</div>
-            <div className="text-[13px] text-body-soft mb-4">
-              The gentler the jump, the more people move up. Anything past +90% rarely sells.
-            </div>
             <div className="relative h-[180px] border-l border-b border-lavender-deep ml-9 mr-2">
               {/* bands */}
-              <span className="absolute inset-y-0 left-0 w-[45%] bg-[#20342a]/70" />
-              <span className="absolute inset-y-0 left-[45%] w-[30%] bg-[#3a2d16]/70" />
-              <span className="absolute inset-y-0 left-[75%] right-0 bg-[#3b1a16]/70" />
+              <span className="absolute inset-y-0 left-0 w-[45%] bg-[#e8f6ef]/70" />
+              <span className="absolute inset-y-0 left-[45%] w-[30%] bg-[#fff8ec]/70" />
+              <span className="absolute inset-y-0 left-[75%] right-0 bg-[#fdecea]/70" />
               {perfRows.map((r) => {
                 const jump = r.basePrice > 0 ? ((r.pays - r.basePrice) / r.basePrice) * 100 : 0;
                 const x = Math.min(97, (jump / 150) * 100);
@@ -2707,7 +2624,7 @@ export function UpgradeProducts() {
               <span className="absolute -left-9 top-1/2 -translate-y-1/2 text-[13px] text-body-soft rotate-[-90deg] origin-center">take</span>
             </div>
             <div className="flex justify-between text-[13px] text-body-soft ml-9 mr-2 mt-1">
-              <span>+0%</span><span className="text-[#76efc3]">sweet spot</span><span className="text-[#f7a96e]">risky</span><span className="text-[#e1837a]">too steep</span><span>+150%</span>
+              <span>+0%</span><span className="text-[#0f7d55]">sweet spot</span><span className="text-[#b45309]">risky</span><span className="text-[#c0392b]">too steep</span><span>+150%</span>
             </div>
             <div className="text-[13px] text-body-soft mt-2">Bubble size = how many orders took it.</div>
           </div>
@@ -2722,7 +2639,7 @@ export function UpgradeProducts() {
                   <span className="text-[13px] text-purple font-medium w-[170px] shrink-0 truncate">{nameOf(b.baseId)}</span>
                   <span className="flex h-[22px] rounded-[8px] overflow-hidden flex-1 min-w-[180px] bg-lavender">
                     <span
-                      className="grid place-items-center text-[11px] font-bold text-white bg-[#32283e]"
+                      className="grid place-items-center text-[11px] font-bold text-white bg-[#c6b0dd]"
                       style={{ width: `${b.total ? (b.baseOrders / b.total) * 100 : 100}%` }}
                     >
                       {b.baseOrders > 0 && b.baseOrders}
@@ -2744,7 +2661,7 @@ export function UpgradeProducts() {
               {byBase.length === 0 && <div className="text-[13px] text-body-soft">No upgrades yet.</div>}
             </div>
             <div className="flex gap-4 mt-4 text-[13px] text-body-soft">
-              <span className="inline-flex items-center gap-1.5"><span className="w-[10px] h-[10px] rounded-full bg-[#32283e]" /> took the standard</span>
+              <span className="inline-flex items-center gap-1.5"><span className="w-[10px] h-[10px] rounded-full bg-[#c6b0dd]" /> took the standard</span>
               <span className="inline-flex items-center gap-1.5"><span className="w-[10px] h-[10px] rounded-full bg-[#9c1fb8]" /> moved up</span>
             </div>
           </div>
@@ -2785,13 +2702,13 @@ export function UpgradeProducts() {
                               />
                             </span>
                             <b className="text-purple w-[38px] text-right">{takePct}%</b>
-                            <span className={`text-[11px] w-[42px] ${delta >= 0 ? "text-[#76efc3]" : "text-[#e1837a]"}`}>
+                            <span className={`text-[11px] w-[42px] ${delta >= 0 ? "text-[#0f7d55]" : "text-[#c0392b]"}`}>
                               {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}
                             </span>
                           </div>
                         </td>
                         <td className="px-3 py-3 text-right">
-                          <b className={jump > 90 ? "text-[#e1837a]" : "text-purple"}>+{jump}%</b>
+                          <b className={jump > 90 ? "text-[#c0392b]" : "text-purple"}>+{jump}%</b>
                           <div className="text-[13px] text-body-soft">{formatTaka(basePrice)} → {formatTaka(pays)}</div>
                         </td>
                         <td className="px-3 py-3 text-right">{stat.baseOrders}</td>
@@ -2801,11 +2718,11 @@ export function UpgradeProducts() {
                           {!up.active ? (
                             <span className="text-[11.5px] bg-lavender text-body-soft px-2 py-1 rounded-full">Off</span>
                           ) : takePct < 8 ? (
-                            <span className="text-[11.5px] bg-[#3b1a16] text-[#e1837a] px-2 py-1 rounded-full">
+                            <span className="text-[11.5px] bg-[#fdecea] text-[#c0392b] px-2 py-1 rounded-full">
                               {jump > 90 ? "Jump too big" : "Explain it better"}
                             </span>
                           ) : takePct >= 30 ? (
-                            <span className="text-[11.5px] bg-[#20342a] text-[#76efc3] px-2 py-1 rounded-full">Strong — price it higher</span>
+                            <span className="text-[11.5px] bg-[#e8f6ef] text-[#0f7d55] px-2 py-1 rounded-full">Strong — price it higher</span>
                           ) : (
                             <span className="text-[11.5px] bg-lavender text-purple px-2 py-1 rounded-full">Doing fine</span>
                           )}
@@ -2825,25 +2742,9 @@ export function UpgradeProducts() {
             </div>
           </div>
 
-          <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#2d3f4e] bg-[#172a3a] px-4 py-3 text-[12.5px] text-[#84b5e1]">
-            <span className="shrink-0"><Icon name="chart" size={18} /></span>
-            <div>
-              <b>How to act on this.</b> Take rate above 30% with a small price
-              jump means the upgrade is underpriced — raise it. Below 8% with a
-              jump over 90% means the step is too steep; put a middle option in
-              between. &ldquo;Times shown&rdquo; needs storefront tracking
-              (Funnel Phase 2), so take rate is measured against the orders of
-              the base product — the honest version until then.
-            </div>
-          </div>
         </>
       )}
 
-      <p className="text-body-soft text-[12px] mt-4">
-        {demo
-          ? "Demo data — the API is unreachable, so these samples are held in memory."
-          : "Saved to your database — an upgrade is a real product linked by upgradeOfProductId. Edits here change that product; removing only unlinks it, the product stays in your catalog."}
-      </p>
     </div>
   );
 }
@@ -2868,7 +2769,7 @@ export function UpgradeProducts() {
     add-on card was missed.
 
     These two adapters are now the only place the CSS and the URL meet.  */
-const ADDON_TILE = "linear-gradient(150deg,#2c1e37,#30223a)";
+const ADDON_TILE = "linear-gradient(150deg,#EFE4F7,#DDC9EC)";
 /** `url(https://x) center/cover` → `https://x`; anything else → null */
 const bareUrl = (css: string | null | undefined): string | null => {
   if (!css) return null;
@@ -3064,7 +2965,7 @@ export function AddonsView() {
 
   async function addBlank() {
     const blank = {
-      name: "", sku: "", image: "linear-gradient(150deg,#2c1e37,#30223a)",
+      name: "", sku: "", image: "linear-gradient(150deg,#EFE4F7,#DDC9EC)",
       pricePaisa: 0, discountType: "NONE" as DiscountKind, discountValue: 0,
       stockQty: null, active: true,
     };
@@ -3304,15 +3205,12 @@ export function AddonsView() {
   return (
     <div className={WRAP}>
       {img.err && (
-        <div className="mb-4 rounded-[12px] border border-[#502f2a] bg-[#381b18] px-4 py-2.5 text-[13px] text-[#ed8078]">
+        <div className="mb-4 rounded-[12px] border border-[#f1c9c4] bg-[#fdf3f2] px-4 py-2.5 text-[13px] text-[#b42318]">
           {img.err}
         </div>
       )}
       <Said say={say} />
-      <PageHead eyebrow="Product Management · catalog" title="Add-ons" demo={demo}>
-        The little extras a customer adds to a gift — a card, gift wrap, a vase.
-        Never sold on their own, always added on top.
-      </PageHead>
+      <PageHead eyebrow="Product Management · catalog" title="Add-ons" demo={demo} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
         <Kpi n={String(rows.length)} l="Add-ons" hue="purple" icon="box" />
@@ -3322,8 +3220,8 @@ export function AddonsView() {
       </div>
 
       {problems.length > 0 && (
-        <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#3a2d16] px-4 py-3 mb-5 text-[12.5px] text-[#f4be71]">
-          <span className="text-[#f7a96e] shrink-0"><Icon name="bolt" size={18} /></span>
+        <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#fff8ec] px-4 py-3 mb-5 text-[12.5px] text-[#7a4b09]">
+          <span className="text-[#b45309] shrink-0"><Icon name="bolt" size={18} /></span>
           <div>
             <b>Needs a look:</b> {problems.join(" · ")}.
           </div>
@@ -3504,7 +3402,7 @@ export function AddonsView() {
                   key={a.id}
                   className={`group bg-white rounded-[16px] shadow-soft overflow-hidden border transition-all hover:shadow-lift hover:-translate-y-[2px] ${a.active ? "border-orchid-mid/60" : "border-lavender-deep opacity-70"}`}
                 >
-                  <span className={`block h-[4px] ${a.active ? "bg-gradient-to-r from-[#7d2ea8] via-[#cf43ea] to-[#3e1c46]" : "bg-lavender-deep"}`} />
+                  <span className={`block h-[4px] ${a.active ? "bg-gradient-to-r from-[#7d2ea8] via-[#cf43ea] to-[#e6a8f5]" : "bg-lavender-deep"}`} />
                   {/*  DEC-PRD-042 — the tick that puts this card in a bulk
                       action. Top-left of the photo so it never fights the
                       OFFER / OUT badges on the right.  */}
@@ -3620,7 +3518,7 @@ export function AddonsView() {
                       />
                       <span className="text-[12px] font-bold text-purple">Free — no charge</span>
                       {!a.isFree && a.pricePaisa <= 0 && (
-                        <span className="text-[11px] font-semibold text-[#f7a96e]">
+                        <span className="text-[11px] font-semibold text-[#b45309]">
                           ৳0 and not free — hidden from the website
                         </span>
                       )}
@@ -3672,7 +3570,7 @@ export function AddonsView() {
                           </span>
                           <button
                             onClick={() => set(a.id, { itemId: null, itemLabel: null })}
-                            className="text-[12px] text-body-soft hover:text-[#e1837a] px-1"
+                            className="text-[12px] text-body-soft hover:text-[#c0392b] px-1"
                           >
                             Unlink
                           </button>
@@ -3724,7 +3622,7 @@ export function AddonsView() {
                     </div>
 
                     <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-lavender-deep">
-                      <span className="inline-flex items-baseline gap-1.5 bg-gradient-to-r from-[#2d193a] to-[#3a192e] border border-orchid-mid/50 rounded-[10px] px-2.5 py-1">
+                      <span className="inline-flex items-baseline gap-1.5 bg-gradient-to-r from-[#f3e6fb] to-[#fbe7f4] border border-orchid-mid/50 rounded-[10px] px-2.5 py-1">
                         <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-body-soft">Adds</span>
                         <b className="text-[16px] font-display text-purple leading-none">+{formatTaka(pays)}</b>
                       </span>
@@ -3736,14 +3634,14 @@ export function AddonsView() {
                         onClick={() => set(a.id, { active: !a.active })}
                         className="inline-flex items-center gap-2 text-[13px] text-body-soft"
                       >
-                        <span className={`w-[36px] h-[21px] rounded-full relative transition-colors ${a.active ? "bg-[#0f7d55]" : "bg-[#322a39]"}`}>
+                        <span className={`w-[36px] h-[21px] rounded-full relative transition-colors ${a.active ? "bg-[#0f7d55]" : "bg-[#cdbfda]"}`}>
                           <span className={`absolute top-[2px] w-[17px] h-[17px] rounded-full bg-white transition-all ${a.active ? "left-[17px]" : "left-[2px]"}`} />
                         </span>
                         {a.active ? "Live" : "Hidden"}
                       </button>
                       <button
                         onClick={() => deleteAddon(a.id)}
-                        className="text-body-soft hover:text-[#e1837a]"
+                        className="text-body-soft hover:text-[#c0392b]"
                         title="Delete"
                       >
                         <Icon name="trash" size={16} />
@@ -3832,12 +3730,6 @@ export function AddonsView() {
       {/* ---------- GROUPS ---------- */}
       {tab === "groups" && (
         <>
-          <HowTo>
-            A group is a named set - &ldquo;Birthday add-ons&rdquo;. Open the
-            picker and tick as many as you want; it stays open until you press
-            Done. <b>The same add-on can sit in as many groups as you like</b> - a
-            greeting card belongs to birthday, anniversary and everyday alike.
-          </HowTo>
 
           <div className="flex flex-col gap-3.5">
             {groups.map((g) => {
@@ -3881,7 +3773,7 @@ export function AddonsView() {
                       </button>
                       <button
                         onClick={() => deleteGroup(g.id)}
-                        className="border border-lavender-deep bg-white text-body-soft hover:text-[#e1837a] hover:border-[#4d2e2e] rounded-[10px] w-[34px] h-[34px] grid place-items-center"
+                        className="border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#e0a1a1] rounded-[10px] w-[34px] h-[34px] grid place-items-center"
                       >
                         <Icon name="trash" size={15} />
                       </button>
@@ -3901,7 +3793,7 @@ export function AddonsView() {
                           <span className="w-[26px] h-[26px] rounded-[7px]" style={{ background: a.image }} />
                           <span className="text-[12.5px] font-medium text-purple">{a.name || "untitled"}</span>
                           <span className="text-[13px] text-body-soft">+{formatTaka(paysOf(a))}</span>
-                          <button onClick={() => toggleInGroup(g.id, id)} className="text-body-soft hover:text-[#e1837a]">x</button>
+                          <button onClick={() => toggleInGroup(g.id, id)} className="text-body-soft hover:text-[#c0392b]">x</button>
                         </span>
                       );
                     })}
@@ -3913,10 +3805,6 @@ export function AddonsView() {
                   {/* multi select picker - stays open, tick as many as you want */}
                   {open && (
                     <div className="mt-3 pt-3 border-t border-lavender-deep">
-                      <div className="text-[13px] text-body-soft mb-2">
-                        Tick to add, tick again to remove. Every add-on stays listed - one already
-                        used elsewhere can still be picked here.
-                      </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-2">
                         {rows.map((a) => {
                           const on = g.addonIds.includes(a.id);
@@ -3986,14 +3874,6 @@ export function AddonsView() {
       {/* ---------- RULES ---------- */}
       {tab === "rules" && (
         <>
-          <HowTo>
-            Write the rule once instead of setting add-ons on every product.
-            A rule can list <b>many values</b> - one &ldquo;Everyday extras&rdquo;
-            group can cover Fresh Flowers, Bouquets and Hampers together. If a
-            product is caught by several rules, <b>every matched group attaches</b>
-            {" "}and shows as its own tab on the product page; an add-on appearing in
-            two of them is shown only once.
-          </HowTo>
 
           <div className="flex flex-col gap-3">
             {rules.map((r) => {
@@ -4032,13 +3912,13 @@ export function AddonsView() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => patchRule(r.id, { active: !r.active })}
-                        className={`w-[38px] h-[22px] rounded-full relative transition-colors ${r.active ? "bg-[#0f7d55]" : "bg-[#322a39]"}`}
+                        className={`w-[38px] h-[22px] rounded-full relative transition-colors ${r.active ? "bg-[#0f7d55]" : "bg-[#cdbfda]"}`}
                       >
                         <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white transition-all ${r.active ? "left-[18px]" : "left-[2px]"}`} />
                       </button>
                       <button
                         onClick={() => removeRule(r.id)}
-                        className="border border-lavender-deep bg-white text-body-soft hover:text-[#e1837a] hover:border-[#4d2e2e] rounded-[10px] w-[34px] h-[34px] grid place-items-center"
+                        className="border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#e0a1a1] rounded-[10px] w-[34px] h-[34px] grid place-items-center"
                       >
                         <Icon name="trash" size={15} />
                       </button>
@@ -4065,13 +3945,13 @@ export function AddonsView() {
                     )}
                   </div>
                   {r.values.length === 0 && RULE_VALUES[r.field].length > 0 && (
-                    <div className="text-[12px] text-[#f7a96e] mt-2">
+                    <div className="text-[12px] text-[#b45309] mt-2">
                       Pick at least one value — until then this rule does nothing.
                     </div>
                   )}
 
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t border-lavender-deep flex-wrap">
-                    <span className={`text-[12px] font-semibold px-2.5 py-1 rounded-full ${n ? "bg-[#20342a] text-[#76efc3]" : "bg-[#3a2d16] text-[#f7a96e]"}`}>
+                    <span className={`text-[12px] font-semibold px-2.5 py-1 rounded-full ${n ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-[#fff8ec] text-[#b45309]"}`}>
                       {n} product{n === 1 ? "" : "s"} match right now
                     </span>
                     <span className="text-[13px] text-body-soft">
@@ -4096,11 +3976,6 @@ export function AddonsView() {
       {/* ---------- PREVIEW - what one product actually ends up with ---------- */}
       {tab === "preview" && (
         <>
-          <HowTo>
-            Pick any product and see exactly what the customer will be offered -
-            every rule it matches, each matched group as its own tab, duplicates
-            marked. This is the check before you trust the rules.
-          </HowTo>
 
           <div className="mb-4 max-w-[380px]">
             <span className="block text-[11px] font-semibold uppercase tracking-[0.04em] text-body-soft mb-1">Product</span>
@@ -4132,10 +4007,7 @@ export function AddonsView() {
                     </div>
                   ))}
                   {previewGroups.length === 0 && (
-                    <div className="text-[13px] text-body-soft">
-                      No rule matches this product - it will show no add-ons. Add a rule, or
-                      attach a group by hand on the product page.
-                    </div>
+                    <div className="text-[13px] text-body-soft">No rule matches this product.</div>
                   )}
                 </div>
               </div>
@@ -4207,12 +4079,6 @@ export function AddonsView() {
           add-on deleted by mistake used to be gone for good.  */}
       {tab === "trash" && (
         <>
-          <HowTo>
-            A deleted add-on is only hidden — everything here can be put back
-            exactly as it was. <b>Delete forever</b> works only on add-ons no
-            order has ever sold; anything with sales history stays here, because
-            old receipts still point at it.
-          </HowTo>
 
           {trash.length === 0 ? (
             <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-5 py-12 text-center text-[13px] text-body-soft">
@@ -4230,7 +4096,7 @@ export function AddonsView() {
                     style={{
                       background: a.imageUrl
                         ? `url(${a.imageUrl}) center/cover no-repeat`
-                        : "linear-gradient(150deg,#2c1e37,#30223a)",
+                        : "linear-gradient(150deg,#EFE4F7,#DDC9EC)",
                     }}
                   />
                   <div className="min-w-0 flex-1">
@@ -4275,7 +4141,7 @@ export function AddonsView() {
                         setTrashBusy(null);
                       }
                     }}
-                    className="text-[12.5px] font-semibold px-3 py-2 rounded-[10px] text-[#e1837a] hover:bg-[#3b1a16] disabled:opacity-50 inline-flex items-center gap-1.5"
+                    className="text-[12.5px] font-semibold px-3 py-2 rounded-[10px] text-[#c0392b] hover:bg-[#fdecea] disabled:opacity-50 inline-flex items-center gap-1.5"
                   >
                     <Icon name="trash" size={14} /> Delete forever
                   </button>
@@ -4288,12 +4154,6 @@ export function AddonsView() {
 
       {tab === "perf" && (
         <>
-          <HowTo>
-            <b>Attach rate is the number that matters</b> — not how many pieces
-            sold. It says: out of every 100 orders, how many took this add-on.
-            A low rate means wrong group, wrong price or a weak photo.
-            Money and order counts come from our own database, so they are exact.
-          </HowTo>
 
           <div className="flex gap-2 flex-wrap items-center mb-4">
             <div className="inline-flex rounded-[11px] border border-lavender-deep bg-white overflow-hidden">
@@ -4323,9 +4183,6 @@ export function AddonsView() {
           <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden mb-4">
             <div className="px-5 py-3.5 border-b border-lavender-deep">
               <div className="font-display text-[15px] text-purple">Where the customer decides</div>
-              <div className="text-[13px] text-body-soft">
-                The same add-on is offered in three places — this is where it actually gets picked
-              </div>
             </div>
 
             <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-lavender-deep">
@@ -4369,13 +4226,6 @@ export function AddonsView() {
               ))}
             </div>
 
-            <div className="px-5 py-3 border-t border-lavender-deep text-[13px] text-body-soft">
-              Read it like this: a cheap impulse item picked mostly at{" "}
-              <b className="text-purple">Checkout</b> is doing its job. An expensive
-              item picked mostly at <b className="text-purple">Checkout</b> is a
-              warning — it means the product page never sold the idea, and the
-              customer only noticed it at the end.
-            </div>
           </div>
 
           {/* per add-on */}
@@ -4383,7 +4233,6 @@ export function AddonsView() {
             <div className="px-5 py-3.5 border-b border-lavender-deep flex items-center justify-between flex-wrap gap-2">
               <div>
                 <div className="font-display text-[15px] text-purple">Every add-on</div>
-                <div className="text-[13px] text-body-soft">Sorted by attach rate — the weakest sit at the bottom</div>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 {PLACEMENTS.map((pg, i) => (
@@ -4392,7 +4241,6 @@ export function AddonsView() {
                     {PLACEMENT_LABEL[pg]}
                   </span>
                 ))}
-                <span className="text-[13px] text-body-soft">· Source: own database (OrderLine)</span>
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -4432,7 +4280,7 @@ export function AddonsView() {
                               />
                             </span>
                             <b className="text-purple w-[38px] text-right">{attachPct}%</b>
-                            <span className={`text-[11px] w-[42px] ${delta >= 0 ? "text-[#76efc3]" : "text-[#e1837a]"}`}>
+                            <span className={`text-[11px] w-[42px] ${delta >= 0 ? "text-[#0f7d55]" : "text-[#c0392b]"}`}>
                               {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}
                             </span>
                           </div>
@@ -4473,11 +4321,11 @@ export function AddonsView() {
                           {!a.active ? (
                             <span className="text-[11.5px] bg-lavender text-body-soft px-2 py-1 rounded-full">Hidden</span>
                           ) : groupsOf(a.id).length === 0 ? (
-                            <span className="text-[11.5px] bg-[#3a2d16] text-[#f7a96e] px-2 py-1 rounded-full">In no group</span>
+                            <span className="text-[11.5px] bg-[#fff8ec] text-[#b45309] px-2 py-1 rounded-full">In no group</span>
                           ) : weak ? (
-                            <span className="text-[11.5px] bg-[#3b1a16] text-[#e1837a] px-2 py-1 rounded-full">Check price or photo</span>
+                            <span className="text-[11.5px] bg-[#fdecea] text-[#c0392b] px-2 py-1 rounded-full">Check price or photo</span>
                           ) : attachPct >= 30 ? (
-                            <span className="text-[11.5px] bg-[#20342a] text-[#76efc3] px-2 py-1 rounded-full">Strong — push it wider</span>
+                            <span className="text-[11.5px] bg-[#e8f6ef] text-[#0f7d55] px-2 py-1 rounded-full">Strong — push it wider</span>
                           ) : (
                             <span className="text-[11.5px] bg-lavender text-purple px-2 py-1 rounded-full">Doing fine</span>
                           )}
@@ -4541,36 +4389,15 @@ export function AddonsView() {
             </Card>
           </div>
 
-          <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#2d3f4e] bg-[#172a3a] px-4 py-3 mt-4 text-[12.5px] text-[#84b5e1]">
-            <span className="shrink-0"><Icon name="chart" size={18} /></span>
-            <div>
-              <b>Where each number comes from.</b> Orders, units, revenue and{" "}
-              <b>which page the add-on was picked on</b> are read straight from our
-              own order lines — exact, no outside tool involved. Every order line
-              carries an <span className="font-mono">addedFrom</span> stamp
-              (PRODUCT · CART · CHECKOUT) the moment it is created.
-              &ldquo;Times shown&rdquo; is the one thing we cannot know yet — it
-              needs storefront tracking (Funnel Phase 2). Until then attach rate
-              is measured against total orders, which is the honest version of
-              the question.
-            </div>
-          </div>
         </>
       )}
 
-      <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#3a2d16] px-4 py-3 mt-5 text-[12.5px] text-[#f4be71]">
-        <span className="text-[#f7a96e] shrink-0"><Icon name="bolt" size={18} /></span>
-        <div>
-          {demo
-            ? "Demo data — the API had no add-ons yet, so these are samples held in memory."
-            : "Saved to your database as you type."} Add-ons stay their own thing in the
-          schema (<span className="font-mono">AddOn</span> ·{" "}
-          <span className="font-mono">AddOnGroup</span> ·{" "}
-          <span className="font-mono">AddOnGroupItem</span> ·{" "}
-          <span className="font-mono">AddOnRule</span>) and never appear as
-          products on the website.
+      {demo && (
+        <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#fff8ec] px-4 py-3 mt-5 text-[12.5px] text-[#7a4b09]">
+          <span className="text-[#b45309] shrink-0"><Icon name="bolt" size={18} /></span>
+          <div>Demo data — not saved.</div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

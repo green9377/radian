@@ -137,42 +137,35 @@ export function MarketingOverview() {
   /* the four sub-modules, each with the one number that says whether it needs
      attention today — the hub exists to route, not to repeat every figure */
   const parts: {
-    href: string; emoji: string; title: string; blurb: string;
+    href: string; emoji: string; title: string;
     value: string; hint: string; tone: Tone;
   }[] = [
     {
       href: "/marketing/campaigns", emoji: "🚀", title: "Campaigns",
-      blurb: "Every push we pay for — Facebook, Google, TikTok, leaflets, fairs — and whether the money came back.",
       value: String(c?.running ?? 0), hint: "running now", tone: "emerald",
     },
     {
       href: "/marketing/offers", emoji: "％", title: "Offers & Promotions",
-      blurb: "Coupons, sitewide discounts, combos and free delivery. A coupon is also how a campaign proves an order was its own.",
       value: "—", hint: "open to manage", tone: "brand",
     },
     {
       href: "/marketing/affiliates", emoji: "🤝", title: "Affiliates & Partners",
-      blurb: "People and businesses who send customers in, what they have earned, and what is ready to pay.",
       value: taka(a?.availablePaisa ?? 0), hint: "ready to pay out", tone: (a?.availablePaisa ?? 0) > 0 ? "amber" : "slate",
     },
     {
       href: "/marketing/occasions", emoji: "🎂", title: "Occasions & Outreach",
-      blurb: "Birthdays and anniversaries coming up, who to message, and whether it turned into an order.",
       value: String(occ?.items.filter((i) => !i.alreadyContacted).length ?? 0), hint: "waiting for a message", tone: "sky",
     },
     {
       href: "/marketing/whatsapp", emoji: "💬", title: "WhatsApp",
-      blurb: "Messages written once, lists of who should get them, and a queue that remembers where you stopped.",
       value: "—", hint: "open to send", tone: "emerald",
     },
     {
       href: "/marketing/referral", emoji: "👥", title: "Referral",
-      blurb: "A customer brings a friend. Points to them, a discount to the friend, and what it all costs.",
       value: "—", hint: "open to check", tone: "brand",
     },
     {
       href: "/marketing/seo", emoji: "🔍", title: "SEO",
-      blurb: "What Google and Facebook see. Page titles, share pictures, and the old links that must not become 404s.",
       value: "—", hint: "open to check", tone: "slate",
     },
   ];
@@ -182,7 +175,6 @@ export function MarketingOverview() {
       <FinHeader
         eyebrow="Marketing & Growth"
         title="What we spent, and what came back"
-        sub="Four parts under one roof: campaigns, offers, affiliates and outreach. Every taka on this page is read from Finance — Marketing never keeps its own copy of the money."
         emoji="📣"
         right={
           <>
@@ -211,7 +203,6 @@ export function MarketingOverview() {
               </div>
             </div>
             <div className="font-display text-[15px] text-purple mt-3 group-hover:text-orchid">{p.title}</div>
-            <p className="text-[11.5px] text-body-soft leading-relaxed mt-1 mb-0">{p.blurb}</p>
           </Link>
         ))}
       </div>
@@ -219,7 +210,7 @@ export function MarketingOverview() {
 
       {/* MKT-D14 — what the clock has been doing while nobody watched */}
       <Card className="px-5 py-3.5 mb-5 flex items-center justify-between gap-4 flex-wrap"
-        style={{ background: auto?.errors.length ? TONE.rose.soft : "#2a1b33" }}>
+        style={{ background: auto?.errors.length ? TONE.rose.soft : "#fbf8fd" }}>
         <div className="flex items-center gap-3">
           <span className="text-[16px]">{auto?.errors.length ? "⚠" : "⏱"}</span>
           <div>
@@ -229,7 +220,7 @@ export function MarketingOverview() {
             <div className="text-[11.5px] text-body-soft mt-0.5">
               {auto
                 ? `${auto.ordersChecked} orders looked at · ${auto.accrued} commission recorded · ${auto.released} released · ${auto.reversed} taken back · ${auto.campaignsStarted + auto.campaignsFinished} campaign status changed`
-                : "Every 15 minutes, and again at 2 AM: delivered orders earn their commission, holds expire, returns take the money back, and campaigns start and finish on their own dates."}
+                : "Runs every 15 minutes, and again at 2 AM."}
             </div>
             {auto?.errors.length ? (
               <div className="text-[11.5px] mt-1" style={{ color: TONE.rose.text }}>
@@ -246,12 +237,7 @@ export function MarketingOverview() {
           tone="rose"
           emoji="⚠"
           title={`${c.unattributed30} of ${c.orders30} orders in the last 30 days have no known origin (${unattrPct}%)`}
-        >
-          Radian will not guess. Those orders are counted here and left out of every campaign,
-          which is why a campaign figure below may look smaller than the shop feels. The way to
-          shrink this number is coupon codes on campaigns and ref links on affiliates — not a
-          cleverer report.
-        </Banner>
+        />
       )}
 
       {c && c.untaggedSpend30Paisa > 0 && (
@@ -262,17 +248,14 @@ export function MarketingOverview() {
           right={
             <Link className={btnGhost} href="/finance/expenses">Open expenses</Link>
           }
-        >
-          It is correctly in the books — it just is not counted against any campaign, so the ROI
-          figures are missing that much cost. Tag it while entering the expense in Finance.
-        </Banner>
+        />
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <Kpi label="Live campaigns" value={String(c?.running ?? 0)} emoji="🚀" tone="emerald"
           hint={`${c?.planned ?? 0} planned · ${c?.finished ?? 0} finished`} />
         <Kpi label="Spent on live campaigns" value={taka(c?.liveSpendPaisa ?? 0)} emoji="৳" tone="amber"
-          hint="tagged expenses, read from Finance" />
+          hint="from Finance" />
         <Kpi label="Came back (after goods & delivery)" value={taka(c?.liveContributionPaisa ?? 0)} emoji="📈"
           tone={(c?.liveContributionPaisa ?? 0) >= (c?.liveSpendPaisa ?? 0) ? "emerald" : "rose"}
           hint={`${c?.liveOrders ?? 0} attributed orders`} />
@@ -284,7 +267,7 @@ export function MarketingOverview() {
       <div className="grid lg:grid-cols-2 gap-4">
         {/* honesty panel */}
         <Panel title="How well do we know where orders come from?" emoji="🔎" tone="sky"
-          sub="last 30 days · the higher up the list, the harder the evidence">
+          sub="last 30 days">
           {!s ? (
             <Empty title="Loading…" />
           ) : (
@@ -321,8 +304,7 @@ export function MarketingOverview() {
           sub={occ ? `next ${occ.days} days` : ""}
           right={<Link className={btnGhost} href="/marketing/occasions">Open the list</Link>}>
           {!occ || occ.items.length === 0 ? (
-            <Empty emoji="🌼" title="Nothing due"
-              sub="Birthdays and anniversaries appear here as they come round. The dates come from the recipient book — nothing extra to fill in." />
+            <Empty emoji="🌼" title="Nothing due" />
           ) : (
             <Table head={<><Th>Customer</Th><Th>For</Th><Th>Occasion</Th><Th right>In</Th><Th right></Th></>}>
               {occ.items.slice(0, 6).map((r) => (
@@ -403,7 +385,6 @@ export function CampaignsView() {
       <FinHeader
         eyebrow="Marketing"
         title="Campaigns"
-        sub="One row per push — “Valentine's Day 2027”, not one row per advertisement. Which ad performed better is a question Facebook answers for free; how the whole occasion went across website, phone, walk-in and foodpanda is one only Radian can answer."
         emoji="🚀"
         right={
           <button className={btnPrimary} style={btnPrimaryStyle} onClick={() => setShowForm((v) => !v)}>
@@ -449,8 +430,7 @@ export function CampaignsView() {
               {busy ? "Saving…" : "Create campaign"}
             </button>
             <span className="text-[12px] text-body-soft">
-              Spend is not entered here. Enter it in Finance as an expense and tag it to this campaign —
-              the money stays in one ledger.
+              Spend is entered in Finance and tagged to this campaign.
             </span>
           </div>
         </Card>
@@ -470,8 +450,7 @@ export function CampaignsView() {
 
       <Card className="overflow-hidden">
         {rows.length === 0 ? (
-          <Empty emoji="🚀" title="No campaigns yet"
-            sub="A campaign is one push — an occasion, a festival, a partnership drive. Create one, then tag the expenses that belong to it." />
+          <Empty emoji="🚀" title="No campaigns yet" />
         ) : (
           <Table head={
             <>
@@ -567,17 +546,14 @@ export function CampaignDetail({ id }: { id: string }) {
       <Card className="mb-5 overflow-hidden">
         <div className="px-5 py-3.5" style={{ background: TONE.brand.grad }}>
           <div className="font-display text-[16px] text-white">Did it come back?</div>
-          <div className="text-[11.5px] text-white/80 mt-0.5">
-            Cost is read from Finance. Goods and delivery are read from the ledger, per order — these are recorded facts, not estimates.
-          </div>
         </div>
         <div className="grid lg:grid-cols-[1.2fr_1fr]">
-          <div className="p-5 border-r border-[#3e3248]">
-            <RoiLine label="Revenue (VAT excluded)" value={c.revenuePaisa} note="what Meta would call the result" />
+          <div className="p-5 border-r border-[#f3eef7]">
+            <RoiLine label="Revenue (VAT excluded)" value={c.revenuePaisa} />
             <RoiLine label="− Cost of the goods" value={-c.cogsPaisa} />
             <RoiLine label="= Gross profit" value={c.revenuePaisa - c.cogsPaisa} bold />
             <RoiLine label="− Delivery cost" value={-c.deliveryCostPaisa} />
-            <div className="mt-3 pt-3 border-t-2 border-[#3f3446] flex items-end justify-between gap-4">
+            <div className="mt-3 pt-3 border-t-2 border-[#efe9f3] flex items-end justify-between gap-4">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-body-soft">What was left</div>
                 <div className="text-[30px] font-bold leading-none mt-1"
@@ -594,8 +570,7 @@ export function CampaignDetail({ id }: { id: string }) {
             {c.spentPaisa === 0 && (
               <div className="mt-3 text-[12px] rounded-xl px-3 py-2"
                 style={{ background: TONE.amber.soft, color: TONE.amber.text }}>
-                No expense is tagged to this campaign yet, so there is no return to work out.
-                Tag the spend in Finance → Expenses.
+                No expense is tagged to this campaign yet.
               </div>
             )}
           </div>
@@ -619,8 +594,7 @@ export function CampaignDetail({ id }: { id: string }) {
             {unknown > 0 && (
               <div className="mt-3 text-[12px] rounded-xl px-3 py-2"
                 style={{ background: TONE.rose.soft, color: TONE.rose.text }}>
-                {unknown} of these were set by hand or guessed. Treat the figure on the left as
-                that much softer.
+                {unknown} of these were set by hand or guessed.
               </div>
             )}
             <div className="mt-4">
@@ -641,8 +615,7 @@ export function CampaignDetail({ id }: { id: string }) {
           sub="entered in Finance, tagged here"
           right={<Link className={btnGhost} href="/finance/expenses">Add in Finance</Link>}>
           {c.expenses.length === 0 ? (
-            <Empty emoji="৳" title="Nothing tagged yet"
-              sub="Enter the expense in Finance and pick this campaign in the dropdown. Marketing never holds its own copy of the money." />
+            <Empty emoji="৳" title="Nothing tagged yet" />
           ) : (
             <Table head={<><Th>Date</Th><Th>Heading</Th><Th>Paid to</Th><Th right>Amount</Th></>}>
               {c.expenses.map((e) => (
@@ -660,8 +633,7 @@ export function CampaignDetail({ id }: { id: string }) {
         <Panel title="Orders credited to this campaign" emoji="🛍" tone="emerald"
           sub={`${c.attributions.length} shown`}>
           {c.attributions.length === 0 ? (
-            <Empty emoji="🛍" title="No orders yet"
-              sub="An order lands here when it carries this campaign's coupon, its website link, or when somebody sets it by hand." />
+            <Empty emoji="🛍" title="No orders yet" />
           ) : (
             <Table head={<><Th>Order</Th><Th>Customer</Th><Th>How we know</Th><Th right>Total</Th></>}>
               {c.attributions.map((a) => (
@@ -822,7 +794,7 @@ export function OccasionsView() {
           <div className="bg-white rounded-[18px] shadow-lift border border-lavender-deep p-5 w-full max-w-[420px]">
             <h3 className="font-display text-[18px] text-purple m-0 mb-1">Stop marketing messages to {stopping.name}?</h3>
             <p className="text-[12.5px] text-body-soft mt-0 mb-4">
-              They will not appear in these lists again. Order updates still reach them — this is marketing only.
+              They will not appear in these lists again. Order updates still reach them.
             </p>
             <input
               autoFocus
@@ -842,7 +814,6 @@ export function OccasionsView() {
       <FinHeader
         eyebrow="Marketing"
         title="Occasions coming up"
-        sub="Birthdays and anniversaries from the recipient book. The message goes to the person who bought last time — never to the recipient, because that ruins the surprise and on an anonymous gift it does worse than that."
         emoji="🎂"
         tone="amber"
         right={
@@ -866,8 +837,7 @@ export function OccasionsView() {
 
       <Card className="overflow-hidden">
         {!data || data.items.length === 0 ? (
-          <Empty emoji="🌼" title="Nothing in this window"
-            sub="Occasions appear here as they come round each year. 29 February shows up on 28 February in an ordinary year, so nobody quietly disappears for three years out of four." />
+          <Empty emoji="🌼" title="Nothing in this window" />
         ) : (
           <Table head={
             <><Th>When</Th><Th>Who to message</Th><Th>About</Th><Th>Last time</Th><Th right>Do</Th></>
@@ -930,12 +900,6 @@ export function OccasionsView() {
           </Table>
         )}
       </Card>
-
-      <div className="mt-4 text-[12px] text-body-soft max-w-[760px]">
-        The WhatsApp button opens WhatsApp with the message already written — a person still presses
-        Send. No API, no template approval, no per-message cost. The wording lives in
-        Marketing → Settings, and it should be in your own words, not a translation.
-      </div>
     </div>
   );
 }
@@ -962,7 +926,6 @@ export function OutreachView() {
       <FinHeader
         eyebrow="Marketing · Outreach"
         title="Who we talked to, and whether it worked"
-        sub="An outreach counts as having worked if the same customer ordered within fourteen days. Without this number the whole exercise is faith."
         emoji="💬"
         tone="sky"
         right={
@@ -980,13 +943,12 @@ export function OutreachView() {
           hint={effect && effect.contacted > 0 ? `${pct(effect.ordered, effect.contacted)}% of those contacted` : ""} />
         <Kpi label="Revenue that followed" value={taka(effect?.revenuePaisa ?? 0)} emoji="৳" tone="emerald" />
         <Kpi label="By WhatsApp" value={String(effect?.byChannel.find((c) => c.channel === "WHATSAPP")?.contacted ?? 0)}
-          emoji="📱" tone="brand" hint="no API, no per-message cost" />
+          emoji="📱" tone="brand" />
       </div>
 
       <Panel title="Contact history" emoji="💬" tone="sky" sub="last 90 days">
         {rows.length === 0 ? (
-          <Empty emoji="💬" title="Nothing yet"
-            sub="Every WhatsApp or call started from the occasion list is recorded here, so three people cannot message the same customer about the same birthday." />
+          <Empty emoji="💬" title="Nothing yet" />
         ) : (
           <Table head={<><Th>When</Th><Th>Customer</Th><Th>How</Th><Th>Why</Th><Th>By</Th></>}>
             {rows.map((r) => (
@@ -1033,7 +995,7 @@ export function OptOutsView() {
       <FinHeader
         eyebrow="Marketing · Outreach"
         title="Do not contact"
-        sub="Everybody here is removed from every list, with no exception — not even a manual one. Without this door, two years of reminders turn your best customers into people who block you."
+        sub="Removed from every list, with no exception."
         emoji="🚫"
         tone="rose"
         right={<Link className={btnGhost} href="/marketing/outreach">Contact history</Link>}
@@ -1042,8 +1004,7 @@ export function OptOutsView() {
 
       <Card className="overflow-hidden">
         {opts.length === 0 ? (
-          <Empty emoji="🚫" title="Nobody has asked to be left alone"
-            sub="Use the Stop button on the occasion list when somebody says so. Consent can be given back here afterwards, and the record that they once said no stays." />
+          <Empty emoji="🚫" title="Nobody has asked to be left alone" />
         ) : (
           <Table head={<><Th>Customer</Th><Th>Why</Th><Th>Since</Th><Th right></Th></>}>
             {opts.map((o) => (
@@ -1126,7 +1087,6 @@ export function AffiliatesView() {
       <FinHeader
         eyebrow="Marketing"
         title="Affiliates & partners"
-        sub="Anybody outside the shop who sends customers in — an influencer with a link, a wedding hall, a corporate account. One table for both, because the commission, the hold and the payout are identical, and two ways for cash to leave means two sets of bugs."
         emoji="🤝"
         right={
           <>
@@ -1181,8 +1141,7 @@ export function AffiliatesView() {
               {busy ? "Saving…" : "Add"}
             </button>
             <span className="text-[12px] text-body-soft">
-              Commission is worked out on the goods after discount — delivery and VAT are left out,
-              because neither was ever Radian&apos;s money.
+              Commission is worked out on the goods after discount.
             </span>
           </div>
         </Card>
@@ -1196,8 +1155,7 @@ export function AffiliatesView() {
 
       <Card className="overflow-hidden">
         {rows.length === 0 ? (
-          <Empty emoji="🤝" title="No affiliates yet"
-            sub="Add somebody and they get a code. Any order carrying that code earns them commission once it has been delivered and the return window has passed." />
+          <Empty emoji="🤝" title="No affiliates yet" />
         ) : (
           <Table head={
             <><Th>Who</Th><Th>Code</Th><Th right>Rate</Th><Th right>Orders</Th>
@@ -1300,7 +1258,7 @@ export function AffiliateDetail({ id }: { id: string }) {
         <Kpi label="Paid so far" value={taka(a.paidPaisa ?? 0)} emoji="↗" tone="slate" />
         <Kpi label="Owed back to us" value={taka(a.recoverablePaisa)} emoji="↩"
           tone={a.recoverablePaisa > 0 ? "rose" : "slate"}
-          hint={a.recoverablePaisa > 0 ? "paid on orders that came back — nets off the next payout" : ""} />
+          hint={a.recoverablePaisa > 0 ? "nets off the next payout" : ""} />
       </div>
 
       <div className="grid lg:grid-cols-[1fr_1.4fr] gap-4">
@@ -1311,15 +1269,11 @@ export function AffiliateDetail({ id }: { id: string }) {
               <code className="text-[16px] font-bold px-3 py-1.5 rounded-lg inline-block"
                 style={{ background: TONE.brand.soft, color: TONE.brand.text }}>{a.code}</code>
               <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-body-soft mt-4 mb-1">Link to share</div>
-              <div className="text-[12.5px] break-all px-3 py-2 rounded-lg border border-[#3f3446] bg-[#2b1a34]">{link}</div>
+              <div className="text-[12.5px] break-all px-3 py-2 rounded-lg border border-[#efe9f3] bg-[#fdfbfe]">{link}</div>
               <button className={`${btnGhost} mt-2`}
                 onClick={() => { void navigator.clipboard?.writeText(link); setOk("Link copied"); }}>
                 Copy link
               </button>
-              <p className="text-[11.5px] text-body-soft mt-3 mb-0">
-                The code also works typed by hand — on a phone order or at the counter — so this
-                is not only for people who click.
-              </p>
             </div>
           </Panel>
 
@@ -1327,8 +1281,7 @@ export function AffiliateDetail({ id }: { id: string }) {
             <div className="p-4">
               {!canPay ? (
                 <p className="text-[13px] text-body-soft m-0">
-                  Nothing is available yet. Commission stays on hold until the return window has
-                  passed — money handed over before that is money to chase afterwards.
+                  Nothing available yet — commission is on hold until the return window has passed.
                 </p>
               ) : (
                 <>
@@ -1351,8 +1304,7 @@ export function AffiliateDetail({ id }: { id: string }) {
                     {busy ? "Paying…" : `Pay ${taka((a.availablePaisa ?? 0) - a.recoverablePaisa)}`}
                   </button>
                   <p className="text-[11.5px] text-body-soft mt-2 mb-0">
-                    Owner only, and the PIN is asked every time. If the ledger refuses the entry,
-                    nothing is saved and nothing should be handed over.
+                    Owner only — the PIN is asked every time.
                   </p>
                 </>
               )}
@@ -1363,8 +1315,7 @@ export function AffiliateDetail({ id }: { id: string }) {
         <div className="space-y-4">
           <Panel title="Commission ledger" emoji="📒" tone="slate" sub="one row per order">
             {a.commissions.length === 0 ? (
-              <Empty emoji="📒" title="Nothing earned yet"
-                sub="Commission appears once an order carrying this code has actually been delivered." />
+              <Empty emoji="📒" title="Nothing earned yet" />
             ) : (
               <Table head={<><Th>Order</Th><Th>Base</Th><Th right>Rate</Th><Th right>Earned</Th><Th>State</Th></>}>
                 {a.commissions.map((c) => (
@@ -1465,7 +1416,6 @@ export function MarketingSettingsView() {
       <FinHeader
         eyebrow="Marketing"
         title="Settings"
-        sub="Everything here has a working default, so nothing was ever blocked waiting for an answer — and every answer is one screen away."
         emoji="⚙"
         tone="slate"
       />
@@ -1476,10 +1426,10 @@ export function MarketingSettingsView() {
           <div className="p-5 grid md:grid-cols-2 gap-4">
             <div><Lbl>Default commission %</Lbl>
               <input className={input} value={f.rate} onChange={(e) => setF({ ...f, rate: e.target.value })} />
-              <p className="text-[11.5px] text-body-soft mt-1 mb-0">Each affiliate can be set differently.</p></div>
+</div>
             <div><Lbl>Days on hold after delivery</Lbl>
               <input className={input} value={f.hold} onChange={(e) => setF({ ...f, hold: e.target.value })} />
-              <p className="text-[11.5px] text-body-soft mt-1 mb-0">Match this to your return window.</p></div>
+</div>
             <div><Lbl>Smallest withdrawal (৳)</Lbl>
               <input className={input} value={f.min} onChange={(e) => setF({ ...f, min: e.target.value })} /></div>
             <div><Lbl>Link stays attached for (days)</Lbl>
@@ -1497,8 +1447,7 @@ export function MarketingSettingsView() {
                 onChange={(e) => setF({ ...f, tpl: e.target.value })} />
               <p className="text-[11.5px] text-body-soft mt-2 mb-0">
                 <code>{"{customer}"}</code> <code>{"{recipient}"}</code> <code>{"{occasion}"}</code>{" "}
-                <code>{"{date}"}</code> are filled in. Write it in your own words — a translated
-                message reads like a machine, and customers can tell.
+                <code>{"{date}"}</code> are filled in.
               </p>
             </div>
           </div>
