@@ -2642,6 +2642,31 @@ model Order {
   taxRateBps          Int     @default(0) // VAT rate snapshot in basis points (750 = 7.5%) - no float
   totalPaisa          Int     @default(0)
 
+  /// (POS audit 11 Sep 2026 §1 #7) - WHO let an over-cap counter discount through.
+  /// `discountApprovedBy` used to be checked in one `if` and then thrown away: any
+  /// non-empty string cleared the DEC-POS-006 cap and the approver was recorded
+  /// nowhere at all. The name is the receipt snapshot; the id is the account whose
+  /// PIN was actually verified, so "who approved this" has an answer that does not
+  /// depend on what somebody typed.
+  discountApprovedBy   String?
+  discountApprovedById String?
+
+  /// (POS audit 11 Sep 2026 §1 #1) - one attempt, one bill.
+  ///
+  /// "Complete sale" had no in-flight guard, so a double-click or a slow link
+  /// posted the sale twice: two receipt numbers, two sets of lines, two stock
+  /// deductions and two sets of tenders for money the cashier took once. The till
+  /// now sends a uuid per attempt and re-sends it on every retry; this @unique
+  /// column is what makes the promise, because a browser guard cannot survive a
+  /// reload and a lookup-then-insert races itself.
+  posIdempotencyKey String? @unique
+
+  /// (POS audit 11 Sep 2026 §3 #11) - what was handed BACK over the counter.
+  /// The payment rows are what the shop kept, and they must never be more than
+  /// the bill; this is the difference between the notes the customer put down
+  /// and that. Stored so the reprint says the same thing the first slip did.
+  posChangePaisa Int @default(0)
+
   internalNote String?
 
   /// DEC-POS-020 (owner, 21 Aug) - who sold it. Defaults to whoever is signed in;
@@ -5212,6 +5237,36 @@ model PosDiscountRule {
   @@index([productId])
   @@index([itemId])
   @@index([itemCategoryId])
+}
+
+/// One manager approval of one over-cap counter discount (POS audit 11 Sep 2026 §1 #7).
+///
+/// Why a row and not a header: the over-cap gate lived entirely in the browser,
+/// with `MANAGER_PIN = "1234"` in the shipped bundle, and the server then
+/// accepted ANY non-empty `discountApprovedBy` string. So the approval was
+/// neither verified nor recorded. It is now issued by the server against a real
+/// OWNER/MANAGER PIN, burned by the sale that uses it (`usedAt`/`usedOrderId`),
+/// and short-lived — an approval is for the bill on the screen, not a standing
+/// permission somebody can keep in a tab.
+model PosDiscountApproval {
+  id             String    @id @default(cuid())
+  /// the opaque one-shot token handed to the till; never a PIN, never a name
+  token          String    @unique
+  approvedById   String
+  approvedByName String
+  /// what the cashier was asking for when it was issued, for the record only
+  requestedPercent Int?
+  expiresAt      DateTime
+  usedAt         DateTime?
+  usedOrderId    String?
+  createdAt      DateTime  @default(now())
+  /// carried only so the soft-delete extension's auto `deletedAt: null` filter
+  /// has a column to read — this table is never soft-deleted (an approval dies
+  /// by `usedAt`/`expiresAt`). The alternative was naming it in that
+  /// extension's exempt list, which is another module's file.
+  deletedAt      DateTime?
+
+  @@index([expiresAt])
 }
 
 // ============================================================

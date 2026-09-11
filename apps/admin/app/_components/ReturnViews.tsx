@@ -959,7 +959,16 @@ export function ReturnDetail({ id }: { id: string }) {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
   const [busy, setBusy] = useState(false);
-  const [refundMethod, setRefundMethod] = useState<ReturnRefundMethod>("ORIGINAL");
+  /*  ═══ THE METHOD IS PICKED, NEVER ASSUMED — owner, 11 Sep 2026 ═══════════
+
+      > *"A refund can come from cash, bKash, the bank — anywhere. The person
+      >  refunding picks the method."*
+
+      It used to default to "Original method", which on a cash-on-delivery bill
+      silently means the counter cash box. That is how a ৳10,200 refund walked
+      out of a till that had taken ৳8,000 all week, and day-close then showed
+      a box holding minus seven thousand taka. Empty until a person chooses.  */
+  const [refundMethod, setRefundMethod] = useState<ReturnRefundMethod | "">("");
   const [refundRef, setRefundRef] = useState("");
   const [refundAccountId, setRefundAccountId] = useState(""); // DEC-GBL-006
   const [payoutOpen, setPayoutOpen] = useState(false);
@@ -979,7 +988,11 @@ export function ReturnDetail({ id }: { id: string }) {
     try {
       const data = await getReturn(id);
       setR(data);
-      setRefundMethod(data.refundMethod);
+      /*  what the return was WRITTEN with is a plan, not a decision: the payout
+          dialog asks again when the money actually moves (owner, 11 Sep 2026).
+          Only a method that names a real till is carried over.  */
+      if (data.refundMethod && data.refundMethod !== "ORIGINAL" && data.refundMethod !== "STORE_CREDIT")
+        setRefundMethod(data.refundMethod);
       setTimeline(await getReturnTimeline(id));
       if (data.customerId)
         getCustomerCredit(data.customerId).then((c) => setCreditBalance(c.balancePaisa)).catch(() => {});
@@ -1295,6 +1308,20 @@ export function ReturnDetail({ id }: { id: string }) {
           }
           methods={payoutOptions}
           method={refundMethod} onMethod={(v) => setRefundMethod(v as ReturnRefundMethod)}
+          methodPlaceholder="Where does the money go back from…"
+          /*  (owner, 11 Sep 2026) say what the picked till actually does. Cash
+              is the one that surprises people: the notes physically leave the
+              counter box, and day-close counts them missing unless the person
+              paying knows that is what they chose.  */
+          methodNote={
+            refundMethod === "CASH"
+              ? "Cash out of the counter cash box — day close will count these notes gone."
+              : refundMethod === "ORIGINAL"
+                ? "Back the way it was paid. On a cash-on-delivery bill that means the counter cash box."
+                : refundMethod
+                  ? "Sent by hand from that account — write the reference below so it can be matched later."
+                  : undefined
+          }
           accountId={refundAccountId} onAccount={setRefundAccountId}
           reference={refundRef} onReference={setRefundRef}
           busy={busy} error={err || null} confirmLabel="Pay out"

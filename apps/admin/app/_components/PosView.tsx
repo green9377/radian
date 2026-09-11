@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { backdropClose } from "./backdropClose";
 import Icon from "./Icon";
 import Link from "next/link";
-import { posCatalogue, listCustomers, listChannels, formatTaka, genBg, posCurrentShift, posCreateSale, type ApiPosCatalogueRow, type ApiCustomer, type ApiPosShift, type ApiChannel, type ApiPosCredit, posCreditStanding, type ApiCreditQuote, creditQuote, type ApiMe, type ApiAppUser, meCached, listAppUsers, posSettings } from "../_data/api";
-import { MoneyBlock, MoneyResult, PaymentLines, TakaInput, computeMoney, chargeNote, usePayRows, usePaymentMethods, TILL_TENDERS, type ChargeRow, type DiscountMode } from "./MoneyBlock";
+import { posCatalogue, posCustomers, listChannels, formatTaka, genBg, posCurrentShift, posCreateSale, posApproveDiscount, posDiscountRules, posHeldCarts, posHoldCart, posDropHeldCart, type ApiPosCatalogueRow, type ApiPosCustomer, type ApiPosDiscountRule, type ApiPosHeldCart, type ApiPosShift, type ApiChannel, type ApiPosCredit, posCreditStanding, type ApiCreditQuote, creditQuote, type ApiMe, type ApiAppUser, meCached, listAppUsers, posSettings } from "../_data/api";
+import { MoneyBlock, MoneyResult, PaymentLines, TakaInput, computeMoney, chargeNote, usePayRows, usePaymentMethods, TILL_TENDERS, type ChargeRow, type DiscountMode, type Door } from "./MoneyBlock";
 import QtyStepper from "./QtyStepper";
 /*
   POS Sell screen — the counter (RADIAN_POS_MODULE_ARCHITECTURE.md).
@@ -34,15 +34,36 @@ const labelCls = "text-[12.5px] text-body-soft font-medium mb-1 block";
 /*  DEC-POS-006 — the discount cap is the SERVER's (PosDiscountRule, per item or
     item category). A hardcoded map of website category names used to live here and
     quietly capped everything at 10% because nothing matched it (owner, 20 Aug).  */
-const MANAGER_PIN = "1234"; // demo only — real gate = Roles & Permissions (POS-R13)
+/*  (POS audit 11 Sep 2026 §3 #17) — `MANAGER_PIN = "1234"` used to live on this
+    line and shipped inside the browser bundle, and the comparison happened here
+    too. Both are gone: the PIN is posted to `POST /pos/discount/approve`, the
+    server checks it against a live OWNER/MANAGER account, and what comes back is
+    a one-shot token. This screen never holds or compares a PIN.
 
-/* DEC-POS-016 — VAT rates come from the Tax module (admin-configurable). Demo set. */
-const TAX_RATES = [
-  { label: "No VAT", value: 0 },
-  { label: "VAT 5%", value: 5 },
-  { label: "VAT 7.5%", value: 7.5 },
-  { label: "VAT 15%", value: 15 },
-];
+    (POS audit 11 Sep 2026 §3 #12) — a four-value VAT dropdown ("demo set") lived
+    here and let the cashier pick a rate per bill, which is the opposite of
+    DEC-GBL-002: one rate, owned by Finance, and the till does not get its own.
+    The rate comes from `GET /pos/settings.defaultTaxRateBps` now, is shown
+    read-only, and the server ignores a body `taxRateBps` either way.  */
+
+/** the doors this panel offers — VAT is no longer one of them (§3 #12) */
+const MONEY_DOORS: Door[] = ["discount", "charge", "adjust"];
+
+/*  (POS audit 11 Sep 2026 §1 #1) — one attempt, one key. `crypto.randomUUID` is
+    only defined on a secure origin and the till is opened over plain http on the
+    shop LAN often enough that the fallback is not theoretical.  */
+function newIdempotencyKey(): string {
+  const c: Crypto | undefined = typeof globalThis === "undefined" ? undefined : globalThis.crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  if (c?.getRandomValues) {
+    const b = c.getRandomValues(new Uint8Array(16));
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+  }
+  return `till-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+}
 
 interface CartLine {
   key: string;
@@ -62,33 +83,40 @@ interface CartLine {
    */
   unitId: string | null;
 }
-interface HeldCart {
-  id: string;
-  label: string;
+/**
+ * (POS audit 11 Sep 2026 §3 #18) — what a parked bill is made of, on the SERVER.
+ *
+ * Hold/recall was React state: a parked bill died on a refresh, was invisible to
+ * the second counter, and the `PosHeldCart` table that exists precisely to stop
+ * one held cart being sold from two screens was never written to. It travels as
+ * the `payload` of `POST /pos/held` now, versioned so an older parked bill can be
+ * recognised rather than half-restored. A recall restores the LINES, the CUSTOMER
+ * and the CHARGES — the old in-browser version dropped the customer id, the note,
+ * the channel and the advance date on the floor.
+ */
+const HELD_VERSION = 1;
+interface HeldPayload {
+  v: number;
   lines: CartLine[];
+  customerId: string | null;
   customerName: string;
   customerPhone: string;
+  customerOutstandingPaisa: number;
   isGift: boolean;
-  discountTaka: number;
+  discountMode: DiscountMode;
+  discountInput: number;
+  adjSign: 1 | -1;
   adjustmentTaka: number;
   charges: ChargeRow[];
-  taxRate: number;
-  at: number;
+  note: string;
+  advanceFor: string;
+  channelId: string;
+  saleDate: string;
 }
 
 export default function PosSellView() {
   const router = useRouter();
   const [products, setProducts] = useState<ApiPosCatalogueRow[]>([]);
-  /*  6 Aug 2026 — demo fallback removed (owner's order, and here it was
-      worse than cosmetic: a counter screen offering SELLABLE fake products
-      is a mis-sale waiting to happen). Empty catalog = empty grid.  */
-  useEffect(() => {
-    /*  DEC-POS-018 — items, never products: everything marked "We sell it",
-        services included. One thing, one price, one way stock leaves.  */
-    posCatalogue()
-      .then(setProducts)
-      .catch(() => setProducts([]));
-  }, []);
 
   // ---- shift (live from :4000/pos) ----
   const [shift, setShift] = useState<ApiPosShift | null>(null);
@@ -125,15 +153,62 @@ export default function PosSellView() {
   /** the shelf opens on top of the bill, the way a purchase picks its items */
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  /*  ═══ THE SHELF — audit §3 #13 ══════════════════════════════════════════════
+      It was 500 rows fetched ONCE, filtered in the browser and then sliced to 60.
+      Item 501 could not be sold at all, and the search box only ever searched
+      whatever happened to have been loaded. `GET /pos/catalogue?search=` is
+      honoured on the server, so the typing goes there — debounced, because a
+      counter types fast — and what comes back is what is drawn. No slice.
+
+      6 Aug 2026 — demo fallback removed (owner's order, and here it was worse
+      than cosmetic: a counter screen offering SELLABLE fake products is a
+      mis-sale waiting to happen). Empty catalogue = empty grid.  */
+  const [catalogueBusy, setCatalogueBusy] = useState(true);
+  const [catalogueErr, setCatalogueErr] = useState<string | null>(null);
+  /*  the category chips must not flicker away while a search is narrow, so the
+      list is remembered from the last unsearched answer  */
+  const [knownCats, setKnownCats] = useState<string[]>([]);
+  useEffect(() => {
+    const term = q.trim();
+    let live = true;
+    setCatalogueBusy(true);
+    /*  ~250 ms: below it the server sees a request per keystroke, above it the
+        counter feels the lag  */
+    const t = setTimeout(() => {
+      /*  DEC-POS-018 — items, never products: everything marked "We sell it",
+          services included. One thing, one price, one way stock leaves.  */
+      posCatalogue(term || undefined, 200)
+        .then((rows) => {
+          if (!live) return;
+          setProducts(rows);
+          setCatalogueErr(null);
+          if (!term) {
+            const set = new Set<string>();
+            rows.forEach((p) => p.categoryName && set.add(p.categoryName));
+            setKnownCats(Array.from(set));
+          }
+        })
+        .catch((e) => {
+          if (!live) return;
+          setProducts([]);
+          setCatalogueErr(e instanceof Error ? e.message : "The shelf could not be read");
+        })
+        .finally(() => { if (live) setCatalogueBusy(false); });
+    }, term ? 250 : 0);
+    return () => { live = false; clearTimeout(t); };
+  }, [q]);
+
   const categories = useMemo(() => {
-    const set = new Set<string>();
+    const set = new Set<string>(knownCats);
     products.forEach((p) => p.categoryName && set.add(p.categoryName));
     return ["All", ...Array.from(set)];
-  }, [products]);
-  const grid = products
-    .filter((p) => (cat === "All" ? true : p.categoryName === cat))
-    .filter((p) => p.name.toLowerCase().includes(q.toLowerCase()))
-    .slice(0, 60);
+  }, [products, knownCats]);
+  /*  only the category chip is still applied here — the words are the server's
+      to match, and nothing is sliced away any more  */
+  const grid = useMemo(
+    () => products.filter((p) => (cat === "All" ? true : p.categoryName === cat)),
+    [products, cat],
+  );
 
   // ---- cart ----
   const [lines, setLines] = useState<CartLine[]>([]);
@@ -206,16 +281,18 @@ export default function PosSellView() {
     setLines((ls) => ls.map((l) => (l.key === key ? { ...l, unitPaisa: Math.max(0, unitPaisa) } : l)));
   const remove = (key: string) => setLines((ls) => ls.filter((l) => l.key !== key));
 
-  // ---- customer / gift ----
-  const [customers, setCustomers] = useState<ApiCustomer[]>([]);
-  useEffect(() => {
-    listCustomers()
-      .then((r) => setCustomers(r.items))
-      .catch(() => setCustomers([]));
-  }, []);
+  /*  ═══ THE CUSTOMER — audit §3 #14 ═══════════════════════════════════════════
+      The picker loaded the first 100 customers and searched them in the BROWSER.
+      A regular past #100 was simply unfindable at the counter, so the cashier
+      typed the phone again, `resolveCustomer` upserted, and the same person ended
+      up as two rows with two halves of a due. `GET /pos/customers?search=` asks
+      the server (at most 25 rows) and tells the counter what each one already
+      owes — which is the one thing a person has to see BEFORE selling on credit.  */
+  const [customers, setCustomers] = useState<ApiPosCustomer[]>([]);
+  const [custBusy, setCustBusy] = useState(false);
   const [custName, setCustName] = useState("");
   const [custPhone, setCustPhone] = useState("");
-  const [selectedCust, setSelectedCust] = useState<ApiCustomer | null>(null);
+  const [selectedCust, setSelectedCust] = useState<ApiPosCustomer | null>(null);
   const [custNew, setCustNew] = useState(false); // typing a brand-new customer
   const [custOpen, setCustOpen] = useState(false); // picker dropdown open
   const [custQ, setCustQ] = useState("");
@@ -256,7 +333,7 @@ export default function PosSellView() {
       .catch(() => setChannels([]));
   }, []);
 
-  const pickCustomer = (c: ApiCustomer) => {
+  const pickCustomer = (c: ApiPosCustomer) => {
     setSelectedCust(c);
     setCustName(c.name);
     setCustPhone(c.phone);
@@ -270,13 +347,20 @@ export default function PosSellView() {
     setCustPhone("");
     setCustNew(false);
   };
-  const custList = customers.filter((c) => {
-    const ql = custQ.trim().toLowerCase();
-    if (!ql) return true;
-    const qd = ql.replace(/\D/g, "");
-    const cd = c.phone.replace(/\D/g, "");
-    return c.name.toLowerCase().includes(ql) || (qd.length >= 2 && cd.includes(qd));
-  });
+  /*  the lookup runs only while the picker is open, and on the same ~250 ms as
+      the shelf — one debounce shape for the whole screen  */
+  useEffect(() => {
+    if (!custOpen) return;
+    let live = true;
+    setCustBusy(true);
+    const t = setTimeout(() => {
+      posCustomers(custQ.trim() || undefined)
+        .then((r) => { if (live) setCustomers(r); })
+        .catch(() => { if (live) setCustomers([]); })
+        .finally(() => { if (live) setCustBusy(false); });
+    }, custQ.trim() ? 250 : 0);
+    return () => { live = false; clearTimeout(t); };
+  }, [custQ, custOpen]);
 
   // ---- the four things that bend a bill (MoneyBlock owns the shapes) ----
   const [discountMode, setDiscountMode] = useState<DiscountMode>("amt");
@@ -284,19 +368,44 @@ export default function PosSellView() {
   const [charges, setCharges] = useState<ChargeRow[]>([]);
   const [adjSign, setAdjSign] = useState<1 | -1>(1);
   const [adjustmentTaka, setAdjustmentTaka] = useState<number>(0);
-  const [taxRate, setTaxRate] = useState<number>(0);
 
-  const [approved, setApproved] = useState(false);
+  /*  §3 #12 / DEC-GBL-002 — ONE rate, and it is Finance's. The cashier does not
+      choose it and the bill does not carry one; this is read so the panel can say
+      what the bill is being taxed at, and `taxRateBps` is no longer sent at all.  */
+  const [taxRateBps, setTaxRateBps] = useState(0);
+  useEffect(() => { posSettings().then((s) => setTaxRateBps(s.defaultTaxRateBps ?? 0)).catch(() => {}); }, []);
+  const taxRate = taxRateBps / 100; // percent, the unit computeMoney speaks
+
+  /*  §1 #7 / §3 #17 — what the SERVER said, not what the browser decided. The
+      token is the only thing that lifts the cap, and it is good for one bill.  */
+  const [approval, setApproval] = useState<{ token: string; approvedBy: string } | null>(null);
   const [showPin, setShowPin] = useState(false);
   const [pinInput, setPinInput] = useState("");
-  const [pinErr, setPinErr] = useState(false);
+  const [pinErr, setPinErr] = useState<string | null>(null);
+  const [pinBusy, setPinBusy] = useState(false);
 
-  // ---- held carts ----
-  const [held, setHeld] = useState<HeldCart[]>([]);
+  /*  §3 #15/#17 — the cap is the shop's, read from `GET /pos/discount-rules`. The
+      screen used to hardcode `cap = 100 / overCap = false`, so the approval button
+      and the PIN dialog below were unreachable dead code and a seeded rule was a
+      hard dead end at the counter: the server refused and the till could not ask.  */
+  const [rules, setRules] = useState<ApiPosDiscountRule[]>([]);
+  useEffect(() => { posDiscountRules().then(setRules).catch(() => setRules([])); }, []);
+
+  // ---- held carts (server-side, §3 #18) ----
+  const [held, setHeld] = useState<ApiPosHeldCart[]>([]);
   const [showHeld, setShowHeld] = useState(false);
+  const [heldBusy, setHeldBusy] = useState(false);
+  const [heldErr, setHeldErr] = useState<string | null>(null);
+  const refreshHeld = useCallback(() => {
+    posHeldCarts().then(setHeld).catch(() => setHeld([]));
+  }, []);
+  useEffect(() => { refreshHeld(); }, [refreshHeld]);
 
-  // ---- receipt ----
-  const [receipt, setReceipt] = useState<null | { no: string; total: number; hideprice: boolean; due: number }>(null);
+  /*  ---- what to hand back, after the sale (§3 #11) ----
+      Not the browser's arithmetic: the server trims the tenders to what the shop
+      keeps and answers with `changePaisa`, so the slip and the drawer cannot
+      disagree with what the cashier was told to give back.  */
+  const [change, setChange] = useState<null | { saleId: string; no: string; changePaisa: number; duePaisa: number }>(null);
 
   // ---- money (DEC-POS-015/016) ----
   const subtotal = lines.reduce((s, l) => s + l.unitPaisa * l.qty, 0);
@@ -310,7 +419,7 @@ export default function PosSellView() {
   }, 0);
   const moneyIn = { subtotalPaisa: subtotal, discountMode, discountInput, charges, adjSign, adjustmentTaka, taxRate };
   const sum = computeMoney(moneyIn);
-  const { discountPaisa, vatPaisa, discountPct } = sum;
+  const { discountPaisa, vatPaisa } = sum;
   const adjustmentPaisa = sum.extraPaisa; // charges + adjustment — one number for the order
   const total = sum.totalPaisa;
 
@@ -336,15 +445,34 @@ export default function PosSellView() {
   const pay = usePayRows(payablePaisa, methods[0]?.id ?? "CASH");
   const { paidPaisa: paid, duePaisa, changePaisa, overpaidNoChange } = pay;
 
-  /*  The cap lives on the server and it refuses in words; the screen no longer
-      guesses one. Approval is still asked for when a line goes under its floor.  */
-  const cap = 100;
-  const overCap = false;
-  const needsApproval = false;
+  /*  ═══ THE CAP — audit §3 #15 / #17 ══════════════════════════════════════════
+      The strictest rule any line on this cart is under; no rule = 100, i.e. no
+      block. The server computes the same thing from the same table and refuses in
+      words if the screen and it ever disagree — this is only so the counter can
+      ASK for approval before it is refused, instead of hitting a dead end.
 
-  useEffect(() => {
-    if (!overCap && approved) setApproved(false);
-  }, [overCap, approved]);
+      Money OFF the bill is money off the bill whichever box it was typed into, so
+      a negative adjustment counts against the cap exactly as the server counts it
+      (`discountPaisa + max(0, −adjustment)`, audit §1 #5).  */
+  const cap = useMemo(() => {
+    if (!rules.length || lines.length === 0) return 100;
+    let c = 100;
+    for (const l of lines) {
+      const r =
+        rules.find((x) => x.itemId && x.itemId === l.product.id) ??
+        (l.product.categoryId ? rules.find((x) => x.itemCategoryId && x.itemCategoryId === l.product.categoryId) : undefined);
+      if (r) c = Math.min(c, r.maxPercent);
+    }
+    return c;
+  }, [rules, lines]);
+  const giveawayPaisa = discountPaisa + Math.max(0, -sum.extraPaisa);
+  const givePct = subtotal ? (giveawayPaisa / subtotal) * 100 : 0;
+  const overCap = giveawayPaisa > 0 && givePct > cap + 0.001;
+  const needsApproval = overCap && !approval;
+
+  /*  An approval is for the discount it was asked for. The moment the money moves
+      the token is dropped, so an approval for 30% cannot quietly cover 60%.  */
+  useEffect(() => { setApproval(null); }, [discountPaisa, sum.extraPaisa, subtotal]);
 
   // due (partial or full-credit) must be tied to a known customer — DEC-POS-008
   /*  A due is money owed by a person, so it needs a person (DEC-POS-008). This is
@@ -370,9 +498,27 @@ export default function PosSellView() {
       to refuse the first bill of the morning until somebody opened a shift and
       typed a float. The cash box is opened by the sale itself now, so the till
       is never in the way of a customer standing at it.  */
+  /*  ═══ CHANGE — audit §3 #11 ═════════════════════════════════════════════════
+      Handing over a ৳1000 note for a ৳900 bill is the most ordinary thing at a
+      counter and the till used to refuse it outright while printing "Change to
+      give ৳100" beside the red error. Cash may be tendered over the bill now: the
+      server records only what the shop KEEPS and answers with `changePaisa`.
+
+      A NON-CASH tender still may not overpay — change out of a bKash transfer
+      would be the shop paying cash against money it has not got — so the screen
+      says so here instead of letting the cashier find out from a 400.  */
+  const nonCashPaisa = pay.pays
+    .filter((p) => p.method.toLowerCase() !== "cash")
+    .reduce((s, p) => s + p.amountPaisa, 0);
+  const nonCashOver = nonCashPaisa > payablePaisa;
+
   const errors: string[] = [];
   if (lines.length === 0) errors.push("Add at least one item.");
-  if (needsApproval) errors.push("Discount over limit — needs manager approval.");
+  if (needsApproval) errors.push(`${givePct.toFixed(0)}% off — over the ${cap}% limit, needs manager approval.`);
+  if (nonCashOver)
+    errors.push(
+      `${formatTaka(nonCashPaisa)} on transfer or card is more than the ${formatTaka(payablePaisa)} bill — no change can be given out of a non-cash payment.`,
+    );
   if (needsCustomer) errors.push(`${formatTaka(duePaisa)} unpaid — add a customer name or phone.`);
   /*  DEC-ITM-023 — an item nobody has priced cannot be rung up. Services usually
       land here first: no purchase means no cost, so no automatic price.  */
@@ -399,49 +545,170 @@ export default function PosSellView() {
     setIsGift(false);
     setDiscountInput(0);
     setDiscountMode("amt");
-    setApproved(false);
+    setApproval(null);
     setCharges([]);
     setNote("");
     setAdvanceFor("");
     setSaleDate(new Date().toISOString().slice(0, 10));
     setAdjSign(1);
     setAdjustmentTaka(0);
-    setTaxRate(0);
     // one payment line always exists, so the panel is never an empty box
     pay.reset();
   }
 
-  function holdSale() {
-    if (lines.length === 0) return;
-    setHeld((h) => [
-      ...h,
-      { id: `H-${Date.now()}`, label: custName.trim() || `Walk-in #${h.length + 1}`, lines, customerName: custName, customerPhone: custPhone, isGift, discountTaka: Math.round(discountPaisa / 100), adjustmentTaka: Math.round(sum.adjustmentPaisa / 100), charges, taxRate, at: Date.now() },
-    ]);
-    resetSale();
-  }
-  function resumeSale(hc: HeldCart) {
-    setLines(hc.lines);
-    setCustName(hc.customerName);
-    setCustPhone(hc.customerPhone);
-    setCustNew(!!hc.customerName.trim());
-    setIsGift(hc.isGift);
-    setDiscountMode("amt");
-    setDiscountInput(hc.discountTaka);
-    setAdjSign(hc.adjustmentTaka < 0 ? -1 : 1);
-    setAdjustmentTaka(Math.abs(hc.adjustmentTaka));
-    setCharges(hc.charges ?? []);
-    setTaxRate(hc.taxRate);
-    // a resumed cart starts with one payment line again, not whatever was half-typed
-    pay.reset();
-    setHeld((h) => h.filter((x) => x.id !== hc.id));
-    setShowHeld(false);
+  /*  ═══ HOLD / RECALL — audit §3 #18 ══════════════════════════════════════════
+      Both halves are the server's now. A parked bill survives a refresh, a crash
+      and the other counter; and the recall DELETES first and restores only if the
+      delete was the one that won, so one held cart cannot be sold from two
+      screens. A recalled bill brings back its lines, its customer and its
+      charges — the browser-only version restored the items and quietly dropped
+      the customer id, the note, the channel and the advance date.  */
+  async function holdSale() {
+    if (lines.length === 0 || heldBusy) return;
+    setHeldBusy(true);
+    setHeldErr(null);
+    const payload: HeldPayload = {
+      v: HELD_VERSION,
+      lines,
+      customerId: selectedCust?.id ?? null,
+      customerName: custName,
+      customerPhone: custPhone,
+      customerOutstandingPaisa: selectedCust?.outstandingPaisa ?? 0,
+      isGift,
+      discountMode,
+      discountInput,
+      adjSign,
+      adjustmentTaka,
+      charges,
+      note,
+      advanceFor,
+      channelId,
+      saleDate,
+    };
+    try {
+      await posHoldCart({
+        label: custName.trim() || `Walk-in ${new Date().toTimeString().slice(0, 5)}`,
+        registerId: shift?.registerId ?? undefined,
+        payload,
+      });
+      refreshHeld();
+      resetSale();
+    } catch (e) {
+      setHeldErr(e instanceof Error ? e.message : "That bill could not be parked");
+    } finally {
+      setHeldBusy(false);
+    }
   }
 
+  /** what came back from the server is untrusted JSON until it has been read */
+  function readHeld(raw: unknown): HeldPayload | null {
+    if (!raw || typeof raw !== "object") return null;
+    const p = raw as Partial<HeldPayload>;
+    if (!Array.isArray(p.lines) || p.lines.length === 0) return null;
+    return {
+      v: typeof p.v === "number" ? p.v : 0,
+      lines: p.lines as CartLine[],
+      customerId: typeof p.customerId === "string" ? p.customerId : null,
+      customerName: typeof p.customerName === "string" ? p.customerName : "",
+      customerPhone: typeof p.customerPhone === "string" ? p.customerPhone : "",
+      customerOutstandingPaisa: typeof p.customerOutstandingPaisa === "number" ? p.customerOutstandingPaisa : 0,
+      isGift: !!p.isGift,
+      discountMode: p.discountMode === "pct" ? "pct" : "amt",
+      discountInput: typeof p.discountInput === "number" ? p.discountInput : 0,
+      adjSign: p.adjSign === -1 ? -1 : 1,
+      adjustmentTaka: typeof p.adjustmentTaka === "number" ? p.adjustmentTaka : 0,
+      charges: Array.isArray(p.charges) ? (p.charges as ChargeRow[]) : [],
+      note: typeof p.note === "string" ? p.note : "",
+      advanceFor: typeof p.advanceFor === "string" ? p.advanceFor : "",
+      channelId: typeof p.channelId === "string" ? p.channelId : "",
+      saleDate: typeof p.saleDate === "string" ? p.saleDate : new Date().toISOString().slice(0, 10),
+    };
+  }
+
+  async function resumeSale(hc: ApiPosHeldCart) {
+    if (heldBusy) return;
+    const p = readHeld(hc.payload);
+    if (!p) {
+      setHeldErr("That parked bill cannot be read — drop it and ring the sale up again.");
+      return;
+    }
+    setHeldBusy(true);
+    setHeldErr(null);
+    try {
+      /*  claim it first: whoever gets the delete gets the cart. Restoring first
+          and deleting after is how the same parked bill is sold twice.  */
+      await posDropHeldCart(hc.id);
+    } catch {
+      setHeldErr("That bill was already recalled somewhere else.");
+      refreshHeld();
+      setHeldBusy(false);
+      return;
+    }
+    setLines(p.lines);
+    setCustName(p.customerName);
+    setCustPhone(p.customerPhone);
+    setSelectedCust(
+      p.customerId
+        ? { id: p.customerId, name: p.customerName, phone: p.customerPhone, outstandingPaisa: p.customerOutstandingPaisa }
+        : null,
+    );
+    setCustNew(!p.customerId && !!p.customerName.trim());
+    setIsGift(p.isGift);
+    setDiscountMode(p.discountMode);
+    setDiscountInput(p.discountInput);
+    setAdjSign(p.adjSign);
+    setAdjustmentTaka(p.adjustmentTaka);
+    setCharges(p.charges);
+    setNote(p.note);
+    setAdvanceFor(p.advanceFor);
+    if (p.channelId) setChannelId(p.channelId);
+    setSaleDate(p.saleDate || new Date().toISOString().slice(0, 10));
+    setApproval(null);
+    // a resumed cart starts with one payment line again, not whatever was half-typed
+    pay.reset();
+    refreshHeld();
+    setShowHeld(false);
+    setHeldBusy(false);
+  }
+
+  async function dropHeld(id: string) {
+    if (heldBusy) return;
+    setHeldBusy(true);
+    setHeldErr(null);
+    try {
+      await posDropHeldCart(id);
+    } catch (e) {
+      setHeldErr(e instanceof Error ? e.message : "That parked bill could not be dropped");
+    } finally {
+      refreshHeld();
+      setHeldBusy(false);
+    }
+  }
+
+  /*  ═══ ONE ATTEMPT, ONE BILL — audit §1 #1 ═══════════════════════════════════
+      `disabled={errors.length > 0}` was the whole guard, and `completeSale` is
+      async: a double-click, or a slow API and an impatient hand, posted
+      `POST /pos/sales` twice — two receipt numbers, two sets of lines, two stock
+      deductions and two payment sets for money taken once. The drawer then
+      expects double and day-close reads as a shortage nobody can explain.
+
+      Two belts: `saleBusy` stops the second click in this browser, and the
+      idempotency key stops the second REQUEST — the server hands back the
+      original bill instead of ringing it up again, which is the only guard that
+      also covers a retry after a dropped connection. The key belongs to the
+      ATTEMPT: a retry of the same press keeps it, and a new one is minted only
+      once a sale has actually completed.  */
+  const [saleBusy, setSaleBusy] = useState(false);
+  const idemRef = useRef<string | null>(null);
+
   async function completeSale() {
-    if (errors.length) return;
+    if (errors.length || saleBusy) return;
     setSaleErr(null);
+    setSaleBusy(true);
+    if (!idemRef.current) idemRef.current = newIdempotencyKey();
     try {
       const sale = await posCreateSale({
+        idempotencyKey: idemRef.current,
         shiftId: shift?.id,
         registerId: shift?.registerId ?? undefined,
         customerId: selectedCust?.id,
@@ -460,10 +727,14 @@ export default function PosSellView() {
         advance: advanceFor ? { promisedFor: new Date(`${advanceFor}T12:00:00`).toISOString() } : undefined,
         lines: lines.map((l) => ({ itemId: l.product.id, qty: l.qty, unitPaisa: l.unitPaisa, unitId: l.unitId ?? undefined })),
         discountPaisa,
-        discountApprovedBy: overCap && approved ? "Manager (PIN)" : undefined,
+        /*  §1 #7 — the NAME is a label on the bill and nothing more; the token is
+            what actually lifts the cap, and the server burns it on one sale.  */
+        discountApprovedBy: approval?.approvedBy,
+        discountApprovalToken: approval?.token,
         adjustmentPaisa,
         adjustmentNote: chargeNote(charges, sum.adjustmentPaisa) || undefined,
-        taxRateBps: Math.round(taxRate * 100),
+        /*  §3 #12 — no `taxRateBps`. Finance owns the rate (DEC-GBL-002) and the
+            server reads it from PosSetting; sending one from here was the bug.  */
         /*  the server still takes a word for this; it is derived now, never asked
             (DEC-POS-017 retired) — anything left unpaid makes it a partial sale  */
         payMode: duePaisa > 0 ? "partial" : "full",
@@ -478,26 +749,95 @@ export default function PosSellView() {
           })),
       });
       /*  DEC-POS-023 (owner, 21 Aug) — a finished sale opens as a bill, the same
-          page a purchase gets. The receipt strip stays for the gift case, where
-          the point is a price-free slip, not a record.  */
+          page a purchase gets.
+          The attempt is over and it became a bill, so the next press is a new
+          attempt and gets a new key (§1 #1).  */
+      idemRef.current = null;
+      const back = sale.changePaisa ?? 0;
       resetSale();
       posCurrentShift().then(setShift).catch(() => {});
-      router.push(`/pos/sale/${sale.id}`);
+      /*  §3 #11 — money in the hand comes before the paperwork: when there is
+          change to give, say so and hold the screen until the cashier has given
+          it. The figure is the SERVER's, so it is the one the receipt carries.  */
+      if (back > 0) {
+        setChange({ saleId: sale.id, no: sale.orderNo, changePaisa: back, duePaisa: sale.duePaisa });
+      } else {
+        router.push(`/pos/sale/${sale.id}`);
+      }
     } catch (e) {
+      /*  the key is KEPT: if this attempt did reach the server and only the
+          answer was lost, the retry gets the original bill back rather than a
+          second one  */
       setSaleErr(e instanceof Error ? e.message : "Could not complete the sale");
+    } finally {
+      setSaleBusy(false);
     }
   }
 
-  function tryApprove() {
-    if (pinInput === MANAGER_PIN) {
-      setApproved(true);
+  /*  §1 #7 / §3 #17 — the PIN goes to the SERVER. It is not compared here, it is
+      not stored here, and there is no PIN in this bundle to read. What comes back
+      is a one-shot token for this bill and the name to show on the panel.  */
+  async function tryApprove() {
+    if (pinBusy) return;
+    setPinBusy(true);
+    setPinErr(null);
+    try {
+      const r = await posApproveDiscount({ pin: pinInput, requestedPercent: Math.round(givePct) });
+      setApproval({ token: r.token, approvedBy: r.approvedBy });
       setShowPin(false);
       setPinInput("");
-      setPinErr(false);
-    } else {
-      setPinErr(true);
+    } catch (e) {
+      setPinErr(e instanceof Error ? e.message : "That approval was refused");
+    } finally {
+      setPinBusy(false);
     }
   }
+
+  /*  ═══ THE KEYBOARD — audit §5 #2 ════════════════════════════════════════════
+      A counter is a keyboard, not a mouse. Enter adds whatever the search box is
+      pointing at and the focus STAYS in the search box, so the next scan or the
+      next few letters just work; F2 jumps to the tender; Enter there completes;
+      Esc backs out of whatever is open. Nothing here takes anything away from the
+      mouse — every one of these has a chip or a tile beside it.  */
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const payWrapRef = useRef<HTMLDivElement | null>(null);
+  const [focusIdx, setFocusIdx] = useState(0);
+  // a new set of results starts at the top, never at a row that has scrolled away
+  useEffect(() => { setFocusIdx(0); }, [q, cat, products]);
+
+  const focusTender = useCallback(() => {
+    /*  the payment rows belong to MoneyBlock and take no ref, so the box is
+        found by what it is: the first amount field inside the payment panel  */
+    const box = payWrapRef.current?.querySelector<HTMLInputElement>('input[inputmode="decimal"]');
+    if (box) { box.focus(); box.select(); }
+  }, []);
+
+  const addFromSearch = (p: ApiPosCatalogueRow) => {
+    if (!canAdd(p)) return;
+    add(p);
+    const box = searchRef.current;
+    if (box) { box.focus(); box.select(); }
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (change) return; // the change dialog is closed by saying the money was given
+        if (showPin) { setShowPin(false); return; }
+        if (showHeld) { setShowHeld(false); return; }
+        if (custOpen) { setCustOpen(false); return; }
+        if (pickerOpen) { setPickerOpen(false); return; }
+        return;
+      }
+      if (e.key === "F2") {
+        e.preventDefault();
+        if (pickerOpen) setPickerOpen(false);
+        focusTender();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [change, showPin, showHeld, custOpen, pickerOpen, focusTender]);
 
   return (
     <div className="px-5 md:px-7 pt-5 pb-10 max-w-[1750px]">
@@ -563,9 +903,19 @@ export default function PosSellView() {
               {selectedCust ? (
                 <div className="flex items-center gap-2 flex-wrap bg-[#213329] border border-[#31493b] rounded-[10px] px-3 py-2.5">
                   <Icon name="user" size={15} />
-                  <span className="text-[12.5px] text-[#8fd6b7] min-w-0"><b className="font-medium">{selectedCust.name}</b> · {selectedCust.phone} · {selectedCust.ordersCount} orders · LTV {formatTaka(selectedCust.ltvPaisa)}</span>
+                  {/*  §3 #14 — what this person already owes is the fact that
+                       decides whether they may take another bill on credit, so it
+                       sits beside their name and not three screens away.  */}
+                  <span className="text-[12.5px] text-[#8fd6b7] min-w-0">
+                    <b className="font-medium">{selectedCust.name}</b> · {selectedCust.phone}
+                    {selectedCust.outstandingPaisa > 0 && (
+                      <span className="text-[#f0b46a]"> · owes {formatTaka(selectedCust.outstandingPaisa)}</span>
+                    )}
+                  </span>
                   <div className="flex items-center gap-2 ml-auto">
-                    <a href={`tel:${selectedCust.phone}`} className="inline-flex items-center gap-1.5 bg-white border border-[#31493b] text-[#8fd6b7] text-[12px] px-3 py-1.5 rounded-[9px] font-medium hover:bg-[#23342a]"><Icon name="phone" size={13} /> Call</a>
+                    {/*  §4 contrast — pale green on white read at about 1.9:1 and
+                         was unreadable; the chip takes the panel's own dark ground.  */}
+                    <a href={`tel:${selectedCust.phone}`} className="inline-flex items-center gap-1.5 bg-[#1b2a21] border border-[#31493b] text-[#8fd6b7] text-[12px] px-3 py-1.5 rounded-[9px] font-medium hover:bg-[#23342a]"><Icon name="phone" size={13} /> Call</a>
                     <button type="button" onClick={clearCustomer} className="text-[12.5px] text-[#8fd6b7] underline">Change</button>
                   </div>
                 </div>
@@ -591,16 +941,30 @@ export default function PosSellView() {
                           <input autoFocus className="ipt h-[38px]" placeholder="Search name or phone…" value={custQ} onChange={(e) => setCustQ(e.target.value)} />
                         </div>
                         <div className="max-h-[240px] overflow-auto">
-                          {custList.slice(0, 40).map((c) => (
+                          {customers.map((c) => (
                             <div key={c.id} className="flex items-center gap-2 px-3 py-2 hover:bg-lavender/60 border-b border-lavender-deep last:border-0">
                               <button type="button" onClick={() => pickCustomer(c)} className="text-left min-w-0 flex-1">
                                 <div className="text-[13px] text-purple font-medium truncate">{c.name} <span className="text-body-soft font-normal">({c.phone})</span></div>
-                                <div className="text-[12px] text-body-soft">{c.ordersCount} orders · LTV {formatTaka(c.ltvPaisa)}</div>
+                                {/*  §3 #14 — a counter person has to see what this
+                                     person owes BEFORE selling to them on credit  */}
+                                <div className={"text-[12px] " + (c.outstandingPaisa > 0 ? "text-[#f0b46a] font-medium" : "text-body-soft")}>
+                                  {c.outstandingPaisa > 0 ? `owes ${formatTaka(c.outstandingPaisa)}` : "nothing outstanding"}
+                                </div>
                               </button>
                               <a href={`tel:${c.phone}`} onClick={(e) => e.stopPropagation()} className="shrink-0 inline-flex items-center gap-1 text-[12px] text-purple border border-lavender-deep rounded-[8px] px-2.5 py-1.5 hover:border-orchid-mid"><Icon name="phone" size={13} /> Call</a>
                             </div>
                           ))}
-                          {custList.length === 0 && <div className="px-3 py-3 text-[13px] text-body-soft">No customer matches “{custQ}”.</div>}
+                          {custBusy && customers.length === 0 && <div className="px-3 py-3 text-[13px] text-body-soft">Looking…</div>}
+                          {!custBusy && customers.length === 0 && (
+                            <div className="px-3 py-3 text-[13px] text-body-soft">
+                              {custQ.trim() ? `No customer matches “${custQ}”.` : "No customers yet."}
+                            </div>
+                          )}
+                          {customers.length >= 25 && (
+                            <div className="px-3 py-2 text-[11.5px] text-body-soft border-t border-lavender-deep">
+                              Showing the closest 25 — type more of the name or the number to narrow it.
+                            </div>
+                          )}
                         </div>
                         <button type="button" onClick={() => { setCustNew(true); setCustOpen(false); setCustQ(""); }} className="w-full text-left px-3 py-2.5 border-t border-lavender-deep text-purple font-medium text-[13px] inline-flex items-center gap-1.5 hover:bg-lavender/60"><Icon name="plus" size={14} /> Create new customer</button>
                       </div>
@@ -787,23 +1151,41 @@ export default function PosSellView() {
                  carries money and nothing else: the total, the four doors, the
                  payment lines, the button. Only the payment list ever scrolls.  */}
             <div className="px-4 pt-3 border-t border-white/15 shrink-0">
+              {/*  §3 #12 — three doors, not four. VAT is not one of them any more:
+                   the rate is the shop's, set once in POS settings.  */}
               <MoneyBlock
                 subtotalPaisa={subtotal}
+                doors={MONEY_DOORS}
                 discountMode={discountMode} discountInput={discountInput}
                 charges={charges} adjSign={adjSign} adjustmentTaka={adjustmentTaka}
-                taxRate={taxRate} taxRates={TAX_RATES} sum={sum}
+                taxRate={taxRate} taxRates={[]} sum={sum}
                 onDiscount={setDiscountInput} onDiscountMode={setDiscountMode}
                 onCharges={setCharges} onAdjSign={setAdjSign}
-                onAdjustment={setAdjustmentTaka} onTaxRate={setTaxRate} />
+                onAdjustment={setAdjustmentTaka} onTaxRate={() => {}} />
 
+              {/*  the shop's rate, said out loud and not editable — the cashier
+                   should still SEE what the bill is being taxed at (DEC-GBL-002)  */}
+              <div className="mt-2 flex items-center justify-between text-[11.5px] text-[#c9a6e4]">
+                <span className="inline-flex items-center gap-1.5">
+                  <Icon name="lock" size={12} />
+                  {taxRateBps > 0 ? `VAT ${taxRateBps / 100}% — set in POS settings` : "No VAT — set in POS settings"}
+                </span>
+                {vatPaisa > 0 && <span className="text-white font-medium" style={{ fontVariantNumeric: "tabular-nums" }}>+ {formatTaka(vatPaisa)}</span>}
+              </div>
+
+              {/*  §3 #17 — this used to be dead code behind `needsApproval = false`,
+                   next to a PIN that shipped in the bundle. Both ends are real now:
+                   the cap is the shop's and the approval is the server's.  */}
               {needsApproval && (
-                <button type="button" onClick={() => { setShowPin(true); setPinErr(false); setPinInput(""); }}
+                <button type="button" onClick={() => { setShowPin(true); setPinErr(null); setPinInput(""); }}
                   className="mt-2 w-full text-[12px] py-2 rounded-[10px] font-medium bg-[#3c2c17] border border-[#f0c27a] text-[#f7a96e] inline-flex items-center justify-center gap-1.5">
-                  <Icon name="shield" size={13} /> {discountPct.toFixed(0)}% discount — manager approval needed
+                  <Icon name="shield" size={13} /> {givePct.toFixed(0)}% off — over the {cap}% limit, ask a manager
                 </button>
               )}
-              {overCap && approved && (
-                <div className="mt-2 text-[12px] text-[#7fe0a8] font-medium inline-flex items-center gap-1"><Icon name="check" size={13} /> Discount approved</div>
+              {approval && (
+                <div className="mt-2 text-[12px] text-[#7fe0a8] font-medium inline-flex items-center gap-1">
+                  <Icon name="check" size={13} /> Approved by {approval.approvedBy}
+                </div>
               )}
             </div>
 
@@ -811,7 +1193,17 @@ export default function PosSellView() {
                  stay next to the button where the hand is  */}
             <div className="flex-1 min-h-[8px]" />
 
-            <div className="px-4 shrink-0 pb-1">
+            {/*  F2 lands here and Enter inside it completes the sale — a counter
+                 hand never has to leave the number pad (audit §5 #2).  */}
+            <div className="px-4 shrink-0 pb-1" ref={payWrapRef}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                /*  a button in here (store credit, add a row) owns its own Enter —
+                    only a tender field completes the sale  */
+                if ((e.target as HTMLElement).tagName !== "INPUT") return;
+                e.preventDefault();
+                if (errors.length === 0 && !saleBusy) completeSale();
+              }}>
               <div className="rounded-[12px] px-3 py-3" style={{ background: "rgba(255,255,255,.07)" }}>
                 {quote && quote.usablePaisa > 0 && (
                   <div className="rounded-[12px] px-3 py-2.5 mb-2.5"
@@ -842,7 +1234,26 @@ export default function PosSellView() {
                  thing above it that can grow is the payment list, and that scrolls
                  inside itself, so nothing can push Complete off the screen.  */}
             <div className="p-4 pt-3 border-t border-white/15 shrink-0">
-              <MoneyResult pay={pay} totalPaisa={total} />
+              {/*  the panel measures against what the NOTES have to cover, which
+                   is the bill minus any store credit — the same number the server
+                   measures the tenders against (§3 #11)  */}
+              <MoneyResult pay={pay} totalPaisa={payablePaisa} />
+
+              {/*  §3 #11 — the loudest thing on the panel when there is money to
+                   hand back, because that is the next thing the cashier does. It
+                   is the browser's arithmetic until the sale is saved; the dialog
+                   afterwards shows the figure the SERVER recorded.  */}
+              {changePaisa > 0 && !nonCashOver && (
+                <div className="mt-2 rounded-[10px] px-3 py-2 flex items-center justify-between"
+                  style={{ background: "rgba(127,224,168,.16)", border: "1px solid rgba(127,224,168,.4)" }}>
+                  <span className="text-[12px] font-medium text-[#7fe0a8] inline-flex items-center gap-1.5">
+                    <Icon name="cash" size={14} /> Change to hand back
+                  </span>
+                  <span className="text-[15px] font-semibold text-[#7fe0a8]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    {formatTaka(changePaisa)}
+                  </span>
+                </div>
+              )}
 
               {needsCustomer && (
                 <div className="mt-2 rounded-[10px] bg-[#3c2c17] border border-[#f0c27a] text-[#f7a96e] text-[12px] px-3 py-2 flex items-start gap-1.5">
@@ -852,10 +1263,26 @@ export default function PosSellView() {
               )}
 
               <div className="flex gap-2 mt-3">
-                <button type="button" onClick={holdSale} disabled={lines.length === 0} className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20 disabled:opacity-40">Hold</button>
-                <button type="button" onClick={completeSale} disabled={errors.length > 0} className="flex-1 min-w-0 bg-white hover:bg-[#2c1d35] text-purple text-[15px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40"><Icon name="check" size={17} /><span className="truncate">{errors.length ? errors[0].replace(/\.$/, "") : advanceFor ? `Take advance${total > 0 ? " · " + formatTaka(total) : ""}` : `Complete${total > 0 ? " · " + formatTaka(total) : " sale"}`}</span></button>
+                <button type="button" onClick={holdSale} disabled={lines.length === 0 || heldBusy || saleBusy} className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20 disabled:opacity-40">Hold</button>
+                {/*  §1 #1 — `disabled={errors.length > 0}` was the whole guard and
+                     the handler is async: the second click posted a second bill.  */}
+                <button type="button" onClick={completeSale} disabled={errors.length > 0 || saleBusy}
+                  className="flex-1 min-w-0 bg-white hover:bg-[#efe7f5] text-purple text-[15px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
+                  <Icon name={saleBusy ? "clock" : "check"} size={17} />
+                  <span className="truncate">
+                    {saleBusy
+                      ? "Saving the bill…"
+                      : errors.length
+                        ? errors[0].replace(/\.$/, "")
+                        : advanceFor
+                          ? `Take advance${total > 0 ? " · " + formatTaka(total) : ""}`
+                          : `Complete${total > 0 ? " · " + formatTaka(total) : " sale"}`}
+                  </span>
+                </button>
               </div>
               {saleErr && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{saleErr}</div>}
+              {heldErr && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{heldErr}</div>}
+              <div className="mt-2 text-[11px] text-[#a98ac4]">Enter adds the item you are on · F2 jumps to the tender · Enter there completes</div>
             </div>
           </div>
         </aside>
@@ -880,9 +1307,26 @@ export default function PosSellView() {
             <div className="flex-1 min-h-0 overflow-y-auto p-4" style={{ background: "#271a34" }}>
         <div className="min-w-0">
           <div className={cardCls + " p-4 mb-4"}>
+            {/*  §3 #13 + §5 #2 — the words go to the server, and the focus stays
+                 here: arrow keys move the pointer, Enter puts that item on the
+                 bill and leaves the box ready for the next scan.  */}
             <div className="relative mb-3">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-body-soft"><Icon name="search" size={17} /></span>
-              <input className="ipt h-[44px] ipt-icon" placeholder="Search by name or code…" value={q} onChange={(e) => setQ(e.target.value)} />
+              <input ref={searchRef} autoFocus className="ipt h-[44px] ipt-icon"
+                placeholder="Search or scan by name or code…" value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowDown") { e.preventDefault(); setFocusIdx((i) => Math.min(i + 1, Math.max(0, grid.length - 1))); }
+                  else if (e.key === "ArrowUp") { e.preventDefault(); setFocusIdx((i) => Math.max(0, i - 1)); }
+                  else if (e.key === "Enter") {
+                    e.preventDefault();
+                    const hit = grid[focusIdx] ?? grid[0];
+                    if (hit) addFromSearch(hit);
+                  }
+                }} />
+              {catalogueBusy && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11.5px] text-body-soft">searching…</span>
+              )}
             </div>
             <div className="flex gap-2 flex-wrap items-center">
               {categories.map((c) => (
@@ -913,8 +1357,8 @@ export default function PosSellView() {
                 <span /><span>Item</span><span>Category</span><span className="text-right">Stock</span><span className="text-right">Price</span><span />
               </div>
               <div className="divide-y divide-lavender-deep max-h-[62vh] overflow-y-auto">
-                {grid.map((p) => (
-                  <div key={p.id} className="grid grid-cols-[44px_minmax(0,1fr)_96px_96px_112px_112px] gap-3 items-center px-3.5 py-2">
+                {grid.map((p, i) => (
+                  <div key={p.id} className={"grid grid-cols-[44px_minmax(0,1fr)_96px_96px_112px_112px] gap-3 items-center px-3.5 py-2 " + (i === focusIdx ? "bg-lavender/60" : "")}>
                     <span className="w-[38px] h-[38px] rounded-[10px]"
                       style={{ background: p.imageUrl ? `url(${p.imageUrl}) center/cover no-repeat` : genBg(p.sku) }} />
                     <span className="min-w-0">
@@ -949,14 +1393,15 @@ export default function PosSellView() {
                     )}
                   </div>
                 ))}
-                {grid.length === 0 && <div className="text-[13px] text-body-soft py-8 text-center">Nothing matches.</div>}
+                {grid.length === 0 && <div className="text-[13px] text-body-soft py-8 text-center">{catalogueBusy ? "Searching the shelf…" : catalogueErr ?? (q.trim() ? `Nothing on the shelf matches “${q.trim()}”.` : "Nothing on the shelf yet.")}</div>}
               </div>
             </div>
           ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(158px,1fr))] auto-rows-fr gap-3">
-            {grid.map((p) => {
+            {grid.map((p, i) => {
             const n = inCart(p.id);
             const shut = !canAdd(p) && n === 0;
+            const onIt = i === focusIdx; // where Enter from the search box would land
             return (
               /*  ⚠️ NOT a <button> any more — 26 Aug 2026. The quantity field
                   inside the tile is an <input>, and an input inside a button
@@ -970,6 +1415,7 @@ export default function PosSellView() {
                 className={`text-left bg-white border rounded-[14px] overflow-hidden shadow-soft transition-all flex flex-col h-full
                   ${shut ? "opacity-45 cursor-not-allowed border-lavender-deep"
                         : n > 0 ? "border-orchid cursor-default shadow-lift"
+                                : onIt ? "border-orchid-mid cursor-pointer shadow-lift"
                                 : "border-lavender-deep cursor-pointer hover:shadow-lift hover:border-orchid-mid active:scale-[0.98]"}`}>
                 <div className="h-[104px] w-full shrink-0 relative" style={{ background: p.imageUrl ? `url(${p.imageUrl}) center/cover no-repeat` : genBg(p.sku) }}>
                   {n > 0 && (
@@ -1011,7 +1457,7 @@ export default function PosSellView() {
               </div>
             );
             })}
-            {grid.length === 0 && <div className="col-span-full text-[13px] text-body-soft py-8 text-center">Nothing matches.</div>}
+            {grid.length === 0 && <div className="col-span-full text-[13px] text-body-soft py-8 text-center">{catalogueBusy ? "Searching the shelf…" : catalogueErr ?? (q.trim() ? `Nothing on the shelf matches “${q.trim()}”.` : "Nothing on the shelf yet.")}</div>}
           </div>
           )}
         </div>
@@ -1020,40 +1466,67 @@ export default function PosSellView() {
         </div>
       )}
 
-      {/* ===== manager PIN popup (DEC-POS-006) ===== */}
+      {/* ===== manager approval (DEC-POS-006 · audit §1 #7 / §3 #17) ===== */}
+      {/*  The PIN is TYPED here and checked nowhere near here. It goes straight to
+           `POST /pos/discount/approve`, which verifies it against a live OWNER or
+           MANAGER account and hands back a one-shot token for this bill. Nothing
+           in this bundle knows a PIN any more, and no string in it clears a cap.  */}
       {showPin && (
         <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center px-4" {...backdropClose(() => setShowPin(false))}>
           <div className="bg-white rounded-[18px] shadow-lift p-6 w-full max-w-[360px]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 mb-1"><Icon name="shield" size={18} /><h3 className="font-display text-[18px] text-purple m-0">Manager approval</h3></div>
-            <p className="text-[12.5px] text-body-soft mb-3">Discount is {discountPct.toFixed(0)}% — above the {cap}% limit for this cart. Enter manager PIN to allow. <span className="opacity-60">(demo PIN 1234)</span></p>
-            <input type="password" className={"ipt h-[44px] text-center tracking-[0.3em] " + (pinErr ? "border-[#c0392b]" : "")} placeholder="••••" value={pinInput} onChange={(e) => { setPinInput(e.target.value); setPinErr(false); }} onKeyDown={(e) => e.key === "Enter" && tryApprove()} autoFocus />
-            {pinErr && <p className="text-[12px] text-[#e1837a] mt-1.5 mb-0">Wrong PIN.</p>}
+            <p className="text-[12.5px] text-body-soft mb-3">
+              {formatTaka(giveawayPaisa)} off this cart is {givePct.toFixed(0)}% — above the {cap}% limit. A manager signs it off with their own PIN.
+            </p>
+            <input type="password" className={"ipt h-[44px] text-center tracking-[0.3em] " + (pinErr ? "border-[#c0392b]" : "")}
+              placeholder={"••••"} value={pinInput} disabled={pinBusy}
+              onChange={(e) => { setPinInput(e.target.value); setPinErr(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); tryApprove(); } }} autoFocus />
+            {pinErr && <p className="text-[12px] text-[#e1837a] mt-1.5 mb-0">{pinErr}</p>}
             <div className="flex gap-2 mt-4">
               <button type="button" onClick={() => setShowPin(false)} className="flex-1 py-2.5 rounded-[11px] border border-lavender-deep text-body-soft font-medium text-[13px]">Cancel</button>
-              <button type="button" onClick={tryApprove} className="flex-1 py-2.5 rounded-[11px] bg-purple text-white font-medium text-[13px]">Approve</button>
+              <button type="button" onClick={tryApprove} disabled={pinBusy || !pinInput.trim()} className="flex-1 py-2.5 rounded-[11px] bg-purple text-white font-medium text-[13px] disabled:opacity-40">{pinBusy ? "Checking…" : "Approve"}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ===== held bills drawer ===== */}
-      {/* P7-11 — opening a drawer says what is in it and who is on it */}
-
+      {/* ===== held bills drawer (audit §3 #18 — the server's, not this tab's) ===== */}
       {showHeld && (
         <div className="fixed inset-0 z-50 bg-black/30 flex justify-end" {...backdropClose(() => setShowHeld(false))}>
           <div className="bg-white w-full max-w-[380px] h-full p-5 overflow-auto shadow-lift" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4"><h3 className="font-display text-[18px] text-purple m-0">Held bills ({held.length})</h3><button type="button" onClick={() => setShowHeld(false)} className="text-body-soft text-[20px] leading-none">×</button></div>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-display text-[18px] text-purple m-0">Held bills ({held.length})</h3>
+              <button type="button" onClick={() => setShowHeld(false)} className="text-body-soft text-[20px] leading-none">{"×"}</button>
+            </div>
+            <p className="text-[11.5px] text-body-soft mt-0 mb-3">Parked on the counter, not in this browser — a refresh or the other till sees the same list.</p>
+            {heldErr && <div className="text-[12px] text-[#e1837a] mb-3">{heldErr}</div>}
             {held.length === 0 ? (
-              <p className="text-[13px] text-body-soft">No held bills. Use “Hold” to park a cart and serve someone else.</p>
+              <p className="text-[13px] text-body-soft">No held bills. Use {"“"}Hold{"”"} to park a cart and serve someone else.</p>
             ) : (
               <div className="flex flex-col gap-2.5">
                 {held.map((hc) => {
-                  const t = hc.lines.reduce((s, l) => s + l.unitPaisa * l.qty, 0);
+                  const p = readHeld(hc.payload);
+                  const t = p ? p.lines.reduce((s2, l) => s2 + l.unitPaisa * l.qty, 0) : 0;
+                  const items = p ? p.lines.reduce((n, l) => n + l.qty, 0) : 0;
+                  const age = Math.max(0, Math.round((Date.now() - new Date(hc.createdAt).getTime()) / 60000));
                   return (
-                    <button key={hc.id} type="button" onClick={() => resumeSale(hc)} className="text-left border border-lavender-deep rounded-[12px] p-3 hover:border-orchid-mid bg-lavender/40">
-                      <div className="flex items-center justify-between"><span className="text-[13.5px] font-medium text-purple">{hc.label}</span><span className="text-[13px] font-medium">{formatTaka(t)}</span></div>
-                      <div className="text-[12px] text-body-soft mt-0.5">{hc.lines.reduce((n, l) => n + l.qty, 0)} item(s){hc.isGift ? " · gift" : ""} · tap to resume</div>
-                    </button>
+                    <div key={hc.id} className="border border-lavender-deep rounded-[12px] p-3 bg-lavender/40">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[13.5px] font-medium text-purple truncate">{hc.label}</span>
+                        <span className="text-[13px] font-medium shrink-0">{formatTaka(t)}</span>
+                      </div>
+                      <div className="text-[12px] text-body-soft mt-0.5">
+                        {p ? `${items} item(s)${p.isGift ? " · gift" : ""}${p.customerPhone ? ` · ${p.customerPhone}` : ""}` : "cannot be read"}
+                        {" · "}{age < 1 ? "just now" : `${age} min ago`}
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <button type="button" onClick={() => resumeSale(hc)} disabled={!p || heldBusy}
+                          className="flex-1 py-2 rounded-[10px] bg-purple text-white font-medium text-[12.5px] disabled:opacity-40">Recall</button>
+                        <button type="button" onClick={() => dropHeld(hc.id)} disabled={heldBusy}
+                          className="px-3 py-2 rounded-[10px] border border-lavender-deep text-body-soft font-medium text-[12.5px] disabled:opacity-40">Drop</button>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -1062,21 +1535,31 @@ export default function PosSellView() {
         </div>
       )}
 
-      {/* ===== receipt preview (DEC-POS-012) ===== */}
-      {receipt && (
-        <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center px-4" {...backdropClose(() => setReceipt(null))}>
-          <div className="bg-white rounded-[18px] shadow-lift p-6 w-full max-w-[340px] text-center" onClick={(e) => e.stopPropagation()}>
+      {/* ===== change to hand back (audit §3 #11) ===== */}
+      {/*  The sale is saved and the bill exists; what is on the screen now is the
+           one thing still to do at the counter. The figure is the SERVER's
+           `changePaisa` — the same number stored on the order, so a reprint says
+           what this slip said.  */}
+      {change && (
+        <div className="fixed inset-0 z-50 bg-black/40 grid place-items-center px-4">
+          <div className="bg-white rounded-[18px] shadow-lift p-6 w-full max-w-[340px] text-center">
             <div className="w-[46px] h-[46px] rounded-full bg-[#1c3626] grid place-items-center mx-auto mb-3 text-[#76efab]"><Icon name="check" size={24} /></div>
             <h3 className="font-display text-[19px] text-purple m-0">Sale complete</h3>
-            <p className="text-[12.5px] text-body-soft mt-1 mb-4">Receipt {receipt.no} · saved as an Order (channel = POS)</p>
-            <div className="border border-dashed border-lavender-deep rounded-[12px] p-3 text-left text-[12.5px] mb-4">
-              <div className="flex justify-between"><span className="text-body-soft">Receipt</span><span>{receipt.no}</span></div>
-              <div className="flex justify-between"><span className="text-body-soft">Amount</span><span>{receipt.hideprice ? "— (gift, hidden)" : formatTaka(receipt.total)}</span></div>
-              {receipt.due > 0 && <div className="flex justify-between"><span className="text-[#f7a96e]">Due</span><span className="text-[#f7a96e]">{formatTaka(receipt.due)}</span></div>}
+            <p className="text-[12.5px] text-body-soft mt-1 mb-3">Bill {change.no}</p>
+            <div className="rounded-[14px] px-4 py-4 mb-2" style={{ background: "#1c3626" }}>
+              <div className="text-[11px] uppercase tracking-[0.08em] text-[#76efab]">Hand back</div>
+              <div className="font-display text-[34px] font-semibold text-[#76efab] leading-[1.2]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                {formatTaka(change.changePaisa)}
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button type="button" className="flex-1 py-2.5 rounded-[11px] border border-lavender-deep text-purple font-medium text-[13px] inline-flex items-center justify-center gap-1.5"><Icon name="hash" size={14} /> Print{receipt.hideprice ? " (no price)" : ""}</button>
-              <button type="button" onClick={() => setReceipt(null)} className="flex-1 py-2.5 rounded-[11px] bg-purple text-white font-medium text-[13px]">New sale</button>
+            {change.duePaisa > 0 && (
+              <p className="text-[12.5px] text-[#b45309] mb-2">{formatTaka(change.duePaisa)} still owed on this bill.</p>
+            )}
+            <div className="flex gap-2 mt-3">
+              <button type="button" onClick={() => { const id = change.saleId; setChange(null); router.push(`/pos/sale/${id}`); }}
+                className="flex-1 py-2.5 rounded-[11px] border border-lavender-deep text-purple font-medium text-[13px]">Open the bill</button>
+              <button type="button" autoFocus onClick={() => setChange(null)}
+                className="flex-1 py-2.5 rounded-[11px] bg-purple text-white font-medium text-[13px]">Given {"·"} next sale</button>
             </div>
           </div>
         </div>

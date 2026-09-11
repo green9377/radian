@@ -1,5 +1,6 @@
 import { ensureSingleton } from '../common/singleton';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { createHash, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   Prisma,
   DiscountType,
@@ -35,6 +36,8 @@ import {
   CreateRegisterDto,
   PosPaymentDto,
   PosTender,
+  PosDiscountApproveDto,
+  VoidPosSaleDto,
 } from './pos.dto';
 
 const ENTITY = 'PosSale';
@@ -65,6 +68,29 @@ export class PosService {
 
   /* ------------------------------------------------ helpers */
 
+  /**
+   * (POS audit 11 Sep 2026 §1 #10) — every money field checked at the door.
+   *
+   * Tenders were validated (POS-REV-6) and cash movements were validated, but
+   * `discountPaisa`, `adjustmentPaisa`, `storeCreditPaisa`, `unitPaisa` and
+   * `qty` were not — and all five land in `Int` columns. A fractional value was
+   * a 500 at the till with the customer standing there, and a fractional
+   * `storeCreditPaisa` wrote a non-integer straight into `paidPaisa`. The admin
+   * rounds correctly, so this only ever bit some other caller — which is
+   * exactly the caller nobody is watching.
+   */
+  private assertPaisa(label: string, value: number, opts: { signed?: boolean } = {}) {
+    if (!Number.isInteger(value)) {
+      throw new BadRequestException(`${label} must be a whole number of paisa`);
+    }
+    if (!opts.signed && value < 0) {
+      throw new BadRequestException(`${label} cannot be negative`);
+    }
+    // a paisa figure past 2^31 does not fit the column it is going into
+    if (!Number.isSafeInteger(value) || Math.abs(value) > 2_000_000_000) {
+      throw new BadRequestException(`${label} is out of range`);
+    }
+  }
 
   /**
    * POS-REV-2 (30 Jul) — allocate a receipt number and RETRY if somebody took it.
@@ -85,7 +111,15 @@ export class PosService {
       try {
         return await write(await next(attempt));
       } catch (e) {
-        const taken = e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
+        /*  (POS audit 11 Sep 2026 §1 #1) — only a RECEIPT-NUMBER clash is worth
+            another go. `Order.posIdempotencyKey` is unique too, and a clash
+            there means "this attempt already became a bill" — retrying it eight
+            times with eight fresh numbers would be the very duplicate the key
+            exists to prevent. So that one is handed straight back to the caller,
+            which turns it into the original sale.  */
+        const p2002 = e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
+        const onKey = p2002 && JSON.stringify((e as Prisma.PrismaClientKnownRequestError).meta ?? {}).includes('osIdempotencyKey');
+        const taken = p2002 && !onKey;
         if (!taken || attempt === 7) throw e;
       }
     }
@@ -414,13 +448,6 @@ export class PosService {
     }
     const actorName = dto.actorName ?? shift.cashierName;
 
-    const drawerAtStart = await this.expectedCash(shiftId, shift.openingFloatPaisa);
-    if (dto.amountPaisa > drawerAtStart) {
-      throw new BadRequestException(
-        `only ${(drawerAtStart / 100).toFixed(2)} is in the drawer — you cannot take out ${(dto.amountPaisa / 100).toFixed(2)}`,
-      );
-    }
-
     /*  Which cash — asked the same way the till asks it (DEC-GBL-006). Walked
         31 Aug: this shop has TWO cash accounts, so hardcoding `1000` would have
         emptied a drawer the money never sat in. When there is only one the
@@ -429,42 +456,95 @@ export class PosService {
     const cashId = await this.payMethods.resolveAccount('cash', dto.fromAccountId);
     if (!cashId) throw new BadRequestException('no cash account is set up in Finance yet');
     const cash = { id: cashId };
-
-    let docNo: string;
-    if (dto.kind === 'EXPENSE') {
-      if (!dto.accountId) throw new BadRequestException('pick what this money was spent on');
-      const exp = await this.finance.createExpense({
-        accountId: dto.accountId,
-        paidFromId: cash.id,
-        amountPaisa: dto.amountPaisa,
-        payeeName: dto.payeeName ?? null,
-        note: [dto.note?.trim(), `paid from the till · ${shift.shiftNo}`].filter(Boolean).join(' · '),
-        actorName,
-      });
-      docNo = exp?.expenseNo ?? 'expense';
-    } else {
+    if (dto.kind === 'EXPENSE' && !dto.accountId) throw new BadRequestException('pick what this money was spent on');
+    if (dto.kind !== 'EXPENSE') {
       if (!dto.toAccountId) throw new BadRequestException('pick where the cash is going');
       if (dto.toAccountId === cash.id) throw new BadRequestException('that is the drawer itself');
-      const tr = await this.finance.createTransfer({
-        fromId: cash.id,
-        toId: dto.toAccountId,
-        amountPaisa: dto.amountPaisa,
-        note: [dto.note?.trim(), `taken out of the till · ${shift.shiftNo}`].filter(Boolean).join(' · '),
-        actorName,
-      });
-      docNo = (tr as { transferNo?: string } | null)?.transferNo ?? 'transfer';
     }
 
-    /*  the drawer's own record — negative, so expected cash falls by exactly
-        what was taken and the count at close still matches  */
-    const move = await this.prisma.db.posCashMovement.create({
-      data: {
-        shiftId,
-        kind: dto.kind === 'DROP' ? PosCashKind.DROP : PosCashKind.PAYOUT,
-        amountPaisa: -dto.amountPaisa,
-        note: [docNo, dto.note?.trim()].filter(Boolean).join(' · '),
-        actorName,
-      },
+    /*  ═══ THE DRAWER MOVES FIRST, AND IT IS COMPENSATED — audit 11 Sep 2026 §1 #8
+        ═══════════════════════════════════════════════════════════════════════
+        This used to write Finance first and the drawer second, with nothing
+        holding the two together. If the movement failed after the expense had
+        been booked, the books carried a cost the drawer never lost, expected
+        cash was high by exactly that much, and the day closed as a shortage —
+        posted to 5700 Cash Short, which reads as the cashier losing money.
+
+        Finance runs on its own connection, so it cannot join a POS
+        transaction. So the order is reversed: the drawer's own fact is written
+        first, inside a transaction that also re-reads the balance and locks
+        the shift (which is what stops two simultaneous cash-outs each passing
+        a check the other invalidates — the other half of the same bug), and if
+        Finance then refuses, the movement is reversed out again. A drawer
+        movement with no expense behind it is visible and correctable; an
+        expense with no drawer movement behind it is a phantom shortage nobody
+        can explain.  */
+    const { move, drawerAtStart } = await this.prisma.db.$transaction(async (tx) => {
+      // lock the box: a second cash-out on this shift waits here until we commit
+      const claimed = await tx.posShift.updateMany({
+        where: { id: shiftId, status: PosShiftStatus.OPEN },
+        data: { cashierName: shift.cashierName },
+      });
+      if (claimed.count !== 1) throw new BadRequestException('that drawer has been closed — open a new one');
+
+      const moves = await tx.posCashMovement.findMany({ where: { shiftId, deletedAt: null }, select: { amountPaisa: true } });
+      const inDrawer = moves.reduce((sum, m) => sum + m.amountPaisa, shift.openingFloatPaisa);
+      if (dto.amountPaisa > inDrawer) {
+        throw new BadRequestException(
+          `only ${(inDrawer / 100).toFixed(2)} is in the drawer — you cannot take out ${(dto.amountPaisa / 100).toFixed(2)}`,
+        );
+      }
+      const created = await tx.posCashMovement.create({
+        data: {
+          shiftId,
+          kind: dto.kind === 'DROP' ? PosCashKind.DROP : PosCashKind.PAYOUT,
+          amountPaisa: -dto.amountPaisa,
+          note: [dto.note?.trim(), 'awaiting the Finance document'].filter(Boolean).join(' · '),
+          actorName,
+        },
+      });
+      return { move: created, drawerAtStart: inDrawer };
+    });
+
+    let docNo: string;
+    try {
+      if (dto.kind === 'EXPENSE') {
+        if (!dto.accountId) throw new BadRequestException('pick what this money was spent on');
+        const exp = await this.finance.createExpense({
+          accountId: dto.accountId,
+          paidFromId: cash.id,
+          amountPaisa: dto.amountPaisa,
+          payeeName: dto.payeeName ?? null,
+          note: [dto.note?.trim(), `paid from the till · ${shift.shiftNo}`].filter(Boolean).join(' · '),
+          actorName,
+        });
+        docNo = exp?.expenseNo ?? 'expense';
+      } else {
+        if (!dto.toAccountId) throw new BadRequestException('pick where the cash is going');
+        const tr = await this.finance.createTransfer({
+          fromId: cash.id,
+          toId: dto.toAccountId,
+          amountPaisa: dto.amountPaisa,
+          note: [dto.note?.trim(), `taken out of the till · ${shift.shiftNo}`].filter(Boolean).join(' · '),
+          actorName,
+        });
+        docNo = (tr as { transferNo?: string } | null)?.transferNo ?? 'transfer';
+      }
+    } catch (e) {
+      /*  Finance refused — so the notes never left, and the drawer must say so
+          again. The movement is buried rather than erased: what was attempted
+          is part of the day's story.  */
+      await this.prisma.db.posCashMovement.update({
+        where: { id: move.id },
+        data: { deletedAt: new Date(), note: `reversed — Finance refused this cash-out` },
+      }).catch(() => undefined);
+      throw e;
+    }
+
+    // the document number belongs on the drawer row, which is how the two are tied
+    const stamped = await this.prisma.db.posCashMovement.update({
+      where: { id: move.id },
+      data: { note: [docNo, dto.note?.trim()].filter(Boolean).join(' · ') },
     });
     await this.audit.record({
       entityType: 'PosShift',
@@ -473,7 +553,7 @@ export class PosService {
       actorName,
       changes: { cashOut: dto.amountPaisa, kind: dto.kind, document: docNo },
     });
-    return { movement: move, document: docNo, expectedCashPaisa: drawerAtStart - dto.amountPaisa };
+    return { movement: stamped, document: docNo, expectedCashPaisa: drawerAtStart - dto.amountPaisa };
   }
 
   /**
@@ -687,8 +767,24 @@ export class PosService {
   async replaceDiscountRules(rules: DiscountRuleInput[]) {
     await this.prisma.db.posDiscountRule.updateMany({ where: { deletedAt: null }, data: { deletedAt: new Date() } });
     for (const r of rules) {
+      /*  (POS audit 11 Sep 2026 §3 #15) — the item half is now WRITABLE. The
+          two columns have existed since DEC-POS-018 and `cartDiscountCap`
+          already read them, but this write only ever set the product/category
+          pair — so on a counter where every line is an Item (which is every
+          modern counter line) no rule could ever match and the cap was always
+          100%. The whole DEC-POS-006 feature did nothing.  */
+      const pct = Math.round(r.maxPercent);
+      if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+        throw new BadRequestException('A discount cap is a whole percent between 0 and 100');
+      }
       await this.prisma.db.posDiscountRule.create({
-        data: { categoryId: r.categoryId ?? null, productId: r.productId ?? null, maxPercent: r.maxPercent, requiresApproval: r.requiresApproval },
+        data: {
+          categoryId: r.categoryId ?? null,
+          productId: r.productId ?? null,
+          ...({ itemId: r.itemId ?? null, itemCategoryId: r.itemCategoryId ?? null } as object),
+          maxPercent: pct,
+          requiresApproval: r.requiresApproval,
+        },
       });
     }
     return this.discountRules();
@@ -734,6 +830,123 @@ export class PosService {
     return cap;
   }
 
+  /* ---------------- the over-cap gate (POS audit 11 Sep 2026 §1 #7 / §3 #17) ---------------- */
+
+  /**
+   * Does this PIN belong to this account?
+   *
+   * ⚠️ KNOWN GAP, say it out loud: the shop's one PIN checker lives in
+   * `AuthService`, which the POS module cannot reach from here (POS imports
+   * Inventory, Finance and Returns only, and pulling Auth in for one call would
+   * invert the dependency the access guard depends on). So this reads
+   * `AppUser.pinHash` directly and understands the salted hash formats this
+   * codebase writes. It REFUSES anything it cannot verify rather than waving it
+   * through — a gate that fails open is not a gate. When POS can reach the auth
+   * checker, this method becomes one line and should.
+   */
+  private verifyPinHash(pin: string, hash: string): boolean {
+    const safeEq = (a: Buffer, b: Buffer) => a.length === b.length && timingSafeEqual(a, b);
+    const parts = hash.includes('$') ? hash.split('$') : hash.split(':');
+
+    if (parts.length === 3 && (parts[0] === 'scrypt' || parts[0] === 'sha256')) {
+      const [algo, salt, digest] = parts;
+      const want = Buffer.from(digest, 'hex');
+      if (!want.length) return false;
+      const got =
+        algo === 'scrypt'
+          ? scryptSync(pin, salt, want.length)
+          : createHash('sha256').update(`${salt}${pin}`).digest();
+      return safeEq(got, want);
+    }
+    if (/^[0-9a-f]{64}$/i.test(hash)) {
+      return safeEq(createHash('sha256').update(pin).digest(), Buffer.from(hash, 'hex'));
+    }
+    /*  bcrypt ($2a/$2b/$2y) and anything else this method has not been taught:
+        it cannot be checked here, and guessing is not an option where money is.  */
+    return false;
+  }
+
+  /**
+   * The over-cap discount gate, moved off the browser.
+   *
+   * What it replaces: `MANAGER_PIN = "1234"` shipped inside the admin bundle —
+   * anybody who opened the page source could clear any cap — and the server
+   * then accepted ANY non-empty `discountApprovedBy` string and threw the name
+   * away. Neither half was an approval.
+   *
+   * Now: the manager's PIN is checked against a live OWNER/MANAGER account, and
+   * what the till gets back is a one-shot token, not a permission. The token is
+   * burned by the bill that uses it, so one approval clears one sale.
+   */
+  async approveDiscount(dto: PosDiscountApproveDto, actor?: { id?: string; name?: string; role?: string }) {
+    const pin = String(dto.pin ?? '').trim();
+    if (!pin) throw new ForbiddenException('Enter the manager PIN');
+    if (!actor?.id) throw new ForbiddenException('Sign in before approving a discount over the cap');
+
+    const user = await this.prisma.db.appUser.findFirst({
+      where: { id: actor.id, isActive: true },
+      select: { id: true, name: true, role: true, pinHash: true },
+    });
+    /*  the role is read from the DATABASE, not from the token the till is
+        holding — a stale session must not be able to approve anything  */
+    if (!user || (user.role !== 'OWNER' && user.role !== 'MANAGER')) {
+      throw new ForbiddenException('Only an owner or a manager can approve a discount over the cap');
+    }
+    if (!user.pinHash) {
+      throw new ForbiddenException(`${user.name} has no PIN set yet — set one in People before approving money actions`);
+    }
+    if (!this.verifyPinHash(pin, user.pinHash)) {
+      throw new ForbiddenException('That PIN is not right');
+    }
+
+    const token = randomUUID();
+    /*  ten minutes: long enough to walk to the counter, short enough that an
+        approval cannot sit in an open tab all afternoon  */
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const pct = dto.requestedPercent != null ? Math.round(dto.requestedPercent) : null;
+    const row = await this.prisma.db.posDiscountApproval.create({
+      data: {
+        token,
+        approvedById: user.id,
+        approvedByName: user.name,
+        ...(pct != null && Number.isFinite(pct) ? { requestedPercent: pct } : {}),
+        expiresAt,
+      },
+    });
+    await this.audit.event({
+      entityType: 'PosDiscountApproval',
+      entityId: row.id,
+      kind: 'sales',
+      label: `Over-cap discount approved by ${user.name}${pct != null ? ` (${pct}%)` : ''}`,
+      actorName: dto.actorName ?? user.name,
+    });
+    return { ok: true as const, approvedBy: user.name, token, expiresAt: expiresAt.toISOString() };
+  }
+
+  /**
+   * Burn an approval token for this bill, inside the sale's own transaction.
+   *
+   * A guarded `updateMany` and `count === 1`, the same one-winner shape as
+   * every other claim in this file: two tills cannot spend one approval, and a
+   * double-clicked sale cannot spend it twice.
+   */
+  private async burnApproval(
+    tx: Prisma.TransactionClient,
+    token: string,
+    orderId: string,
+  ): Promise<{ approvedById: string; approvedByName: string }> {
+    const row = await tx.posDiscountApproval.findFirst({ where: { token } });
+    if (!row) throw new ForbiddenException('That approval is not one this shop issued — ask a manager to approve again');
+    if (row.usedAt) throw new ForbiddenException('That approval has already been used on another bill');
+    if (row.expiresAt.getTime() < Date.now()) throw new ForbiddenException('That approval has expired — ask a manager to approve again');
+    const claimed = await tx.posDiscountApproval.updateMany({
+      where: { token, usedAt: null },
+      data: { usedAt: new Date(), usedOrderId: orderId },
+    });
+    if (claimed.count !== 1) throw new ForbiddenException('That approval has already been used on another bill');
+    return { approvedById: row.approvedById, approvedByName: row.approvedByName };
+  }
+
   /* ------------------------------------------------ catalogue (DEC-POS-018) */
 
   /**
@@ -746,7 +959,18 @@ export class PosService {
    * The price is worked out exactly as the item screen works it out (DEC-ITM-023),
    * because a cashier reading a different number from the owner is how arguments start.
    */
-  async catalogue(search?: string) {
+  /**
+   * (POS audit 11 Sep 2026 §3 #13) — the search is answered HERE now.
+   *
+   * The till used to pull 500 items once, filter them in the browser and then
+   * slice the result to 60: item 501 could not be sold at all, and the search
+   * box only ever looked at whatever happened to be loaded. `search` was
+   * already a query parameter and already reached this method — the screen
+   * simply never sent it. `limit` is the other half, so the till asks for a
+   * page instead of the shelf.
+   */
+  async catalogue(search?: string, limit?: number) {
+    const take = Math.min(Math.max(1, Math.round(limit ?? 100)), 500);
     const rows = await this.prisma.db.item.findMany({
       where: {
         isSaleable: true,
@@ -770,7 +994,7 @@ export class PosService {
         ...({ sellingPricePaisa: true, markupBp: true } as object),
       },
       orderBy: { name: 'asc' },
-      take: 500,
+      take,
     });
 
     /*  What is actually on the shelf. The till showed a teddy with nothing behind it
@@ -821,10 +1045,66 @@ export class PosService {
         costPaisa: cost,
         /** the least it may go for — the till refuses under this */
         floorPricePaisa: floor,
-        /** null = not counted (a service); otherwise the whole shop's on-hand */
-        stockQty: it.isStockTracked ? Math.round((onHand.get(it.id) ?? 0) / 1000) : null,
+        /*  null = not counted (a service); otherwise the whole shop's on-hand.
+            Rounded DOWN (audit 11 Sep 2026): 0.6 of a unit used to show as
+            "1 left", the cart let it through, and the server then refused the
+            sale with "not enough stock". A sellable figure never rounds up.  */
+        stockQty: it.isStockTracked ? Math.floor((onHand.get(it.id) ?? 0) / 1000) : null,
       };
     });
+  }
+
+  /**
+   * (POS audit 11 Sep 2026 §3 #14) — counter customer lookup, answered by the
+   * server.
+   *
+   * The picker used to load the first 100 customers and search them in the
+   * browser, so a regular past #100 was simply unfindable at the counter. The
+   * cashier then typed the phone again, `resolveCustomer` upserted, and the
+   * same person's due and credit history split in two. Phone and name, at most
+   * 25 rows, with what each one already owes the counter — which is the figure
+   * the cashier wants before ringing anything up.
+   */
+  async customers(search?: string, limit?: number) {
+    const take = Math.min(Math.max(1, Math.round(limit ?? 25)), 25);
+    const q = search?.trim();
+    const rows = await this.prisma.db.customer.findMany({
+      where: {
+        AND: [
+          // the anonymous walk-in row is not a person anybody looks up
+          { phone: { not: 'WALK-IN' } },
+          q
+            ? {
+                OR: [
+                  { name: { contains: q, mode: 'insensitive' as const } },
+                  { phone: { contains: q } },
+                ],
+              }
+            : {},
+        ],
+      },
+      select: { id: true, name: true, phone: true },
+      orderBy: q ? { name: 'asc' } : { lastOrderAt: 'desc' },
+      take,
+    });
+    if (!rows.length) return [];
+
+    const dues = await this.prisma.db.order.groupBy({
+      by: ['customerId'],
+      where: {
+        customerId: { in: rows.map((r) => r.id) },
+        fulfillmentType: FulfillmentType.COUNTER,
+        duePaisa: { gt: 0 },
+      },
+      _sum: { duePaisa: true },
+    });
+    const owed = new Map(dues.map((d) => [d.customerId, d._sum.duePaisa ?? 0]));
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      phone: r.phone,
+      outstandingPaisa: owed.get(r.id) ?? 0,
+    }));
   }
 
   /** DEC-ITM-023 — the shop's default profit percent, the same row the Item module reads */
@@ -837,9 +1117,146 @@ export class PosService {
 
   /* ------------------------------------------------ SALE (DEC-POS-001) */
 
+  /**
+   * Spread a bill-level discount across its lines, pro-rata by line value, with
+   * the rounding remainder on the largest line (audit 11 Sep 2026 §1 #6).
+   *
+   * The invariant is exact and is the whole point: the parts add up to the
+   * whole, so Returns can value a returned line at what the customer actually
+   * paid for it. A line is never discounted below zero.
+   */
+  private spreadDiscountOverLines(
+    lines: { linePaisa: number; discountPaisa?: number }[],
+    discountPaisa: number,
+  ) {
+    for (const l of lines) l.discountPaisa = 0;
+    if (discountPaisa <= 0 || !lines.length) return;
+    const total = lines.reduce((s, l) => s + l.linePaisa, 0);
+    if (total <= 0) return;
+
+    let given = 0;
+    let biggest = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const share = Math.min(lines[i].linePaisa, Math.floor((discountPaisa * lines[i].linePaisa) / total));
+      lines[i].discountPaisa = share;
+      given += share;
+      if (lines[i].linePaisa > lines[biggest].linePaisa) biggest = i;
+    }
+    // the remainder (rounding, always small) lands on the largest line
+    let left = discountPaisa - given;
+    if (left > 0) {
+      const room = lines[biggest].linePaisa - (lines[biggest].discountPaisa ?? 0);
+      const put = Math.min(left, room);
+      lines[biggest].discountPaisa = (lines[biggest].discountPaisa ?? 0) + put;
+      left -= put;
+      // a fully-discounted biggest line: walk the rest rather than lose a paisa
+      for (let i = 0; left > 0 && i < lines.length; i++) {
+        const space = lines[i].linePaisa - (lines[i].discountPaisa ?? 0);
+        const add = Math.min(left, space);
+        lines[i].discountPaisa = (lines[i].discountPaisa ?? 0) + add;
+        left -= add;
+      }
+    }
+  }
+
+  /**
+   * ═══ IS IT ON THE SHELF — audit 11 Sep 2026 §1 #2 ══════════════════════════
+   *
+   * POS-R14: the counter cannot sell what is not there. The check itself was
+   * never wrong; WHEN it ran was. It ran once, before the transaction, and the
+   * stock left after it — so two tills ringing up the last stem both passed and
+   * both sold it.
+   *
+   * This is now called twice: once early for a readable refusal, and again
+   * INSIDE the sale's transaction, where it is binding. The in-transaction call
+   * first takes a write lock on every stock row it is about to judge (a
+   * zero-delta update — Postgres locks the row and holds it to commit), so a
+   * second till asking the same question waits here rather than racing past.
+   *
+   * ⚠️ WHY POS DOES NOT SIMPLY DECREMENT HERE, and what is still open.
+   * INV-RULE-001: Inventory owns stock, and `postSaleForOrder` writes the
+   * movement ledger as well as the balance. Decrementing `InventoryStock` from
+   * POS would either double-count (Inventory deducts again straight after) or
+   * leave a balance with no movement behind it, which is a worse corruption
+   * than the race. `postSaleForOrder` takes no `tx` — every caller in this tree
+   * (orders.service, returns.service) proves that — so it cannot join this
+   * transaction. What closes the hole instead is the lock above plus the
+   * COMPENSATION in `createSale`: the Inventory call is no longer fail-soft, so
+   * a bill whose stock did not move is voided rather than left standing.
+   * The remaining window is between COMMIT and that call, milliseconds wide.
+   * Closing it properly needs `postSaleForOrder(tx)` — see POS_A.md.
+   */
+  private async assertStock(
+    client: Prisma.TransactionClient,
+    tracked: { id: string; name: string; unitName: string }[],
+    wantedMilli: Map<string, number>,
+    lockFirst = false,
+  ) {
+    const ids = tracked.map((t) => t.id);
+    if (!ids.length) return;
+    if (lockFirst) {
+      /*  a zero-delta write: it changes no number and takes the row lock that
+          makes the read below true until this transaction commits  */
+      await client.inventoryStock.updateMany({
+        where: { itemId: { in: ids } },
+        data: { qtyMilli: { decrement: 0 } },
+      });
+    }
+    const held = await client.inventoryStock.groupBy({
+      by: ['itemId'],
+      where: { itemId: { in: ids } },
+      _sum: { qtyMilli: true },
+    });
+    const onHand = new Map(held.map((h) => [h.itemId, h._sum.qtyMilli ?? 0]));
+    const short = tracked
+      .map((i) => ({ name: i.name, unit: i.unitName, want: wantedMilli.get(i.id) ?? 0, have: onHand.get(i.id) ?? 0 }))
+      .filter((x) => x.want > x.have);
+    if (short.length) {
+      throw new BadRequestException(
+        `not enough stock: ${short.map((x) => `${x.name} (want ${x.want / 1000} ${x.unit}, have ${x.have / 1000} ${x.unit})`.trim()).join('; ')}`,
+      );
+    }
+  }
+
+  /** the bill a repeated `idempotencyKey` already became (audit §1 #1) */
+  private async findByIdempotencyKey(key: string) {
+    return this.prisma.db.order.findFirst({
+      where: { ...({ posIdempotencyKey: key } as object) },
+      include: { lines: true, transactions: true, customer: { select: { id: true, name: true, phone: true } } },
+    });
+  }
+
   async createSale(dto: CreatePosSaleDto) {
     if (!dto.lines?.length) throw new BadRequestException('add at least one item');
     const actorName = dto.actorName ?? 'Cashier';
+
+    /*  ═══ ONE ATTEMPT, ONE BILL — audit 11 Sep 2026 §1 #1 ═══════════════════
+        A double-clicked "Complete sale" (or a slow link the cashier retried)
+        posted the whole sale twice: two receipt numbers, two sets of lines,
+        two stock deductions and two sets of tenders for money taken once. The
+        drawer then expects double and day-close reads as a shortage nobody can
+        explain. The till sends one uuid per ATTEMPT and re-sends it on every
+        retry of that attempt; the same key never becomes a second bill. The
+        cheap check is here, and the real promise is the unique index — two
+        clicks arriving together both pass this read, and the loser is caught
+        at INSERT and turned into the original bill below.  */
+    const idemKey = dto.idempotencyKey?.trim() || null;
+    if (idemKey) {
+      if (idemKey.length > 100) throw new BadRequestException('idempotencyKey is too long');
+      const already = await this.findByIdempotencyKey(idemKey);
+      /*  the change was handed over on the first attempt; a repeat reports none  */
+      if (already) return { ...already, changePaisa: already.posChangePaisa ?? 0 };
+    }
+
+    /*  audit 11 Sep 2026 §1 #10 — every money field at the door, not only the
+        tenders. All of these land in Int columns.  */
+    if (dto.discountPaisa !== undefined) this.assertPaisa('Discount', dto.discountPaisa);
+    if (dto.adjustmentPaisa !== undefined) this.assertPaisa('Adjustment', dto.adjustmentPaisa, { signed: true });
+    if (dto.storeCreditPaisa !== undefined) this.assertPaisa('Store credit', dto.storeCreditPaisa);
+    for (const l of dto.lines) {
+      if (!Number.isInteger(l.qty)) throw new BadRequestException('A line quantity must be a whole number');
+      if (l.unitPaisa !== undefined) this.assertPaisa('A line price', l.unitPaisa);
+    }
 
     /*  ═══ NOBODY OPENS A DRAWER HERE — owner, 11 Sep 2026 ═══════════════════
 
@@ -906,32 +1323,20 @@ export class PosService {
         The website may take an order for something that has run out (DEC-INV-011
         ALLOW_WARN, so a bouquet can still be promised for tomorrow); a customer
         standing at the till cannot walk out with air. Services are not counted.  */
-    if (itemIds.length) {
-      /*  in item-unit MILLI — a line sold by the base unit only weighs its
-          fraction of the counting unit (2 Pice of a 4-Pice Stick = 500)  */
-      const wantedMilli = new Map<string, number>();
-      for (const l of dto.lines) {
-        if (!l.itemId) continue;
-        const f = lineUnitFactor(l);
-        wantedMilli.set(l.itemId, (wantedMilli.get(l.itemId) ?? 0) + Math.round((Math.max(0, l.qty ?? 0) * 1000) / f));
-      }
-      const tracked = items.filter((i) => i.isStockTracked);
-      if (tracked.length) {
-        const held = await this.prisma.db.inventoryStock.groupBy({
-          by: ['itemId'],
-          where: { itemId: { in: tracked.map((i) => i.id) } },
-          _sum: { qtyMilli: true },
-        });
-        const onHand = new Map(held.map((h) => [h.itemId, h._sum.qtyMilli ?? 0]));
-        const short = tracked
-          .map((i) => ({ name: i.name, unit: i.unit?.name ?? '', want: wantedMilli.get(i.id) ?? 0, have: onHand.get(i.id) ?? 0 }))
-          .filter((x) => x.want > x.have);
-        if (short.length) {
-          throw new BadRequestException(
-            `not enough stock: ${short.map((x) => `${x.name} (want ${x.want / 1000} ${x.unit}, have ${x.have / 1000} ${x.unit})`.trim()).join('; ')}`,
-          );
-        }
-      }
+    /*  in item-unit MILLI — a line sold by the base unit only weighs its
+        fraction of the counting unit (2 Pice of a 4-Pice Stick = 500)  */
+    const wantedMilli = new Map<string, number>();
+    for (const l of dto.lines) {
+      if (!l.itemId) continue;
+      const f = lineUnitFactor(l);
+      wantedMilli.set(l.itemId, (wantedMilli.get(l.itemId) ?? 0) + Math.round((Math.max(0, l.qty ?? 0) * 1000) / f));
+    }
+    const trackedItems = items
+      .filter((i) => i.isStockTracked)
+      .map((i) => ({ id: i.id, name: i.name, unitName: i.unit?.name ?? '' }));
+    // the friendly refusal, before any work is done; the binding one is inside the transaction
+    if (trackedItems.length) {
+      await this.assertStock(this.prisma.db as unknown as Prisma.TransactionClient, trackedItems, wantedMilli);
     }
 
     const lineData: Prisma.OrderLineCreateWithoutOrderInput[] = dto.lines.map((l) => {
@@ -1020,22 +1425,90 @@ export class PosService {
     const subtotalPaisa = lineData.reduce((s, l) => s + l.linePaisa, 0);
     const discountPaisa = Math.min(Math.max(0, dto.discountPaisa ?? 0), subtotalPaisa);
     const adjustmentPaisa = dto.adjustmentPaisa ?? 0;
-    const taxRateBps = dto.taxRateBps ?? 0;
+    /*  DEC-GBL-002 (audit 11 Sep 2026 §3 #12) — ONE VAT RATE, AND IT IS
+        FINANCE'S. `taxRateBps` used to be whatever the cashier picked from a
+        four-value "demo set" hardcoded in the browser bundle, and the server
+        stored it without a word — so a bill could carry a percentage the books
+        had never heard of, while the POS settings screen said in so many words
+        that the till does not get its own rate. The screen and the rule
+        contradicted each other and the cashier won. `dto.taxRateBps` is now
+        ignored; the rate comes from `PosSetting.defaultTaxRateBps`, which reads
+        `FinanceSetting`.  */
+    const taxRateBps = (await this.settings()).defaultTaxRateBps ?? 0;
+    /*  audit §1 #5 — and it is REFUSED, not silently clamped. `Math.max(0, ...)`
+        turned "take 5,000 off a 900 bill" into a 0 bill and said nothing; a
+        number that big is a typo or a probe, and either way the cashier should
+        hear about it.  */
+    if (subtotalPaisa - discountPaisa + adjustmentPaisa < 0) {
+      throw new BadRequestException('that takes the bill below zero — check the discount and the adjustment');
+    }
     const base = Math.max(0, subtotalPaisa - discountPaisa + adjustmentPaisa);
     const vatPaisa = Math.round((base * taxRateBps) / 10000);
     const totalPaisa = base + vatPaisa;
 
-    // discount cap (DEC-POS-006)
-    if (discountPaisa > 0) {
+    /*  ═══ THE DISCOUNT CAP, AND THE DOOR BESIDE IT — audit §1 #5 / #7, §3 #15
+        ═══════════════════════════════════════════════════════════════════════
+        Three separate holes, one gate:
+
+        #5  A NEGATIVE ADJUSTMENT WAS UNCHECKED. The discount was clamped to the
+            subtotal and cap-checked; `adjustmentPaisa` was neither, and it is
+            signed — so a 100% giveaway was one keystroke away through the ±
+            toggle, past a cap that had just refused the same money spelled as a
+            discount. The owner has never said what a negative adjustment may
+            reach, so the conservative reading applies (COMMON.md rule 4): money
+            taken OFF the bill is money taken off the bill, whichever box it was
+            typed into, and the whole of it is measured against the cap.
+            → "Needs owner confirmation" in POS_A.md.
+
+        #15 The cap itself was inert: no rule could ever be written against an
+            item, so every counter cart capped at 100%. Fixed in the rules DTO.
+
+        #7  The approval was a free string. It is now a server-issued one-shot
+            token, burned inside the sale's transaction.  */
+    const giveawayPaisa = discountPaisa + Math.max(0, -adjustmentPaisa);
+    /*  a holder rather than a plain `let`: it is filled inside the sale's
+        transaction, and a value written in a closure is not something the
+        compiler can narrow afterwards  */
+    const approval: { approvedById?: string; approvedByName?: string } = {};
+    if (giveawayPaisa > 0) {
       const cap = await this.cartDiscountCap(
         dto.lines.map((l) => l.productId).filter((v): v is string => !!v),
         dto.lines.map((l) => l.itemId).filter((v): v is string => !!v),
       );
-      const pct = subtotalPaisa ? (discountPaisa / subtotalPaisa) * 100 : 0;
-      if (pct > cap + 0.001 && !dto.discountApprovedBy?.trim()) {
-        throw new BadRequestException(`discount ${pct.toFixed(0)}% exceeds the ${cap}% cap — manager approval required`);
+      const pct = subtotalPaisa ? (giveawayPaisa / subtotalPaisa) * 100 : 0;
+      if (pct > cap + 0.001) {
+        const token = dto.discountApprovalToken?.trim();
+        if (!token) {
+          throw new BadRequestException(
+            `taking ${pct.toFixed(0)}% off this cart is over the ${cap}% cap — a manager has to approve it`,
+          );
+        }
+        /*  checked here for a readable refusal, and claimed again inside the
+            sale's transaction so two bills cannot spend one approval  */
+        const held = await this.prisma.db.posDiscountApproval.findFirst({ where: { token } });
+        if (!held || held.usedAt || held.expiresAt.getTime() < Date.now()) {
+          throw new ForbiddenException('That approval is used, expired or not one this shop issued — ask a manager to approve again');
+        }
       }
     }
+
+    /*  ═══ THE BILL'S DISCOUNT, SPREAD ON TO THE LINES — audit §1 #6 ════════
+        Every counter line was written `discountPaisa: 0` and the whole discount
+        sat on the order. Returns then values a returned line at
+        `(linePaisa − l.discountPaisa) / qty` — the FULL undiscounted price. On a
+        multi-line bill, returning one line refunded more than the customer had
+        paid for it, and the only brake (`paidPaisa − refundPaisa`) is one a
+        multi-line bill does not reach.
+
+        Pro-rata by line value, the remainder to the largest line, so
+        `sum(line.discountPaisa) === order.discountPaisa` exactly — no paisa
+        invented, none lost.
+
+        VAT is deliberately NOT spread: checked first, and `OrderLine` has no VAT
+        column anywhere in the schema — POS VAT lives only on the order
+        (`vatPaisa`/`taxRateBps`). There is nothing per-line to allocate, so
+        nothing here pretends there is.  */
+    this.spreadDiscountOverLines(lineData, discountPaisa);
 
     // payments + due
     const payments = dto.payments ?? [];
@@ -1053,25 +1526,56 @@ export class PosService {
       await this.payMethods.assertActive(p.method);
       p.accountId = (await this.payMethods.resolveAccount(p.method, p.accountId)) ?? undefined;
     }
-    const paid = payments.reduce((s, p) => s + p.amountPaisa, 0);
-    /* POS-REV-6 — and refuse an OVERPAYMENT rather than swallowing it. `duePaisa` was
-       clamped at 0, so tendering ৳1000 on a ৳900 bill stored paidPaisa 1000 against
-       totalPaisa 900 and called it `paid`. The ৳100 change is a real thing that leaves
-       the drawer; recorded as revenue it makes the shift short by exactly that much and
-       the cashier carries the blame. Change is counted by the cashier, not by the till. */
-    if (paid > totalPaisa) {
-      throw new BadRequestException(
-        `tendered ${(paid / 100).toFixed(2)} for a ${(totalPaisa / 100).toFixed(2)} bill — enter what you are keeping, and give ${((paid - totalPaisa) / 100).toFixed(2)} as change`,
-      );
-    }
-    /*  DEC-RTN-015 — store credit is not a tender. No money moves: a liability
-        the shop was already carrying is discharged, so it comes off the bill
-        BEFORE the due is worked out. Returns owns the ledger and checks the
-        balance and the cap; the amount is applied after the order exists, so
-        the CONSUMED row can name it.  */
+    /*  ═══ GIVING CHANGE — audit 11 Sep 2026 §3 #11 ═════════════════════════
+        Handing over a ৳1000 note for a ৳900 bill is the most ordinary thing
+        that happens at a counter, and the till refused it outright: POS-REV-6
+        was right that an overpayment must never be RECORDED as revenue (the
+        drawer then closes short by exactly the change), but it fixed that by
+        refusing the tender rather than by recording the right number. Meanwhile
+        the sell panel printed "Change to give ৳100" beside the red error.
+
+        So: the note may be typed as it was handed over. What is RECORDED is
+        what the shop keeps — never more than the bill — and the difference
+        comes back in the response as `changePaisa` so the till and the receipt
+        can say what to hand back.
+
+        Only CASH may overpay. A bKash or card tender is an exact transfer that
+        actually happened; "change" out of one would be the shop paying cash
+        against money it has not got, so those are still refused.  */
+    /*  DEC-RTN-015 — store credit is not a tender and no money moves for it, so
+        it comes off the bill BEFORE the tenders are measured: what the notes
+        have to cover is the bill minus the credit.  */
     const creditAsked = Math.max(0, dto.storeCreditPaisa ?? 0);
     if (creditAsked > 0 && !(dto.customerId || dto.customerPhone?.trim()))
       throw new BadRequestException('Store credit belongs to a customer — say who this is');
+    const payablePaisa = Math.max(0, totalPaisa - creditAsked);
+
+    const tendered = payments.reduce((s, p) => s + p.amountPaisa, 0);
+    const nonCashPaisa = payments.filter((p) => p.method !== 'cash').reduce((s, p) => s + p.amountPaisa, 0);
+    let changePaisa = 0;
+    if (tendered > payablePaisa) {
+      if (nonCashPaisa > payablePaisa) {
+        throw new BadRequestException(
+          `a ${(nonCashPaisa / 100).toFixed(2)} transfer is more than the ${(payablePaisa / 100).toFixed(2)} still to pay — no change can be given out of a non-cash payment`,
+        );
+      }
+      changePaisa = tendered - payablePaisa;
+      /*  trim the cash tenders down to what is kept, biggest note first, so
+          the recorded payments add up to the bill exactly  */
+      let left = changePaisa;
+      for (const p of [...payments].filter((x) => x.method === 'cash').sort((a, b) => b.amountPaisa - a.amountPaisa)) {
+        if (left <= 0) break;
+        const cut = Math.min(left, p.amountPaisa);
+        p.amountPaisa -= cut;
+        left -= cut;
+      }
+      // a fully-consumed cash line is not a payment; drop it rather than write a zero
+      for (let i = payments.length - 1; i >= 0; i--) if (payments[i].amountPaisa === 0) payments.splice(i, 1);
+    }
+    const paid = payments.reduce((s, p) => s + p.amountPaisa, 0);
+    /*  Returns owns the credit ledger and checks the balance and the shop's cap;
+        the amount is applied after the order exists, so the CONSUMED row can
+        name the bill it paid for.  */
     if (creditAsked > 0 && paid + creditAsked > totalPaisa)
       throw new BadRequestException(
         `${(creditAsked / 100).toFixed(2)} of credit plus ${(paid / 100).toFixed(2)} tendered is more than the ${(totalPaisa / 100).toFixed(2)} bill`,
@@ -1114,10 +1618,44 @@ export class PosService {
       : await this.posChannelId();
     const paymentStatus = duePaisa === 0 ? PaymentStatus.paid : paid > 0 ? PaymentStatus.advance_paid : PaymentStatus.unpaid;
 
+    /*  audit 11 Sep 2026 §3 #22 — the BRANCH field gets a branch, not a counter.
+        `branchId: dto.branchId ?? shift.registerId` wrote a register id into the
+        order's branch column. Both are soft refs (`String?`), so nothing ever
+        errored — the data was simply wrong, and anything that later grouped by
+        branch was grouping by till.  */
+    const register = shift.registerId
+      ? await this.prisma.db.posRegister.findFirst({ where: { id: shift.registerId }, select: { branchId: true } })
+      : null;
+
     // POS-REV-2 — receipt number allocated INSIDE the retry, wrapping the whole sale
     const order = await this.withNextNo(
       (skip) => this.nextPosNo(skip),
       (orderNo) => this.prisma.db.$transaction(async (tx) => {
+      /*  ═══ THE BOX IS STILL OPEN — audit 11 Sep 2026 §1 #9 ══════════════════
+          The shift was read before the transaction and the cash movement written
+          inside it. If day-close ran on another terminal in between, the notes
+          landed on a shift whose `expectedCashPaisa` had already been
+          snapshotted — money counted in no drawer at all, for ever. So the
+          status is re-asserted HERE, as a one-winner claim, and the sale fails
+          if the box closed underneath it. The till simply opens a new box on
+          the retry, which is what `openDrawerIfNeeded` is for.  */
+      const boxOpen = await tx.posShift.updateMany({
+        where: { id: shift.id, status: PosShiftStatus.OPEN },
+        data: { cashierName: shift.cashierName },
+      });
+      if (boxOpen.count !== 1) {
+        throw new BadRequestException('the cash box was closed while this sale was being rung up — ring it up again and it will open a new one');
+      }
+
+      /*  ═══ AND IT IS STILL ON THE SHELF — audit §1 #2 ═══════════════════════
+          Binding this time: the rows are locked and re-counted inside the
+          transaction, so two tills cannot both sell the last stem. A shortage
+          here rolls the whole sale back rather than printing a bill for goods
+          the shop has not got.  */
+      if (!isAdvance && trackedItems.length) {
+        await this.assertStock(tx as unknown as Prisma.TransactionClient, trackedItems, wantedMilli, true);
+      }
+
       const created = await tx.order.create({
         data: {
           orderNo,
@@ -1133,7 +1671,7 @@ export class PosService {
           senderPhone: customer.phone ?? '',
           fulfillmentType: FulfillmentType.COUNTER,
           promisedBy: promisedFor,
-          branchId: dto.branchId ?? shift.registerId ?? null,
+          branchId: dto.branchId ?? register?.branchId ?? null,
           posShift: { connect: { id: shift.id } },
           isGift: dto.isGift ?? false,
           /*  DEC-POS-022 — a walk-in is settled the moment it is rung up; an
@@ -1161,10 +1699,32 @@ export class PosService {
           /*  the charge names (DEC-POS-015) and the cashier's own words about
               this sale (DEC-POS-020) both belong on the bill  */
           internalNote: [dto.note?.trim(), dto.adjustmentNote?.trim()].filter(Boolean).join(" · ") || null,
+          /*  audit §1 #1 — the key the unique index judges. A second click
+              carrying the same key fails HERE, at INSERT, and is turned into
+              the original bill by the caller.  */
+          ...({ posIdempotencyKey: idemKey, posChangePaisa: changePaisa } as object),
           lines: { create: lineData },
         },
         include: { lines: true },
       });
+
+      /*  audit §1 #7 — burn the manager's approval against THIS bill, and write
+          down who gave it. One approval, one sale: the claim is a guarded
+          updateMany, so a double-click cannot spend it twice either.  */
+      if (dto.discountApprovalToken?.trim()) {
+        const ok = await this.burnApproval(tx as unknown as Prisma.TransactionClient, dto.discountApprovalToken.trim(), created.id);
+        approval.approvedById = ok.approvedById;
+        approval.approvedByName = ok.approvedByName;
+        await tx.order.update({
+          where: { id: created.id },
+          data: {
+            ...({
+              discountApprovedBy: ok.approvedByName,
+              discountApprovedById: ok.approvedById,
+            } as object),
+          },
+        });
+      }
 
       // payment transactions (split) — DEC-POS-009. Every tender is already validated
       // above (POS-REV-6), so there is nothing left here to skip over silently.
@@ -1195,7 +1755,17 @@ export class PosService {
           if (!l.productId) continue;
           const p = pMap.get(l.productId);
           if (p && p.stockMode === 'MANUAL') {
-            await tx.product.update({ where: { id: p.id }, data: { stockQty: { decrement: l.qty } } });
+            /*  audit §1 #2 — GUARDED, and it cannot go below zero. This was a
+                bare `decrement`, so two tills selling the last one both wrote
+                and the shelf went negative in silence. `count !== 1` means
+                somebody got there first: the whole sale rolls back.  */
+            const taken = await tx.product.updateMany({
+              where: { id: p.id, stockQty: { gte: l.qty } },
+              data: { stockQty: { decrement: l.qty } },
+            });
+            if (taken.count !== 1) {
+              throw new BadRequestException(`not enough stock: ${p.name} — somebody sold the last of it just now`);
+            }
           }
         }
       }
@@ -1208,7 +1778,29 @@ export class PosService {
 
       return created;
       }),
-    );
+    ).catch(async (e) => {
+      /*  audit §1 #1 — two clicks arrived together, both read "no such key", and
+          the database caught the loser at INSERT. That is the guarantee working:
+          hand back the bill the winner made, not a second one.  */
+      const dup =
+        idemKey &&
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2002' &&
+        JSON.stringify(e.meta ?? {}).includes('osIdempotencyKey');
+      if (dup) {
+        /*  the winner may still be committing — wait for it rather than handing
+            the cashier a 500 for having clicked twice  */
+        for (let look = 0; look < 5; look++) {
+          const original = await this.findByIdempotencyKey(idemKey);
+          if (original) return original;
+          await new Promise((r) => setTimeout(r, 200));
+        }
+      }
+      throw e;
+    });
+    /*  the duplicate path above hands back the finished bill, which is already
+        the shape this method promises — nothing below has to run a second time  */
+    if ('transactions' in order) return { ...order, changePaisa: order.posChangePaisa ?? 0 };
     const orderNo = order.orderNo;
 
     await this.audit.record({ entityType: ENTITY, entityId: order.id, action: 'CREATE', actorName });
@@ -1258,14 +1850,46 @@ export class PosService {
     }
     await this.audit.event({ entityType: 'Order', entityId: order.id, kind: 'sales', label: `POS sale ${orderNo} · ${customer.name}`, actorName });
 
-    // stock deduction via Inventory (INV-RULE-001) — parallel ledger, fail-soft (DEC-INV-015; owner verify pending)
-    if (!isAdvance) try {
-      const r = await this.inventory.postSaleForOrder({ orderId: order.id, orderNo, actor: actorName, direction: -1, lines: dto.lines.map((l) => ({ productId: l.productId ?? null, itemId: l.itemId ?? null, qty: l.qty, qtyMilliOverride: l.itemId ? Math.round((l.qty * 1000) / lineUnitFactor(l)) : undefined })) });
-      if (r.skipped.length) {
-        await this.audit.event({ entityType: 'Order', entityId: order.id, kind: 'system', label: `Inventory: ${r.posted} movement(s); skipped (no item link): ${r.skipped.join(', ')}`, actorName });
+    /*  audit §1 #7 — the approver is on the order AND on the timeline. "Who let
+        this discount through" used to have no answer anywhere at all.  */
+    if (approval.approvedByName) {
+      await this.audit.event({
+        entityType: 'Order', entityId: order.id, kind: 'sales', actorName,
+        label: `Over-cap discount on ${orderNo} approved by ${approval.approvedByName}`,
+      });
+    }
+
+    /*  ═══ THE STOCK LEAVES, OR THE BILL DOES NOT STAND — audit §1 #2 ═══════
+        This was fail-soft: if `postSaleForOrder` threw, the sale still
+        completed and the only trace was one audit line. The bill existed, the
+        money was booked, and the shelf never moved — the single worst kind of
+        silence in this module, because every later count is then wrong and
+        nothing says why.
+
+        Inventory runs on its own connection and `postSaleForOrder` takes no
+        `tx` (see `assertStock` above), so it cannot be rolled back with the
+        sale. What it gets instead is a COMPENSATION: the bill is voided —
+        tenders reversed, drawer put back, customer mirror undone, order
+        cancelled — and the cashier is told, instead of handing over goods the
+        books think are still on the shelf.  */
+    if (!isAdvance) {
+      try {
+        const r = await this.inventory.postSaleForOrder({ orderId: order.id, orderNo, actor: actorName, direction: -1, lines: dto.lines.map((l) => ({ productId: l.productId ?? null, itemId: l.itemId ?? null, qty: l.qty, qtyMilliOverride: l.itemId ? Math.round((l.qty * 1000) / lineUnitFactor(l)) : undefined })) });
+        if (r.skipped.length) {
+          await this.audit.event({ entityType: 'Order', entityId: order.id, kind: 'system', label: `Inventory: ${r.posted} movement(s); skipped (no item link): ${r.skipped.join(', ')}`, actorName });
+        }
+      } catch (e) {
+        const why = e instanceof Error ? e.message : 'error';
+        await this.audit.event({
+          entityType: 'Order', entityId: order.id, kind: 'system',
+          actorName,
+          label: `⚠ Stock did NOT leave for ${orderNo} (${why}) — the bill is being reversed. If Inventory posted part of it, check the movements for this order by hand.`,
+        });
+        await this.unwindSale(order.id, `stock could not be deducted: ${why}`, actorName).catch(() => undefined);
+        throw new BadRequestException(
+          `This sale was reversed: the stock could not be taken off the shelf (${why}). Nothing has been charged — try again.`,
+        );
       }
-    } catch (e) {
-      await this.audit.event({ entityType: 'Order', entityId: order.id, kind: 'system', label: `Inventory mirror failed: ${e instanceof Error ? e.message : 'error'}`, actorName });
     }
 
     // books: revenue + VAT + cost of goods, then each tender that came in.
@@ -1280,7 +1904,307 @@ export class PosService {
       await this.book(order.id, `${t.method} tender on ${orderNo}`, () => this.financeEvents.onPaymentRecorded(t.id), actorName);
     }
 
-    return this.prisma.db.order.findFirst({ where: { id: order.id }, include: { lines: true, transactions: true, customer: { select: { id: true, name: true, phone: true } } } });
+    const saved = await this.prisma.db.order.findFirst({ where: { id: order.id }, include: { lines: true, transactions: true, customer: { select: { id: true, name: true, phone: true } } } });
+    /*  audit §3 #11 — what to hand back over the counter. The payments recorded
+        are what the shop KEEPS; this is the difference the cashier gives.  */
+    return saved ? { ...saved, changePaisa } : saved;
+  }
+
+  /* ------------------------------------------------ void (audit §3 #21) */
+
+  /**
+   * ═══ UNDO A COUNTER BILL, IN ONE TRANSACTION ══════════════════════════════
+   *
+   * Two callers: `POST /pos/sales/:id/void` (the cashier mis-rang it) and
+   * `createSale` itself, when Inventory refuses to move the stock and the bill
+   * must not be left standing.
+   *
+   * What it reverses, all of it POS-owned:
+   *   · the order            — cancelled, with the reason on it
+   *   · the tenders          — a REFUND row per payment, and `refundPaisa` set,
+   *                            so Returns cannot later refund the same money
+   *   · the drawer           — a cash bill takes the notes back out of the box
+   *   · the customer mirror  — the order count and the lifetime value it added
+   * and then, outside the transaction, the stock goes back on the shelf through
+   * Inventory (`postSaleForOrder` with direction +1 — the same way
+   * orders.service reverts a stock-out).
+   *
+   * ⚠️ WHAT IT DOES NOT DO, and why: it does not touch the LEDGER. Finance
+   * consumes completed business events and POS never writes journal entries
+   * (module constitution). There is no `onPosSaleVoided` event to raise — so the
+   * reversal lands on the order's timeline as a ⚠ line for a human, and the
+   * missing event is written up in POS_A.md for whoever owns
+   * finance-events.service.ts.
+   */
+  private async unwindSale(orderId: string, reason: string, actorName: string) {
+    const order = await this.prisma.db.order.findFirst({
+      where: { id: orderId, fulfillmentType: FulfillmentType.COUNTER },
+      include: {
+        transactions: { where: { deletedAt: null } },
+        lines: { select: { productId: true, qty: true, ...({ itemId: true, unitQtyMilli: true } as object) } },
+      },
+    });
+    if (!order) throw new NotFoundException('counter bill not found');
+
+    const wasAdvance = order.salesStatus === SalesStatus.placed;
+    const drawer = await this.currentShift();
+
+    const { cashBack, refundPaisa } = await this.prisma.db.$transaction(async (tx) => {
+      /*  one winner: two clicks on Void cannot both reverse the money  */
+      const claimed = await tx.order.updateMany({
+        where: { id: order.id, salesStatus: { not: SalesStatus.cancelled } },
+        data: {
+          salesStatus: SalesStatus.cancelled,
+          cancelledAt: new Date(),
+          deliveryStatus: DeliveryStatus.stock_reverted,
+          failReason: reason,
+        },
+      });
+      if (claimed.count !== 1) throw new BadRequestException('this bill has already been voided');
+
+      const taken = order.transactions.filter((t) => t.kind !== PaymentTxnKind.REFUND);
+      let back = 0;
+      let cash = 0;
+      for (const t of taken) {
+        await tx.paymentTransaction.create({
+          data: {
+            orderId: order.id,
+            kind: PaymentTxnKind.REFUND,
+            method: t.method,
+            amountPaisa: t.amountPaisa,
+            actorName,
+            ...({ accountId: (t as { accountId?: string | null }).accountId ?? null } as object),
+          },
+        });
+        back += t.amountPaisa;
+        if (t.method === PaymentMethod.cash) cash += t.amountPaisa;
+      }
+
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          refundPaisa: { increment: back },
+          duePaisa: 0,
+          paymentStatus: back > 0 ? PaymentStatus.refunded : PaymentStatus.unpaid,
+          internalNote: [order.internalNote, `VOID: ${reason}`].filter(Boolean).join(' · '),
+        },
+      });
+
+      /*  the notes physically go back over the counter, so the box has to say
+          so — otherwise the count at close is over by exactly the refund  */
+      if (cash > 0 && drawer) {
+        await tx.posCashMovement.create({
+          data: {
+            shiftId: drawer.id,
+            kind: PosCashKind.PAYOUT,
+            amountPaisa: -cash,
+            note: `${order.orderNo} voided`,
+            actorName,
+          },
+        });
+      }
+
+      // the customer never bought this; undo what the sale added
+      await tx.customer.update({
+        where: { id: order.customerId },
+        data: { ordersCount: { decrement: 1 }, ltvPaisa: { decrement: BigInt(order.totalPaisa) } },
+      });
+
+      return { cashBack: cash, refundPaisa: back };
+    });
+
+    /*  the stock goes back — only if it ever left. An advance order that was
+        never handed over never took anything off the shelf.  */
+    if (!wasAdvance && order.lines.length) {
+      try {
+        await this.inventory.postSaleForOrder({
+          orderId: order.id,
+          orderNo: `${order.orderNo} · void`,
+          actor: actorName,
+          direction: 1,
+          lines: order.lines.map((l) => ({
+            productId: l.productId ?? null,
+            itemId: (l as { itemId?: string | null }).itemId ?? null,
+            qty: l.qty,
+            qtyMilliOverride: (l as { unitQtyMilli?: number | null }).unitQtyMilli ?? undefined,
+          })),
+        });
+      } catch (e) {
+        await this.audit.event({
+          entityType: 'Order', entityId: order.id, kind: 'system', actorName,
+          label: `⚠ ${order.orderNo} was voided but the stock did NOT go back on the shelf — put it back by hand (${e instanceof Error ? e.message : 'error'})`,
+        });
+      }
+      // the legacy copy, for the website-product lines (DEC-INV-015 stage 1)
+      for (const l of order.lines) {
+        if (!l.productId) continue;
+        await this.prisma.db.product
+          .updateMany({ where: { id: l.productId, stockMode: 'MANUAL' }, data: { stockQty: { increment: l.qty } } })
+          .catch(() => undefined);
+      }
+    }
+
+    await this.audit.record({ entityType: ENTITY, entityId: order.id, action: 'UPDATE', actorName, changes: { voided: true, reason, refundPaisa } });
+    await this.audit.event({
+      entityType: 'Order', entityId: order.id, kind: 'sales', actorName,
+      label: `${order.orderNo} voided — ${reason}${refundPaisa ? ` · ${(refundPaisa / 100).toFixed(2)} given back${cashBack ? ` (${(cashBack / 100).toFixed(2)} cash)` : ''}` : ''}`,
+    });
+    /*  Finance has no "counter bill voided" event to consume (see the note on
+        this method) — say so where somebody will read it  */
+    if (!wasAdvance) {
+      await this.audit.event({
+        entityType: 'Order', entityId: order.id, kind: 'system', actorName,
+        label: `⚠ ${order.orderNo} is reversed in POS but NOT in the ledger — the revenue, VAT and cost of goods it posted need a correcting entry in Finance.`,
+      });
+    }
+    return this.prisma.db.order.findFirst({
+      where: { id: order.id },
+      include: { lines: true, transactions: true, customer: { select: { id: true, name: true, phone: true } } },
+    });
+  }
+
+  /**
+   * The cashier's own undo: the bill of five minutes ago, taken back.
+   *
+   * Until now there was no void, no counter refund and no correction anywhere in
+   * POS. A mis-rung bill could only be unwound through the Returns workflow
+   * (create → approve → complete), which needs `deliveryStatus = delivered` —
+   * true for a walk-in, FALSE for an advance order, which therefore could not be
+   * undone at all. An abandoned advance sat on the board with its due for ever.
+   *
+   * Two guards, both conservative: the bill must belong to the cash box that is
+   * open NOW (a closed box has been counted and its over/short posted — changing
+   * it afterwards rewrites a day somebody signed off), and a bill Returns has
+   * already touched is Returns' business, not the till's.
+   */
+  async voidSale(orderId: string, dto: VoidPosSaleDto) {
+    const reason = dto.reason?.trim();
+    if (!reason) throw new BadRequestException('Say why this bill is being voided');
+    const actorName = dto.actorName ?? 'Cashier';
+
+    const order = await this.prisma.db.order.findFirst({
+      where: { id: orderId, fulfillmentType: FulfillmentType.COUNTER },
+      select: { id: true, orderNo: true, salesStatus: true, posShiftId: true, refundPaisa: true },
+    });
+    if (!order) throw new NotFoundException('counter bill not found');
+    if (order.salesStatus === SalesStatus.cancelled) throw new BadRequestException('this bill has already been voided');
+
+    const returned = await this.prisma.db.salesReturn.count({ where: { orderId: order.id } });
+    if (returned > 0 || order.refundPaisa > 0) {
+      throw new BadRequestException('this bill has already been refunded — finish it in Returns, not at the till');
+    }
+
+    const drawer = await this.currentShift();
+    if (!drawer) {
+      throw new BadRequestException('the cash box is closed — a bill from a closed day is unwound in Returns, not voided at the till');
+    }
+    if (order.posShiftId && order.posShiftId !== drawer.id) {
+      throw new BadRequestException(
+        `${order.orderNo} belongs to a cash box that has already been counted and closed — unwind it in Returns`,
+      );
+    }
+
+    return this.unwindSale(order.id, reason, actorName);
+  }
+
+  /* ------------------------------------------------ receipt (audit §4 / §5 #1) */
+
+  /**
+   * Everything a printed slip needs, resolved HERE.
+   *
+   * `receiptHeader`, `receiptFooter` and `giftReceiptHidePrice` have been stored
+   * and editable in POS settings since the module was built and NOTHING read any
+   * of them — not the sell screen, not the bill page, not the Reprint modal,
+   * which showed a summary with no line items, no VAT and no discount and then
+   * called `window.print()` on the whole admin page.
+   *
+   * Resolved on the server on purpose: a receipt assembled in the browser out of
+   * whatever the screen happens to be holding can disagree with the books, and
+   * the piece of paper the customer walks out with is the one document that must
+   * not.
+   */
+  async receipt(orderId: string) {
+    const o = await this.prisma.db.order.findFirst({
+      where: { id: orderId, fulfillmentType: FulfillmentType.COUNTER },
+      include: {
+        lines: true,
+        transactions: { where: { deletedAt: null } },
+        customer: { select: { name: true, phone: true } },
+        posShift: { select: { cashierName: true, register: { select: { name: true } } } },
+      },
+    });
+    if (!o) throw new NotFoundException('counter bill not found');
+
+    const s = await this.settings();
+    const company = await this.prisma.db.companySetting.findFirst({
+      select: {
+        tradeName: true, legalName: true, operatingAddress: true, registeredAddress: true,
+        city: true, publicPhone: true,
+      },
+    });
+
+    const payments = o.transactions
+      .filter((t) => t.kind !== PaymentTxnKind.REFUND)
+      .map((t) => ({ method: String(t.method), amountPaisa: t.amountPaisa }));
+    const refundedPaisa = o.transactions
+      .filter((t) => t.kind === PaymentTxnKind.REFUND)
+      .reduce((n, t) => n + t.amountPaisa, 0);
+    const tenderedPaisa = payments.reduce((n, p) => n + p.amountPaisa, 0);
+
+    const address =
+      [company?.operatingAddress ?? company?.registeredAddress ?? null, company?.city]
+        .filter(Boolean)
+        .join(', ') || null;
+
+    return {
+      orderNo: o.orderNo,
+      placedAt: o.placedAt.toISOString(),
+      cashierName: (o as { salespersonName?: string | null }).salespersonName ?? o.posShift?.cashierName ?? null,
+      registerName: o.posShift?.register?.name ?? null,
+      shop: {
+        name: company?.tradeName ?? company?.legalName ?? 'Radian',
+        address,
+        phone: company?.publicPhone ?? null,
+        receiptHeader: s.receiptHeader ?? null,
+        receiptFooter: s.receiptFooter ?? null,
+        /*  a gift slip prints with no prices, which for a flower shop is the
+            common case rather than the exception. The FLAG is what is reported;
+            the prices are still sent, because the same payload feeds the shop's
+            own copy — the print view decides what it draws.  */
+        giftReceiptHidePrice: !!s.giftReceiptHidePrice && !!o.isGift,
+      },
+      isGift: o.isGift,
+      customer:
+        o.customer && o.customer.phone !== 'WALK-IN'
+          ? { name: o.customer.name, phone: o.customer.phone }
+          : null,
+      lines: o.lines.map((l) => ({
+        name: l.name,
+        qty: l.qty,
+        // DEC-POS-024 — the unit this line was SOLD in, snapshotted at sale time
+        unitLabel: (l as { unitLabel?: string | null }).unitLabel ?? null,
+        unitPaisa: l.unitPaisa,
+        linePaisa: l.linePaisa,
+        discountPaisa: l.discountPaisa,
+      })),
+      subtotalPaisa: o.subtotalPaisa,
+      discountPaisa: o.discountPaisa,
+      adjustmentPaisa: o.adjustmentPaisa,
+      vatPaisa: o.vatPaisa,
+      taxRateBps: o.taxRateBps,
+      totalPaisa: o.totalPaisa,
+      payments,
+      paidPaisa: o.paidPaisa,
+      /*  audit §3 #11 — what was handed back, as it was on the day  */
+      changePaisa: (o as { posChangePaisa?: number | null }).posChangePaisa ?? 0,
+      duePaisa: o.duePaisa,
+      refundedPaisa,
+      /*  DEC-RTN-015 — store credit counts inside `paidPaisa` but is not a
+          tender, so the slip can name it: paid minus what the tenders came to  */
+      storeCreditPaisa: Math.max(0, o.paidPaisa - tenderedPaisa),
+      note: o.internalNote ?? null,
+      voided: o.salesStatus === SalesStatus.cancelled,
+    };
   }
 
   /* ------------------------------------------------ sales list / due / collect */
@@ -1416,19 +2340,68 @@ export class PosService {
     if (!o) throw new NotFoundException('advance order not found');
     if (o.salesStatus !== SalesStatus.placed) throw new BadRequestException('this order has already been handed over');
 
-    /*  take whatever is still owed first — one dialog, same rules as any other
-        money that comes in (POS-REV-6 validation lives in collectDue)  */
-    if (dto.payments?.length) {
-      await this.collectDue({ orderId: o.id, payments: dto.payments, actorName });
+    /*  ═══ IS IT STILL ON THE SHELF — audit 11 Sep 2026 §3 #24 ═══════════════
+        The goods were promised weeks ago and deliberately NOT reserved
+        (DEC-POS-022). If they sold out meanwhile, the hand-over used to go
+        straight through and Inventory was then asked to take stock that is not
+        there — fail-soft, so it landed as an audit line nobody reads and the
+        shelf went negative. The walk-in path checks; so does this one now.  */
+    const itemIds = o.lines
+      .map((l) => (l as { itemId?: string | null }).itemId)
+      .filter((v): v is string => !!v);
+    const trackedItems = itemIds.length
+      ? (
+          await this.prisma.db.item.findMany({
+            where: { id: { in: itemIds }, isStockTracked: true },
+            select: { id: true, name: true, unit: { select: { name: true } } },
+          })
+        ).map((i) => ({ id: i.id, name: i.name, unitName: i.unit?.name ?? '' }))
+      : [];
+    const wantedMilli = new Map<string, number>();
+    for (const l of o.lines) {
+      const itemId = (l as { itemId?: string | null }).itemId;
+      if (!itemId) continue;
+      // DEC-POS-024 — the snapshot decides how much stock leaves, not the qty
+      const milli = (l as { unitQtyMilli?: number | null }).unitQtyMilli ?? l.qty * 1000;
+      wantedMilli.set(itemId, (wantedMilli.get(itemId) ?? 0) + milli);
     }
 
-    await this.prisma.db.order.update({
-      where: { id: o.id },
-      data: {
-        salesStatus: SalesStatus.completed,
-        deliveryStatus: DeliveryStatus.delivered,
-      },
+    /*  ═══ ONE HAND-OVER — audit 11 Sep 2026 §1 #4 ═══════════════════════════
+        This was check-then-update across three un-transacted writes: the status
+        was read, the money was collected, and only THEN was the status flipped.
+        Two clicks handed the same order over twice and the stock left twice
+        (Finance was safe only because `JournalEntry.sourceKey` is @unique). And
+        if the status write failed after `collectDue` had succeeded, the customer
+        had paid in full and the order was still sitting on the advance board
+        waiting to be collected again.
+
+        The claim comes FIRST and is the one-winner guard; the money follows, and
+        if the money cannot be taken the claim is given back so the order returns
+        to the board exactly as it was.  */
+    await this.prisma.db.$transaction(async (tx) => {
+      if (trackedItems.length) await this.assertStock(tx as unknown as Prisma.TransactionClient, trackedItems, wantedMilli, true);
+      const claimed = await tx.order.updateMany({
+        where: { id: o.id, salesStatus: SalesStatus.placed },
+        data: { salesStatus: SalesStatus.completed, deliveryStatus: DeliveryStatus.delivered },
+      });
+      if (claimed.count !== 1) throw new BadRequestException('this order has already been handed over');
     });
+
+    /*  take whatever is still owed — one dialog, same rules as any other money
+        that comes in (POS-REV-6 validation lives in collectDue). It opens its
+        own transaction, so it cannot join the claim above; a refusal here gives
+        the claim back rather than leaving a paid-for order on nobody's list.  */
+    if (dto.payments?.length) {
+      try {
+        await this.collectDue({ orderId: o.id, payments: dto.payments, actorName });
+      } catch (e) {
+        await this.prisma.db.order.updateMany({
+          where: { id: o.id, salesStatus: SalesStatus.completed },
+          data: { salesStatus: SalesStatus.placed, deliveryStatus: DeliveryStatus.unassigned },
+        });
+        throw e;
+      }
+    }
 
     // NOW the stock leaves (INV-RULE-001), the same call the walk-in path makes
     try {
@@ -1457,8 +2430,17 @@ export class PosService {
   }
 
   async collectDue(dto: CollectDueDto) {
-    const o = await this.prisma.db.order.findFirst({ where: { id: dto.orderId } });
-    if (!o) throw new NotFoundException('order not found');
+    /*  audit 11 Sep 2026 §3 #23 — COUNTER ONLY. This took ANY orderId, with no
+        guard at all, and would happily write a POS `SALE_CASH` drawer movement
+        against an online order whose money never came near the till. Not
+        reachable from the current screens; the endpoint was wide open.  */
+    const o = await this.prisma.db.order.findFirst({
+      where: { id: dto.orderId, fulfillmentType: FulfillmentType.COUNTER },
+    });
+    if (!o) throw new NotFoundException('counter bill not found');
+    if (o.salesStatus === SalesStatus.cancelled) {
+      throw new BadRequestException('that bill was voided — there is nothing to collect on it');
+    }
     const actorName = dto.actorName ?? 'Cashier';
     const lines = dto.payments ?? [];
 
@@ -1474,16 +2456,42 @@ export class PosService {
     }
     const amount = lines.reduce((s, p) => s + p.amountPaisa, 0);
     if (amount <= 0) throw new BadRequestException('enter an amount to collect');
+    /*  the friendly refusal; the BINDING one is the claim inside the
+        transaction below, which is the whole point of audit §1 #3  */
     const outstanding = Math.max(0, o.totalPaisa - (o.paidPaisa - o.refundPaisa));
     if (amount > outstanding) throw new BadRequestException(`cannot collect ${amount} — only ${outstanding} is outstanding`);
 
     const cashAmount = lines
       .filter((p) => p.method === 'cash')
       .reduce((s, p) => s + p.amountPaisa, 0);
-    // POS-REV-4 — the drawer the money actually went into
-    const drawer = cashAmount > 0 ? await this.currentShift() : null;
+    /*  POS-REV-4 — the drawer the money actually went into. Owner, 11 Sep 2026:
+        the box opens itself when money arrives, exactly as it does for a sale,
+        so cash collected first thing in the morning has somewhere to be.  */
+    const drawer = cashAmount > 0 ? await this.openDrawerIfNeeded(actorName) : null;
 
     const { updated, txnIds } = await this.prisma.db.$transaction(async (tx) => {
+      /*  ═══ ONE COLLECTION PER OUTSTANDING TAKA — audit §1 #3 ═══════════════
+          POS-REV-3 fixed the lost UPDATE with `increment`, but the CEILING was
+          still check-then-write, outside the transaction. Two collections of
+          the same bill at once (two tills, a retried click) both passed the
+          check above, `paidPaisa` ended above `totalPaisa`, `duePaisa` was
+          clamped to 0 by `Math.max` — and two `SALE_CASH` movements hit the
+          drawer. The customer paid once, the drawer expected twice, and no
+          screen anywhere showed the overpayment.
+
+          So the claim IS the check: the row moves only if it still owes at
+          least this much, and `count === 1` is the proof. The loser is told to
+          look again rather than being handed a silent success.  */
+      const claimed = await tx.order.updateMany({
+        where: { id: o.id, duePaisa: { gte: amount } },
+        data: { paidPaisa: { increment: amount }, duePaisa: { decrement: amount } },
+      });
+      if (claimed.count !== 1) {
+        throw new BadRequestException(
+          'somebody collected against this bill a moment ago — reload the due board and check what is left',
+        );
+      }
+
       const ids: string[] = [];
       for (const p of lines) {
         const txn = await tx.paymentTransaction.create({
@@ -1505,11 +2513,11 @@ export class PosService {
         });
       }
 
-      /* POS-REV-3 — relative, not absolute. `refundPaisa` is read inside the
-         transaction so the status cannot be decided from a stale figure either. */
-      const bumped = await tx.order.update({
+      /*  the money has already moved on the row (the claim above); this only
+          settles the STATUS, and `refundPaisa` is read inside the transaction so
+          it cannot be decided from a stale figure (POS-REV-3)  */
+      const bumped = await tx.order.findFirstOrThrow({
         where: { id: o.id },
-        data: { paidPaisa: { increment: amount }, duePaisa: { decrement: amount } },
         select: { id: true, totalPaisa: true, paidPaisa: true, refundPaisa: true, duePaisa: true },
       });
       const stillDue = Math.max(0, bumped.totalPaisa - (bumped.paidPaisa - bumped.refundPaisa));

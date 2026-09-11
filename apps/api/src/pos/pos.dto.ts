@@ -114,11 +114,32 @@ export interface CreatePosSaleDto {
   lines: PosSaleLineDto[];
 
   discountPaisa?: number;
-  discountApprovedBy?: string; // set when the cart discount is over the category cap
+  /**
+   * (POS audit 11 Sep 2026) — a NAME, kept for the receipt and the audit trail.
+   * It is no longer what clears the cap: any non-empty string used to do that,
+   * and the approver was then thrown away. The cap is cleared by
+   * `discountApprovalToken` below, which only this server can issue.
+   */
+  discountApprovedBy?: string;
+  /**
+   * (POS audit 11 Sep 2026) — the one-shot token `POST /pos/discount/approve`
+   * hands back when a manager's PIN checks out. Required whenever the cart
+   * discount (or a negative adjustment) goes over the DEC-POS-006 cap. Burned
+   * on use, so one approval clears one bill.
+   */
+  discountApprovalToken?: string;
 
   adjustmentPaisa?: number; // signed round-off / extra charge (DEC-POS-015)
   adjustmentNote?: string;
-  taxRateBps?: number; // VAT rate in basis points (DEC-POS-016)
+  /**
+   * DEC-GBL-002 — READ BUT IGNORED since the POS audit (11 Sep 2026). VAT is one
+   * rate for the whole shop and Finance owns it; the till used to send whatever
+   * the cashier picked from a four-value dropdown in the browser bundle, so a
+   * bill could carry a percentage the books had never heard of. The field is
+   * still accepted so an older till does not 400 — the server takes the rate
+   * from `PosSetting.defaultTaxRateBps` (which reads Finance) and nothing else.
+   */
+  taxRateBps?: number;
 
   payMode: 'full' | 'partial';
   payments: PosPaymentDto[];
@@ -132,6 +153,15 @@ export interface CreatePosSaleDto {
    */
   storeCreditPaisa?: number;
 
+  /**
+   * (POS audit 11 Sep 2026, §1 #1) — a uuid the till generates ONCE per attempt
+   * and re-sends on every retry of that attempt. A second POST carrying a key
+   * this shop has already seen returns the ORIGINAL bill instead of ringing the
+   * sale up twice. The guarantee is a unique index on `Order.posIdempotencyKey`,
+   * not a lookup, so two parallel double-clicks cannot both pass a check.
+   */
+  idempotencyKey?: string;
+
   actorName?: string;
 }
 
@@ -144,8 +174,41 @@ export interface CollectDueDto {
 export interface DiscountRuleInput {
   categoryId?: string | null;
   productId?: string | null;
+  /**
+   * DEC-POS-018 / (POS audit 11 Sep 2026 §3 #15) — the counter sells ITEMS, so a
+   * cap has to be writable against an item or its stockroom category. The two
+   * columns existed on `PosDiscountRule` and `cartDiscountCap` already read
+   * them; nothing could ever WRITE them, so every counter cart capped at 100%
+   * and the whole DEC-POS-006 feature did nothing.
+   */
+  itemId?: string | null;
+  itemCategoryId?: string | null;
   maxPercent: number;
   requiresApproval: boolean;
+}
+
+/**
+ * (POS audit 11 Sep 2026 §3 #17) — the over-cap gate, moved off the browser.
+ *
+ * `MANAGER_PIN = "1234"` shipped in the admin bundle, so the "approval" was a
+ * string anybody could read out of the page source. The PIN is now checked on
+ * the server against a real OWNER/MANAGER account and the client never holds one.
+ */
+export interface PosDiscountApproveDto {
+  pin: string;
+  /** what the cashier is asking for, for the record — percent of the cart */
+  requestedPercent?: number;
+  actorName?: string;
+}
+
+/**
+ * (POS audit 11 Sep 2026 §3 #21) — a counter void: the mis-rung bill of five
+ * minutes ago, undone in one transaction. Not a refund and not a return — those
+ * are Returns' job and keep their approval workflow.
+ */
+export interface VoidPosSaleDto {
+  reason: string;
+  actorName?: string;
 }
 
 export interface UpdatePosSettingsDto {

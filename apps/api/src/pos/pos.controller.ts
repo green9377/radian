@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req } from '@nestjs/common';
 import { PosService } from './pos.service';
-import type { AuthedRequest } from '../auth/auth.guard';
+import { Roles, type AuthedRequest } from '../auth/auth.guard';
 import { costFor } from '../common/strip-cost';
 import type {
   OpenShiftDto,
@@ -13,6 +13,8 @@ import type {
   DiscountRuleInput,
   UpdatePosSettingsDto,
   CreateRegisterDto,
+  PosDiscountApproveDto,
+  VoidPosSaleDto,
 } from './pos.dto';
 import type { Prisma } from '@prisma/client';
 
@@ -29,10 +31,28 @@ export class PosController {
 
   /** DEC-POS-018 — what the till may sell: items, never products */
   @Get('catalogue')
-  async catalogue(@Req() req: AuthedRequest, @Query('search') search?: string) {
+  async catalogue(
+    @Req() req: AuthedRequest,
+    @Query('search') search?: string,
+    /*  audit 11 Sep 2026 §3 #13 — `search` was already accepted here and was
+        never sent; the till pulled 500 rows and filtered them in the browser,
+        so item 501 could not be sold. `limit` is the other half.  */
+    @Query('limit') limit?: string,
+  ) {
     /*  DEC-ADM-012 — a cashier sees the selling price; the cost only reaches the
         people whose template says so, and it is removed here, not hidden there.  */
-    return costFor(req.actor?.canSeeCost, await this.pos.catalogue(search));
+    return costFor(req.actor?.canSeeCost, await this.pos.catalogue(search, limit ? Number(limit) : undefined));
+  }
+
+  /**
+   * audit 11 Sep 2026 §3 #14 — counter customer lookup, answered by the server.
+   * The picker used to load the first 100 customers and search them in the
+   * browser, so a regular past #100 was unfindable and the cashier created a
+   * duplicate by typing the phone again.
+   */
+  @Get('customers')
+  customers(@Query('search') search?: string, @Query('limit') limit?: string) {
+    return this.pos.customers(search, limit ? Number(limit) : undefined);
   }
 
   /* registers */
@@ -98,6 +118,27 @@ export class PosController {
     return this.pos.listSales({ search, days: days ? Number(days) : undefined });
   }
 
+  /**
+   * audit 11 Sep 2026 §3 #21 — the counter's own undo. Same-day only, and only
+   * for a bill Returns has not already touched; everything else stays with the
+   * Returns workflow.
+   */
+  @Post('sales/:id/void')
+  voidSale(@Param('id') id: string, @Body() dto: VoidPosSaleDto) {
+    return this.pos.voidSale(id, dto);
+  }
+
+  /**
+   * audit 11 Sep 2026 §4 — everything a printed slip needs, resolved on the
+   * server so the paper cannot disagree with the books. `receiptHeader`,
+   * `receiptFooter` and `giftReceiptHidePrice` have been editable in settings
+   * since the module was built and nothing read any of them until now.
+   */
+  @Get('sales/:id/receipt')
+  receipt(@Param('id') id: string) {
+    return this.pos.receipt(id);
+  }
+
   /* due */
   /* DEC-POS-027 — what this customer already owes the counter, and the ceiling */
   @Get('credit/:customerId')
@@ -132,6 +173,20 @@ export class PosController {
   @Patch('settings')
   updateSettings(@Body() dto: UpdatePosSettingsDto) {
     return this.pos.updateSettings(dto);
+  }
+
+  /**
+   * audit 11 Sep 2026 §3 #17 — the over-cap discount gate, off the browser.
+   *
+   * `MANAGER_PIN = "1234"` shipped inside the admin bundle and the server then
+   * accepted any non-empty approver string. The PIN is now checked here against
+   * a real OWNER/MANAGER account and the till never holds one; what it gets back
+   * is a one-shot token the sale must present.
+   */
+  @Post('discount/approve')
+  @Roles('OWNER', 'MANAGER')
+  approveDiscount(@Req() req: AuthedRequest, @Body() dto: PosDiscountApproveDto) {
+    return this.pos.approveDiscount(dto, req.actor);
   }
 
   /* discount rules */

@@ -4547,6 +4547,16 @@ export interface ApiPosShift {
 export interface ApiPosSale {
   id: string; orderNo: string; placedAt: string; senderName: string; senderPhone: string;
   totalPaisa: number; duePaisa: number; paidPaisa: number; isGift: boolean;
+  /*  (POS audit 11 Sep 2026 §3 #11) — what the server says to hand back. Cash may
+      be tendered over the bill now; only what the shop KEEPS is recorded as a
+      payment, and the difference comes back here.  */
+  changePaisa?: number;
+  /*  (POS audit 11 Sep 2026 §4 / §3 #19) — `GET /pos/sales` has always returned
+      the whole Order row and these two were simply not typed, so Sales history
+      could not tell an ADVANCE order (still on the shelf, shown as a sale with a
+      due) from a completed bill, nor a VOIDED bill from a live one.  */
+  salesStatus?: SalesStatus;
+  refundPaisa?: number;
   customer?: { id: string; name: string; phone: string } | null;
   transactions?: { method: string; amountPaisa: number }[];
   _count?: { lines: number };
@@ -4555,7 +4565,19 @@ export interface ApiPosDue {
   customerId: string; name: string; phone: string; duePaisa: number; oldest: string;
   orders: { id: string; orderNo: string; duePaisa: number; placedAt: string }[];
 }
-export interface ApiPosDiscountRule { id: string; categoryId: string | null; productId: string | null; maxPercent: number; requiresApproval: boolean; }
+/*  (POS audit 11 Sep 2026 §3 #15/#17) — the item half of the rule is writable and
+    readable now. DEC-POS-018 makes every counter line an Item, so `itemId` /
+    `itemCategoryId` are the two that actually match a modern cart; the
+    product/category pair stays for the legacy website line.  */
+export interface ApiPosDiscountRule {
+  id: string;
+  categoryId: string | null;
+  productId: string | null;
+  itemId?: string | null;
+  itemCategoryId?: string | null;
+  maxPercent: number;
+  requiresApproval: boolean;
+}
 export interface ApiPosAnalytics { salesPaisa: number; count: number; avgPaisa: number; duePaisa: number; cashInDrawer: number; shiftOpen: boolean; }
 
 export interface PosSaleInput {
@@ -4575,7 +4597,21 @@ export interface PosSaleInput {
   /** DEC-POS-018 — the counter sells items; productId is only the legacy path */
   lines: { itemId?: string; productId?: string; qty: number; unitPaisa?: number }[];
   discountPaisa?: number; discountApprovedBy?: string;
-  adjustmentPaisa?: number; adjustmentNote?: string; taxRateBps?: number;
+  /**
+   * (POS audit 11 Sep 2026 §1 #7) — the one-shot token `POST /pos/discount/approve`
+   * issues. `discountApprovedBy` is only a NAME now and clears nothing; this is
+   * what actually lifts the DEC-POS-006 cap. Good for ten minutes and one bill.
+   */
+  discountApprovalToken?: string;
+  /**
+   * (POS audit 11 Sep 2026 §1 #1) — a uuid the till generates per ATTEMPT and
+   * re-sends on a retry of that same attempt. A repeat returns the ORIGINAL bill
+   * instead of ringing the sale up twice.
+   */
+  idempotencyKey?: string;
+  adjustmentPaisa?: number; adjustmentNote?: string;
+  /** @deprecated the server ignores this — Finance owns the rate (§3 #12, DEC-GBL-002) */
+  taxRateBps?: number;
   payMode: "full" | "partial";
   payments: { method: "cash" | "bkash" | "nagad" | "card"; amountPaisa: number; accountId?: string }[];
   /** DEC-RTN-015 — part of the bill settled with the customer's store credit */
@@ -4619,8 +4655,60 @@ export interface ApiPosCatalogueRow {
   /** null = not counted (a service); otherwise what the shop holds right now */
   stockQty: number | null;
 }
-export const posCatalogue = (search?: string) =>
-  j<ApiPosCatalogueRow[]>(`/pos/catalogue${search?.trim() ? `?search=${encodeURIComponent(search.trim())}` : ""}`);
+/*  (POS audit 11 Sep 2026 §3 #13) — `search` is honoured SERVER-side and the
+    screen now sends it. `limit` defaults to 100 and is capped at 500 by the API.  */
+export const posCatalogue = (search?: string, limit?: number) => {
+  const q = new URLSearchParams();
+  if (search?.trim()) q.set("search", search.trim());
+  if (limit) q.set("limit", String(limit));
+  return j<ApiPosCatalogueRow[]>(`/pos/catalogue${q.toString() ? `?${q}` : ""}`);
+};
+
+/*  (POS audit 11 Sep 2026 §3 #14) — counter customer lookup, server-side, at most
+    25 rows. The picker used to load the first 100 customers and search them in the
+    browser, so regular #101 was unfindable and the cashier typed the phone again —
+    which is how one person becomes two customers with two halves of a due.  */
+export interface ApiPosCustomer {
+  id: string;
+  name: string;
+  phone: string;
+  /** what this person already owes the counter, so nobody sells on credit blind */
+  outstandingPaisa: number;
+}
+export const posCustomers = (search?: string, limit?: number) => {
+  const q = new URLSearchParams();
+  if (search?.trim()) q.set("search", search.trim());
+  if (limit) q.set("limit", String(limit));
+  return j<ApiPosCustomer[]>(`/pos/customers${q.toString() ? `?${q}` : ""}`);
+};
+
+/*  (POS audit 11 Sep 2026 §1 #7 / §3 #17) — the over-cap gate lives on the SERVER.
+    The till posts the PIN, never holds or compares one, and keeps the token it
+    gets back for exactly this bill.  */
+export interface ApiPosDiscountApproval {
+  ok: true;
+  approvedBy: string;
+  token: string;
+  expiresAt: string;
+}
+export const posApproveDiscount = (b: { pin: string; requestedPercent?: number }) =>
+  j<ApiPosDiscountApproval>(`/pos/discount/approve`, { method: "POST", body: JSON.stringify(b) });
+
+/*  (POS audit 11 Sep 2026 §3 #18) — held carts are the SERVER's. They were React
+    state, so a parked bill died on a refresh and the second counter could not see
+    it. `payload` is the till's own shape; only this screen reads it back.  */
+export interface ApiPosHeldCart {
+  id: string;
+  label: string;
+  registerId: string | null;
+  payload: unknown;
+  createdAt: string;
+}
+export const posHeldCarts = () => j<ApiPosHeldCart[]>(`/pos/held`);
+export const posHoldCart = (b: { label: string; registerId?: string; payload: unknown }) =>
+  j<ApiPosHeldCart>(`/pos/held`, { method: "POST", body: JSON.stringify(b) });
+export const posDropHeldCart = (id: string) =>
+  j<{ id: string; deleted: boolean }>(`/pos/held/${id}`, { method: "DELETE" });
 
 export const posSettings = () => j<ApiPosSettings>(`/pos/settings`);
 export const updatePosSettings = (patch: Partial<ApiPosSettings>) =>
@@ -4754,6 +4842,69 @@ export const posCollectDue = (b: { orderId: string; payments: { method: string; 
   j<ApiPosSale>(`/pos/due/collect`, { method: "POST", body: JSON.stringify(b) });
 export const posDiscountRules = () => j<ApiPosDiscountRule[]>(`/pos/discount-rules`);
 export const posAnalyticsToday = () => j<ApiPosAnalytics>(`/pos/analytics/today`);
+
+/*  (POS audit 11 Sep 2026 §4 / §5 #1) — EVERYTHING A PRINTED SLIP NEEDS, resolved
+    on the server. `receiptHeader`, `receiptFooter` and `giftReceiptHidePrice` were
+    stored and editable in POS settings and read by nothing at all; there was no
+    printable receipt anywhere, and "Reprint" called `window.print()` on the whole
+    admin page. Resolved server-side on purpose: the piece of paper the customer
+    walks out with is the one document that may not disagree with the books.
+
+    `shop.giftReceiptHidePrice` is ALREADY ANDed with the bill's own `isGift`, so
+    the print view reads it as "hide the prices on this slip" and never re-derives
+    the rule.  */
+export interface ApiPosReceipt {
+  orderNo: string;
+  placedAt: string;
+  cashierName: string | null;
+  registerName: string | null;
+  shop: {
+    name: string;
+    address: string | null;
+    phone: string | null;
+    receiptHeader: string | null;
+    receiptFooter: string | null;
+    giftReceiptHidePrice: boolean;
+  };
+  isGift: boolean;
+  customer: { name: string; phone: string } | null;
+  lines: {
+    name: string;
+    qty: number;
+    /** DEC-POS-024 — the unit this line was SOLD in, snapshotted at sale time */
+    unitLabel: string | null;
+    unitPaisa: number;
+    linePaisa: number;
+    discountPaisa: number;
+  }[];
+  subtotalPaisa: number;
+  discountPaisa: number;
+  adjustmentPaisa: number;
+  vatPaisa: number;
+  taxRateBps: number;
+  totalPaisa: number;
+  payments: { method: string; amountPaisa: number }[];
+  paidPaisa: number;
+  /** what was handed back, as it was on the day (Order.posChangePaisa) */
+  changePaisa: number;
+  duePaisa: number;
+  /** what Returns has already given back against this bill */
+  refundedPaisa: number;
+  /** DEC-RTN-015 — the part of `paidPaisa` that was store credit, not a tender */
+  storeCreditPaisa: number;
+  note: string | null;
+  voided: boolean;
+}
+export const posReceipt = (orderId: string) =>
+  j<ApiPosReceipt>(`/pos/sales/${orderId}/receipt`);
+
+/*  (POS audit 11 Sep 2026 §3 #21) — the cashier's own undo. Reverses stock, the
+    tenders and the drawer, and cancels the order. The server refuses a bill from
+    a cash box that has already been counted, and any bill Returns has touched, so
+    the screen asks those questions first and simply does not offer the button
+    where it cannot work — and prints the server's own words when it still says no.  */
+export const posVoidSale = (orderId: string, b: { reason: string }) =>
+  j<ApiOrder>(`/pos/sales/${orderId}/void`, { method: "POST", body: JSON.stringify(b) });
 
 /* ============================================================
    Returns & Refunds — real API (:4000/returns). DEC-RTN-005..015.

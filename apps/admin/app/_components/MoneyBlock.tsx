@@ -313,7 +313,7 @@ export function MoneyBlock(p: MoneyBlockProps) {
   const rows = p.doors ? all.filter(([id]) => p.doors!.includes(id)) : all;
 
   const card = "rounded-[12px] px-3 py-3";
-  const cardBg = { background: p.tone === "light" ? "#281e32" : "rgba(255,255,255,.07)" };
+  const cardBg = { background: p.tone === "light" ? "#f6f2fa" : "rgba(255,255,255,.07)" };
   const editor = "pt-2 flex items-center gap-1.5 flex-wrap";
 
   return (
@@ -440,7 +440,7 @@ export function MoneyResult({ pay, totalPaisa, tone, dueLabel = "Due — collect
 
   return (
     <div className="grid grid-cols-2 gap-2">
-      <div className="rounded-[12px] px-3 py-2.5" style={{ background: tone === "light" ? "#281e32" : "rgba(255,255,255,.07)" }}>
+      <div className="rounded-[12px] px-3 py-2.5" style={{ background: tone === "light" ? "#f6f2fa" : "rgba(255,255,255,.07)" }}>
         <div className={`text-[10.5px] uppercase tracking-[0.08em] font-medium ${t.label}`}>Paid</div>
         <div className={`text-[19px] font-semibold font-display ${t.value}`} style={{ fontVariantNumeric: "tabular-nums" }}>
           {formatTaka(pay.paidPaisa)}
@@ -615,7 +615,7 @@ export function PayDialog({
             <button type="button" onClick={onClose}
               className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20">Cancel</button>
             <button type="button" onClick={onConfirm} disabled={busy || taking <= 0 || tooMuch}
-              className="flex-1 bg-white hover:bg-[#2c1d35] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
+              className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
               <Icon name="check" size={17} /> {busy ? "Working…" : `${confirmLabel} · ${formatTaka(taking)}`}
             </button>
           </div>
@@ -632,7 +632,7 @@ export function PayDialog({
  */
 export function RefundDialog({
   title, who, amountPaisa, amountLabel = "Refund", note, methods, method, onMethod,
-  accountId, onAccount,
+  accountId, onAccount, methodNote, methodPlaceholder,
   reference, onReference, busy, error, confirmLabel = "Pay out", onConfirm, onClose,
 }: {
   title: string;
@@ -646,6 +646,13 @@ export function RefundDialog({
   /** DEC-GBL-006 — which account the money leaves from, when there is a choice */
   accountId?: string;
   onAccount?: (id: string) => void;
+  /*  (owner, 11 Sep 2026) "a refund can come from cash, bKash, the bank —
+      whoever refunds picks the method." So the caller may say, in one line,
+      what the PICKED method actually does to the shop's money, and may refuse
+      to accept a default: pass `methodPlaceholder` and the confirm button
+      stays shut until a person has chosen.  */
+  methodNote?: string;
+  methodPlaceholder?: string;
   reference: string;
   onReference: (v: string) => void;
   busy?: boolean;
@@ -680,8 +687,10 @@ export function RefundDialog({
             <div className="text-[12.5px] font-medium text-[#c9a6e4] mb-1.5">How it goes back</div>
             <select className="ipt h-[40px] text-[13px]" value={method}
               onChange={(e) => { onMethod(e.target.value); onAccount?.(""); }}>
+              {methodPlaceholder && <option value="">{methodPlaceholder}</option>}
               {methods.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
+            {methodNote && <div className="text-[11.5px] text-[#c9a6e4] mt-1.5">{methodNote}</div>}
             {(() => {
               // P7-8 — same case-insensitive match as the payment rows
               const accounts = methods.find((m) => m.id.toLowerCase() === method.toLowerCase())?.accounts ?? [];
@@ -704,8 +713,10 @@ export function RefundDialog({
           <div className="flex gap-2">
             <button type="button" onClick={onClose}
               className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20">Cancel</button>
-            <button type="button" onClick={onConfirm} disabled={busy}
-              className="flex-1 bg-white hover:bg-[#2c1d35] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
+            {/*  a refund with no method picked is money leaving from nowhere —
+                the button stays shut until somebody says where from  */}
+            <button type="button" onClick={onConfirm} disabled={busy || (!!methodPlaceholder && !method)}
+              className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
               <Icon name="check" size={17} /> {busy ? "Working…" : `${confirmLabel} · ${formatTaka(amountPaisa)}`}
             </button>
           </div>
