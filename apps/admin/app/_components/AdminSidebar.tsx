@@ -133,8 +133,9 @@ const GROUPS: Group[] = [
         label: "POS", href: "/pos", icon: "register",
         subs: [
           { label: "Sell (counter)", href: "/pos/sell" },
-          { label: "Today / Shift", href: "/pos/shift" },
-          { label: "Day-close", href: "/pos/day-close" },
+          /*  (owner, 11 Sep 2026) "Today / Shift" is gone: one counter, one
+              day, one screen. Day close IS the day's picture.  */
+          { label: "Day close", href: "/pos/day-close" },
           { label: "Sales history", href: "/pos/sales" },
           { label: "Advance orders", href: "/pos/advance" },
           { label: "Due board", href: "/pos/due" },

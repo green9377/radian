@@ -45,7 +45,20 @@ export class PosController {
     return this.pos.createRegister(dto);
   }
 
-  /* shifts */
+  /*  ── THE DAY (owner, 11 Sep 2026) ──────────────────────────────────────
+      One counter, one day: what came in today and how. The shift routes below
+      stay — the cash box is still a row, and Finance still consumes its close
+      — but nothing asks a person to open or pick one any more.  */
+  @Get('day')
+  day(@Query('date') date?: string) {
+    return this.pos.day(date);
+  }
+  @Post('day/close')
+  closeDay(@Body() dto: CloseShiftDto) {
+    return this.pos.closeDay(dto);
+  }
+
+  /* shifts — the cash box behind the day; no screen opens one by hand */
   @Get('shifts/current')
   currentShift(@Query('registerId') registerId?: string) {
     return this.pos.currentShift(registerId);

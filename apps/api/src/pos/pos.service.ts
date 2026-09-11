@@ -17,7 +17,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentMethodsService } from '../common/payment-methods.service';
 import { paidPaisa } from '../common/discount-window';
-import { startOfBdDay } from '../common/bd-day';
+import { startOfBdDay, DAY_MS, BD_OFFSET_MS } from '../common/bd-day';
 import { AuditService } from '../common/audit.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { FinanceEventsService } from '../finance/finance-events.service';
@@ -476,6 +476,185 @@ export class PosService {
     return { movement: move, document: docNo, expectedCashPaisa: drawerAtStart - dto.amountPaisa };
   }
 
+  /**
+   * The open drawer, opening one if there is not one (owner, 11 Sep 2026).
+   *
+   * ⚠️ IT DOES NOT OPEN ONE PER DAY. A drawer left open from yesterday keeps
+   * today's cash too, exactly as it did before — the money is physically in
+   * the same box, and pretending otherwise would put a day's takings in a row
+   * nobody counted. Day-close says how long the box has been open and counts
+   * everything in it; that is the honest answer and the screen shows it.
+   */
+  private async openDrawerIfNeeded(actorName: string, registerId?: string) {
+    const open = await this.currentShift(registerId);
+    if (open) return open;
+    return this.openShift({ cashierName: actorName, registerId });
+  }
+
+  /**
+   * ── THE DAY — what came in today, and how (owner, 11 Sep 2026) ────────────
+   *
+   * One screen, one question: *"how much money came in today and how?"* It is
+   * the Dhaka day (`bd-day.ts`), never the server's, and it counts MONEY THAT
+   * ARRIVED TODAY — not what today's bills are worth. The two are different
+   * whenever an old bill's due is paid at the counter this morning, and the
+   * cash box only ever agrees with the first one.
+   *
+   * `bills` is the other half: what was sold today, which is what a shop
+   * owner means by "how was today". Both are reported, never added together.
+   */
+  async day(dateStr?: string) {
+    const at = dateStr ? new Date(`${dateStr}T06:00:00.000Z`) : new Date();
+    const start = new Date(startOfBdDay(at));
+    const end = new Date(startOfBdDay(at) + DAY_MS);
+    const dayName = new Date(start.getTime() + BD_OFFSET_MS).toISOString().slice(0, 10);
+    const todayName = new Date(startOfBdDay(new Date()) + BD_OFFSET_MS).toISOString().slice(0, 10);
+
+    /* ---- what was SOLD today: counter bills placed inside the day ---- */
+    const bills = await this.prisma.db.order.findMany({
+      where: {
+        fulfillmentType: FulfillmentType.COUNTER,
+        deletedAt: null,
+        placedAt: { gte: start, lt: end },
+      },
+      select: {
+        id: true, orderNo: true, placedAt: true, totalPaisa: true, duePaisa: true,
+        paidPaisa: true, vatPaisa: true, discountPaisa: true,
+        customer: { select: { name: true } },
+      },
+      orderBy: { placedAt: 'desc' },
+    });
+    const salesPaisa = bills.reduce((n, b) => n + b.totalPaisa, 0);
+    const billDuePaisa = bills.reduce((n, b) => n + b.duePaisa, 0);
+
+    /*  ---- what MONEY arrived today, by method ----
+        Every counter payment stamped inside the day, whichever bill it
+        belongs to: today's sales AND an older bill's due paid at the counter
+        this morning. A refund is money going the other way, so it is counted
+        apart and never netted into a tender's figure without saying so.  */
+    const txns = await this.prisma.db.paymentTransaction.findMany({
+      where: {
+        deletedAt: null,
+        createdAt: { gte: start, lt: end },
+        order: { fulfillmentType: FulfillmentType.COUNTER, deletedAt: null },
+      },
+      select: { method: true, amountPaisa: true, kind: true, orderId: true },
+    });
+    const byMethod = new Map<string, { paisa: number; count: number }>();
+    let takenPaisa = 0;
+    let refundedPaisa = 0;
+    for (const t of txns) {
+      if (t.kind === PaymentTxnKind.REFUND) { refundedPaisa += t.amountPaisa; continue; }
+      const key = String(t.method);
+      const cur = byMethod.get(key) ?? { paisa: 0, count: 0 };
+      cur.paisa += t.amountPaisa;
+      cur.count += 1;
+      byMethod.set(key, cur);
+      takenPaisa += t.amountPaisa;
+    }
+    const methods = [...byMethod.entries()]
+      .map(([method, v]) => ({ method, paisaTotal: v.paisa, count: v.count }))
+      .sort((a, b) => b.paisaTotal - a.paisaTotal);
+    /*  money that came in against a bill from an earlier day — the number that
+        explains why the cash box and today's sales do not match  */
+    const billIds = new Set(bills.map((b) => b.id));
+    const olderBillPaisa = txns
+      .filter((t) => t.kind !== PaymentTxnKind.REFUND && t.orderId && !billIds.has(t.orderId))
+      .reduce((n, t) => n + t.amountPaisa, 0);
+
+    /* ---- the cash box ---- */
+    const drawer = await this.currentShift();
+    const moves = drawer
+      ? await this.prisma.db.posCashMovement.findMany({
+          where: { shiftId: drawer.id, deletedAt: null },
+          select: { kind: true, amountPaisa: true, note: true, createdAt: true, actorName: true },
+          orderBy: { createdAt: 'desc' },
+        })
+      : [];
+    const cashOutToday = moves
+      .filter((m) => m.createdAt >= start && m.createdAt < end && m.amountPaisa < 0)
+      .reduce((n, m) => n + Math.abs(m.amountPaisa), 0);
+    const expectedCashPaisa = drawer
+      ? moves.reduce((n, m) => n + m.amountPaisa, drawer.openingFloatPaisa)
+      : 0;
+    const openedAt = drawer?.openedAt ?? null;
+    /*  a box open since before today holds more than today's cash — the screen
+        has to say so, or the count will look wrong to the person doing it  */
+    const openedOn = openedAt
+      ? new Date(startOfBdDay(openedAt) + BD_OFFSET_MS).toISOString().slice(0, 10)
+      : null;
+
+    /* ---- what sold, by item: the other half of "how was today" ---- */
+    const lines = bills.length
+      ? await this.prisma.db.orderLine.groupBy({
+          by: ['name'],
+          where: { orderId: { in: bills.map((b) => b.id) }, deletedAt: null },
+          _sum: { qty: true, linePaisa: true },
+          orderBy: { _sum: { linePaisa: 'desc' } },
+          take: 10,
+        })
+      : [];
+
+    return {
+      date: dayName,
+      isToday: dayName === todayName,
+      bills: {
+        count: bills.length,
+        salesPaisa,
+        avgPaisa: bills.length ? Math.round(salesPaisa / bills.length) : 0,
+        duePaisa: billDuePaisa,
+        vatPaisa: bills.reduce((n, b) => n + (b.vatPaisa ?? 0), 0),
+        discountPaisa: bills.reduce((n, b) => n + b.discountPaisa, 0),
+        rows: bills.slice(0, 50).map((b) => ({
+          id: b.id, orderNo: b.orderNo, placedAt: b.placedAt,
+          customerName: b.customer?.name ?? 'Walk-in Customer',
+          totalPaisa: b.totalPaisa, duePaisa: b.duePaisa,
+        })),
+      },
+      money: {
+        takenPaisa,
+        refundedPaisa,
+        olderBillPaisa,
+        cashOutPaisa: cashOutToday,
+        methods,
+      },
+      drawer: drawer
+        ? {
+            isOpen: true,
+            /* the cash box's own id — "take cash out" still posts against it */
+            id: drawer.id,
+            shiftNo: drawer.shiftNo,
+            openedAt,
+            openedOn,
+            openedBeforeToday: !!openedOn && openedOn !== dayName,
+            cashierName: drawer.cashierName,
+            openingFloatPaisa: drawer.openingFloatPaisa,
+            expectedCashPaisa,
+            movements: moves.slice(0, 30).map((m) => ({
+              kind: String(m.kind), amountPaisa: m.amountPaisa,
+              note: m.note, at: m.createdAt, actorName: m.actorName,
+            })),
+          }
+        : { isOpen: false },
+      topItems: lines.map((l) => ({
+        name: l.name,
+        qty: l._sum.qty ?? 0,
+        paisa: l._sum.linePaisa ?? 0,
+      })),
+    };
+  }
+
+  /**
+   * Close the day: count the box, and the drawer behind it closes with the
+   * figure (owner, 11 Sep 2026). Nothing else about closing changed — the
+   * over/short still reaches Finance through `onPosShiftClosed`.
+   */
+  async closeDay(dto: CloseShiftDto) {
+    const drawer = await this.currentShift();
+    if (!drawer) throw new BadRequestException('There is no open cash box to close — nothing has been sold since the last close.');
+    return this.closeShift(drawer.id, dto);
+  }
+
   async closeShift(shiftId: string, dto: CloseShiftDto) {
     const shift = await this.prisma.db.posShift.findFirst({ where: { id: shiftId } });
     if (!shift) throw new NotFoundException('shift not found');
@@ -662,11 +841,23 @@ export class PosService {
     if (!dto.lines?.length) throw new BadRequestException('add at least one item');
     const actorName = dto.actorName ?? 'Cashier';
 
-    // shift must be open
+    /*  ═══ NOBODY OPENS A DRAWER HERE — owner, 11 Sep 2026 ═══════════════════
+
+        > *"Separate shift, drawer — our business does not need these. There
+        >  will be a Day close, and clicking it shows how much money came in
+        >  today and how."*
+
+        One counter, one person, one day. The till used to refuse the first
+        sale of the morning with "open a shift before selling" and make
+        somebody type a float before the shop could take money. The drawer is
+        still the row every cash movement hangs off — Finance, the cash-out
+        and the returns refund all reach for it — so it is opened HERE, by the
+        first sale of the day, with the float the settings screen already
+        holds. Nobody is asked anything.  */
     const shift = dto.shiftId
       ? await this.prisma.db.posShift.findFirst({ where: { id: dto.shiftId } })
-      : await this.currentShift(dto.registerId);
-    if (!shift || shift.status !== PosShiftStatus.OPEN) throw new BadRequestException('open a shift before selling');
+      : await this.openDrawerIfNeeded(actorName, dto.registerId);
+    if (!shift || shift.status !== PosShiftStatus.OPEN) throw new BadRequestException('that drawer is already closed');
 
     /*  DEC-POS-018 — the counter's catalogue is the ITEM list. A line names an item;
         `productId` is only still accepted so an older till keeps working.  */

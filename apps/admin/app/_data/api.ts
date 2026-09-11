@@ -4655,6 +4655,57 @@ export interface ApiPosShiftSummary {
   }[];
 }
 export const posShiftSummary = (id: string) => j<ApiPosShiftSummary>(`/pos/shifts/${id}/summary`);
+
+/*  ── THE DAY (owner, 11 Sep 2026) ────────────────────────────────────────────
+    "Separate shift, drawer — our business does not need these. There will be a
+    Day close, and clicking it shows how much money came in today and how."
+
+    Two figures that are deliberately NOT added together:
+      · `bills`  — what was SOLD today (today's counter bills)
+      · `money`  — what money ARRIVED today, whichever bill it was against, so
+                   an old bill's due paid this morning is in here and not in
+                   `bills`. The cash box only ever agrees with this one.       */
+export interface ApiPosDay {
+  date: string;
+  isToday: boolean;
+  bills: {
+    count: number;
+    salesPaisa: number;
+    avgPaisa: number;
+    duePaisa: number;
+    vatPaisa: number;
+    discountPaisa: number;
+    rows: { id: string; orderNo: string; placedAt: string; customerName: string; totalPaisa: number; duePaisa: number }[];
+  };
+  money: {
+    takenPaisa: number;
+    refundedPaisa: number;
+    /** of `takenPaisa`, how much was against a bill from an earlier day */
+    olderBillPaisa: number;
+    cashOutPaisa: number;
+    methods: { method: string; paisaTotal: number; count: number }[];
+  };
+  drawer:
+    | { isOpen: false }
+    | {
+        isOpen: true;
+        id: string;
+        shiftNo: string;
+        openedAt: string;
+        openedOn: string | null;
+        /** the box has been open since before this day, so it holds more than today */
+        openedBeforeToday: boolean;
+        cashierName: string;
+        openingFloatPaisa: number;
+        expectedCashPaisa: number;
+        movements: { kind: string; amountPaisa: number; note: string | null; at: string; actorName: string | null }[];
+      };
+  topItems: { name: string; qty: number; paisa: number }[];
+}
+export const posDay = (date?: string) =>
+  j<ApiPosDay>(`/pos/day${date ? `?date=${date}` : ""}`);
+export const posCloseDay = (b: { countedCashPaisa: number; note?: string }) =>
+  j<ApiPosShift>(`/pos/day/close`, { method: "POST", body: JSON.stringify(b) });
 /** P7-2 — cash out of the till, always under a heading (Finance writes the expense) */
 export const posTakeCashOut = (
   shiftId: string,

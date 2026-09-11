@@ -229,20 +229,10 @@ export const REGISTRY: RegistryNode[] = [
     "sortOrder": 18
   },
   {
-    "key": "pos.shift",
-    "parentKey": "pos",
-    "kind": "SCREEN",
-    "label": "Today / Shift",
-    "domain": "Shop",
-    "href": "/pos/shift",
-    "legacyRoles": null,
-    "sortOrder": 19
-  },
-  {
     "key": "pos.day-close",
     "parentKey": "pos",
     "kind": "SCREEN",
-    "label": "Day-close",
+    "label": "Day close",
     "domain": "Shop",
     "href": "/pos/day-close",
     "legacyRoles": null,

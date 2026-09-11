@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { backdropClose } from "./backdropClose";
 import Link from "next/link";
 import Icon from "./Icon";
@@ -14,7 +14,9 @@ import {
   financeAccounts,
   type ApiFinanceAccount,
   type ApiPosShiftSummary,
-  posCloseShift,
+  posDay,
+  posCloseDay,
+  type ApiPosDay,
   posDue,
   posCollectDue,
   posAdvanceOrders,
@@ -73,6 +75,11 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "gr
 /*  No demo constants here any more (owner's standing order): a POS screen that
     invents sales or dues teaches the shop to trust numbers that are not real.
     Empty API answer = empty screen.  */
+/*  a plain date, for the day nav and for "open since" — takes either a
+    YYYY-MM-DD day name or a full timestamp  */
+const fmtDay = (v: string) =>
+  new Date(v.length <= 10 ? `${v}T06:00:00.000Z` : v)
+    .toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 /*  P7-1 — a bare clock time is only honest inside one day. Sales history spans
     90 days and the shift board can span several, so anything that is not
@@ -470,95 +477,279 @@ export function PosSalesHistory() {
 }
 
 /* ================= DAY-CLOSE ================= */
+/*  ═══ DAY CLOSE — owner, 11 Sep 2026 ═════════════════════════════════════════
+
+    > *"Separate shift, drawer — our business does not need these. There will
+    >  be a Day close, and clicking it shows how much money came in today and
+    >  how."*
+
+    So this screen answers one question and the cash box is a detail inside it,
+    not the subject. Two numbers sit side by side and are never added together,
+    because they answer different questions and a shop owner asks both:
+
+      · SOLD TODAY   — what today's counter bills are worth
+      · CAME IN TODAY — money that actually arrived, whichever bill it was for
+
+    They differ the moment an old bill's due is paid at the counter this
+    morning, and only the second one can ever agree with the cash in the box.
+    The screen says which is which rather than quietly picking one.            */
 export function PosDayClose() {
-  const [shift, setShift] = useState<ApiPosShift | null>(null);
-  const [sum, setSum] = useState<ApiPosShiftSummary | null>(null);
+  const [day, setDay] = useState<ApiPosDay | null>(null);
+  const [date, setDate] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    posCurrentShift()
-      .then(async (s) => {
-        setShift(s);
-        if (s) setSum(await posShiftSummary(s.id).catch(() => null));
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+  const [err, setErr] = useState<string | null>(null);
+  const [cashOut, setCashOut] = useState(false);
+
+  const load = useCallback(async (d?: string) => {
+    setLoading(true);
+    try { setDay(await posDay(d || undefined)); setErr(null); }
+    catch (e) { setErr(e instanceof Error ? e.message : "Could not load the day"); }
+    finally { setLoading(false); }
   }, []);
-  /*  P7-5 — this used to fall back to the literal 1226000 when no shift was
-      open, so a screen whose whole job is counting money printed ৳12,260 that
-      belonged to nothing. A money screen shows what it knows or shows nothing.  */
-  const expected = sum?.expectedCashPaisa ?? 0;
-  /*  P7-7 — the count is kept in PAISA and the box holds its own draft while it
-      is being typed. It used to be a controlled number input rewritten as
-      Math.round(actual/100) on every keystroke, so the decimal point never
-      survived: a drawer expecting ৳15,156.76 could not be counted, and closing
-      it wrote a 24-paisa "over" that never existed.  */
+  useEffect(() => { void load(date); }, [load, date]);
+
+  /*  P7-7 lives on: the count is kept in PAISA and the box holds its own draft
+      while it is being typed. A controlled number input rewritten as
+      Math.round(actual/100) on every keystroke ate the decimal point, so a
+      drawer expecting ৳15,156.76 could not be counted at all.  */
   const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [closed, setClosed] = useState(false);
+  const [closeErr, setCloseErr] = useState<string | null>(null);
+
+  const drawer = day?.drawer;
+  const open = drawer?.isOpen ? drawer : null;
+  const expected = open?.expectedCashPaisa ?? 0;
   const actual = Math.round((Number(draft) || 0) * 100);
   const counted = draft.trim() !== "" && Number.isFinite(Number(draft));
   const over = actual - expected;
-  const [closed, setClosed] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+
   async function doClose() {
-    if (!shift) { setErr("No open shift to close."); return; }
-    if (!counted) { setErr("Count the drawer first — type what is actually in it."); return; }
-    setBusy(true); setErr(null);
-    try { await posCloseShift(shift.id, { countedCashPaisa: actual }); setClosed(true); }
-    catch (e) { setErr(e instanceof Error ? e.message : "Could not close the shift"); }
+    if (!open) { setCloseErr("There is no open cash box to close."); return; }
+    if (!counted) { setCloseErr("Count the box first — type what is actually in it."); return; }
+    setBusy(true); setCloseErr(null);
+    try { await posCloseDay({ countedCashPaisa: actual }); setClosed(true); await load(date); }
+    catch (e) { setCloseErr(e instanceof Error ? e.message : "Could not close the day"); }
     finally { setBusy(false); }
   }
+
+  const shiftDay = (by: number) => {
+    const base = day ? new Date(`${day.date}T06:00:00.000Z`) : new Date();
+    base.setUTCDate(base.getUTCDate() + by);
+    setDate(base.toISOString().slice(0, 10));
+    setDraft("");
+    setClosed(false);
+  };
+
+  const money = day?.money;
+  const biggest = Math.max(1, ...(money?.methods ?? []).map((m) => m.paisaTotal));
+
   return (
     <div className={wrap}>
-      <Head title="Day-close" sub="Count the drawer and match it against the system — shortfall or excess is flagged, never blocked." />
-      {!loading && !shift && (
-        <div className={card + " p-6 max-w-[820px] text-center"}>
-          <h3 className="font-display text-[16px] text-purple m-0 mb-2">No shift is open</h3>
-          <p className="text-[13px] text-body-soft mb-3">There is no drawer to count. Open a shift on the Sell screen when the counter starts.</p>
-          <Link href="/pos/sell" className="inline-block bg-purple text-white text-[13px] px-4 py-2 rounded-[10px] font-semibold">Go to Sell</Link>
-        </div>
-      )}
-      {shift && (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start max-w-[820px]">
-        <div className={card + " p-5"}>
-          <h3 className="font-display text-[16px] text-purple m-0 mb-3">System expects{sum?.shiftNo ? ` · ${sum.shiftNo}` : ""}</h3>
-          <div className="space-y-2 text-[13px]">
-            <div className="flex justify-between"><span className="text-body-soft">Opening float</span><span>{formatTaka(shift.openingFloatPaisa)}</span></div>
-            <div className="flex justify-between"><span className="text-body-soft">Cash movements</span><span className="text-[#76efab]">+ {formatTaka(expected - shift.openingFloatPaisa)}</span></div>
-            <div className="flex justify-between border-t border-lavender-deep pt-2"><span className="text-purple font-medium">Expected cash</span><span className="font-semibold text-purple">{formatTaka(expected)}</span></div>
+      <Head
+        title="Day close"
+        sub="What came in today and how — then count the box and close the day."
+        action={
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-[11px] border border-lavender-deep overflow-hidden">
+              <button type="button" onClick={() => shiftDay(-1)} className="px-3 py-2 text-[13px] text-purple font-bold hover:bg-lavender">‹</button>
+              <span className="px-3 py-2 text-[12.5px] font-medium text-purple min-w-[132px] text-center">
+                {day ? (day.isToday ? "Today" : fmtDay(day.date)) : "…"}
+              </span>
+              <button type="button" onClick={() => shiftDay(1)} disabled={!!day?.isToday}
+                className="px-3 py-2 text-[13px] text-purple font-bold hover:bg-lavender disabled:opacity-30">›</button>
+            </div>
+            {!day?.isToday && (
+              <button type="button" onClick={() => { setDate(""); setDraft(""); }} className="text-[12.5px] px-3 py-2 rounded-[11px] border border-lavender-deep text-purple font-medium">Back to today</button>
+            )}
           </div>
-          {sum && (
-            <div className="mt-3 pt-3 border-t border-lavender-deep space-y-2 text-[13px]">
-              <div className="flex justify-between"><span className="text-body-soft">Bills on this shift</span><span>{sum.count}</span></div>
-              <div className="flex justify-between"><span className="text-body-soft">Sales</span><span>{formatTaka(sum.salesPaisa)}</span></div>
-              {sum.duePaisa > 0 && <div className="flex justify-between"><span className="text-body-soft">Still owed on them</span><span className="text-[#f7a96e]">{formatTaka(sum.duePaisa)}</span></div>}
-              <div className="flex justify-between"><span className="text-body-soft">Open since</span><span>{fmtDateTime(sum.openedAt)}</span></div>
+        }
+      />
+
+      {err && <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px] bg-[#fdecea] text-[#c0392b]">{err}</div>}
+      {loading && !day && <div className={card + " p-6 text-[13px] text-body-soft"}>Counting the day…</div>}
+
+      {day && (
+        <>
+          {/*  The five numbers a shop owner asks for at closing time, in the
+              order he asks them: what came in, what we sold, what is still
+              owed, what left the box, what should be sitting in it.  */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+            <Stat label="Money in" value={formatTaka(money?.takenPaisa ?? 0)} tone="green" />
+            <Stat label={`Sold · ${day.bills.count} bill${day.bills.count === 1 ? "" : "s"}`} value={formatTaka(day.bills.salesPaisa)} tone="plum" />
+            <Stat label="Owed on today's bills" value={formatTaka(day.bills.duePaisa)} tone="amber" />
+            <Stat label="Cash taken out" value={formatTaka(money?.cashOutPaisa ?? 0)} tone="orchid" />
+            <Stat label="Cash box should hold" value={formatTaka(expected)} tone="green" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5 items-start">
+            <div className="flex flex-col gap-5">
+              {/* ---- how the money came in ---- */}
+              <div className={card + " p-5"}>
+                <h3 className="font-display text-[16px] text-purple m-0 mb-1">How the money came in</h3>
+                <p className="text-[12px] text-body-soft m-0 mb-3">
+                  Every payment taken at the counter {day.isToday ? "today" : "on this day"} — including an older bill&apos;s due paid at the till.
+                </p>
+                {(money?.methods.length ?? 0) === 0 && <div className="text-[13px] text-body-soft py-4">No money came in {day.isToday ? "yet today" : "on this day"}.</div>}
+                <div className="flex flex-col gap-2.5">
+                  {(money?.methods ?? []).map((m) => (
+                    <div key={m.method}>
+                      <div className="flex items-center justify-between text-[13px] mb-1">
+                        <span className="text-purple font-medium capitalize">{m.method}</span>
+                        <span className="text-body-soft">{m.count} payment{m.count === 1 ? "" : "s"} · <span className="text-purple font-semibold">{formatTaka(m.paisaTotal)}</span></span>
+                      </div>
+                      <div className="h-[7px] rounded-full bg-lavender overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${Math.round((m.paisaTotal / biggest) * 100)}%`, background: "linear-gradient(90deg,#7a2ea8,#cf43ea)" }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {(money?.olderBillPaisa ?? 0) > 0 && (
+                  <p className="text-[12px] text-body-soft mt-3 mb-0">
+                    {formatTaka(money?.olderBillPaisa ?? 0)} of that was against bills from an earlier day — which is why &quot;money in&quot; and &quot;sold&quot; do not match.
+                  </p>
+                )}
+                {(money?.refundedPaisa ?? 0) > 0 && (
+                  <p className="text-[12px] mt-1 mb-0" style={{ color: "#c0392b" }}>
+                    {formatTaka(money?.refundedPaisa ?? 0)} went back out as refunds — not counted in the figures above.
+                  </p>
+                )}
+              </div>
+
+              {/* ---- what sold ---- */}
+              <div className={card + " p-5"}>
+                <div className="flex items-end justify-between mb-3">
+                  <h3 className="font-display text-[16px] text-purple m-0">What sold</h3>
+                  <span className="text-[12px] text-body-soft">
+                    avg bill {formatTaka(day.bills.avgPaisa)}
+                    {day.bills.discountPaisa > 0 && <> · {formatTaka(day.bills.discountPaisa)} given as discount</>}
+                  </span>
+                </div>
+                {day.topItems.length === 0 && <div className="text-[13px] text-body-soft py-2">Nothing sold {day.isToday ? "yet today" : "on this day"}.</div>}
+                <div className="flex flex-col">
+                  {day.topItems.map((t) => (
+                    <div key={t.name} className="flex items-center justify-between py-2 border-b border-lavender-deep last:border-0 text-[13px]">
+                      <span className="text-purple">{t.name}</span>
+                      <span className="text-body-soft">{t.qty} × · <span className="text-purple font-medium">{formatTaka(t.paisa)}</span></span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ---- the bills themselves ---- */}
+              <div className={card + " p-5"}>
+                <h3 className="font-display text-[16px] text-purple m-0 mb-3">Bills</h3>
+                {day.bills.rows.length === 0 && <div className="text-[13px] text-body-soft py-2">No bills {day.isToday ? "yet today" : "on this day"}.</div>}
+                <div className="flex flex-col">
+                  {day.bills.rows.map((b) => (
+                    <Link key={b.id} href={`/pos/sale/${b.id}`} className="flex items-center justify-between py-2 border-b border-lavender-deep last:border-0 text-[13px] hover:opacity-80">
+                      <span className="text-body-soft">{fmtTime(b.placedAt)} · <span className="text-purple font-medium">{b.orderNo}</span> · {b.customerName}</span>
+                      <span className="font-medium text-purple">
+                        {formatTaka(b.totalPaisa)}
+                        {b.duePaisa > 0 && <span className="text-[#b45309] font-normal"> · {formatTaka(b.duePaisa)} due</span>}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+                {day.bills.count > day.bills.rows.length && (
+                  <p className="text-[12px] text-body-soft mt-2 mb-0">Showing the last {day.bills.rows.length} of {day.bills.count} — the rest are on Sales history.</p>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-        <div className={card + " p-5"}>
-          <h3 className="font-display text-[16px] text-purple m-0 mb-3">Counted in drawer</h3>
-          <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Actual cash counted ৳ (paisa allowed)</label>
-          <input
-            type="text"
-            inputMode="decimal"
-            className="ipt h-[46px] text-[16px]"
-            placeholder={(expected / 100).toFixed(2)}
-            value={draft}
-            onChange={(e) => { const v = e.target.value; if (/^\d*\.?\d{0,2}$/.test(v)) setDraft(v); }}
-          />
-          {counted && (
-            <div className={"mt-3 rounded-[12px] px-4 py-3 text-[13px] font-medium " + (over === 0 ? "bg-[#1c3626] text-[#76efab]" : over > 0 ? "bg-[#16233a] text-[#6f90ec]" : "bg-[#3b1a16] text-[#e1837a]")}>
-              {over === 0 ? "Matches exactly ✓" : over > 0 ? `Excess: ${formatTaka(over)} (more in drawer)` : `Shortfall: ${formatTaka(-over)} (missing)`}
+
+            {/* ---- the cash box ---- */}
+            <div className="flex flex-col gap-5">
+              {open ? (
+                <div className={card + " p-5"}>
+                  <h3 className="font-display text-[16px] text-purple m-0 mb-1">Count the cash box</h3>
+                  <p className="text-[12px] text-body-soft m-0 mb-3">Cash only. bKash, card and Nagad are already with the bank.</p>
+                  <div className="space-y-2 text-[13px] mb-3">
+                    <div className="flex justify-between"><span className="text-body-soft">Started with</span><span>{formatTaka(open.openingFloatPaisa)}</span></div>
+                    <div className="flex justify-between"><span className="text-body-soft">Cash in and out since</span><span className="text-[#0e7a3d]">{formatTaka(expected - open.openingFloatPaisa)}</span></div>
+                    <div className="flex justify-between border-t border-lavender-deep pt-2"><span className="text-purple font-medium">Should be in the box</span><span className="font-semibold text-purple">{formatTaka(expected)}</span></div>
+                  </div>
+
+                  {/*  ⚠️ A BOX OPEN SINCE BEFORE TODAY HOLDS MORE THAN TODAY.
+                      Saying so is the difference between a count that looks
+                      wrong and a count that is understood.  */}
+                  {open.openedBeforeToday && (
+                    <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px] font-medium" style={{ background: "#3a2d10", color: "#f5c451" }}>
+                      This box has been open since {fmtDay(open.openedOn ?? open.openedAt)}, so it holds those days&apos; cash too. Closing it counts everything in it.
+                    </div>
+                  )}
+
+                  {day.isToday ? (
+                    <>
+                      <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Actual cash counted ৳</label>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        className="ipt h-[46px] text-[16px]"
+                        placeholder={(expected / 100).toFixed(2)}
+                        value={draft}
+                        onChange={(e) => { const v = e.target.value; if (/^\d*\.?\d{0,2}$/.test(v)) setDraft(v); }}
+                      />
+                      {counted && (
+                        <div className={"mt-3 rounded-[12px] px-4 py-3 text-[13px] font-medium " + (over === 0 ? "bg-[#e9f9ef] text-[#0e7a3d]" : over > 0 ? "bg-[#eef4ff] text-[#1d4ed8]" : "bg-[#fdecea] text-[#c0392b]")}>
+                          {over === 0 ? "Matches exactly" : over > 0 ? `Excess: ${formatTaka(over)} more in the box` : `Shortfall: ${formatTaka(-over)} missing`}
+                        </div>
+                      )}
+                      <button type="button" onClick={doClose} disabled={busy || closed}
+                        className="w-full mt-4 bg-purple hover:bg-purple-deep text-white text-[14px] py-3 rounded-[12px] font-bold disabled:opacity-50">
+                        {closed ? "Day closed" : busy ? "Closing…" : "Close the day"}
+                      </button>
+                      {closeErr && <p className="text-[11.5px] text-[#c0392b] mt-2 mb-0">{closeErr}</p>}
+                      <button type="button" onClick={() => setCashOut(true)} className="w-full mt-2 border border-lavender-deep text-purple text-[13px] py-2.5 rounded-[11px] font-bold">
+                        Take cash out
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-[12px] text-body-soft m-0">Only today&apos;s box can be counted. Come back to today to close it.</p>
+                  )}
+                </div>
+              ) : (
+                <div className={card + " p-5"}>
+                  <h3 className="font-display text-[16px] text-purple m-0 mb-2">The cash box is closed</h3>
+                  <p className="text-[13px] text-body-soft m-0">
+                    {day.bills.count > 0
+                      ? "Today's takings are counted and closed. The next sale opens a new box on its own."
+                      : "Nothing has been sold since the last close. The first sale opens the box on its own — nobody has to start anything."}
+                  </p>
+                </div>
+              )}
+
+              {open && open.movements.length > 0 && (
+                <div className={card + " p-5"}>
+                  <h3 className="font-display text-[15px] text-purple m-0 mb-2">Cash movements</h3>
+                  <div className="flex flex-col">
+                    {open.movements.map((m, i) => (
+                      <div key={i} className="flex items-center justify-between py-2 border-b border-lavender-deep last:border-0 text-[12.5px]">
+                        <span className="text-body-soft">{fmtDateTime(m.at)} · {m.note || m.kind.toLowerCase().replace(/_/g, " ")}</span>
+                        <span className={"font-medium " + (m.amountPaisa < 0 ? "text-[#c0392b]" : "text-[#0e7a3d]")}>
+                          {m.amountPaisa < 0 ? "−" : "+"}{formatTaka(Math.abs(m.amountPaisa))}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-          <button type="button" onClick={doClose} disabled={busy || closed} className="w-full mt-4 bg-purple hover:bg-purple-deep text-white text-[14px] py-3 rounded-[12px] font-bold disabled:opacity-50">{closed ? "Shift closed ✓" : busy ? "Closing…" : "Close shift"}</button>
-          {err && <p className="text-[11.5px] text-[#e1837a] mt-2 mb-0">{err}</p>}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
+
+      {cashOut && open && (
+        <CashOutDialog
+          shiftId={open.id}
+          expectedCashPaisa={expected}
+          onClose={() => setCashOut(false)}
+          onDone={() => { setCashOut(false); void load(date); }}
+        />
       )}
     </div>
   );
 }
+
 
 /* ================= DUE BOARD ================= */
 export function PosDueBoard() {
