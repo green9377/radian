@@ -24,6 +24,7 @@
   --color-amber: #f7a96e;
 
   /* ---- Surfaces of the dark skin ---- */
+  --color-purple-text: #d9a6ec;
   --color-canvas: #16101c;
   --color-card: #1f1727;
   --color-line: #3a2d45;
@@ -68,7 +69,7 @@ h1, h2, h3, h4, th, label, b, strong {
   gap: 2px;
   padding: 6px 11px;
   border-radius: 12px;
-  color: var(--color-purple);
+  color: var(--color-purple-text);
   transition: background 0.25s;
   font-size: 19px;
   cursor: pointer;
@@ -168,7 +169,7 @@ h1, h2, h3, h4, th, label, b, strong {
   font-size: 14px;
   line-height: 1.2;
   font-family: var(--font-ui);
-  color: var(--color-purple);
+  color: var(--color-purple-text);
   font-weight: 500;
   outline: none;
   transition:
@@ -245,7 +246,7 @@ textarea.ipt {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.01em;
-  color: var(--color-purple);
+  color: var(--color-purple-text);
   margin-bottom: 5px;
   font-family: var(--font-ui);
 }
@@ -266,7 +267,7 @@ textarea.ipt {
 .sect-title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-purple);
+  color: var(--color-purple-text);
   letter-spacing: 0.01em;
   margin: 0 0 2px;
 }
@@ -312,7 +313,7 @@ textarea.ipt {
 .chk input[type="checkbox"] {
   width: 17px;
   height: 17px;
-  accent-color: var(--color-purple);
+  accent-color: var(--color-purple-text);
   cursor: pointer;
   margin: 0;
 }
@@ -380,7 +381,7 @@ textarea.ipt {
 .bg-white, .hover\:bg-white:hover, .focus\:bg-white:focus { background-color: var(--color-card); }
 .bg-white\/90, .bg-white\/80, .bg-white\/70, .bg-white\/60 { background-color: rgba(31, 23, 39, 0.9); }
 .bg-white\/10, .bg-white\/15, .bg-white\/20 { background-color: rgba(255, 255, 255, 0.10); }
-.text-purple, .hover\:text-purple:hover, .focus\:text-purple:focus, .group-hover\:text-purple { color: #d9a6ec; }
+.text-purple, .hover\:text-purple:hover, .focus\:text-purple:focus, .group-hover\:text-purple { color: var(--color-purple-text); }
 .text-purple-deep { color: #e7cdf5; }
 .border-purple, .hover\:border-purple:hover, .focus\:border-purple:focus { border-color: #8a4fb0; }
 .border-purple\/20, .border-purple\/10, .border-purple\/30 { border-color: rgba(207, 67, 234, 0.25); }

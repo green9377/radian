@@ -23,7 +23,7 @@ import { PaymentsCard, BillTimeline, MoneyRail } from "./BillUI";
 
 const WRAP = "px-5 md:px-7 pt-5 pb-10 max-w-[1500px]";
 const CARD = "bg-white border border-lavender-deep rounded-[16px] shadow-soft";
-const ACCENT = "#7a2ea8";
+const ACCENT = "#a55fd9";
 
 const fmtDate = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "—";

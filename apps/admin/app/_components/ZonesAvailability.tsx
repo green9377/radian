@@ -40,7 +40,7 @@ import {
   types "9am" anywhere (owner, 19 Aug).
 */
 
-const ACCENT = "#7d2ea8";
+const ACCENT = "#a55fd9";
 
 const fmtMin = (t: number): string => {
   const h = Math.floor(t / 60), m = t % 60;

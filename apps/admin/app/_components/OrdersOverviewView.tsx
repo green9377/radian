@@ -124,6 +124,55 @@ function KV({ label, value, colour }: { label: string; value: string; colour?: s
   );
 }
 
+
+/*  The bar chart (owner, 11 Sep 2026: "the graph is not understandable").
+    Gridlines with the count on the left, the number on top of every bar,
+    the weekday letter under the day, today in orchid, a hover tooltip.  */
+function DayChart({ days, max }: { days: { day: string; label: string; n: number }[]; max: number }) {
+  const W = 1000, H = 190, padL = 30, padR = 8, padT = 22, padB = 36;
+  const n = Math.max(1, days.length);
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const gap = n > 40 ? 2 : n > 20 ? 4 : 8;
+  const bw = (innerW - gap * (n - 1)) / n;
+  const top = Math.max(1, max);
+  const ticks = top <= 4 ? [0, 1, 2, 3, 4].filter((t) => t <= top) : [0, Math.round(top / 2), top];
+  const y = (v: number) => padT + innerH - (v / top) * innerH;
+  const wd = (day: string) => {
+    const [yy, mm, dd] = day.split("-").map(Number);
+    return ["S", "M", "T", "W", "T", "F", "S"][new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay()];
+  };
+  const showEvery = n > 40 ? 7 : n > 20 ? 2 : 1;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto mt-2" style={{ maxHeight: 220 }} role="img" aria-label="Orders per day">
+      {ticks.map((t) => (
+        <g key={t}>
+          <line x1={padL} x2={W - padR} y1={y(t)} y2={y(t)} stroke={T.line} strokeWidth={1} strokeDasharray={t === 0 ? undefined : "3 4"} />
+          <text x={padL - 8} y={y(t) + 4} textAnchor="end" fontSize={11} fill={T.grey}>{t}</text>
+        </g>
+      ))}
+      {days.map((d, i) => {
+        const x = padL + i * (bw + gap);
+        const h = d.n ? Math.max(3, (d.n / top) * innerH) : 0;
+        const today = i === days.length - 1;
+        return (
+          <g key={d.day}>
+            <title>{`${d.day} · ${d.n} order${d.n === 1 ? "" : "s"}`}</title>
+            <rect x={x} y={y(0) - h} width={bw} height={h} rx={Math.min(6, bw / 2)} fill={today ? T.orchid : d.n ? T.purple : T.lav2} opacity={d.n || today ? 1 : 0.6} />
+            {!d.n && <rect x={x} y={y(0) - 3} width={bw} height={3} rx={1.5} fill={T.lav2} />}
+            {d.n > 0 && (n <= 31 || d.n === max) && <text x={x + bw / 2} y={y(d.n) - 6} textAnchor="middle" fontSize={12} fontWeight={600} fill={today ? T.orchid : T.ink}>{d.n}</text>}
+            {i % showEvery === 0 && (
+              <>
+                <text x={x + bw / 2} y={H - padB + 16} textAnchor="middle" fontSize={11} fontWeight={today ? 700 : 500} fill={today ? T.orchid : T.ink}>{d.label}</text>
+                <text x={x + bw / 2} y={H - padB + 30} textAnchor="middle" fontSize={10} fill={T.grey}>{today ? "today" : wd(d.day)}</text>
+              </>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 export default function OrdersOverviewView() {
   const [date, setDate] = useState<string>(dhakaToday());
   const [range, setRange] = useState<"today" | "7" | "30" | "90">("today");
@@ -275,17 +324,15 @@ export default function OrdersOverviewView() {
           </div>
         </div>
 
-        {/* orders per day */}
+        {/* orders per day — a real chart: gridlines, values on the bars, weekday under each */}
         <div className="mt-3" style={card}>
-          <H3 hint={`last ${data?.daily.length ?? 14} days`}>Orders per day</H3>
-          <div className="flex items-end gap-[6px] h-[90px] mt-1">
-            {(data?.daily ?? []).map((d, i, all) => (
-              <div key={d.day} className="flex-1 relative rounded-t-[4px]" title={`${d.day} · ${d.n} order${d.n === 1 ? "" : "s"}`} style={{ height: `${Math.max(4, Math.round((d.n / maxBar) * 100))}%`, background: i === all.length - 1 ? T.purple : T.lav2 }}>
-                {all.length <= 31 && <span className="absolute top-full left-0 right-0 text-center text-[10px] mt-1" style={{ color: T.grey }}>{d.label}</span>}
-              </div>
-            ))}
+          <div className="flex justify-between items-baseline gap-3 flex-wrap">
+            <H3 hint={`last ${data?.daily.length ?? 14} days · ${(data?.daily ?? []).reduce((s2, x) => s2 + x.n, 0)} orders`}>Orders per day</H3>
+            <span className="text-[11px]" style={{ color: T.grey }}>
+              best day {data && data.daily.length ? `${data.daily.reduce((m2, x) => (x.n > m2.n ? x : m2), data.daily[0]).label} · ${maxBar}` : "…"} · average {data && data.daily.length ? (data.daily.reduce((s2, x) => s2 + x.n, 0) / data.daily.length).toFixed(1) : "…"} a day
+            </span>
           </div>
-          <div className="h-[18px]" />
+          <DayChart days={data?.daily ?? []} max={maxBar} />
         </div>
 
         {/* top products + zones */}

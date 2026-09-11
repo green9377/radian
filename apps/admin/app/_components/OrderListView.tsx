@@ -227,13 +227,14 @@ function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
   );
 }
 
-type Seg = "" | "placed" | "fulfilling" | "confirmed" | "delivered" | "cancelled";
+type Seg = "" | "placed" | "fulfilling" | "confirmed" | "delivered" | "due" | "cancelled";
 const SEGS: [Seg, string][] = [
   ["", "All"],
   ["placed", "Needs action"],
   ["fulfilling", "Preparing / out"],
   ["confirmed", "Confirmed"],
   ["delivered", "Delivered"],
+  ["due", "To collect"],
   ["cancelled", "Cancelled"],
 ];
 function inSeg(o: ApiOrder, s: Seg): boolean {
@@ -248,6 +249,8 @@ function inSeg(o: ApiOrder, s: Seg): boolean {
       return o.salesStatus === "confirmed" && o.deliveryStatus === "unassigned";
     case "delivered":
       return o.deliveryStatus === "delivered";
+    case "due":
+      return o.duePaisa > 0 && o.salesStatus !== "cancelled";
     case "cancelled":
       return o.salesStatus === "cancelled";
   }
@@ -257,7 +260,7 @@ const HEADS = ["", "Order No", "Date", "Customer", "Total", "Status", "Delivery"
 const HELP =
   "Every website, Facebook, Instagram, WhatsApp and phone order, cancelled ones included. Walk-in POS is a separate module. " +
   "Needs action = placed and not yet confirmed. Preparing / out = being made or on the road. Revenue counts delivered orders only; " +
-  "To collect is every unpaid balance on an open order. The three left tiles filter this page; Revenue opens Reports, To collect opens Payments.";
+  "To collect is every unpaid balance on an open order. Every tile filters this page — Revenue shows the delivered orders it is counted from, To collect the orders still owing.";
 
 export default function OrderListView() {
   const [all, setAll] = useState<ApiOrder[]>([]);
@@ -286,7 +289,7 @@ export default function OrderListView() {
 
   const stats = useMemo(() => {
     let revenue = 0, toCollect = 0, deliveredToday = 0, out = 0;
-    const counts: Record<Seg, number> = { "": all.length, placed: 0, fulfilling: 0, confirmed: 0, delivered: 0, cancelled: 0 };
+    const counts: Record<Seg, number> = { "": all.length, placed: 0, fulfilling: 0, confirmed: 0, delivered: 0, due: 0, cancelled: 0 };
     for (const o of all) {
       for (const [k] of SEGS) if (k && inSeg(o, k)) counts[k]++;
       if (o.deliveryStatus === "out_for_delivery" && o.salesStatus !== "cancelled") out++;
@@ -322,8 +325,8 @@ export default function OrderListView() {
     { key: "placed", label: "Needs action", value: v(String(stats.counts.placed)), sub: "placed, not confirmed", hot: stats.counts.placed > 0 },
     { key: "fulfilling", label: "Preparing / out", value: v(String(stats.counts.fulfilling)), sub: `${stats.out} out for delivery` },
     { key: "delivered", label: "Delivered", value: v(String(stats.counts.delivered)), sub: `${stats.deliveredToday} today` },
-    { key: "revenue", label: "Revenue", value: v(formatTaka(stats.revenue)), sub: "Reports →", href: "/orders/reports" },
-    { key: "collect", label: "To collect", value: v(formatTaka(stats.toCollect)), sub: "Payments →", href: "/orders/payments" },
+    { key: "revenue", label: "Revenue", value: v(formatTaka(stats.revenue)), sub: "delivered orders only" },
+    { key: "due", label: "To collect", value: v(formatTaka(stats.toCollect)), sub: `${stats.counts.due} orders still owing` },
   ];
 
   return (
@@ -333,8 +336,8 @@ export default function OrderListView() {
         help={HELP}
         right={<BandButton href="/orders/new" icon="plus">New order</BandButton>}
         tiles={tiles}
-        active={seg || undefined}
-        onTile={(k) => setSeg(seg === k ? "" : (k as Seg))}
+        active={seg === "delivered" ? "delivered" : seg || undefined}
+        onTile={(k) => { const key = (k === "revenue" ? "delivered" : k) as Seg; setSeg(seg === key ? "" : key); }}
       />
 
       <div className="flex gap-2.5 flex-wrap items-center mb-3">

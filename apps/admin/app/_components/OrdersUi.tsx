@@ -170,14 +170,14 @@ export function Band({
           const on = active === t.key;
           const inner = (
             <>
-              <span className={`block text-[11.5px] font-medium ${on ? "text-[#afa4b7]" : "text-[#d9c5e6]"}`}>{t.label}</span>
-              <span className="block font-medium text-[22px] leading-none mt-2" style={{ color: t.hot ? (on ? SOLID.red : "#ffb4ad") : on ? SOLID.purple : "#fff" }}>
+              <span className={`block text-[11.5px] font-medium ${on ? "text-white" : "text-[#d9c5e6]"}`}>{t.label}</span>
+              <span className="block font-medium text-[22px] leading-none mt-2" style={{ color: t.hot ? "#ffb4ad" : "#fff" }}>
                 {t.value}
               </span>
-              {t.sub && <span className={`block text-[11.5px] mt-1.5 ${on ? "text-[#afa4b7]" : "text-white/70"}`}>{t.sub}</span>}
+              {t.sub && <span className={`block text-[11.5px] mt-1.5 ${on ? "text-white/85" : "text-white/70"}`}>{t.sub}</span>}
             </>
           );
-          const cls = on ? `${base} bg-white border-white` : `${base} border-white/15 bg-white/[0.08] hover:bg-white/[0.14]`;
+          const cls = on ? `${base} bg-white/[0.22] border-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.6)]` : `${base} border-white/15 bg-white/[0.08] hover:bg-white/[0.14]`;
           if (t.href) {
             return (
               <Link key={t.key} href={t.href} className={cls}>

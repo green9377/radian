@@ -20,7 +20,7 @@ export const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
    The layout of these screens was copied from the ERP he already uses, because the
    shape is familiar — the COLOURS were never meant to come with it. These are the
    house tokens from globals.css: purple #470066, orchid #cf43ea, lavender, rose gold. */
-export const ACCENT = "#470066";      // brand purple — headers, primary buttons
+export const ACCENT = "#a55fd9";      // brand purple — headers, primary buttons
 export const ACCENT_SOFT = "#cf43ea"; // orchid — highlights
 export const ACCENT_BG = "#2b1c35";   // lavender — tinted panels
 
