@@ -50,12 +50,12 @@ import ReceiptDialog, { ReceiptPreview, sampleReceipt } from "./PosReceipt";
 const wrap = "px-5 md:px-7 pt-5 pb-10 max-w-[1600px]"; // 6 Aug — widened, see FinanceUI.WRAP note
 const card = "bg-white border border-lavender-deep rounded-[16px] shadow-soft";
 
-function Head({ title, sub, action }: { title: string; sub: string; action?: React.ReactNode }) {
+function Head({ title, sub, action }: { title: string; sub?: string; action?: React.ReactNode }) {
   return (
     <div className="flex items-end justify-between gap-3 mb-5 flex-wrap">
       <div>
         <h1 className="font-display text-[22px] text-purple m-0 leading-tight">{title}</h1>
-        <p className="text-body-soft text-[12.5px] m-0">{sub}</p>
+        {sub && <p className="text-body-soft text-[12.5px] m-0">{sub}</p>}
       </div>
       {action}
     </div>
