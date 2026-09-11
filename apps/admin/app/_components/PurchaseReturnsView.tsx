@@ -45,11 +45,11 @@ export default function PurchaseReturnsView() {
       {isDemo && <DemoBar what="sample returns" onRetry={load} />}
 
       <Kpi items={[
-        { l: "Total returned", v: formatTaka(total), c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
-        { l: "Cut from dues", v: formatTaka(rows.reduce((s, r) => s + r.dueCutPaisa, 0)), c: "#f7a96e", bg: "#3b2b17", icon: "cash" },
-        { l: "Became credit", v: formatTaka(credit), c: "#74f1d7", bg: "#20332e", icon: "check" },
-        { l: "Returns", v: rows.length, c: "#79abe2", bg: "#1b2838", icon: "grid" },
-        { l: "Suppliers", v: new Set(rows.map((r) => r.purchase?.supplierName)).size, c: "#dda37d", bg: "#38291c", icon: "user" },
+        { l: "Total returned", v: formatTaka(total), c: "#470066", bg: "#f5eafb", icon: "box" },
+        { l: "Cut from dues", v: formatTaka(rows.reduce((s, r) => s + r.dueCutPaisa, 0)), c: "#b45309", bg: "#fff4e6", icon: "cash" },
+        { l: "Became credit", v: formatTaka(credit), c: "#0e8f74", bg: "#e7f5f1", icon: "check" },
+        { l: "Returns", v: rows.length, c: "#2563a8", bg: "#e8f0fa", icon: "grid" },
+        { l: "Suppliers", v: new Set(rows.map((r) => r.purchase?.supplierName)).size, c: "#b5642f", bg: "#f9efe6", icon: "user" },
       ]} />
 
       <DataTable head={
@@ -60,7 +60,7 @@ export default function PurchaseReturnsView() {
       }>
         {loading && <div className="px-4 py-6 text-[13px] text-body-soft">Loading…</div>}
         {!loading && rows.length === 0 && (
-          <div className="px-4 py-8 text-center text-[13px] text-body-soft">No returns yet. A return is created from its purchase — open one and press “Return goods”.</div>
+          <div className="px-4 py-8 text-center text-[13px] text-body-soft">No returns yet.</div>
         )}
         {rows.map((r) => (
           <div key={r.id} className={ROW}>
@@ -75,8 +75,8 @@ export default function PurchaseReturnsView() {
             </span>
             <span className="text-[12.5px] text-body-soft">{fmtDate(r.returnDate)}</span>
             <span className="text-[13px] font-medium text-right">{formatTaka(r.totalPaisa)}</span>
-            <span className="text-[13px] text-right" style={{ color: "#f7a96e" }}>{formatTaka(r.dueCutPaisa)}</span>
-            <span className="text-[13px] text-right" style={{ color: r.creditPaisa > 0 ? "#74f1d7" : "#b0a2b8" }}>
+            <span className="text-[13px] text-right" style={{ color: "#b45309" }}>{formatTaka(r.dueCutPaisa)}</span>
+            <span className="text-[13px] text-right" style={{ color: r.creditPaisa > 0 ? "#0e8f74" : "#9b8aa6" }}>
               {r.creditPaisa > 0 ? formatTaka(r.creditPaisa) : "—"}
             </span>
           </div>

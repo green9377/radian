@@ -483,7 +483,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
           </div>
           {backups.length === 0 ? (
             <Empty emoji="💾" title="No backup has ever been recorded"
-              sub="Run radian_backup.bat, then radian_backup_schedule.bat for nightly copies." />
+              sub="Run radian_backup.bat, then radian_backup_schedule.bat." />
           ) : (
             <Table head={<><Th>When</Th><Th>File</Th><Th right>Size</Th><Th>By</Th></>}>
               {backups.map((b) => {

@@ -471,7 +471,7 @@ function BrandEditor({
              text for a page nobody can open. The COLUMN stays — the day brand
              pages ship, the switch comes back and no data was lost.  */}
         <div className="grid grid-cols-1 gap-3">
-          <SwitchRow icon="eye" tint="#7a2ea8" bg="#f5eafb" title="In use" sub="Off — this brand stops being offered on products." on={brand.isActive} onToggle={onToggleActive} />
+          <SwitchRow icon="eye" tint="#7a2ea8" bg="#f5eafb" title="In use" sub="Offered on products" on={brand.isActive} onToggle={onToggleActive} />
         </div>
 
         {/*  The Search & social block is parked with the rest of the

@@ -1348,7 +1348,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                 <SwitchRow on={draft.isOnline && draft.isSaleable}
                   onClick={() => draft.isSaleable && set("isOnline", !draft.isOnline)}
                   icon="link" tone="#8b21c9"
-                  title="Sell online" sub="Off keeps it off the product page — the counter still sells it" />
+                  title="Sell online" sub="Counter still sells it when off" />
               </div>
 
               {!draft.isSaleable ? (

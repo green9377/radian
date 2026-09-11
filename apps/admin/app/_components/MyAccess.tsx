@@ -52,7 +52,6 @@ export default function MyAccess() {
       <FinHeader
         eyebrow="System"
         title="My password & PIN"
-        sub="The password gets you in for the day. The PIN is asked again at the moment money actually moves — keep it to yourself."
         tone="brand"
       />
       <Flash ok={ok} err={err} />
@@ -64,20 +63,20 @@ export default function MyAccess() {
           <input className={input} type="password" value={cur} onChange={(e) => setCur(e.target.value)} />
           <p className="text-[11.5px] text-body-soft mt-1 mb-0">Needed to prove it is really you.</p>
 
-          <div className="mt-4 pt-4 border-t border-[#3e3248]">
+          <div className="mt-4 pt-4 border-t border-[#f3eef7]">
             <Lbl>New password (leave empty to keep it)</Lbl>
             <input className={input} type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
             <div className="mt-2">
               <Lbl>Type the new password again</Lbl>
               <input className={input} type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} />
             </div>
-            {mismatch && <p className="text-[12px] text-[#ea7171] font-semibold mt-1 mb-0">These two do not match.</p>}
+            {mismatch && <p className="text-[12px] text-[#b91c1c] font-semibold mt-1 mb-0">These two do not match.</p>}
             <p className="text-[11.5px] text-body-soft mt-1 mb-0">
               Changing it signs this account out on every device.
             </p>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-[#3e3248]">
+          <div className="mt-4 pt-4 border-t border-[#f3eef7]">
             <Lbl>New 4-digit PIN (leave empty to keep it)</Lbl>
             <input className={`${input} tracking-[0.4em] text-center`} inputMode="numeric" maxLength={4}
               value={pin} placeholder="••••"

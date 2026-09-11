@@ -235,7 +235,7 @@ export default function RecoveryView() {
                 <Empty
                   emoji="✦"
                   title="Nothing here yet"
-                  sub="A row appears once a shopper types a name or phone number at checkout."
+                  sub="Nothing abandoned yet."
                 />
               </div>
             ) : (

@@ -186,7 +186,7 @@ export function AttendanceView() {
         title="Attendance"
         emoji="✓"
         tone="emerald"
-        sub="Everybody starts marked present — change the exceptions"
+        sub="Everybody starts present"
         right={
           <>
             <Link href="/employees" className={btnGhost}>Staff</Link>

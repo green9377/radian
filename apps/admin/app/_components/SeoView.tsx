@@ -404,7 +404,7 @@ function RedirectsTab({
       <Card className="overflow-hidden">
         {rows.length === 0 ? (
           <Empty emoji="↪" title="No old links yet"
-            sub="Add them before changing any address — afterwards, the traffic is already gone." />
+            />
         ) : (
           <Table head={<><Th>Old address</Th><Th>Goes to</Th><Th>Kind</Th><Th right>Used</Th><Th right></Th></>}>
             {rows.map((r) => (

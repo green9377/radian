@@ -119,7 +119,6 @@ export function PosOverview() {
     <div className={wrap}>
       <Head
         title="POS"
-        sub="Counter sales — today at a glance. Every sale lands in the unified Order ledger (channel = POS)."
         action={<Link href="/pos/sell" className="bg-purple hover:bg-purple-deep text-white text-[13.5px] px-5 py-2.5 rounded-[11px] font-medium inline-flex items-center gap-2 shadow-soft"><Icon name="cash" size={17} /> Open Sell screen</Link>}
       />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
@@ -338,7 +337,7 @@ export function PosShiftBoard() {
   const age = shift ? openFor(shift.openedAt) : null;
   return (
     <div className={wrap}>
-      <Head title="Today / Shift" sub="The running picture — who is on the counter and what's in the drawer right now." />
+      <Head title="Today / Shift" />
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5 items-start">
         {shift ? (
           <div className="rounded-[18px] p-5 text-white shadow-soft relative overflow-hidden" style={{ background: "linear-gradient(160deg,#159b63,#0d5f3f)" }}>
@@ -470,7 +469,7 @@ export function PosSalesHistory() {
 
   return (
     <div className={wrap}>
-      <Head title="Sales history" sub="Every counter bill of the last 90 days — open it, print its receipt, or void one that was rung up by mistake." />
+      <Head title="Sales history" />
       <div className={card + " p-4 mb-4"}>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-body-soft"><Icon name="search" size={17} /></span>
@@ -606,7 +605,7 @@ function VoidSaleDialog({ sale, onClose, onDone }: { sale: ApiPosSale; onClose: 
           <b className="block mb-1.5">What happens when you press it</b>
           <ul className="m-0 pl-4 space-y-1">
             {advance
-              ? <li>The order is cancelled. No stock moves — an advance order never took any off the shelf.</li>
+              ? <li>Order cancelled. No stock moves.</li>
               : <li>Every item goes back on the shelf.</li>}
             {sale.paidPaisa > 0
               ? <li>{formatTaka(sale.paidPaisa)} of payment is reversed.</li>
@@ -707,7 +706,6 @@ export function PosDayClose() {
     <div className={wrap}>
       <Head
         title="Day close"
-        sub="What came in today and how — then count the box and close the day."
         action={
           <div className="flex items-center gap-2">
             <div className="flex items-center rounded-[11px] border border-lavender-deep overflow-hidden">
@@ -746,9 +744,6 @@ export function PosDayClose() {
               {/* ---- how the money came in ---- */}
               <div className={card + " p-5"}>
                 <h3 className="font-display text-[16px] text-purple m-0 mb-1">How the money came in</h3>
-                <p className="text-[12px] text-body-soft m-0 mb-3">
-                  Every payment taken at the counter {day.isToday ? "today" : "on this day"} — including an older bill&apos;s due paid at the till.
-                </p>
                 {(money?.methods.length ?? 0) === 0 && <div className="text-[13px] text-body-soft py-4">No money came in {day.isToday ? "yet today" : "on this day"}.</div>}
                 <div className="flex flex-col gap-2.5">
                   {(money?.methods ?? []).map((m) => (
@@ -765,12 +760,12 @@ export function PosDayClose() {
                 </div>
                 {(money?.olderBillPaisa ?? 0) > 0 && (
                   <p className="text-[12px] text-body-soft mt-3 mb-0">
-                    {formatTaka(money?.olderBillPaisa ?? 0)} of that was against bills from an earlier day — which is why &quot;money in&quot; and &quot;sold&quot; do not match.
+                    {formatTaka(money?.olderBillPaisa ?? 0)} against earlier bills
                   </p>
                 )}
                 {(money?.refundedPaisa ?? 0) > 0 && (
                   <p className="text-[12px] mt-1 mb-0" style={{ color: "#c0392b" }}>
-                    {formatTaka(money?.refundedPaisa ?? 0)} went back out as refunds — not counted in the figures above.
+                    {formatTaka(money?.refundedPaisa ?? 0)} refunded
                   </p>
                 )}
               </div>
@@ -821,7 +816,6 @@ export function PosDayClose() {
               {open ? (
                 <div className={card + " p-5"}>
                   <h3 className="font-display text-[16px] text-purple m-0 mb-1">Count the cash box</h3>
-                  <p className="text-[12px] text-body-soft m-0 mb-3">Cash only. bKash, card and Nagad are already with the bank.</p>
                   <div className="space-y-2 text-[13px] mb-3">
                     <div className="flex justify-between"><span className="text-body-soft">Started with</span><span>{formatTaka(open.openingFloatPaisa)}</span></div>
                     <div className="flex justify-between">
@@ -839,7 +833,7 @@ export function PosDayClose() {
                       staring at a minus sign while counting notes.  */}
                   {expected < 0 && (
                     <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px] font-medium" style={{ background: "#3a1616", color: "#ff9c92" }}>
-                      More cash has gone out of this box than came into it — {formatTaka(-expected)} more. Look at the movements below: a refund or a cash-out was paid from money that was never in the box. Count what is actually there; the difference will show as an excess.
+                      {formatTaka(-expected)} more paid out than came in — see the movements below.
                     </div>
                   )}
 
@@ -848,7 +842,7 @@ export function PosDayClose() {
                       wrong and a count that is understood.  */}
                   {open.openedBeforeToday && (
                     <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px] font-medium" style={{ background: "#3a2d10", color: "#f5c451" }}>
-                      This box has been open since {fmtDay(open.openedOn ?? open.openedAt)}, so it holds those days&apos; cash too. Closing it counts everything in it.
+                      Open since {fmtDay(open.openedOn ?? open.openedAt)} — holds those days&apos; cash too.
                     </div>
                   )}
 
@@ -958,7 +952,7 @@ export function PosDueBoard() {
 
   return (
     <div className={wrap}>
-      <Head title="Due board" sub="Every unpaid counter bill, oldest first — who owes it, since when, and what is still open on it." />
+      <Head title="Due board" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 max-w-[760px]">
         <Stat label="Total outstanding" value={formatTaka(total)} tone="amber" />
         <Stat label="Bills open" value={String(rows.reduce((n, r) => n + r.orders.length, 0))} tone="plum" />
@@ -1262,15 +1256,12 @@ export function PosSettings() {
 
   return (
     <div className={wrap}>
-      <Head title="POS settings" sub="Discounts, the cash float, the printed slip, the counters." />
+      <Head title="POS settings" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
         <div className="flex flex-col gap-5">
           <div className={card + " p-5"}>
             <h3 className="font-display text-[16px] text-purple m-0 mb-3">Discount rules</h3>
-            <p className="text-[12px] text-body-soft mb-3">
-              The most a cashier may take off before a manager approves it.
-              {rules.length === 0 && " No rule written — nothing is capped."}
-            </p>
+            {rules.length === 0 && <p className="text-[12px] text-body-soft mb-3">No rule set — nothing is capped.</p>}
             {rules.length > 0 && (
               <table className="w-full text-[13px]">
                 <thead><tr className="text-left text-body-soft"><th className="py-2 font-medium">Applies to</th><th className="py-2 font-medium">Max discount</th><th className="py-2 font-medium">Approval</th></tr></thead>
@@ -1317,9 +1308,11 @@ export function PosSettings() {
                values land, which is what makes `defaultValue` honest again.  */}
           <div className={card + " p-5"} key={s?.id ?? "loading"}>
             <h3 className="font-display text-[16px] text-purple m-0 mb-1">Cash &amp; receipt</h3>
-            <p className="text-[12.5px] text-body-soft m-0 mb-3">
-              {s ? <>Saved as soon as you leave a box.{saved && <span className="text-[#76efab] font-medium"> · saved</span>}</> : "Reading the shop's settings…"}
-            </p>
+            {(!s || saved) && (
+              <p className="text-[12.5px] m-0 mb-3">
+                {s ? <span className="text-[#76efab] font-medium">Saved</span> : <span className="text-body-soft">Loading…</span>}
+              </p>
+            )}
             <div className="space-y-3 text-[13px]">
               <div>
                 <label className="lbl">Default opening float (৳)</label>
@@ -1381,10 +1374,6 @@ export function PosSettings() {
                 ))}
               </div>
             </div>
-            <p className="text-[12px] text-body-soft m-0 mb-3">
-              A sample bill at the real size (72 mm) — it is what the
-              header and the footer above will look like on the roll.
-            </p>
             <ReceiptPreview r={preview} gift={giftPreview} />
           </div>
         </div>
@@ -1440,7 +1429,7 @@ export function PosAdvanceOrders() {
 
   return (
     <div className={wrap}>
-      <Head title="Advance orders" sub="Ordered now, taken later. The goods stay on the shelf until the day comes — hand over here." />
+      <Head title="Advance orders" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 max-w-[760px]">
         <Stat label="Waiting" value={String(rows.length)} tone="plum" />
         <Stat label="Still to collect" value={formatTaka(owed)} tone="amber" />

@@ -60,7 +60,7 @@ export function RecurringLive() {
   return (
     <div className={WRAP}>
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <FinHeader title="Monthly bills" emoji="📅" tone="amber" sub="Recurring bills — nothing posts until you press post" />
+        <FinHeader title="Monthly bills" emoji="📅" tone="amber" sub="Nothing posts until you press post" />
         <button className={btnGhost} onClick={() => setAdding((v) => !v)}><Icon name="plus" size={14} /> Add</button>
       </div>
       <Flash ok={ok} err={err} />

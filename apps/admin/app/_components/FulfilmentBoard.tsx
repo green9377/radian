@@ -505,7 +505,7 @@ function BulkPanel({
           <option value="">Select…</option>
           {(kind === "RIDER" ? riders : couriers).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select></div>
-      <span className={`text-[12px] ${SOFT}`}>Consignment numbers are typed per parcel afterwards — one number pasted on every parcel would be wrong tracking links.</span>
+      <span className={`text-[12px] ${SOFT}`}>Consignment numbers are typed per parcel afterwards.</span>
       {result && (
         <div className="rounded-[12px] border border-[#3e3447] bg-white p-3 text-[12.5px]">
           <div className="font-medium text-body">{result.assigned} assigned{result.failed.length > 0 ? `, ${result.failed.length} not` : ""}</div>
@@ -629,7 +629,7 @@ function BoardPanel({
           {failed && (
             /*  owner, 11 Sep 2026: a retry's fare never reaches the customer —
                 it is settled with the carrier and absorbed by the commission.  */
-            <span className={`text-[12px] ${SOFT}`}>This retry&apos;s fare is ours, not the customer&apos;s — record it on Delivery money.</span>
+            <span className={`text-[12px] ${SOFT}`}>Fare is ours — record it on Delivery money.</span>
           )}
           <ActButton kind="primary" disabled={busy || (kind !== "ONE_TIME" && !carrierId)} onClick={() => run(() => createAssignment({
             orderId: o.id, kind,
