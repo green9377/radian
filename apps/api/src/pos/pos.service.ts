@@ -14,6 +14,7 @@ import {
   FulfillmentType,
   PosShiftStatus,
   PosCashKind,
+  CustomerCreditKind,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentMethodsService } from '../common/payment-methods.service';
@@ -1930,12 +1931,10 @@ export class PosService {
    * Inventory (`postSaleForOrder` with direction +1 — the same way
    * orders.service reverts a stock-out).
    *
-   * ⚠️ WHAT IT DOES NOT DO, and why: it does not touch the LEDGER. Finance
-   * consumes completed business events and POS never writes journal entries
-   * (module constitution). There is no `onPosSaleVoided` event to raise — so the
-   * reversal lands on the order's timeline as a ⚠ line for a human, and the
-   * missing event is written up in POS_A.md for whoever owns
-   * finance-events.service.ts.
+   * The LEDGER hears about it too, since 11 Sep 2026 — but the same way
+   * everything else does: POS raises `onPosSaleVoided` and Finance decides what
+   * that means, mirroring every entry the bill posted. POS still writes no
+   * journal line of its own (module constitution).
    */
   private async unwindSale(orderId: string, reason: string, actorName: string) {
     const order = await this.prisma.db.order.findFirst({
@@ -1950,7 +1949,7 @@ export class PosService {
     const wasAdvance = order.salesStatus === SalesStatus.placed;
     const drawer = await this.currentShift();
 
-    const { cashBack, refundPaisa } = await this.prisma.db.$transaction(async (tx) => {
+    const { cashBack, refundPaisa, creditBack } = await this.prisma.db.$transaction(async (tx) => {
       /*  one winner: two clicks on Void cannot both reverse the money  */
       const claimed = await tx.order.updateMany({
         where: { id: order.id, salesStatus: { not: SalesStatus.cancelled } },
@@ -2005,13 +2004,43 @@ export class PosService {
         });
       }
 
+      /*  ⚠️ STORE CREDIT SPENT ON THIS BILL GOES BACK TO THE CUSTOMER.
+          Credit is not a `PaymentTransaction`, so the loop above never saw it:
+          a bill part-paid with credit was voided, the cash came back, and the
+          customer's wallet was simply lighter for ever. Found by the review of
+          the ledger reversal, 11 Sep 2026. A fresh ISSUED row is the shape this
+          codebase already uses to put credit back (returns.service does the
+          same when it grants it); the CONSUMED row stays where it is, because
+          it is the record of what happened.  */
+      const spentCredit = await tx.customerCredit.findMany({
+        where: { refType: 'ORDER', refId: order.id, kind: 'CONSUMED', deletedAt: null },
+        select: { amountPaisa: true, customerId: true },
+      });
+      let creditBack = 0;
+      for (const c of spentCredit) {
+        const amount = Math.abs(c.amountPaisa);
+        if (amount <= 0) continue;
+        await tx.customerCredit.create({
+          data: {
+            customerId: c.customerId,
+            kind: CustomerCreditKind.ISSUED,
+            amountPaisa: amount,
+            refType: 'ORDER',
+            refId: order.id,
+            note: `${order.orderNo} voided — credit put back`,
+            actorName,
+          },
+        });
+        creditBack += amount;
+      }
+
       // the customer never bought this; undo what the sale added
       await tx.customer.update({
         where: { id: order.customerId },
         data: { ordersCount: { decrement: 1 }, ltvPaisa: { decrement: BigInt(order.totalPaisa) } },
       });
 
-      return { cashBack: cash, refundPaisa: back };
+      return { cashBack: cash, refundPaisa: back, creditBack };
     });
 
     /*  the stock goes back — only if it ever left. An advance order that was
@@ -2048,16 +2077,20 @@ export class PosService {
     await this.audit.record({ entityType: ENTITY, entityId: order.id, action: 'UPDATE', actorName, changes: { voided: true, reason, refundPaisa } });
     await this.audit.event({
       entityType: 'Order', entityId: order.id, kind: 'sales', actorName,
-      label: `${order.orderNo} voided — ${reason}${refundPaisa ? ` · ${(refundPaisa / 100).toFixed(2)} given back${cashBack ? ` (${(cashBack / 100).toFixed(2)} cash)` : ''}` : ''}`,
+      label:
+        `${order.orderNo} voided — ${reason}` +
+        (refundPaisa ? ` · ${(refundPaisa / 100).toFixed(2)} given back${cashBack ? ` (${(cashBack / 100).toFixed(2)} cash)` : ''}` : '') +
+        (creditBack ? ` · ${(creditBack / 100).toFixed(2)} store credit put back` : ''),
     });
-    /*  Finance has no "counter bill voided" event to consume (see the note on
-        this method) — say so where somebody will read it  */
-    if (!wasAdvance) {
-      await this.audit.event({
-        entityType: 'Order', entityId: order.id, kind: 'system', actorName,
-        label: `⚠ ${order.orderNo} is reversed in POS but NOT in the ledger — the revenue, VAT and cost of goods it posted need a correcting entry in Finance.`,
-      });
-    }
+    /*  ═══ AND THE BOOKS HEAR ABOUT IT — owner, 11 Sep 2026 ═══════════════
+        Until today this was a warning line on the timeline: POS reversed the
+        bill, the ledger kept the revenue, the VAT and the cost of goods, and
+        the month's profit carried a sale that never happened unless somebody
+        went into Finance and wrote the correction by hand. Finance now mirrors
+        every entry the bill posted (DEC-FIN-014 — a correction is a new entry,
+        never an edit). An advance posts no revenue, so there is usually nothing
+        to mirror there, and the call is harmless.  */
+    await this.book(order.id, `void of ${order.orderNo}`, () => this.financeEvents.onPosSaleVoided(order.id, actorName), actorName);
     return this.prisma.db.order.findFirst({
       where: { id: order.id },
       include: { lines: true, transactions: true, customer: { select: { id: true, name: true, phone: true } } },

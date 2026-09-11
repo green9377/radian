@@ -24,6 +24,9 @@ import type { LineInput, PostEntryInput } from './finance.dto';
  * it to tell a replacement apart from an ordinary sale line on the same order.
  */
 const REPLACEMENT_NOTE = /· replacement RTN-/;
+/*  a void puts the goods back with `· void` on the movement. Counting it as
+    cost would double a voided bill's COGS on any later replay.  */
+const VOID_NOTE = /· void\b/;
 
 @Injectable()
 export class FinanceEventsService {
@@ -173,6 +176,11 @@ export class FinanceEventsService {
         include: { transactions: true, channel: { select: { id: true } } },
       });
       if (!o || (await this.beforeGoLive(o.placedAt))) return;
+      /*  ⚠️ A CANCELLED BILL HAS NO REVENUE TO POST. Replaying a failed posting
+          used to land here for a voided counter bill and write an advance
+          release out of 2100 — money the books had never been given. There is
+          nothing to recognise on an order that was undone.  */
+      if (o.salesStatus === 'cancelled') return;
 
       /* The split is built OUT OF the order total, never alongside it — Sales
          takes whatever is left after the named parts. Online and POS totals are
@@ -319,7 +327,7 @@ export class FinanceEventsService {
       select: { valuePaisa: true, note: true },
     });
     return moves
-      .filter((m) => !REPLACEMENT_NOTE.test(m.note ?? ''))
+      .filter((m) => !REPLACEMENT_NOTE.test(m.note ?? '') && !VOID_NOTE.test(m.note ?? ''))
       .reduce((n, m) => n + Math.abs(m.valuePaisa), 0);
   }
 
@@ -387,14 +395,35 @@ export class FinanceEventsService {
       }
 
       if (p.kind === 'REFUND') {
+        /*  ⚠️ WHAT IS BEING GIVEN BACK DEPENDS ON WHETHER IT WAS EVER EARNED.
+
+            Money handed back on a bill the books have recognised is a sales
+            return: 4100 contras the revenue. But an ADVANCE — taken weeks
+            before the goods, and cancelled before hand-over — never became
+            revenue at all: `createSale` posts no `:revenue` entry for it and
+            the money sat in 2100 Customer Advance, a liability. Debiting 4100
+            there contras revenue that does not exist: the shop's profit report
+            carries a return against nothing, and 2100 stays credited for ever
+            for a customer who has already been paid back.
+
+            Same test the inbound direction already makes, twelve lines down:
+            has this order's revenue been posted?  */
+        const recognised = await this.prisma.db.journalEntry.findUnique({
+          where: { sourceKey: `ORDER:${p.orderId}:revenue` },
+          select: { id: true },
+        });
         await this.finance.postEntry({
           sourceType: 'PAYMENT',
           sourceId: p.id,
           sourceKey: key,
           entryDate: p.createdAt,
-          narration: `${counter} — refunded`,
+          narration: recognised ? `${counter} — refunded` : `${counter} — advance given back`,
           lines: [
-            { accountId: await this.accId(ACC.SALES_RETURN), debitPaisa: p.amountPaisa, orderId: p.orderId },
+            {
+              accountId: await this.accId(recognised ? ACC.SALES_RETURN : ACC.CUSTOMER_ADVANCE),
+              debitPaisa: p.amountPaisa,
+              orderId: p.orderId,
+            },
             { accountId: money, creditPaisa: p.amountPaisa },
           ],
         });
@@ -467,6 +496,160 @@ export class FinanceEventsService {
     // the money side arrives through onPaymentRecorded (split tenders), the
     // revenue + cost side is the same shape as a delivered order
     await this.onOrderDelivered(orderId);
+  }
+
+  /**
+   * ═══ A COUNTER BILL WAS VOIDED — owner, 11 Sep 2026 ═════════════════════
+   *
+   * The till could void a bill from the day it was built: the order was
+   * cancelled, the stock went back on the shelf and the customer got the money.
+   * The BOOKS heard none of it. Revenue, VAT and cost of goods stayed posted,
+   * the cash receipt stayed posted, and the month's profit carried a sale that
+   * never happened — with nothing but a warning line on the order's timeline to
+   * say so. The owner, asked: *"yes, build it."*
+   *
+   * ⚠️ NOTHING IS DELETED OR EDITED. DEC-FIN-014 — the ledger is immutable and a
+   * correction is a new entry that mirrors the old one. So every entry this bill
+   * posted is read back and posted again the other way round: same accounts,
+   * same money, debits and credits swapped. The original stays legible for ever,
+   * and the two together come to nothing, which is the truth about a bill that
+   * was rung up by mistake.
+   *
+   * What gets reversed is worked out from the LEDGER, never from a formula:
+   * whatever entries carry this order (its revenue, its cost of goods, its
+   * advance release) and whatever payment entries carry its money. A bill that
+   * posted nothing — an advance, which books no revenue until hand-over —
+   * reverses nothing, and that is correct rather than a special case.
+   *
+   * Idempotent through `sourceKey` (DEC-FIN-023): the mirror of `X` is `X:void`,
+   * so a second void finds its work already done. A reversal is never itself
+   * reversed.
+   */
+  async onPosSaleVoided(orderId: string, actorName?: string): Promise<void> {
+    if (!(await this.enabled())) return;
+    /*  ⚠️ ITS OWN REPLAY IDENTITY. A failure filed as a plain ORDER would be
+        replayed through `onOrderDelivered`, which on a cancelled bill posts an
+        advance release out of a liability nobody credited — money invented on
+        a bill that never happened. The `void:` prefix routes a replay back
+        here instead (see `replay()`).  */
+    await this.safe('ORDER', `void:${orderId}`, async () => {
+      const o = await this.prisma.db.order.findUnique({
+        where: { id: orderId },
+        select: { orderNo: true, branchId: true },
+      });
+      if (!o) return;
+
+      /*  ⚠️ STORE CREDIT IS NOT A PAYMENT ROW. Credit spent at the till is a
+          `CustomerCredit` row, and its entry is filed under RETURN with the
+          CREDIT's id and no order on either line — so neither arm below can
+          see it. Left out, a bill part-paid with credit leaves that much
+          stranded in 1100 Receivable for ever and understates the shop's
+          store-credit liability by the same amount. Found by the review of
+          this method, the same day it was written.  */
+      const creditRows = await this.prisma.db.customerCredit.findMany({
+        where: { refType: 'ORDER', refId: orderId, kind: 'CONSUMED', deletedAt: null },
+        select: { id: true },
+      });
+      const creditKeys = creditRows.map((c) => `CREDIT:${c.id}:used`);
+
+      /*  every entry that carries this bill: the ones posted against the ORDER
+          itself, the payment entries whose lines name it, and the store-credit
+          entries above  */
+      const posted = await this.prisma.db.journalEntry.findMany({
+        where: {
+          OR: [
+            { sourceType: 'ORDER', sourceId: orderId },
+            { sourceType: 'PAYMENT', lines: { some: { orderId } } },
+            ...(creditKeys.length ? [{ sourceKey: { in: creditKeys } }] : []),
+          ],
+        },
+        include: { lines: true },
+        orderBy: { entryDate: 'asc' },
+      });
+
+      /*  ⚠️ ONLY THE ENTRIES THIS BILL POSTED. Anything else filed against the
+          order — above all an `isManual` correction an accountant wrote for a
+          reason of their own — is NOT this method's to mirror. Reversing
+          somebody's hand-written correction would put a wrong number in the
+          books with nothing to explain it.  */
+      const OWNED = [':revenue', ':cogs', ':advance-release'];
+      for (const e of posted) {
+        /*  a reversal is not reversed — neither its own, nor one written by an
+            earlier correction  */
+        if (!e.sourceKey || e.sourceKey.endsWith(':void')) continue;
+        const isOurs =
+          e.sourceType === 'PAYMENT' ||
+          creditKeys.includes(e.sourceKey) ||
+          OWNED.some((suffix) => e.sourceKey!.endsWith(suffix));
+        if (!isOurs) {
+          if (e.isManual) {
+            this.logger.warn(
+              `${o.orderNo} voided — ${e.sourceKey} is a manual entry and was left alone; check by hand whether it still belongs`,
+            );
+          }
+          continue;
+        }
+
+        const sourceKey = `${e.sourceKey}:void`;
+        const already = await this.prisma.db.journalEntry.findUnique({
+          where: { sourceKey },
+          select: { id: true },
+        });
+        if (already) continue;
+
+        /*  ⚠️ A SHARED ENTRY IS NEVER HALF-REVERSED. If any line names a
+            DIFFERENT order, this entry carries more than this bill and taking
+            a slice out of it would reverse somebody else's money. Say so and
+            leave it for a person. (An untagged line — the money account on a
+            payment entry — is ours by construction in every entry this
+            codebase writes.)  */
+        if (e.lines.some((l) => l.orderId && l.orderId !== orderId)) {
+          this.logger.warn(
+            `${o.orderNo}: ${e.sourceKey} carries more than this bill — reverse it by hand in Finance`,
+          );
+          continue;
+        }
+        if (e.lines.length === 0) continue;
+
+        const lines: LineInput[] = e.lines.map((l) => ({
+          accountId: l.accountId,
+          // the mirror: what was debited is credited, and the other way round
+          debitPaisa: l.creditPaisa,
+          creditPaisa: l.debitPaisa,
+          orderId: l.orderId,
+          itemId: l.itemId,
+          employeeId: l.employeeId,
+          employeeName: l.employeeName,
+          partnerId: l.partnerId,
+          occasion: l.occasion,
+          zone: l.zone,
+          channelId: l.channelId,
+          note: `void of ${e.entryNo ?? e.sourceKey}`,
+        }));
+        await this.finance.postEntry({
+          /*  filed under the SAME source as the original, so every screen that
+              asks "what did this payment post?" finds the pair together. Only
+              the key differs.  */
+          sourceType: e.sourceType as PostEntryInput['sourceType'],
+          sourceId: e.sourceId ?? orderId,
+          sourceKey,
+          /*  the schema's own record of the pair, and a second guarantee:
+              `reversesId` is @unique, so one entry can be reversed once  */
+          reversesId: e.id,
+          entryDate: new Date(),
+          narration: `${o.orderNo} voided — reversing ${e.narration ?? e.sourceKey}`,
+          branchId: o.branchId,
+          actorName,
+          lines,
+        });
+      }
+
+      /*  `financePostedAt` is deliberately LEFT ALONE. It says "this bill has
+          been through the books", and it has — twice, once each way. Clearing
+          it would claim the bill was never posted, which is not true and would
+          make the drift checker ask for an entry that already exists beside its
+          own mirror.  */
+    });
   }
 
   /** day close — the drawer counted more or less than the books said */
@@ -1618,7 +1801,10 @@ export class FinanceEventsService {
     const f = await this.prisma.db.financePostingFailure.findUnique({ where: { id: failureId } });
     if (!f) return { ok: false, message: 'Not found' };
     const runners: Record<string, (id: string) => Promise<void>> = {
-      ORDER: (id) => this.onOrderDelivered(id),
+      /*  a void files itself as `void:<orderId>` so a replay comes back HERE
+          and not to `onOrderDelivered`, which on a cancelled bill would post an
+          advance release against a liability nobody ever credited  */
+      ORDER: (id) => (id.startsWith('void:') ? this.onPosSaleVoided(id.slice(5)) : this.onOrderDelivered(id)),
       PAYMENT: (id) => this.onPaymentRecorded(id),
       PURCHASE: (id) => this.onPurchaseReceived(id),
       SUPPLIER_PAYMENT: (id) => this.onSupplierPayment(id),
