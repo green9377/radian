@@ -21,6 +21,7 @@ import {
   posCollectDue,
   posAdvanceOrders,
   posHandOverAdvance,
+  posCancelAdvance,
   type ApiPosAdvance,
   posSettings,
   posDiscountRules,
@@ -36,7 +37,7 @@ import {
   type ApiPosSettings,
   type ApiPosAnalytics,
 } from "../_data/api";
-import { PayDialog, PaymentLines, usePayRows, usePaymentMethods, TILL_TENDERS } from "./MoneyBlock";
+import { PayDialog, PaymentLines, RefundDialog, usePayRows, usePaymentMethods, TILL_TENDERS } from "./MoneyBlock";
 import ReceiptDialog, { ReceiptPreview, sampleReceipt } from "./PosReceipt";
 
 /*
@@ -1482,6 +1483,18 @@ export function PosAdvanceOrders() {
   /** which row is mid-hand-over — nothing else on the board may be pressed */
   const [working, setWorking] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  /*  (owner, 11 Sep 2026) the customer changed their mind: cancel it and give
+      the money back. Any day — the box that took the advance is long closed,
+      which is exactly why a void cannot do this.  */
+  const [cancelRow, setCancelRow] = useState<ApiPosAdvance | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelBack, setCancelBack] = useState("");
+  const [cancelMethod, setCancelMethod] = useState("");
+  const [cancelAccount, setCancelAccount] = useState("");
+  const [cancelRef, setCancelRef] = useState("");
+  /*  every till money can go back out of — the same list Returns offers, because
+      the owner's ruling is the same one: the person refunding picks  */
+  const payoutTills = usePaymentMethods(["CASH", "BKASH", "NAGAD", "CARD", "BANK"]);
 
   const load = () => posAdvanceOrders().then(setRows).catch(() => setRows([]));
   useEffect(() => { load(); }, []);
@@ -1553,11 +1566,29 @@ export function PosAdvanceOrders() {
                       : <div className="text-[12px] text-[#76efab]">paid in full</div>}
                   </td>
                   <td className="px-4 py-2.5 text-right">
-                    <button type="button" disabled={!!working}
-                      onClick={() => { setErr(null); setOpen(r); }}
-                      className="text-[12px] text-white bg-purple font-medium rounded-[8px] px-3 py-1.5 disabled:opacity-40">
-                      {working === r.id ? "Handing over…" : "Hand over"}
-                    </button>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <button type="button" disabled={!!working}
+                        onClick={() => { setErr(null); setOpen(r); }}
+                        className="text-[12px] text-white bg-purple font-medium rounded-[8px] px-3 py-1.5 disabled:opacity-40">
+                        {working === r.id ? "Handing over…" : "Hand over"}
+                      </button>
+                      <button type="button" disabled={!!working}
+                        onClick={() => {
+                          setErr(null);
+                          setCancelRow(r);
+                          setCancelReason("");
+                          /*  pre-filled with everything the customer paid: the
+                              owner said give the amount back, so that is the
+                              number on screen unless a person changes it  */
+                          setCancelBack(((r.paidPaisa ?? 0) / 100).toFixed(2));
+                          setCancelMethod("");
+                          setCancelAccount("");
+                          setCancelRef("");
+                        }}
+                        className="text-[11.5px] text-body-soft border border-lavender-deep rounded-[8px] px-3 py-1 disabled:opacity-40">
+                        Cancel order
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -1581,6 +1612,75 @@ export function PosAdvanceOrders() {
             setErr(e instanceof Error ? e.message : "Could not hand it over");
           } finally { setBusy(false); setWorking(null); }
         }} />}
+
+      {/*  ═══ THE CUSTOMER CHANGED THEIR MIND (owner, 11 Sep 2026) ═══════════
+          Nothing has left the shelf on an advance, so there is no stock to put
+          back — only money to hand over, out of a till somebody picks. The
+          amount starts at everything they paid; if the shop keeps part of it,
+          a person types the smaller number and the reason sits beside it.  */}
+      {cancelRow && (
+        <RefundDialog
+          title="Cancel this advance order"
+          who={`${cancelRow.orderNo} · ${cancelRow.customerName}`}
+          amountPaisa={Math.round((Number(cancelBack) || 0) * 100)}
+          amountLabel="Giving back"
+          note={`${formatTaka(cancelRow.paidPaisa)} was taken on this order · nothing has left the shelf`}
+          methods={payoutTills}
+          method={cancelMethod}
+          onMethod={setCancelMethod}
+          methodPlaceholder="Where does the money go back from…"
+          methodNote={
+            cancelMethod.toUpperCase() === "CASH"
+              ? "Out of the counter cash box — day close will count these notes gone. The box has to be open."
+              : cancelMethod
+                ? "Sent by hand from that account — write the reference below so it can be matched later."
+                : undefined
+          }
+          accountId={cancelAccount}
+          onAccount={setCancelAccount}
+          reference={cancelRef}
+          onReference={setCancelRef}
+          busy={busy}
+          error={err}
+          confirmLabel="Cancel and pay back"
+          onConfirm={async () => {
+            if (busy) return;
+            const back = Math.round((Number(cancelBack) || 0) * 100);
+            if (!cancelReason.trim()) { setErr("Say why it is being cancelled."); return; }
+            if (back > cancelRow.paidPaisa) { setErr(`Only ${formatTaka(cancelRow.paidPaisa)} was taken on this order.`); return; }
+            setBusy(true); setErr(null); setWorking(cancelRow.id);
+            try {
+              await posCancelAdvance(cancelRow.id, {
+                reason: cancelReason.trim(),
+                refundPaisa: back,
+                refundMethod: cancelMethod.toLowerCase() as "cash" | "bkash" | "nagad" | "card" | "bank",
+                refundAccountId: cancelAccount || undefined,
+                refundReference: cancelRef.trim() || undefined,
+              });
+              setFlash(
+                `${cancelRow.orderNo} cancelled` +
+                (back > 0 ? ` — ${formatTaka(back)} given back${back < cancelRow.paidPaisa ? ` (${formatTaka(cancelRow.paidPaisa - back)} kept)` : ""}.` : " — nothing was given back."),
+              );
+              setCancelRow(null);
+              await load();
+            } catch (e) {
+              setErr(e instanceof Error ? e.message : "Could not cancel it");
+            } finally { setBusy(false); setWorking(null); }
+          }}
+          onClose={() => { if (!busy) setCancelRow(null); }}
+        >
+          <label className="text-[12.5px] font-medium text-[#c9a6e4] mb-1.5 block">Why is it being cancelled</label>
+          <input className="ipt h-[40px] text-[13px]" placeholder="The customer changed their mind…"
+            value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
+          <label className="text-[12.5px] font-medium text-[#c9a6e4] mt-3 mb-1.5 block">How much goes back ৳</label>
+          <input type="text" inputMode="decimal" className="ipt h-[40px] text-[13px]"
+            value={cancelBack}
+            onChange={(e) => { const v = e.target.value; if (/^\d*\.?\d{0,2}$/.test(v)) setCancelBack(v); }} />
+          <div className="text-[11.5px] text-[#a98ac4] mt-1">
+            They paid {formatTaka(cancelRow.paidPaisa)}. Hand back less only if the shop has decided to keep part of it.
+          </div>
+        </RefundDialog>
+      )}
     </div>
   );
 }

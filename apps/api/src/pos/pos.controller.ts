@@ -15,6 +15,7 @@ import type {
   CreateRegisterDto,
   PosDiscountApproveDto,
   VoidPosSaleDto,
+  CancelAdvanceDto,
 } from './pos.dto';
 import type { Prisma } from '@prisma/client';
 
@@ -163,6 +164,13 @@ export class PosController {
   @Post('advance/:id/handover')
   handOverAdvance(@Param('id') id: string, @Body() dto: { payments?: PosPaymentDto[]; actorName?: string }) {
     return this.pos.handOverAdvance(id, dto);
+  }
+  /*  (owner, 11 Sep 2026) "Anyone can cancel their order from an advance. In
+      that case let it be cancelled and give the amount back." Any day — unlike
+      a void, which only works while the box that took the money is open.  */
+  @Post('advance/:id/cancel')
+  cancelAdvance(@Param('id') id: string, @Body() dto: CancelAdvanceDto) {
+    return this.pos.cancelAdvance(id, dto);
   }
 
   /* settings */

@@ -38,6 +38,7 @@ import {
   PosTender,
   PosDiscountApproveDto,
   VoidPosSaleDto,
+  CancelAdvanceDto,
 } from './pos.dto';
 
 const ENTITY = 'PosSale';
@@ -2105,6 +2106,177 @@ export class PosService {
     }
 
     return this.unwindSale(order.id, reason, actorName);
+  }
+
+  /**
+   * ── CANCELLING AN ADVANCE ORDER — owner, 11 Sep 2026 ──────────────────────
+   *
+   * > *"Anyone can cancel their order from an advance. In that case let it be
+   * >  cancelled and give the amount back to them."*
+   *
+   * Until today an advance order could be cancelled from NO screen at all: a
+   * void only works while the cash box that took the money is still open, and
+   * Returns needs a delivered order — an advance is neither. So a customer who
+   * changed their mind three weeks later left the shop holding money against an
+   * order nobody could close.
+   *
+   * ⚠️ NOT A VOID, and the difference is the point. A void says the shop rang
+   * up the wrong bill; this says the customer changed their mind. It therefore
+   * works on ANY day, long after the box that took the advance was counted and
+   * closed — which is exactly the case a void must refuse.
+   *
+   * ⚠️ NO FORFEIT IS INVENTED. `refundPaisa` arrives from the screen, pre-filled
+   * with everything the customer has paid. If the shop decides to keep part of
+   * it, a person types the smaller number and the reason sits beside it in the
+   * timeline. The system never decides that on its own.
+   *
+   * Nothing leaves the shelf on an advance (`createSale` skips both the stock
+   * and the revenue posting until hand-over), so there is nothing to put back —
+   * only the money, which goes out of the till the person chooses.
+   */
+  async cancelAdvance(orderId: string, dto: CancelAdvanceDto) {
+    const reason = dto.reason?.trim();
+    if (!reason) throw new BadRequestException('Say why this advance order is being cancelled');
+    const actorName = dto.actorName ?? 'Cashier';
+
+    const order = await this.prisma.db.order.findFirst({
+      where: { id: orderId, fulfillmentType: FulfillmentType.COUNTER, deletedAt: null },
+      select: {
+        id: true, orderNo: true, salesStatus: true, customerId: true, totalPaisa: true,
+        paidPaisa: true, refundPaisa: true, internalNote: true,
+        transactions: { where: { deletedAt: null }, select: { method: true, amountPaisa: true, kind: true } },
+      },
+    });
+    if (!order) throw new NotFoundException('advance order not found');
+    if (order.salesStatus === SalesStatus.cancelled)
+      throw new BadRequestException('this order has already been cancelled');
+    if (order.salesStatus !== SalesStatus.placed)
+      throw new BadRequestException(
+        'this order has already been handed over — the goods have left the shop, so it is a Return, not a cancellation',
+      );
+
+    /*  what the customer is actually holding a claim on: money in, less anything
+        already given back  */
+    const held = Math.max(0, order.paidPaisa - order.refundPaisa);
+    const asked = dto.refundPaisa === undefined || dto.refundPaisa === null ? held : Math.round(dto.refundPaisa);
+    if (!Number.isFinite(asked) || asked < 0) throw new BadRequestException('refundPaisa must be a whole number of paisa');
+    if (asked > held)
+      throw new BadRequestException(
+        `only ${(held / 100).toFixed(2)} tk was taken on this order — ${(asked / 100).toFixed(2)} cannot be given back`,
+      );
+
+    /*  which till it goes out of. Left unsaid, the money goes back the way the
+        biggest part of it came in — but the screen always asks, so this is the
+        fallback for an API caller, not the normal path.  */
+    const biggest = [...order.transactions]
+      .filter((t) => t.kind !== PaymentTxnKind.REFUND)
+      .sort((a, b) => b.amountPaisa - a.amountPaisa)[0];
+    const method = (dto.refundMethod ?? biggest?.method ?? PaymentMethod.cash) as PaymentMethod;
+
+    /*  ⚠️ CASH NEEDS AN OPEN BOX. The notes come out of the counter drawer, and
+        a drawer that is closed has already been counted: putting a payout into
+        it after the fact makes that count a lie. Say so and offer the other
+        tills rather than writing money out of a box nobody is holding.  */
+    const drawer = method === PaymentMethod.cash && asked > 0 ? await this.currentShift() : null;
+    if (method === PaymentMethod.cash && asked > 0 && !drawer)
+      throw new BadRequestException(
+        'The cash box is closed, so cash cannot go out of it. Hand the money back through bKash, Nagad, card or the bank — or do it once the box is open again.',
+      );
+
+    const accountId = asked > 0
+      ? await this.payMethods.resolveAccount(method as unknown as PosTender, dto.refundAccountId)
+      : null;
+
+    const refundTxnId = await this.prisma.db.$transaction(async (tx) => {
+      /*  one winner: two clicks cannot hand the money back twice  */
+      const claimed = await tx.order.updateMany({
+        where: { id: order.id, salesStatus: SalesStatus.placed },
+        data: {
+          salesStatus: SalesStatus.cancelled,
+          cancelledAt: new Date(),
+          duePaisa: 0,
+          internalNote: [order.internalNote, `ADVANCE CANCELLED: ${reason}`].filter(Boolean).join(' · '),
+        },
+      });
+      if (claimed.count !== 1)
+        throw new BadRequestException('this order was just changed by somebody else — reload the board');
+
+      let txnId: string | null = null;
+      if (asked > 0) {
+        const created = await tx.paymentTransaction.create({
+          data: {
+            orderId: order.id,
+            kind: PaymentTxnKind.REFUND,
+            method,
+            amountPaisa: asked,
+            note: `Advance cancelled · ${reason}`,
+            actorName,
+            ...({ accountId, reference: dto.refundReference?.trim() || null } as object),
+          },
+          select: { id: true },
+        });
+        txnId = created.id;
+        const back = order.refundPaisa + asked;
+        await tx.order.update({
+          where: { id: order.id },
+          data: {
+            refundPaisa: back,
+            paymentStatus:
+              back >= order.paidPaisa && order.paidPaisa > 0
+                ? PaymentStatus.refunded
+                : PaymentStatus.partially_refunded,
+          },
+        });
+        /*  the notes physically go back over the counter, so the box has to say
+            so — otherwise the count at close is over by exactly this refund  */
+        if (drawer) {
+          await tx.posCashMovement.create({
+            data: {
+              shiftId: drawer.id,
+              kind: PosCashKind.PAYOUT,
+              amountPaisa: -asked,
+              note: `${order.orderNo} advance cancelled`,
+              actorName,
+            },
+          });
+        }
+      }
+
+      /*  the customer never bought this — undo what the sale added to them  */
+      if (order.customerId) {
+        await tx.customer.updateMany({
+          where: { id: order.customerId },
+          data: { ordersCount: { decrement: 1 }, ltvPaisa: { decrement: BigInt(order.totalPaisa) } },
+        });
+      }
+      return txnId;
+    });
+
+    /*  Finance credits whichever account the money actually left from. The
+        advance itself was booked as a tender when it came in (`onPaymentRecorded`
+        at sale time), never as revenue — no goods had moved — so this refund is
+        the whole of the correction.  */
+    if (refundTxnId) {
+      await this.book(order.id, `advance refund on ${order.orderNo}`, () => this.financeEvents.onPaymentRecorded(refundTxnId), actorName);
+    }
+
+    await this.audit.record({
+      entityType: ENTITY, entityId: order.id, action: 'UPDATE', actorName,
+      changes: { advanceCancelled: true, reason, refundPaisa: asked, method },
+    });
+    await this.audit.event({
+      entityType: 'Order', entityId: order.id, kind: 'sales', actorName,
+      label:
+        `${order.orderNo} — advance order cancelled by the customer · ${reason}` +
+        (asked > 0
+          ? ` · ${(asked / 100).toFixed(2)} given back by ${method}${asked < held ? ` (${((held - asked) / 100).toFixed(2)} kept)` : ''}`
+          : ' · nothing given back'),
+    });
+
+    return this.prisma.db.order.findFirst({
+      where: { id: order.id },
+      include: { lines: true, transactions: true, customer: { select: { id: true, name: true, phone: true } } },
+    });
   }
 
   /* ------------------------------------------------ receipt (audit §4 / §5 #1) */

@@ -4836,6 +4836,24 @@ export interface ApiPosAdvance {
   lines: { id: string; name: string; qty: number; unitPaisa: number }[];
 }
 export const posAdvanceOrders = () => j<ApiPosAdvance[]>(`/pos/advance`);
+/*  (owner, 11 Sep 2026) "Anyone can cancel their order from an advance. In that
+    case let it be cancelled and give the amount back to them."
+
+    Works on ANY day, unlike a void — the customer changing their mind three
+    weeks later is exactly the case a void has to refuse, because the cash box
+    that took the advance was counted and closed long ago. `refundPaisa` is what
+    the screen shows, pre-filled with everything the customer has paid; no
+    forfeit is decided by the system.  */
+export const posCancelAdvance = (
+  id: string,
+  b: {
+    reason: string;
+    refundPaisa?: number;
+    refundMethod?: "cash" | "bkash" | "nagad" | "card" | "bank";
+    refundAccountId?: string;
+    refundReference?: string;
+  },
+) => j<ApiPosSale>(`/pos/advance/${id}/cancel`, { method: "POST", body: JSON.stringify(b) });
 export const posHandOverAdvance = (id: string, b: { payments?: { method: string; amountPaisa: number; accountId?: string }[] }) =>
   j<unknown>(`/pos/advance/${id}/handover`, { method: "POST", body: JSON.stringify(b) });
 export const posCollectDue = (b: { orderId: string; payments: { method: string; amountPaisa: number; accountId?: string }[] }) =>

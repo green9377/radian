@@ -633,7 +633,7 @@ export function PayDialog({
 export function RefundDialog({
   title, who, amountPaisa, amountLabel = "Refund", note, methods, method, onMethod,
   accountId, onAccount, methodNote, methodPlaceholder,
-  reference, onReference, busy, error, confirmLabel = "Pay out", onConfirm, onClose,
+  reference, onReference, busy, error, confirmLabel = "Pay out", onConfirm, onClose, children,
 }: {
   title: string;
   who?: string;
@@ -660,6 +660,10 @@ export function RefundDialog({
   confirmLabel?: string;
   onConfirm: () => void;
   onClose: () => void;
+  /*  anything the caller needs to ask BEFORE the money moves — a reason, a
+      different amount. It sits above "How it goes back", because a person
+      decides what and why first and the till second.  */
+  children?: React.ReactNode;
 }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center px-4" style={{ background: "rgba(40,20,50,.45)" }}
@@ -682,6 +686,10 @@ export function RefundDialog({
             </div>
             {note && <div className="text-[11px] text-[#a98ac4]">{note}</div>}
           </div>
+
+          {children && (
+            <div className="rounded-[12px] px-3 py-3 mt-3" style={{ background: "rgba(255,255,255,.07)" }}>{children}</div>
+          )}
 
           <div className="rounded-[12px] px-3 py-3 mt-3" style={{ background: "rgba(255,255,255,.07)" }}>
             <div className="text-[12.5px] font-medium text-[#c9a6e4] mb-1.5">How it goes back</div>

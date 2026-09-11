@@ -211,6 +211,35 @@ export interface VoidPosSaleDto {
   actorName?: string;
 }
 
+/*  ═══ CANCELLING AN ADVANCE ORDER — owner, 11 Sep 2026 ═══════════════════════
+
+    > *"Anyone can cancel their order from an advance. In that case let it be
+    >  cancelled and give the amount back to them."*
+
+    Different from a void, deliberately:
+      · a void undoes a bill the shop rang up by mistake, and only while the
+        cash box that took the money is still open
+      · this is the CUSTOMER changing their mind, which can happen weeks later,
+        so the day the advance was taken has long been counted and closed
+
+    Nothing about a percentage is written here. `refundPaisa` comes from the
+    screen, pre-filled with everything the customer has paid, and the shop can
+    hand back less if it decides to — with the reason recorded beside it. The
+    system does not invent a forfeit the owner has not stated.  */
+export interface CancelAdvanceDto {
+  reason: string;
+  /** what to hand back; defaults to everything the customer has paid */
+  refundPaisa?: number;
+  /*  which till the money leaves from (owner, 11 Sep 2026: "a refund can come
+      from cash, bKash, the bank — the person refunding picks"). Wider than
+      `PosTender` on purpose: a bank transfer is a legitimate way to hand an
+      advance back, and it is not a counter tender.  */
+  refundMethod?: 'cash' | 'bkash' | 'nagad' | 'card' | 'bank';
+  refundAccountId?: string;
+  refundReference?: string;
+  actorName?: string;
+}
+
 export interface UpdatePosSettingsDto {
   openingFloatDefaultPaisa?: number;
   defaultTaxRateBps?: number;
