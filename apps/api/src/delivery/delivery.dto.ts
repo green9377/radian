@@ -146,14 +146,39 @@ export interface AssignmentActionDto {
 /** What the fulfilment list is asking for. Everything optional — no filter
  *  chosen means the whole queue, which is what the screen opens on. */
 export interface BoardQuery {
+  /** legacy: a raw delivery status. `seg` below is what the board sends now. */
   status?: 'unassigned' | 'preparing' | 'out_for_delivery' | 'failed' | 'delivered';
+  /**
+   * (audit 11 Sep 2026) the board's own tiles, decided server-side so the
+   * counts are true for the whole day and not for the page that happened to
+   * load. `all` = every parcel of the day that is NOT finished; `delivered`
+   * = finished that day.
+   */
+  seg?: BoardSeg;
   zone?: 'DHAKA' | 'BANGLADESH';
   methodId?: string;
   /** order number, phone, recipient, address or customer name */
   q?: string;
+  /** YYYY-MM-DD in Dhaka's day; blank = today. Ignored when scope = all. */
+  date?: string;
+  /** today (default: the chosen day + anything overdue) | all (every date) */
+  scope?: 'today' | 'all';
   page?: number;
+  /** rows per page — default 50, at most 200 */
+  pageSize?: number;
+  /** legacy alias of pageSize */
   limit?: number;
 }
+
+export type BoardSeg =
+  | 'all'
+  | 'notAssigned'
+  | 'photoPending'
+  | 'ready'
+  | 'onRoad'
+  | 'late'
+  | 'failed'
+  | 'delivered';
 
 /*  No `consignmentNo` here, on purpose. A consignment number belongs to ONE
     parcel; a single number pasted across forty of them would be forty wrong
@@ -178,11 +203,28 @@ export interface BulkAssignDto {
 
     A prepaid parcel appears here too, with `codPaisa` 0. There is no cash to
     reconcile, but the rider still had to be paid, and a screen that only listed
-    COD parcels would quietly lose every prepaid delivery's cost. */
+    COD parcels would quietly lose every prepaid delivery's cost.
+
+    (audit 11 Sep 2026) `chargePaisa` is OPTIONAL and means "record the fee":
+    a line without it leaves the parcel's cost exactly as it was. "Cash
+    received" alone used to write the fee as 0 and mark it recorded, which
+    took the parcel off the "not paid" list for good. A FAILED attempt may be
+    on a line too — cost only, never cash. */
 export interface SettleLineDto {
   assignmentId: string;
+  /** cash actually handed over for this parcel; 0 / absent = no receipt on this line */
   codPaisa?: number;
+  /** the carrier's fee for this parcel. Absent = do not touch the recorded cost. */
   chargePaisa?: number;
+  /**
+   * the carrier kept `chargePaisa` out of the cash it handed over. Only then
+   * is the fee netted off the receipt; otherwise the full COD is the receipt
+   * and the fee is paid separately (it stays on the accrual).
+   */
+  feeKeptFromCash?: boolean;
+  /** cash received short of the COD taken at the door, with the reason */
+  shortPaisa?: number;
+  shortNote?: string;
 }
 
 export interface SettleDto {

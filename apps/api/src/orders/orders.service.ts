@@ -16,6 +16,7 @@ import {
   SoldOutMode,
   AddedFrom,
   AssignmentStatus,
+  PaymentTxnKind,
 } from '@prisma/client';
 /*  DEC-PDP-09 — the SAME function the storefront answers with. Imported rather
     than re-derived: two copies of "is it buyable" is how a page ends up saying
@@ -41,9 +42,20 @@ import {
   CancelOrderDto,
   ListOrderQuery,
   OrderLineInput,
+  FailOrderDto,
+  FailDecision,
 } from './order.dto';
+import { validateFailOrder, validateAddPayment, validateCreateOrder, validateEditOrder } from './order.dto';
 
 const ENTITY = 'Order';
+
+/*  The client Prisma hands an interactive transaction on OUR extended db.
+    `Prisma.TransactionClient` is the un-extended one and does not match, so
+    it is derived from the real thing rather than guessed (audit 11 Sep 2026). */
+type OrderTx = Omit<
+  PrismaService['db'],
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>;
 const NOT_DELETED = { deletedAt: null };
 
 const FULL_INCLUDE = {
@@ -132,10 +144,27 @@ export class OrdersService {
 
   /* ---------------- read ---------------- */
 
-  async list(q: ListOrderQuery) {
-    const page = Math.max(1, parseInt(q.page ?? '1', 10) || 1);
-    const pageSize = Math.min(100, Math.max(1, parseInt(q.pageSize ?? '20', 10) || 20));
+  /*  ═══ THE ALL-ORDERS LIST, COUNTED AND PAGED IN THE DATABASE ═══════════
+      audit 11 Sep 2026 (P2 "100-row cap everywhere").
 
+      The screen used to ask for `pageSize=100` and then do EVERYTHING in the
+      browser: the search box, the six segments, the self/gift and payment
+      drop-downs, and the five band tiles — all over whichever hundred orders
+      happened to come back. Under a hundred orders that is right by accident.
+      Past it: an order placed last month cannot be found by typing its number,
+      and "Revenue" and "To collect" quietly report a slice of the shop while
+      looking exactly as healthy as the truth.
+
+      Every one of those filters is a `where` now, and the tiles come from
+      `stats()` over the WHOLE filtered set, never one page.
+
+      ⚠️ THE RESPONSE STILL CARRIES `items`. Payments and Returns both read
+      `listOrders().items`, and this is not their fix; `rows` is added as an
+      alias so the new screen can speak the same language as the delivery
+      board, and both point at the same array.  */
+
+  /** everything the list and the stats filter on — one definition, two callers */
+  private listWhere(q: ListOrderQuery): Prisma.OrderWhereInput {
     // AUD-2 FIX — this is the ONLINE Sales list. POS counter sales live in the
     // same Order table (DEC-POS-001) but have their own screens; without this
     // filter they leak into online revenue/COD KPIs and double-count.
@@ -151,17 +180,102 @@ export class OrdersService {
               for, missing from the one list he works from. Only a POS counter
               sale is meant to be out of this view.  */
           { fulfillmentType: { in: [FulfillmentType.DELIVERY, FulfillmentType.PICKUP] } };
-    if (q.search) {
+
+    /*  `search` is the old name and `q` the new one; both do the same thing,
+        and the recipient and the address are searchable now because that is
+        what staff actually type when a customer rings up.  */
+    const needle = (q.q ?? q.search ?? '').trim();
+    if (needle) {
       where.OR = [
-        { orderNo: { contains: q.search, mode: 'insensitive' } },
-        { senderName: { contains: q.search, mode: 'insensitive' } },
-        { senderPhone: { contains: q.search } },
+        { orderNo: { contains: needle, mode: 'insensitive' } },
+        { senderName: { contains: needle, mode: 'insensitive' } },
+        { senderPhone: { contains: needle } },
+        { recipientName: { contains: needle, mode: 'insensitive' } },
+        { recipientPhone: { contains: needle } },
+        { address: { contains: needle, mode: 'insensitive' } },
       ];
     }
     if (q.salesStatus) where.salesStatus = q.salesStatus as SalesStatus;
     if (q.deliveryStatus) where.deliveryStatus = q.deliveryStatus as DeliveryStatus;
     if (q.channelId) where.channelId = q.channelId;
     if (q.needsAction === 'true') where.salesStatus = SalesStatus.placed;
+    if (q.paymentMethod === 'cod' || q.paymentMethod === 'online')
+      where.paymentMethod = q.paymentMethod as PaymentMethod;
+    if (q.isGift === 'true' || q.isGift === 'false') where.isGift = q.isGift === 'true';
+    if (q.zone === 'DHAKA' || q.zone === 'BANGLADESH') where.zone = q.zone;
+    if (q.due === 'true') {
+      where.duePaisa = { gt: 0 };
+      /*  (review 11 Sep 2026) ⚠️ DO NOT ASSIGN salesStatus HERE. A plain
+          assignment threw away whatever `salesStatus`/`needsAction` had
+          already put on the where, so "unpaid AND still to confirm" quietly
+          became "every unpaid order". "Not cancelled" is an extra condition,
+          so it goes on as one.  */
+      const notCancelled = { salesStatus: { not: SalesStatus.cancelled } };
+      where.AND = Array.isArray(where.AND) ? [...where.AND, notCancelled] : where.AND ? [where.AND, notCancelled] : [notCancelled];
+    }
+
+    /*  The window is on placedAt, and a bare YYYY-MM-DD is read as DHAKA's
+        day — the shop's day, not the server's (COMMON rule 9). `to` is
+        inclusive of the whole day named.  */
+    const from = this.dayBoundary(q.from, 'start');
+    const to = this.dayBoundary(q.to, 'end');
+    if (from || to) where.placedAt = { ...(from ? { gte: from } : {}), ...(to ? { lt: to } : {}) };
+
+    /*  The screen's own segments, in the database this time. `fulfilling`,
+        `due` and the rest were `Array.filter` predicates in OrderListView; the
+        same sentences, said in SQL.  */
+    const seg = this.segWhere(q.seg);
+    return seg ? { AND: [where, seg] } : where;
+  }
+
+  /** the six segments of All orders — the exact predicates the screen used */
+  private segWhere(seg?: string): Prisma.OrderWhereInput | null {
+    switch (seg) {
+      case 'placed':
+        return { salesStatus: SalesStatus.placed };
+      case 'fulfilling':
+        return {
+          salesStatus: { not: SalesStatus.cancelled },
+          deliveryStatus: { in: [DeliveryStatus.preparing, DeliveryStatus.out_for_delivery] },
+        };
+      case 'confirmed':
+        return { salesStatus: SalesStatus.confirmed, deliveryStatus: DeliveryStatus.unassigned };
+      case 'delivered':
+        return { deliveryStatus: DeliveryStatus.delivered };
+      case 'due':
+        return { duePaisa: { gt: 0 }, salesStatus: { not: SalesStatus.cancelled } };
+      case 'cancelled':
+        return { salesStatus: SalesStatus.cancelled };
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * A YYYY-MM-DD read as Dhaka's day (UTC+6), or a full ISO instant taken as
+   * it is. `end` gives the START of the next day, so a `lt` covers the whole
+   * of the day named. Reuses the constant `overview()` already lives by
+   * rather than inventing a second idea of when today began.
+   */
+  private dayBoundary(v: string | undefined, edge: 'start' | 'end'): Date | null {
+    if (!v?.trim()) return null;
+    const DHAKA = 6 * 3600_000;
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v.trim());
+    if (m) {
+      const base = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) - DHAKA;
+      return new Date(edge === 'end' ? base + 24 * 3600_000 : base);
+    }
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  async list(q: ListOrderQuery) {
+    const page = Math.max(1, parseInt(q.page ?? '1', 10) || 1);
+    /*  200 is the ceiling and 50 the default; the old default of 20 stays for
+        anybody who asks for neither, because Returns' order picker relies on
+        a small page.  */
+    const pageSize = Math.min(200, Math.max(1, parseInt(q.pageSize ?? '20', 10) || 20));
+    const where = this.listWhere(q);
 
     const [items, total] = await Promise.all([
       this.prisma.db.order.findMany({
@@ -180,7 +294,78 @@ export class OrdersService {
       }),
       this.prisma.db.order.count({ where }),
     ]);
-    return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+    /*  `rows` and `items` are the SAME array. `items` is what Payments and
+        Returns read and must keep working; `rows` is what the board and the
+        new All-orders page speak.  */
+    return { items, rows: items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+  }
+
+  /**
+   * The five band tiles, over the whole filtered set.
+   *
+   * ⚠️ SEGMENT COUNTS IGNORE THE `seg` FILTER, ON PURPOSE. The tiles and the
+   * segment chips are how you CHOOSE a segment; counting them inside the
+   * segment you have already chosen would make every other one read 0 and the
+   * chosen one read the total. Everything else — the search box, the zone, the
+   * dates, self/gift, payment method — does apply, because those narrow WHICH
+   * orders are being talked about rather than which slice of them.
+   */
+  async stats(q: ListOrderQuery) {
+    const base = this.listWhere({ ...q, seg: undefined });
+    const and = (extra: Prisma.OrderWhereInput): Prisma.OrderWhereInput => ({ AND: [base, extra] });
+    const notCancelled: Prisma.OrderWhereInput = { salesStatus: { not: SalesStatus.cancelled } };
+
+    /*  "Delivered today" is DELIVERED TODAY — by `deliveredAt`, in Dhaka's day
+        (audit #35). The screen counted it off the PROMISED date, so a parcel
+        promised for today and still in the workshop was reported as delivered,
+        and one delivered today a day late was not counted at all.  */
+    const DHAKA = 6 * 3600_000;
+    const now = new Date(Date.now() + DHAKA);
+    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - DHAKA);
+    const todayEnd = new Date(todayStart.getTime() + 24 * 3600_000);
+
+    const [all, placed, fulfilling, confirmed, delivered, dueAgg, cancelled, revenueAgg, outCount, deliveredToday] =
+      await Promise.all([
+        this.prisma.db.order.count({ where: base }),
+        this.prisma.db.order.count({ where: and(this.segWhere('placed')!) }),
+        this.prisma.db.order.count({ where: and(this.segWhere('fulfilling')!) }),
+        this.prisma.db.order.count({ where: and(this.segWhere('confirmed')!) }),
+        this.prisma.db.order.count({ where: and(this.segWhere('delivered')!) }),
+        this.prisma.db.order.aggregate({ where: and(this.segWhere('due')!), _sum: { duePaisa: true }, _count: { _all: true } }),
+        this.prisma.db.order.count({ where: and({ salesStatus: SalesStatus.cancelled }) }),
+        /*  ⚠️ REVENUE IS DELIVERED-ONLY, like Reports and like Finance's own
+            books (DEC-FIN-002). A placed order is a promise, not a sale.  */
+        /*  (review 11 Sep 2026) `refundPaisa` joins the sum: "Collected" is
+            money in hand, and a refunded order was quietly still counting its
+            full `paidPaisa`, overstating the tile by every refund ever made.  */
+        this.prisma.db.order.aggregate({ where: and({ deliveryStatus: DeliveryStatus.delivered }), _sum: { totalPaisa: true, paidPaisa: true, refundPaisa: true } }),
+        this.prisma.db.order.count({ where: and({ deliveryStatus: DeliveryStatus.out_for_delivery, ...notCancelled }) }),
+        this.prisma.db.order.count({ where: and({ deliveredAt: { gte: todayStart, lt: todayEnd } }) }),
+      ]);
+
+    return {
+      counts: {
+        all,
+        placed,
+        fulfilling,
+        confirmed,
+        delivered,
+        due: dueAgg._count._all,
+        cancelled,
+        outForDelivery: outCount,
+        deliveredToday,
+      },
+      /** delivered orders only */
+      revenuePaisa: revenueAgg._sum.totalPaisa ?? 0,
+      /** what is actually in hand on those delivered orders — paid less refunded */
+      collectedPaisa: (revenueAgg._sum.paidPaisa ?? 0) - (revenueAgg._sum.refundPaisa ?? 0),
+      /** what went back out on them, so the tile can be read honestly */
+      refundedPaisa: revenueAgg._sum.refundPaisa ?? 0,
+      /** every unpaid balance on an order that is not cancelled */
+      duePaisa: dueAgg._sum.duePaisa ?? 0,
+      dueOrders: dueAgg._count._all,
+      deliveredToday,
+    };
   }
 
   /**
@@ -548,8 +733,14 @@ export class OrdersService {
       }),
       this.prisma.db.order.groupBy({ by: ['methodLabel'], where, _count: { _all: true } }),
       this.prisma.db.order.groupBy({ by: ['methodLabel'], where: delivered, _sum: { totalPaisa: true } }),
+      /*  ⚠️ GROUPED BY productId ALONE — audit 11 Sep 2026.
+          This grouped by (productId, name), and `name` on a line is a frozen
+          snapshot of what the product was CALLED when it was sold. Rename
+          "Red Roses" to "Red Roses Bouquet" and the same product came back as
+          two rows, each with half the quantity, neither of them the truth.
+          The current name is looked up below, from Product, which owns it.  */
       this.prisma.db.orderLine.groupBy({
-        by: ['productId', 'name'],
+        by: ['productId'],
         where: {
           deletedAt: null,
           order: { ...where, salesStatus: { not: SalesStatus.cancelled } },
@@ -559,6 +750,15 @@ export class OrdersService {
         take: 8,
       }),
     ]);
+    /*  one query for the current names of the eight products above  */
+    const topIds = topLines.map((l) => l.productId).filter((v): v is string => !!v);
+    const topNames = new Map(
+      topIds.length
+        ? (await this.prisma.db.product.findMany({ where: { id: { in: topIds } }, select: { id: true, name: true } }))
+            .map((p) => [p.id, p.name] as const)
+        : [],
+    );
+
     const dayMap = new Map<string, { n: number; delivered: number; cancelled: number; revenuePaisa: number }>();
     for (const o of byDay) {
       const key = o.placedAt.toISOString().slice(0, 10);
@@ -622,7 +822,9 @@ export class OrdersService {
       day,
       products: topLines.map((l) => ({
         productId: l.productId,
-        label: l.name,
+        /*  the name Product holds TODAY; a line whose product has since been
+            deleted falls back to the snapshot on its own newest line  */
+        label: (l.productId ? topNames.get(l.productId) : null) ?? 'Removed product',
         qty: l._sum.qty ?? 0,
         revenuePaisa: l._sum.linePaisa ?? 0,
       })),
@@ -735,7 +937,10 @@ export class OrdersService {
   }
 
   async create(dto: CreateOrderDto) {
-    if (!dto.lines?.length) throw new BadRequestException('order needs at least one line');
+    /*  audit 11 Sep 2026 #29 — every shape check before a single query. See
+        the long note at the bottom of order.dto.ts for why these are hand
+        written and not class-validator decorators.  */
+    validateCreateOrder(dto);
     const customer = await this.prisma.db.customer.findFirst({ where: { id: dto.customerId } });
     if (!customer) throw new BadRequestException('customerId not found');
     const channel = await this.prisma.db.channel.findFirst({ where: { id: dto.channelId } });
@@ -828,14 +1033,25 @@ export class OrdersService {
     // COD নিয়ম (locked §4): self only · no crafted · no advance-required line; gift-এ কখনো COD নয়
     if (method === PaymentMethod.cod) this.assertCodAllowed(dto, lineData, pMap);
 
-    const orderNo = await this.nextOrderNo();
     const actorName = dto.actorName ?? 'Admin';
+
+    /*  The advance taken in hand at the counter or on the phone (audit
+        11 Sep 2026 #28). It used to be a SECOND call from the form: create the
+        order, then record the payment. When the second call failed the order
+        was already there, unpaid and unnoticed, and staff made the whole thing
+        again — two orders, one customer. It is now part of the same
+        transaction, so either both exist or neither does.  */
+    const advance = Math.max(0, Math.round(dto.advancePaisa ?? 0));
+    if (advance > totalPaisa)
+      throw new BadRequestException(
+        `cannot take ${advance} paisa in advance — the order is only ${totalPaisa} paisa`,
+      );
 
     /* REV-OFR-1 — the discount is already baked into totalPaisa above, so the
        redemption rows MUST be written in the SAME transaction as the order.
        Fail-soft (writing after create) would let the discount stand while the
        limit/first-order guard and analytics silently lose the record. */
-    const order = await this.prisma.db.$transaction(async (tx) => {
+    const attempt = async (orderNo: string) => this.prisma.db.$transaction(async (tx) => {
       const created = await tx.order.create({
         data: {
           orderNo,
@@ -878,9 +1094,11 @@ export class OrdersService {
           ...(dto.deliveryMethodId ? { deliveryMethod: { connect: { id: dto.deliveryMethodId } } } : {}),
           ...(dto.deliverySlotId ? { deliverySlot: { connect: { id: dto.deliverySlotId } } } : {}),
           paymentMethod: method,
-          paymentStatus: PaymentStatus.unpaid,
-          paidPaisa: 0,
-          duePaisa: totalPaisa,
+          paymentStatus: advance > 0
+            ? this.derivePaymentStatus(method, totalPaisa, advance, 0, 'ADVANCE')
+            : PaymentStatus.unpaid,
+          paidPaisa: advance,
+          duePaisa: Math.max(0, totalPaisa - advance),
           refundPaisa: 0,
           subtotalPaisa,
           couponCode: dto.couponCode,
@@ -913,11 +1131,71 @@ export class OrdersService {
           },
         });
       }
+      /*  the advance, in the same breath as the order (#28)  */
+      if (advance > 0) {
+        await tx.paymentTransaction.create({
+          data: {
+            orderId: created.id,
+            kind: 'ADVANCE',
+            method: dto.advanceMethod ?? method,
+            amountPaisa: advance,
+            accountId: dto.advanceAccountId ?? null,
+            reference: dto.advanceReference,
+            note: 'Taken when the order was created',
+            actorName,
+          } as unknown as Prisma.PaymentTransactionUncheckedCreateInput,
+        });
+      }
       return created;
     });
 
+    /*  #25 — the number is drawn INSIDE the transaction and the unique index
+        is the referee. Three goes at a random number, then a timestamp that
+        cannot clash with anything.  */
+    let order: Awaited<ReturnType<typeof attempt>> | null = null;
+    let orderNo = '';
+    for (let i = 0; i < 4 && !order; i++) {
+      orderNo = this.candidateOrderNo(i);
+      try {
+        order = await attempt(orderNo);
+      } catch (e) {
+        if (i < 3 && this.isOrderNoClash(e)) continue;
+        throw e;
+      }
+    }
+    if (!order) throw new ConflictException('Could not allocate an order number — try again');
+
     await this.audit.record({ entityType: ENTITY, entityId: order.id, action: 'CREATE', actorName });
     await this.event(order.id, 'sales', `Order ${orderNo} placed via ${channel.name}`, actorName);
+    if (advance > 0) {
+      await this.event(order.id, 'payment', `ADVANCE ${advance} paisa taken when the order was created`, actorName);
+      const adv = await this.prisma.db.paymentTransaction.findFirst({
+        where: { orderId: order.id, kind: 'ADVANCE' },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (adv) await this.book(order.id, `advance on ${orderNo}`, () => this.finance.onPaymentRecorded(adv.id), actorName);
+
+      /*  (review 11 Sep 2026) THE MESSAGE MUST NOT BE LOST WITH THE SECOND CALL.
+          Folding the advance into create (#28) removed the `addPayment` call
+          the form used to make — and with it the two things addPayment does
+          after the money lands: the confirmation for a PREPAID order that is
+          now fully paid, and the "this much cleared, this much still due"
+          note for a part payment. Same conditions as addPayment, same
+          idempotency (the unique index on the message row), so a counter sale
+          paid in full still reaches the customer.  */
+      const prepaid = method !== PaymentMethod.cod;
+      if (prepaid && advance >= totalPaisa) {
+        void this.orderMessages
+          .queueConfirmation(order.id, false)
+          .then(() => this.orderMessages.sendDue(5))
+          .catch(() => undefined);
+      } else if (advance < totalPaisa) {
+        void this.orderMessages
+          .queue(order.id, OrderMessageKind.PAYMENT_RECEIVED, { attempt: 1 })
+          .then(() => this.orderMessages.sendDue(5))
+          .catch(() => undefined);
+      }
+    }
 
     if (quoteApplied.length) {
       await this.event(
@@ -984,12 +1262,7 @@ export class OrdersService {
       throw new BadRequestException(`cannot start preparing from deliveryStatus=${o.deliveryStatus}`);
 
     const lines = await this.prisma.db.orderLine.findMany({ where: { orderId: id, deletedAt: null } });
-    /*  DEC-POS-018 — a counter line carries an Item, not a Product. These website
-        paths only ever see product lines; the filter keeps the types honest.  */
-    const products = await this.prisma.db.product.findMany({
-      where: { id: { in: lines.map((l) => l.productId).filter((v): v is string => !!v) } },
-    });
-    const pMap = new Map(products.map((p) => [p.id, p]));
+    const { pMap, vMap } = await this.stockContext(lines);
 
     /*
       DEC-PRD-014 — WHICH SHELF THE STOCK COMES OFF, fixed 3 Aug 2026.
@@ -1001,27 +1274,7 @@ export class OrdersService {
       because the variant's 20 was never touched and the displays sum variants.
       Sold for ever, deducted never.
     */
-    const variantIds = lines.map((l) => l.variantId).filter((v): v is string => !!v);
-    const variants = variantIds.length
-      ? await this.prisma.db.productVariant.findMany({ where: { id: { in: variantIds } } })
-      : [];
-    const vMap = new Map(variants.map((v) => [v.id, v]));
-
-    /* REV-M4: never let stock go negative silently — say what is short instead.
-       A variant line is judged against ITS shelf, not the product's sum. */
-    const short: string[] = [];
-    for (const l of lines) {
-      const p = l.productId ? pMap.get(l.productId) : undefined;
-      if (!p || p.stockMode !== 'MANUAL') continue;
-      const v = l.variantId ? vMap.get(l.variantId) : null;
-      if (v) {
-        if (v.stockQty < l.qty)
-          short.push(`${l.name}${l.variantLabel ? ` (${l.variantLabel})` : ''} — need ${l.qty}, have ${v.stockQty}`);
-      } else if (p.stockQty < l.qty) {
-        short.push(`${p.name} (need ${l.qty}, have ${p.stockQty})`);
-      }
-    }
-    if (short.length) throw new BadRequestException(`not enough stock: ${short.join('; ')}`);
+    this.assertLineStock(lines, pMap, vMap);
 
     /*
       ═══ ADD-ON-ও এখানেই আটকায় — মালিকের রায়, ৪ আগস্ট ২০২৬ ═══
@@ -1047,30 +1300,7 @@ export class OrdersService {
         // DEC-SAL-016 — the moment, not just the state
         { deliveryStatus: DeliveryStatus.preparing, preparingAt: new Date() },
       );
-      for (const l of lines) {
-        const p = l.productId ? pMap.get(l.productId) : undefined;
-        if (!p || p.stockMode !== 'MANUAL') continue;
-        // MANUAL stock: variant line → variant-এর ঘর; নইলে product-এর ঘর (DEC-MOD-003 / DEC-PRD-014)
-        if (l.variantId && vMap.has(l.variantId)) {
-          await tx.productVariant.update({ where: { id: l.variantId }, data: { stockQty: { decrement: l.qty } } });
-        } else {
-          await tx.product.update({ where: { id: p.id }, data: { stockQty: { decrement: l.qty } } });
-        }
-      }
-      /*  add-on-ও একই মুহূর্তে কাটে (DEC-MOD-003-এর একই ঘড়ি) — শুধু গোনা
-          add-on (stockQty ≠ null)। ঋণাত্মকে নামতে দেওয়া হয় না; দরজার gate
-          পেরিয়ে আসা order-এ ঘাটতি মানে মাঝখানে কেউ বেচে দিয়েছে — তখনো
-          কাটা হয় ০ পর্যন্তই, আর ঘটনাটা timeline-এ ওঠে (নিচে)।  */
-      const addonNeed = this.addonDemand(lines);
-      for (const [addonId, qty] of addonNeed) {
-        const a = await tx.addOn.findFirst({ where: { id: addonId }, select: { stockQty: true } });
-        if (a?.stockQty !== null && a !== null) {
-          await tx.addOn.update({
-            where: { id: addonId },
-            data: { stockQty: Math.max(0, a.stockQty - qty) },
-          });
-        }
-      }
+      await this.deductStock(tx, lines, pMap, vMap);
       return tx.order.findUniqueOrThrow({ where: { id }, include: FULL_INCLUDE });
     });
     await this.event(id, 'delivery', `Preparing — stock −qty (DEC-MOD-003)`, actorName);
@@ -1274,16 +1504,75 @@ export class OrdersService {
     return this.shape(updated);
   }
 
-  async failDelivery(id: string, actorName = 'Admin') {
+  /**
+   * A delivery that did not happen — audit 11 Sep 2026 #19.
+   *
+   * ⚠️ THE SCREEN HAS ALWAYS ASKED THREE QUESTIONS AND THIS TOOK NONE OF THEM.
+   * Why it failed, the note somebody typed, and what staff decided (retry,
+   * keep, cancel) were all sent and all dropped on the floor; "Cancel order"
+   * in particular did nothing whatsoever unless a delivery assignment happened
+   * to exist to carry the decision instead. Somebody pressed Cancel, the box
+   * closed, the order stayed open, and nobody found out until the parcel was
+   * chased a day later.
+   *
+   * All three are stored now, and CANCEL runs the real `cancel()` — the same
+   * refund ladder, the same stock revert, the same assignment stand-down. The
+   * decision is recorded on the order EVEN when it is CANCEL, so the timeline
+   * reads "failed, then cancelled" rather than only the second half.
+   */
+  async failDelivery(id: string, actorName = 'Admin', dto: FailOrderDto = {}) {
     const o = await this.get(id);
     if (o.deliveryStatus !== DeliveryStatus.preparing && o.deliveryStatus !== DeliveryStatus.out_for_delivery)
       throw new BadRequestException('only a preparing/out-for-delivery order can fail');
-    const updated = await this.prisma.db.order.update({
-      where: { id },
-      data: { deliveryStatus: DeliveryStatus.failed },
-      include: FULL_INCLUDE,
+    validateFailOrder(dto);
+    /*  No decision sent means nobody has decided yet — NOT "keep". Delivery's
+        own fail path calls this without one (it records the decision on the
+        assignment, which is the attempt the decision is about), and writing
+        KEEP here would have the order contradict it.  */
+    const decision: FailDecision | null = dto.decision ?? null;
+
+    /*  A reason picked from the list is snapshotted by LABEL, the way the
+        assignment does it (DEC-DLV-022) — renaming a reason later must not
+        rewrite what this order says happened.  */
+    let reasonLabel = dto.reason?.trim() || '';
+    if (dto.failReasonId) {
+      const r = await this.prisma.db.reasonMaster.findFirst({
+        where: { id: dto.failReasonId }, select: { label: true },
+      });
+      if (!r) throw new BadRequestException('That reason is no longer on the list — pick another.');
+      reasonLabel = [r.label, dto.reason?.trim()].filter(Boolean).join(' - ');
+    }
+
+    const updated = await this.prisma.db.$transaction(async (tx) => {
+      // R4 — one winner: the state read above must still be the state on the row
+      await this.claim(
+        tx, id,
+        { deliveryStatus: o.deliveryStatus },
+        {
+          deliveryStatus: DeliveryStatus.failed,
+          failReason: reasonLabel || null,
+          failNote: dto.note?.trim() || null,
+          ...(decision ? { failDecision: decision } : {}),
+        },
+      );
+      return tx.order.findUniqueOrThrow({ where: { id }, include: FULL_INCLUDE });
     });
-    await this.event(id, 'delivery', `Delivery failed`, actorName);
+    await this.event(
+      id, 'delivery',
+      `Delivery failed${reasonLabel ? ` - ${reasonLabel}` : ''}`,
+      actorName,
+      [dto.note?.trim(), decision ? `decision: ${decision.toLowerCase()}` : null].filter(Boolean).join(' | ') || undefined,
+    );
+
+    /*  The decision is APPLIED, not merely filed. RETRY and KEEP both leave
+        the order failed and waiting — the difference is what the board says
+        about it — so only CANCEL has anything more to do.  */
+    if (decision === 'CANCEL') {
+      return this.cancel(id, {
+        reason: reasonLabel ? `Delivery failed - ${reasonLabel}` : 'Delivery failed',
+        actorName,
+      });
+    }
     return this.shape(updated);
   }
 
@@ -1341,6 +1630,8 @@ export class OrdersService {
       where: { id: { in: lines.map((l) => l.productId).filter((v): v is string => !!v) } },
     });
     const pMap = new Map(products.map((p) => [p.id, p]));
+    /** how many live carrier assignments this cancel stood down (audit #22) */
+    let cancelledAssignments = 0;
 
     /*  DEC-SAL-013 — the ORDER decided the number; the lines carry their share
         of it so the receipt still adds up. Shared out by each line's value,
@@ -1351,9 +1642,64 @@ export class OrdersService {
         : refundPct > 0 ? `Cancelled after it was made — ${refundPct}% of what was paid`
           : 'Cancelled after the rider left — nothing refundable';
 
-    // REV-C2: per-line refund figures + stock revert run in one transaction.
+    /*  REV-C1 — never refund money that was never collected. Since DEC-SAL-013
+        the entitlement is already a share OF `collected`, so this can no
+        longer exceed it; the cap stays as the belt to that braces. A COD order
+        cancelled before anyone paid refunds 0, which is the owner's own
+        answer to that exact case.  */
+    const payout = Math.min(entitlement, collected);
+    const newRefund = o.refundPaisa + payout;
+    const payStatus: PaymentStatus =
+      o.paidPaisa > 0 && newRefund >= o.paidPaisa ? PaymentStatus.refunded
+      : newRefund > 0 ? PaymentStatus.partially_refunded
+      : o.paymentStatus;
+
+    /*  ═══ ONE TRANSACTION, ONE WINNER — audit 11 Sep 2026 #9 ═══════════════
+        Cancelling used to be five separate writes with no claim in front of
+        them. A double-click ran the whole thing twice: two REFUND rows in the
+        ledger, the stock put back on the shelf twice, and `refundPaisa` set to
+        `o.refundPaisa + payout` from a row read before either request started
+        — so the customer was recorded as refunded twice for money that left
+        the till once.
+
+        The claim is first and it is the cancel itself: `salesStatus` goes to
+        cancelled only from a status that is neither cancelled nor completed.
+        The loser of a race gets count 0 and the whole transaction unwinds —
+        no refund row, no stock, no assignment change.  */
     let totalRefund = 0;
-    await this.prisma.db.$transaction(async (tx) => {
+    const refundTxnId = await this.prisma.db.$transaction(async (tx) => {
+      const claimed = await tx.order.updateMany({
+        where: {
+          id,
+          salesStatus: { notIn: [SalesStatus.cancelled, SalesStatus.completed] },
+        },
+        data: {
+          salesStatus: SalesStatus.cancelled,
+          cancelledAt: new Date(), // DEC-SAL-016
+          deliveryStatus: preparingStarted ? DeliveryStatus.stock_reverted : o.deliveryStatus,
+          refundPaisa: newRefund,
+          duePaisa: 0, // a cancelled order collects nothing more
+          paymentStatus: payStatus,
+        },
+      });
+      if (claimed.count !== 1)
+        throw new ConflictException('This order has already been cancelled — reload the page.');
+
+      /*  Audit #22 (agent A's request) — the parcel stops being live in the
+          same breath. Left active, a cancelled order kept showing on the
+          delivery board, counted against its rider, and blocked "remove
+          rider" for ever. SWAPPED would be a lie (nobody finished it), so
+          CANCELLED it is.  */
+      const stood = await tx.deliveryAssignment.updateMany({
+        where: { orderId: id, isActive: true, deletedAt: null },
+        data: {
+          isActive: false,
+          status: AssignmentStatus.CANCELLED,
+          note: `Order cancelled${dto.reason ? ` — ${dto.reason}` : ''}`,
+        },
+      });
+      if (stood.count > 0) cancelledAssignments = stood.count;
+
       for (const [i, l] of lines.entries()) {
         const p = l.productId ? pMap.get(l.productId) : undefined;
         const net = l.linePaisa - l.discountPaisa;
@@ -1418,20 +1764,23 @@ export class OrdersService {
           }
         }
       }
+
+      /*  the refund row belongs INSIDE the claim, or a losing second click
+          writes a second one against an order that is already cancelled  */
+      if (payout > 0) {
+        const refundTxn = await tx.paymentTransaction.create({
+          data: { orderId: id, kind: 'REFUND', method: o.paymentMethod, amountPaisa: payout, note: 'Cancellation per-line refund', actorName },
+        });
+        return refundTxn.id;
+      }
+      return null;
     });
 
-    /*  REV-C1 — never refund money that was never collected. Since DEC-SAL-013
-        the entitlement is already a share OF `collected`, so this can no
-        longer exceed it; the cap stays as the belt to that braces. A COD order
-        cancelled before anyone paid refunds 0, which is the owner's own
-        answer to that exact case.  */
-    const payout = Math.min(entitlement, collected);
-
-    if (payout > 0) {
-      const refundTxn = await this.prisma.db.paymentTransaction.create({
-        data: { orderId: id, kind: 'REFUND', method: o.paymentMethod, amountPaisa: payout, note: 'Cancellation per-line refund', actorName },
-      });
-      await this.book(id, `cancellation refund on ${o.orderNo}`, () => this.finance.onPaymentRecorded(refundTxn.id), actorName);
+    if (refundTxnId) {
+      await this.book(id, `cancellation refund on ${o.orderNo}`, () => this.finance.onPaymentRecorded(refundTxnId), actorName);
+    }
+    if (cancelledAssignments > 0) {
+      await this.event(id, 'delivery', `${cancelledAssignments} carrier assignment(s) cancelled with the order`, actorName);
     }
     if (entitlement > payout) {
       await this.event(
@@ -1441,24 +1790,7 @@ export class OrdersService {
       );
     }
     const totalRefundApplied = payout;
-    const newRefund = o.refundPaisa + totalRefundApplied;
-    const payStatus: PaymentStatus =
-      o.paidPaisa > 0 && newRefund >= o.paidPaisa ? PaymentStatus.refunded
-      : newRefund > 0 ? PaymentStatus.partially_refunded
-      : o.paymentStatus;
-
-    const updated = await this.prisma.db.order.update({
-      where: { id },
-      data: {
-        salesStatus: SalesStatus.cancelled,
-        cancelledAt: new Date(), // DEC-SAL-016
-        deliveryStatus: preparingStarted ? DeliveryStatus.stock_reverted : o.deliveryStatus,
-        refundPaisa: newRefund,
-        duePaisa: 0, // a cancelled order collects nothing more
-        paymentStatus: payStatus,
-      },
-      include: FULL_INCLUDE,
-    });
+    const updated = await this.prisma.db.order.findUniqueOrThrow({ where: { id }, include: FULL_INCLUDE });
     // DEC-OFR-008 — release redemption slots (per-customer/total limits give back)
     try {
       await this.offers.releaseForOrder(id);
@@ -1489,22 +1821,65 @@ export class OrdersService {
 
   async addPayment(id: string, dto: AddPaymentDto) {
     const o = await this.get(id);
-    if (!dto.amountPaisa || dto.amountPaisa <= 0) throw new BadRequestException('amountPaisa must be > 0');
+    validateAddPayment(dto);
     const actorName = dto.actorName ?? 'Admin';
     const method = dto.method ?? o.paymentMethod;
+    const collected = o.paidPaisa - o.refundPaisa;
+
+    /*  ═══ WHAT KIND OF MOVEMENT IS THIS, IF NOBODY SAID? ═══════════════════
+        audit 11 Sep 2026 #13.
+
+        The screen defaulted every money movement to COD_COLLECTED, including
+        on an online order where no rider ever collects anything, and including
+        a part payment that leaves a balance — the order then read "COD
+        collected" with money still due, which is a sentence that cannot be
+        true. `derivePaymentStatus` takes COD_COLLECTED at its word, so that
+        wrong kind became a wrong payment STATUS on the order.
+
+        The method decides, not the form:
+          · online / gateway  -> PAYMENT
+          · cash on a COD order that settles the bill -> COD_COLLECTED
+          · cash on a COD order that does not         -> PAYMENT (a part payment)
+        Nothing is invented: ADVANCE, PAYMENT, COD_COLLECTED and REFUND are the
+        four kinds the enum has always had.  */
+    /*  ⚠️ RESOLVE THE AMOUNT FIRST, THEN NAME THE KIND (review 11 Sep 2026).
+        The first version asked "does this settle the bill?" using the TYPED
+        amount, which is 0 when the box is left empty — and then defaulted the
+        empty box to the whole outstanding balance. So "Record" with an empty
+        box on a COD order filed a PAYMENT on money that demonstrably closed
+        the bill: exactly the wrong label this change set out to remove.
+
+        An empty refund amount means "give back what we are holding", never
+        "give back what is still owed" — the due is money coming IN.  */
+    const typed = Math.max(0, Math.round(dto.amountPaisa ?? 0));
+    const amountPaisa =
+      typed > 0
+        ? typed
+        : dto.kind === 'REFUND'
+          ? Math.max(0, collected)
+          : Math.max(0, o.totalPaisa - collected);
+    const settlesTheBill = collected + amountPaisa >= o.totalPaisa;
+    const kind: PaymentTxnKind =
+      dto.kind ??
+      (method === PaymentMethod.cod && settlesTheBill ? 'COD_COLLECTED' : 'PAYMENT');
+    /*  A COD_COLLECTED that does NOT settle the bill is a part payment
+        however it was typed — the label is corrected rather than refused, so
+        nobody has to know the enum to record cash that came in.  */
+    const effectiveKind: PaymentTxnKind =
+      kind === 'COD_COLLECTED' && !settlesTheBill ? 'PAYMENT' : kind;
+    if (!amountPaisa || amountPaisa <= 0) throw new BadRequestException('amountPaisa must be > 0');
 
     /* REV-M8: a double click must not create money.
        · collection can never exceed what is still outstanding
        · a refund can never exceed what is actually in hand */
-    const collected = o.paidPaisa - o.refundPaisa;
-    if (dto.kind === 'REFUND') {
-      if (dto.amountPaisa > collected)
-        throw new BadRequestException(`cannot refund ${dto.amountPaisa} paisa — only ${Math.max(0, collected)} paisa was collected`);
+    if (effectiveKind === 'REFUND') {
+      if (amountPaisa > collected)
+        throw new BadRequestException(`cannot refund ${amountPaisa} paisa — only ${Math.max(0, collected)} paisa was collected`);
     } else {
       const outstanding = Math.max(0, o.totalPaisa - collected);
       if (outstanding === 0) throw new BadRequestException('nothing is outstanding on this order');
-      if (dto.amountPaisa > outstanding)
-        throw new BadRequestException(`cannot collect ${dto.amountPaisa} paisa — only ${outstanding} paisa is outstanding`);
+      if (amountPaisa > outstanding)
+        throw new BadRequestException(`cannot collect ${amountPaisa} paisa — only ${outstanding} paisa is outstanding`);
     }
 
     /* ORD-REV-2 (30 Jul) — a LOST UPDATE, and the identical twin of POS-REV-3.
@@ -1523,9 +1898,9 @@ export class OrdersService {
       const created = await tx.paymentTransaction.create({
         data: {
           orderId: id,
-          kind: dto.kind,
+          kind: effectiveKind,
           method,
-          amountPaisa: dto.amountPaisa,
+          amountPaisa,
           /*  DEC-GBL-006 — the column was added on 21 Aug and this call site
               never wrote it, so every order payment landed in the method's
               default account regardless of which bKash number actually took
@@ -1548,15 +1923,15 @@ export class OrdersService {
 
       const bumped = await tx.order.update({
         where: { id },
-        data: dto.kind === 'REFUND'
-          ? { refundPaisa: { increment: dto.amountPaisa } }
-          : { paidPaisa: { increment: dto.amountPaisa } },
+        data: effectiveKind === 'REFUND'
+          ? { refundPaisa: { increment: amountPaisa } }
+          : { paidPaisa: { increment: amountPaisa } },
         select: { totalPaisa: true, paidPaisa: true, refundPaisa: true, paymentMethod: true },
       });
 
       const due = Math.max(0, bumped.totalPaisa - bumped.paidPaisa);
       const status = this.derivePaymentStatus(
-        bumped.paymentMethod, bumped.totalPaisa, bumped.paidPaisa, bumped.refundPaisa, dto.kind,
+        bumped.paymentMethod, bumped.totalPaisa, bumped.paidPaisa, bumped.refundPaisa, effectiveKind,
       );
       const settled = await tx.order.update({
         where: { id },
@@ -1566,8 +1941,8 @@ export class OrdersService {
       return { txn: created, updated: settled };
     });
 
-    await this.book(id, `${dto.kind} on ${o.orderNo}`, () => this.finance.onPaymentRecorded(txn.id), actorName);
-    await this.event(id, 'payment', `${dto.kind} ${dto.amountPaisa} paisa via ${method}`, actorName);
+    await this.book(id, `${effectiveKind} on ${o.orderNo}`, () => this.finance.onPaymentRecorded(txn.id), actorName);
+    await this.event(id, 'payment', `${effectiveKind} ${amountPaisa} paisa via ${method}`, actorName);
 
     /*
       ═══ MONEY IN, ORDER CONFIRMED — owner, 9 Sep 2026 ═══
@@ -1590,7 +1965,7 @@ export class OrdersService {
     const settledNow = updated.paidPaisa - updated.refundPaisa;
 
     if (
-      dto.kind !== 'REFUND' &&
+      effectiveKind !== 'REFUND' &&
       updated.paymentMethod !== PaymentMethod.cod &&
       settledNow >= updated.totalPaisa
     ) {
@@ -1615,7 +1990,7 @@ export class OrdersService {
         something new to say. The amounts themselves are read at SEND time from
         the order, so a second payment landing while the first message waits
         cannot send a stale figure.  */
-    if (dto.kind !== 'REFUND' && settledNow > 0 && settledNow < updated.totalPaisa) {
+    if (effectiveKind !== 'REFUND' && settledNow > 0 && settledNow < updated.totalPaisa) {
       void this.prisma.db.orderMessage
         .count({ where: { orderId: id, kind: OrderMessageKind.PAYMENT_RECEIVED } })
         .then((n) =>
@@ -1663,6 +2038,7 @@ export class OrdersService {
   /* ---------------- edit (guardrails) ---------------- */
 
   async edit(id: string, dto: EditOrderDto) {
+    validateEditOrder(dto); // audit 11 Sep 2026 #29
     const o = await this.get(id);
     const gate = this.editableFields(o);
     const actorName = dto.actorName ?? 'Admin';
@@ -1692,32 +2068,74 @@ export class OrdersService {
     if (!gate.notes && dto.photoUpdates !== undefined)
       throw new BadRequestException('order is closed — photo updates cannot be changed');
 
-    /* ---- item composition (only while gate.items is open) ---- */
-    if (dto.removeLineIds?.length) {
-      const live = await this.prisma.db.orderLine.findMany({ where: { orderId: id, deletedAt: null }, select: { id: true } });
-      const remaining = live.filter((l) => !dto.removeLineIds!.includes(l.id)).length;
-      if (remaining < 1 && !dto.addLines?.length)
-        throw new BadRequestException('an order must keep at least one item — cancel it instead');
-      await this.prisma.db.orderLine.updateMany({
-        where: { id: { in: dto.removeLineIds }, orderId: id },
-        data: { deletedAt: new Date() },
-      });
-      await this.event(id, 'sales', `${dto.removeLineIds.length} item(s) removed`, actorName);
+    /*  ═══ VALIDATE EVERYTHING, THEN APPLY ONCE — audit 11 Sep 2026 #10 ═══
+
+        This method used to write as it walked: it soft-deleted the removed
+        lines, THEN checked the added ones, THEN created them, THEN re-checked
+        the COD rule, and every one of those was its own statement outside any
+        transaction. Three ways that hurt:
+
+          · a save that removed both lines and added one the shop no longer
+            sells left an order with NO items at all — the "keep at least one"
+            check had already passed on a promise the next step broke
+          · the COD rule was tested AFTER the offending line was already on the
+            order, so the refusal left the thing it refused behind
+          · an added line on an order past Preparing deducted the PRODUCT row
+            only, never the variant's shelf and never its add-ons — and
+            `cancel()` then put back what had never been taken
+
+        So: nothing is written until every question has been answered, and then
+        it is all written together. `deductStock` is the SAME code `startPreparing`
+        runs, not a second copy of it.  */
+
+    const live = await this.prisma.db.orderLine.findMany({ where: { orderId: id, deletedAt: null } });
+    const liveById = new Map(live.map((l) => [l.id, l]));
+
+    /*  The slot and method have to be REAL (audit 11 Sep 2026 #29) — a
+        connect on a missing id is a 500 with a Prisma sentence in it, and a
+        screen that lets somebody type one deserves a plain refusal.  */
+    if (dto.deliverySlotId) {
+      const slot = await this.prisma.db.deliverySlot.findFirst({ where: { id: dto.deliverySlotId }, select: { id: true } });
+      if (!slot) throw new BadRequestException('That delivery slot no longer exists - pick one from the list.');
+    }
+    if (dto.deliveryMethodId) {
+      const m = await this.prisma.db.deliveryMethod.findFirst({ where: { id: dto.deliveryMethodId }, select: { id: true } });
+      if (!m) throw new BadRequestException('That delivery method no longer exists - pick one from the list.');
     }
 
-    if (dto.lineQty?.length) {
-      for (const q of dto.lineQty) {
-        if (!q.qty || q.qty < 1) throw new BadRequestException('line qty must be >= 1');
-        const line = await this.prisma.db.orderLine.findFirst({ where: { id: q.lineId, orderId: id, deletedAt: null } });
-        if (!line) throw new BadRequestException(`line ${q.lineId} not found`);
-        const linePaisa = line.unitPaisa * q.qty;
-        await this.prisma.db.orderLine.update({
-          where: { id: q.lineId },
-          data: { qty: q.qty, linePaisa, discountPaisa: Math.min(line.discountPaisa, linePaisa) },
-        });
-      }
-      await this.event(id, 'sales', `Quantity updated on ${dto.lineQty.length} item(s)`, actorName);
+    /* ---- removals ---- */
+    const removeIds = dto.removeLineIds ?? [];
+    for (const rid of removeIds) {
+      if (!liveById.has(rid)) throw new BadRequestException(`line ${rid} is not on this order`);
     }
+    const keptCount = live.filter((l) => !removeIds.includes(l.id)).length + (dto.addLines?.length ?? 0);
+    if (keptCount < 1)
+      throw new BadRequestException('an order must keep at least one item — cancel it instead');
+
+    /* ---- quantities ---- */
+    for (const q of dto.lineQty ?? []) {
+      if (!q.qty || q.qty < 1) throw new BadRequestException('line qty must be >= 1');
+      if (!liveById.has(q.lineId)) throw new BadRequestException(`line ${q.lineId} not found`);
+      if (removeIds.includes(q.lineId))
+        throw new BadRequestException('a line cannot be re-quantified and removed in the same save');
+    }
+    /** the quantity each surviving line will have once this save lands */
+    const qtyAfter = (lineId: string) =>
+      (dto.lineQty ?? []).find((q) => q.lineId === lineId)?.qty ?? liveById.get(lineId)?.qty ?? 0;
+
+    /* ---- added lines ---- */
+    let addData: Prisma.OrderLineCreateWithoutOrderInput[] = [];
+    let addStock: { pMap: Map<string, { id: string; name: string; stockMode: StockMode; stockQty: number }>; vMap: Map<string, { stockQty: number }> } | null = null;
+    const committed =
+      o.deliveryStatus === DeliveryStatus.preparing || o.deliveryStatus === DeliveryStatus.out_for_delivery;
+    const addShape = (dto.addLines ?? []).map((l) => ({
+      productId: l.productId,
+      variantId: l.variantId ?? null,
+      name: '',
+      variantLabel: l.variantLabel ?? null,
+      qty: l.qty,
+      addonIds: l.addonIds ?? [],
+    }));
 
     if (dto.addLines?.length) {
       const products = await this.prisma.db.product.findMany({
@@ -1734,27 +2152,179 @@ export class OrdersService {
          would mean a sold-out item cannot start an order but can be added to
          one a minute later. */
       await this.assertBuyable(products, dto.addLines.map((l) => ({ productId: l.productId, variantId: l.variantId })));
-      for (const l of dto.addLines) {
-        const data = this.buildLine(l, pMap);
-        await this.prisma.db.orderLine.create({ data: { ...data, order: { connect: { id } } } });
-      }
-      await this.event(id, 'sales', `${dto.addLines.length} item(s) added`, actorName);
+      /*  মালিকের রায়, ৪ আগস্ট ২০২৬ — add-on-ও বিক্রির জিনিস। Checked at this
+          door too, BEFORE anything is created (it used not to be checked here
+          at all).  */
+      await this.assertAddonsInStock(dto.addLines);
 
-      /* AUD-1 FIX — if stock is ALREADY committed (order past Preparing), a newly
+      /* REV-C3: the COD rule was only checked at create, so an edit could smuggle
+         a crafted / advance-required product into a cash-on-delivery order and
+         break the locked rule. Re-checked here — and now BEFORE the line exists,
+         so a refusal does not leave the offending item on the order. */
+      if (o.paymentMethod === PaymentMethod.cod) {
+        /*  Staff read these, not customers — but plain words cost nothing and a
+            section number explains nothing to anybody. DEC-PAY-001.
+
+            ⚠️ The CRAFTED check that stood here is gone (DEC-SAL-015) — it has to
+            match `assertCodAllowed`, and a rule enforced in two places is a rule
+            that will disagree with itself.  */
+        const badAdvance = products.find((p) => p.advanceRequired);
+        if (badAdvance)
+          throw new BadRequestException(
+            `\u201c${badAdvance.name}\u201d needs advance payment, so it cannot be added to a Cash on Delivery order.`,
+          );
+      }
+
+      addData = dto.addLines.map((l) => this.buildLine(l, pMap));
+      for (const [i, l] of dto.addLines.entries()) addShape[i].name = pMap.get(l.productId)?.name ?? '';
+
+      /* AUD-1 — if stock is ALREADY committed (order past Preparing), a newly
          added line must deduct its stock NOW. Otherwise cancel() would revert a
-         line that was never deducted → phantom stock created out of nothing.
-         Matches startPreparing: every MANUAL product deducts (crafted included);
-         cancel reverts only the readymade ones. */
-      const committed = o.deliveryStatus === DeliveryStatus.preparing || o.deliveryStatus === DeliveryStatus.out_for_delivery;
+         line that was never deducted -> phantom stock created out of nothing.
+         Same shelves, same add-ons, same shortage message as startPreparing. */
       if (committed) {
-        await this.prisma.db.$transaction(async (tx) => {
-          for (const l of dto.addLines!) {
-            const p = pMap.get(l.productId);
-            if (p && p.stockMode === 'MANUAL') {
-              await tx.product.update({ where: { id: p.id }, data: { stockQty: { decrement: l.qty } } });
-            }
-          }
+        const ctx = await this.stockContext(addShape);
+        this.assertLineStock(addShape, ctx.pMap, ctx.vMap);
+        addStock = ctx;
+      }
+    }
+
+    /* ---- per-line discounts (money edit open until close) — raw unit price rewrite নয় ---- */
+    for (const d of dto.lineDiscounts ?? []) {
+      const line = liveById.get(d.lineId);
+      if (!line) throw new BadRequestException(`line ${d.lineId} not found`);
+      if (removeIds.includes(d.lineId)) continue; // a removed line's discount is moot
+      const ceiling = line.unitPaisa * qtyAfter(d.lineId);
+      if (d.discountPaisa < 0 || d.discountPaisa > ceiling)
+        throw new BadRequestException('line discount out of range');
+    }
+
+    /* ---- add-ons attached to an existing item (audit 11 Sep 2026) ---- */
+    let addonPlan: { lineId: string; addonIds: string[]; addonLabels: string[]; newIds: string[]; qty: number }[] = [];
+    if (dto.lineAddons?.length) {
+      if (!gate.notes) throw new BadRequestException('order is closed — add-ons cannot be changed');
+      const wantedIds = [...new Set(dto.lineAddons.flatMap((a) => a.addonIds))];
+      const rows = wantedIds.length
+        ? await this.prisma.db.addOn.findMany({
+            where: { id: { in: wantedIds } },
+            select: { id: true, name: true, stockQty: true, isActive: true },
+          })
+        : [];
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      for (const a of dto.lineAddons) {
+        const line = liveById.get(a.lineId);
+        if (!line) throw new BadRequestException(`line ${a.lineId} not found`);
+        if (removeIds.includes(a.lineId)) continue;
+        const have = line.addonIds ?? [];
+        /*  only what is genuinely NEW on this line costs stock; re-sending the
+            same list must not take the card off the shelf a second time  */
+        const newIds = a.addonIds.filter((x) => !have.includes(x));
+        for (const x of newIds) {
+          const r = byId.get(x);
+          if (!r || !r.isActive) throw new BadRequestException('that add-on is no longer offered');
+        }
+        addonPlan.push({
+          lineId: a.lineId,
+          addonIds: [...have, ...newIds],
+          addonLabels: [...(line.addonLabels ?? []), ...newIds.map((x) => byId.get(x)!.name)],
+          newIds,
+          qty: qtyAfter(a.lineId),
         });
+      }
+      /*  the same door every other add-on goes through (owner, 4 Aug 2026):
+          not in stock, not sold  */
+      await this.assertAddonsInStock(
+        addonPlan.map((pl) => ({ addonIds: pl.newIds, qty: pl.qty })),
+      );
+    }
+
+    /* ═══ every question answered — now write, once ═══ */
+    await this.prisma.db.$transaction(async (tx) => {
+      if (removeIds.length) {
+        await tx.orderLine.updateMany({
+          where: { id: { in: removeIds }, orderId: id },
+          data: { deletedAt: new Date() },
+        });
+      }
+      for (const q of dto.lineQty ?? []) {
+        const line = liveById.get(q.lineId)!;
+        const linePaisa = line.unitPaisa * q.qty;
+        await tx.orderLine.update({
+          where: { id: q.lineId },
+          data: { qty: q.qty, linePaisa, discountPaisa: Math.min(line.discountPaisa, linePaisa) },
+        });
+      }
+      for (const data of addData) {
+        await tx.orderLine.create({ data: { ...data, order: { connect: { id } } } });
+      }
+      if (addStock) await this.deductStock(tx, addShape, addStock.pMap, addStock.vMap);
+      for (const pl of addonPlan) {
+        await tx.orderLine.update({
+          where: { id: pl.lineId },
+          data: { addonIds: pl.addonIds, addonLabels: pl.addonLabels },
+        });
+        /*  stock only when this order has already taken its stock. Before
+            Preparing the whole order is deducted later and the add-on goes
+            with it; deducting twice is the phantom-stock bug in reverse.  */
+        if (committed && pl.newIds.length) {
+          await this.deductStock(tx, [{ productId: null, qty: pl.qty, addonIds: pl.newIds }], new Map(), new Map());
+        }
+      }
+      for (const d of dto.lineDiscounts ?? []) {
+        if (removeIds.includes(d.lineId)) continue;
+        await tx.orderLine.update({ where: { id: d.lineId }, data: { discountPaisa: d.discountPaisa } });
+      }
+      await tx.order.update({
+        where: { id },
+        data: {
+          recipientName: dto.recipientName,
+          recipientPhone: dto.recipientPhone,
+          giftMessage: dto.giftMessage,
+          photoUpdates: dto.photoUpdates,
+          address: dto.address,
+          deliveryNotes: dto.deliveryNotes,
+          methodLabel: dto.methodLabel,
+          date: dto.date,
+          slotLabel: dto.slotLabel,
+          internalNote: dto.internalNote,
+          /*  ⚠️ `undefined` MEANS "LEAVE IT ALONE" AND MUST STAY THAT WAY
+              (audit 11 Sep 2026 #8). Prisma skips an undefined field, which is
+              exactly the behaviour the Edit screen needs: it only sends
+              `adjustmentPaisa` when somebody actually touched the charges
+              block. Never coalesce this to 0 — that is what wiped a retry fare
+              or a goodwill adjustment on every unrelated save.  */
+          adjustmentPaisa: dto.adjustmentPaisa,
+          deliveryPaisa: dto.deliveryPaisa,
+          /*  DEC-DLV-002 — the FK moves with the label when the screen sends
+              it. Typed-in slot text used to leave `deliverySlotId` pointing at
+              the OLD slot, so the overview counted the parcel under a slot it
+              was no longer in and a typo grew a phantom slot card.  */
+          ...(dto.deliveryMethodId !== undefined
+            ? { deliveryMethod: dto.deliveryMethodId ? { connect: { id: dto.deliveryMethodId } } : { disconnect: true } }
+            : {}),
+          ...(dto.deliverySlotId !== undefined
+            ? { deliverySlot: dto.deliverySlotId ? { connect: { id: dto.deliverySlotId } } : { disconnect: true } }
+            : {}),
+          /* DEC-INT-003(a) — if the customer moves the delivery, the promise moves with
+             it, or on-time is measured against a date nobody agreed to any more.
+             Only recomputed when one of the two halves was actually sent: `undefined`
+             leaves the frozen promise alone, which is what a note-only edit should do. */
+          ...(dto.date !== undefined || dto.slotLabel !== undefined
+            ? { promisedBy: resolvePromisedBy(dto.date ?? o.date, dto.slotLabel ?? o.slotLabel) }
+            : {}),
+        },
+      });
+    });
+
+    for (const pl of addonPlan) {
+      if (!pl.newIds.length) continue;
+      await this.event(id, 'sales', `${pl.newIds.length} add-on(s) added to an item`, actorName, committed ? 'stock taken now' : 'stock comes off at Preparing');
+    }
+    if (removeIds.length) await this.event(id, 'sales', `${removeIds.length} item(s) removed`, actorName);
+    if (dto.lineQty?.length) await this.event(id, 'sales', `Quantity updated on ${dto.lineQty.length} item(s)`, actorName);
+    if (dto.addLines?.length) {
+      await this.event(id, 'sales', `${dto.addLines.length} item(s) added`, actorName);
+      if (committed) {
         await this.event(id, 'delivery', `Stock committed for ${dto.addLines.length} added item(s) (order already preparing)`, actorName);
         await this.mirrorToInventory(
           id, o.orderNo, -1,
@@ -1764,59 +2334,6 @@ export class OrdersService {
       }
     }
 
-    /* REV-C3: the COD rule was only checked at create, so an edit could smuggle
-       a crafted / advance-required product into a cash-on-delivery order and
-       break the locked rule. It is re-checked here after the lines change. */
-    if (dto.addLines?.length && o.paymentMethod === PaymentMethod.cod) {
-      const added = await this.prisma.db.product.findMany({ where: { id: { in: dto.addLines.map((l) => l.productId) } } });
-      /*  Staff read these, not customers — but plain words cost nothing and a
-          section number explains nothing to anybody. DEC-PAY-001.
-
-          ⚠️ The CRAFTED check that stood here is gone (DEC-SAL-015) — it has to
-          match `assertCodAllowed`, and a rule enforced in two places is a rule
-          that will disagree with itself.  */
-      const badAdvance = added.find((p) => p.advanceRequired);
-      if (badAdvance)
-        throw new BadRequestException(
-          `“${badAdvance.name}” needs advance payment, so it cannot be added to a Cash on Delivery order.`,
-        );
-    }
-
-    // per-line discount (money edit open until close) — raw unit price rewrite নয়
-    if (dto.lineDiscounts?.length) {
-      for (const d of dto.lineDiscounts) {
-        const line = await this.prisma.db.orderLine.findFirst({ where: { id: d.lineId, orderId: id, deletedAt: null } });
-        if (!line) throw new BadRequestException(`line ${d.lineId} not found`);
-        if (d.discountPaisa < 0 || d.discountPaisa > line.linePaisa)
-          throw new BadRequestException('line discount out of range');
-        await this.prisma.db.orderLine.update({ where: { id: d.lineId }, data: { discountPaisa: d.discountPaisa } });
-      }
-    }
-
-    await this.prisma.db.order.update({
-      where: { id },
-      data: {
-        recipientName: dto.recipientName,
-        recipientPhone: dto.recipientPhone,
-        giftMessage: dto.giftMessage,
-        photoUpdates: dto.photoUpdates,
-        address: dto.address,
-        deliveryNotes: dto.deliveryNotes,
-        methodLabel: dto.methodLabel,
-        date: dto.date,
-        slotLabel: dto.slotLabel,
-        internalNote: dto.internalNote,
-        adjustmentPaisa: dto.adjustmentPaisa,
-        deliveryPaisa: dto.deliveryPaisa,
-        /* DEC-INT-003(a) — if the customer moves the delivery, the promise moves with
-           it, or on-time is measured against a date nobody agreed to any more.
-           Only recomputed when one of the two halves was actually sent: `undefined`
-           leaves the frozen promise alone, which is what a note-only edit should do. */
-        ...(dto.date !== undefined || dto.slotLabel !== undefined
-          ? { promisedBy: resolvePromisedBy(dto.date ?? o.date, dto.slotLabel ?? o.slotLabel) }
-          : {}),
-      },
-    });
     /* REV-OFR-2 — if the item composition changed, the offer engine must run
        again: a category/product offer's discount base moved, so a frozen
        discountPaisa would be wrong (e.g. the offer's target line was removed).
@@ -1837,8 +2354,32 @@ export class OrdersService {
 
   /* ---------------- soft delete ---------------- */
 
+  /**
+   * ⚠️ IT REFUSES AT EVERY OTHER STATUS — audit 11 Sep 2026 #11.
+   *
+   * This used to delete an order at ANY point in its life and revert nothing.
+   * Deleting a confirmed order left the workshop's hours booked; deleting one
+   * past Preparing left its stock committed for ever; deleting a delivered one
+   * removed a sale Finance had already posted revenue against, so the books
+   * and the order list disagreed with nobody able to say why.
+   *
+   * Only two states can be deleted, and both are states where deleting takes
+   * nothing back:
+   *   · `placed`     — nothing has been committed yet; this is a mis-typed order
+   *   · `cancelled`  — cancel() has already given back the stock, the hours,
+   *                    the offer slots and the money it owed
+   * Anything in between must be CANCELLED first, which is the path that knows
+   * how to undo it.
+   */
   async remove(id: string, actorName = 'Admin') {
     const o = await this.get(id);
+    if (o.salesStatus !== SalesStatus.placed && o.salesStatus !== SalesStatus.cancelled) {
+      throw new BadRequestException(
+        o.salesStatus === SalesStatus.completed
+          ? 'A completed order cannot be deleted — it is a sale the books have already counted. Raise a return instead.'
+          : 'Only a placed or a cancelled order can be deleted. Cancel this one first — that is what gives back the stock, the workshop hours and any refund owed.',
+      );
+    }
     await this.prisma.db.order.update({ where: { id }, data: { deletedAt: new Date() } });
     await this.audit.record({ entityType: ENTITY, entityId: id, action: 'DELETE', actorName });
     await this.event(id, 'system', `Order ${o.orderNo} deleted (soft)`, actorName);
@@ -1976,6 +2517,85 @@ export class OrdersService {
       }
     }
     return need;
+  }
+
+  /* ---------- stock: ONE implementation, used by preparing AND edit ----------
+     Audit 11 Sep 2026 #10. `edit()` added a line to an order whose stock was
+     already committed and deducted the PRODUCT row only — never the variant's
+     shelf, never the add-ons. `cancel()` then put back what was never taken,
+     inventing stock out of nothing. These three helpers are lifted verbatim
+     out of `startPreparing`, so there is now one answer to "which shelf" and
+     both doors ask it. */
+
+  /** the products and variants a set of lines touches, in two queries */
+  private async stockContext(lines: { productId: string | null; variantId?: string | null }[]) {
+    /*  DEC-POS-018 — a counter line carries an Item, not a Product. These website
+        paths only ever see product lines; the filter keeps the types honest.  */
+    const products = await this.prisma.db.product.findMany({
+      where: { id: { in: lines.map((l) => l.productId).filter((v): v is string => !!v) } },
+    });
+    const variantIds = lines.map((l) => l.variantId).filter((v): v is string => !!v);
+    const variants = variantIds.length
+      ? await this.prisma.db.productVariant.findMany({ where: { id: { in: variantIds } } })
+      : [];
+    return {
+      pMap: new Map(products.map((p) => [p.id, p])),
+      vMap: new Map(variants.map((v) => [v.id, v])),
+    };
+  }
+
+  /** REV-M4: never let stock go negative silently — say what is short instead. */
+  private assertLineStock(
+    lines: { productId: string | null; variantId?: string | null; name: string; variantLabel?: string | null; qty: number }[],
+    pMap: Map<string, { name: string; stockMode: StockMode; stockQty: number }>,
+    vMap: Map<string, { stockQty: number }>,
+  ) {
+    const short: string[] = [];
+    for (const l of lines) {
+      const p = l.productId ? pMap.get(l.productId) : undefined;
+      if (!p || p.stockMode !== 'MANUAL') continue;
+      const v = l.variantId ? vMap.get(l.variantId) : null;
+      if (v) {
+        if (v.stockQty < l.qty)
+          short.push(`${l.name}${l.variantLabel ? ` (${l.variantLabel})` : ''} — need ${l.qty}, have ${v.stockQty}`);
+      } else if (p.stockQty < l.qty) {
+        short.push(`${p.name} (need ${l.qty}, have ${p.stockQty})`);
+      }
+    }
+    if (short.length) throw new BadRequestException(`not enough stock: ${short.join('; ')}`);
+  }
+
+  /**
+   * Take the stock off the shelves these lines actually came from, inside the
+   * caller's transaction.
+   *
+   * MANUAL stock: a variant line comes off THAT variant's shelf, everything
+   * else off the product's (DEC-MOD-003 / DEC-PRD-014). Counted add-ons come
+   * off in the same breath, never below zero — a shortage that slips past the
+   * door means somebody sold it in between.
+   */
+  private async deductStock(
+    tx: OrderTx,
+    lines: { productId: string | null; variantId?: string | null; qty: number; addonIds?: string[] | null }[],
+    pMap: Map<string, { id: string; stockMode: StockMode }>,
+    vMap: Map<string, unknown>,
+  ) {
+    for (const l of lines) {
+      const p = l.productId ? pMap.get(l.productId) : undefined;
+      if (!p || p.stockMode !== 'MANUAL') continue;
+      if (l.variantId && vMap.has(l.variantId)) {
+        await tx.productVariant.update({ where: { id: l.variantId }, data: { stockQty: { decrement: l.qty } } });
+      } else {
+        await tx.product.update({ where: { id: p.id }, data: { stockQty: { decrement: l.qty } } });
+      }
+    }
+    const addonNeed = this.addonDemand(lines);
+    for (const [addonId, qty] of addonNeed) {
+      const a = await tx.addOn.findFirst({ where: { id: addonId }, select: { stockQty: true } });
+      if (a?.stockQty !== null && a !== null) {
+        await tx.addOn.update({ where: { id: addonId }, data: { stockQty: Math.max(0, a.stockQty - qty) } });
+      }
+    }
   }
 
   private async assertAddonsInStock(lines: { addonIds?: string[] | null; qty: number }[]) {
@@ -2208,32 +2828,128 @@ export class OrdersService {
    * recorded at Settle — the fare lands on the order as an adjustment and
    * the due is recomputed, so it is collected like any other balance.
    */
-  async chargeDeliveryToCustomer(id: string, paisa: number, actorName = 'Delivery') {
-    if (!paisa || paisa <= 0) return;
-    const o = await this.prisma.db.order.findFirst({ where: { id, deletedAt: null }, select: { adjustmentPaisa: true, salesStatus: true } });
-    if (!o || o.salesStatus === SalesStatus.cancelled) return;
-    await this.prisma.db.order.update({ where: { id }, data: { adjustmentPaisa: o.adjustmentPaisa + Math.round(paisa) } });
-    await this.recomputeMoney(id);
-    await this.event(id, 'payment', `Retry delivery fee charged to the customer: ${Math.round(paisa)} paisa`, actorName);
+  /*  ⚠️ FOUR ARGUMENTS SINCE 11 SEP 2026 (audit 11 Sep 2026, P0 #4).
+      Delivery calls this twice — at assign, when a one-time fare is typed, and
+      at settle, when the fee is first recorded on a parcel still on the road.
+      Both hand over the ASSIGNMENT the fare belongs to, because that row is
+      where "this fare has already been put on the customer" is written.
+
+      The claim is the whole point: `customerChargedAt` goes null → now inside
+      the same transaction that moves the money, so two settle clicks (or a
+      settle racing an assign) can only charge the customer once. A caller that
+      loses the claim gets `{ charged: false }` and nothing happens — this is
+      not an error, it is the second click doing its job.
+
+      It refuses outright on a delivered or cancelled order: a due raised on a
+      completed order is a bill nobody is going to collect, and a cancelled
+      order collects nothing more by rule.  */
+  async chargeDeliveryToCustomer(
+    orderId: string,
+    paisa: number,
+    actorName: string | undefined,
+    assignmentId: string,
+  ): Promise<{ charged: boolean; reason?: string }> {
+    const who = actorName ?? 'Delivery';
+    const amount = Math.round(paisa);
+    if (!amount || amount <= 0) return { charged: false, reason: 'nothing to charge' };
+    if (!assignmentId) return { charged: false, reason: 'no assignment given' };
+
+    /*  (audit 11 Sep 2026, corrected on review the same day)
+        ⚠️ A REFUSAL MUST ROLL THE CLAIM BACK, NOT COMMIT IT.
+        `customerChargedAt` is a one-shot: it is the only thing standing
+        between this fare and being charged twice. The first version of this
+        method took the claim, then `return`ed `{charged:false}` when the
+        order turned out to be cancelled or already delivered — and a plain
+        return COMMITS, stamping "charged" on a parcel nobody ever charged.
+        The fare could then never be put on the customer again, silently.
+        So every refusal inside the transaction THROWS (rolling the claim
+        back) and is turned into a quiet answer out here.  */
+    const REFUSED = 'CHARGE_REFUSED:';
+    let outcome: { charged: boolean; reason?: string };
+    try {
+      outcome = await this.prisma.db.$transaction(async (tx) => {
+      /*  R4 — take the right to charge BEFORE reading anything else. If
+          another request already took it, this one stops here.  */
+      const claim = await tx.deliveryAssignment.updateMany({
+        where: { id: assignmentId, customerChargedAt: null },
+        data: { customerChargedAt: new Date() },
+      });
+      if (claim.count !== 1) throw new Error(REFUSED + 'already charged');
+
+      const order = await tx.order.findFirst({
+        where: { id: orderId, deletedAt: null },
+        include: { lines: { where: NOT_DELETED } },
+      });
+      if (!order) throw new Error(REFUSED + 'order not found');
+      if (order.salesStatus === SalesStatus.cancelled)
+        throw new Error(REFUSED + 'order is cancelled');
+      if (order.deliveryStatus === DeliveryStatus.delivered)
+        throw new Error(REFUSED + 'order is already delivered');
+
+      const adjustment = order.adjustmentPaisa + amount;
+      const m = this.moneyOf({ ...order, adjustmentPaisa: adjustment });
+      await tx.order.update({
+        where: { id: orderId },
+        data: {
+          adjustmentPaisa: adjustment,
+          subtotalPaisa: m.subtotal,
+          totalPaisa: m.total,
+          duePaisa: m.due,
+          paymentStatus: m.status,
+          discountPaisa: m.discount,
+        },
+      });
+      return { charged: true };
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.startsWith(REFUSED)) return { charged: false, reason: msg.slice(REFUSED.length) };
+      throw e; // a real failure — the claim rolled back with it, so a retry is safe
+    }
+
+    if (outcome.charged) {
+      await this.event(orderId, 'payment', `Delivery fee charged to the customer: ${amount} paisa`, who);
+    }
+    return outcome;
+  }
+
+  /**
+   * The ONE piece of order arithmetic — subtotal, capped discount, total, due,
+   * payment status. Extracted 11 Sep 2026 (audit) so `recomputeMoney` and
+   * `chargeDeliveryToCustomer` (which has to do its sums inside its own claim
+   * transaction) cannot drift apart. Pure: it reads, it does not write.
+   */
+  private moneyOf(order: {
+    lines: { linePaisa: number; discountPaisa: number }[];
+    discountPaisa: number;
+    deliveryPaisa: number;
+    deliveryWaivedPaisa: number;
+    adjustmentPaisa: number;
+    paidPaisa: number;
+    refundPaisa: number;
+    paymentMethod: PaymentMethod;
+  }) {
+    const subtotal = order.lines.reduce((s, l) => s + (l.linePaisa - l.discountPaisa), 0);
+    // REV-OFR-2 — a discount can never exceed the subtotal (DEC-OFR-009); an edit
+    // that shrinks the cart must not leave a discount bigger than what's left.
+    const discount = Math.min(order.discountPaisa, subtotal);
+    const total = subtotal - discount + order.deliveryPaisa - order.deliveryWaivedPaisa + order.adjustmentPaisa;
+    const collected = order.paidPaisa - order.refundPaisa; // money actually in hand
+    const due = Math.max(0, total - collected);
+    const status = this.derivePaymentStatus(order.paymentMethod, total, order.paidPaisa, order.refundPaisa, '');
+    return { subtotal, discount, total, due, collected, status };
   }
 
   private async recomputeMoney(id: string) {
     const order = await this.prisma.db.order.findFirst({ where: { id }, include: { lines: { where: NOT_DELETED } } });
     if (!order) return;
-    const subtotal = order.lines.reduce((s, l) => s + (l.linePaisa - l.discountPaisa), 0);
-    // REV-OFR-2 — a discount can never exceed the subtotal (DEC-OFR-009); an edit
-    // that shrinks the cart must not leave a discount bigger than what's left.
-    const cappedDiscount = Math.min(order.discountPaisa, subtotal);
-    const total = subtotal - cappedDiscount + order.deliveryPaisa - order.deliveryWaivedPaisa + order.adjustmentPaisa;
-    const collected = order.paidPaisa - order.refundPaisa; // money actually in hand
-    const due = Math.max(0, total - collected);
-    const status = this.derivePaymentStatus(order.paymentMethod, total, order.paidPaisa, order.refundPaisa, '');
+    const m = this.moneyOf(order);
     await this.prisma.db.order.update({
       where: { id },
-      data: { subtotalPaisa: subtotal, totalPaisa: total, duePaisa: due, paymentStatus: status, discountPaisa: cappedDiscount },
+      data: { subtotalPaisa: m.subtotal, totalPaisa: m.total, duePaisa: m.due, paymentStatus: m.status, discountPaisa: m.discount },
     });
-    if (collected > total) {
-      await this.event(id, 'payment', `Overpaid by ${collected - total} paisa — refund is owed`, 'System');
+    if (m.collected > m.total) {
+      await this.event(id, 'payment', `Overpaid by ${m.collected - m.total} paisa — refund is owed`, 'System');
     }
   }
 
@@ -2303,13 +3019,23 @@ export class OrdersService {
     }
   }
 
-  private async nextOrderNo(): Promise<string> {
-    for (let i = 0; i < 20; i++) {
-      const n = 50000 + Math.floor(Math.random() * 49999);
-      const no = `RAD-${n}`;
-      const dupe = await this.prisma.db.order.findFirst({ where: { orderNo: no }, select: { id: true } });
-      if (!dupe) return no;
-    }
-    return `RAD-${Date.now()}`;
+  /*  One candidate receipt number. The CHECK is gone (audit 11 Sep 2026 #25):
+      "is it free?" followed by "take it" is two statements with a gap between
+      them, and under load two orders walked through the same gap and the
+      second one 500'd on the unique index. The number is now drawn inside the
+      create transaction and the index itself is the referee — see `create`,
+      which retries on P2002.  */
+  private candidateOrderNo(attempt: number): string {
+    if (attempt >= 3) return `RAD-${Date.now()}`; // the last resort is unique by construction
+    return `RAD-${50000 + Math.floor(Math.random() * 49999)}`;
+  }
+
+  /** true when this Prisma error is a unique-constraint clash on orderNo */
+  private isOrderNoClash(e: unknown): boolean {
+    const err = e as { code?: string; meta?: { target?: unknown } };
+    if (err?.code !== 'P2002') return false;
+    const t = err.meta?.target;
+    const names = Array.isArray(t) ? t.map(String) : typeof t === 'string' ? [t] : [];
+    return names.length === 0 || names.some((n) => n.toLowerCase().includes('orderno'));
   }
 }

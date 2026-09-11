@@ -291,6 +291,24 @@ export const softDeleteExtension = Prisma.defineExtension({
           args.where = { deletedAt: null, ...((args.where ?? {}) as Record<string, unknown>) };
         return query(args);
       },
+      /*  ⚠️ groupBy WAS NOT HERE — audit 11 Sep 2026 #11.
+       *
+       *  Five of the six queries behind the Orders report are `groupBy`, and
+       *  every one of them counted soft-deleted orders. The HEADLINE numbers
+       *  beside them are `count` and `aggregate`, which this extension has
+       *  always filtered. So the page showed "412 orders" over a set of bars
+       *  that added up to 419, and nothing on it said which was right — the
+       *  worst kind of wrong, because both halves look authoritative.
+       *
+       *  It is the same one-line filter as its four neighbours. It was missing
+       *  for exactly the reason AppSession was: nobody had asked this model
+       *  that particular question yet, until Reports did.
+       */
+      async groupBy({ model, args, query }) {
+        if (!skipFilter(model))
+          args.where = { deletedAt: null, ...((args.where ?? {}) as Record<string, unknown>) };
+        return query(args);
+      },
     },
   },
 });

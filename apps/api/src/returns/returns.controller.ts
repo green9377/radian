@@ -17,6 +17,7 @@ import type {
   CreateReturnDto,
   CompleteReturnDto,
   ListReturnQuery,
+  ReturnActorDto,
   ReturnReasonDto,
   ReturnSettingsDto,
 } from './return.dto';
@@ -25,10 +26,31 @@ import type {
 export class ReturnsController {
   constructor(private readonly svc: ReturnsService) {}
 
+  /*  the one place the acting person is decided: the session first, the header
+      only as a fallback for a caller with no session (the pattern
+      orders.controller settled on, audit 11 Sep 2026 #26).  */
+  private actor(req: AuthedRequest, header?: string): string {
+    return req?.actor?.name ?? header ?? 'Admin';
+  }
+
   /* static routes BEFORE :id (POS lesson) */
   @Get('analytics')
   analytics(@Query('days') days?: string) {
     return this.svc.analytics(days ? parseInt(days, 10) : 30);
+  }
+
+  /*  audit 11 Sep 2026 (P2) — the band tiles, counted over the WHOLE filtered
+      book rather than the page the screen happens to hold.  */
+  @Get('stats')
+  stats(@Query() q: ListReturnQuery) {
+    return this.svc.stats(q);
+  }
+
+  /*  "already returned once", answered for exactly the orders a picker is
+      showing, over every return and with rejected/cancelled left out.  */
+  @Get('for-orders')
+  forOrders(@Query('orderIds') orderIds?: string) {
+    return this.svc.returnedOrderCounts((orderIds ?? '').split(',').map((s) => s.trim()));
   }
   @Get('reasons')
   reasons() {
@@ -118,29 +140,57 @@ export class ReturnsController {
   timeline(@Param('id') id: string) {
     return this.svc.timeline(id);
   }
-  @Post(':id/approve')
-  approve(@Param('id') id: string, @Headers('x-actor-name') actor?: string) {
-    return this.svc.approve(id, actor ?? 'Admin');
+  /*  audit 11 Sep 2026 #30 — a draft moves on from here, through the same
+      validation `create` runs. Any staff member may finish their own draft;
+      what it turns into (approved, or waiting) is the gate's decision.  */
+  @Post(':id/submit')
+  submit(
+    @Param('id') id: string,
+    @Req() req: AuthedRequest,
+    @Headers('x-actor-name') actor?: string,
+  ) {
+    return this.svc.submit(id, this.actor(req, actor));
   }
+
+  /*  audit 11 Sep 2026 #31 — signing off money leaving the shop is an
+      OWNER/MANAGER act. The role is read off the session, never off the body,
+      and the service refuses self-approval on top of it.  */
+  @Roles('OWNER', 'MANAGER')
+  @Post(':id/approve')
+  approve(
+    @Param('id') id: string,
+    @Req() req: AuthedRequest,
+    @Headers('x-actor-name') actor?: string,
+  ) {
+    return this.svc.approve(id, this.actor(req, actor), req?.actor?.role);
+  }
+  @Roles('OWNER', 'MANAGER')
   @Post(':id/reject')
   reject(
     @Param('id') id: string,
-    @Body() body: { note?: string },
+    @Body() body: ReturnActorDto,
+    @Req() req: AuthedRequest,
     @Headers('x-actor-name') actor?: string,
   ) {
-    return this.svc.reject(id, actor ?? 'Admin', body?.note);
+    return this.svc.reject(id, this.actor(req, actor), body?.reason ?? body?.note);
   }
   @Post(':id/cancel')
-  cancel(@Param('id') id: string, @Headers('x-actor-name') actor?: string) {
-    return this.svc.cancel(id, actor ?? 'Admin');
+  cancel(
+    @Param('id') id: string,
+    @Body() body: ReturnActorDto,
+    @Req() req: AuthedRequest,
+    @Headers('x-actor-name') actor?: string,
+  ) {
+    return this.svc.cancel(id, this.actor(req, actor), body?.reason ?? body?.note);
   }
   @Post(':id/complete')
   complete(
     @Param('id') id: string,
     @Body() dto: CompleteReturnDto,
+    @Req() req: AuthedRequest,
     @Headers('x-actor-name') actor?: string,
   ) {
-    return this.svc.complete(id, { ...dto, actorName: dto.actorName ?? actor });
+    return this.svc.complete(id, { ...dto, actorName: dto.actorName ?? this.actor(req, actor) });
   }
   /*  put the goods back when a completed return never reached the shelf
       (owner, 21 Aug) — guarded against a second press  */

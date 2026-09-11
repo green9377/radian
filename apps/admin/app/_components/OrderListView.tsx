@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
 import { Said, useSay } from "./Said";
 import { WRAP, ErrorBox } from "./OrderViews";
 import {
-  listOrders,
+  listOrdersPage,
+  orderStats,
   orderAction,
   orderShareText,
   orderContactPhone,
@@ -16,6 +17,7 @@ import {
   zoneLabel,
   formatTaka,
   type ApiOrder,
+  type ApiOrderStats,
 } from "../_data/api";
 import {
   SOLID, CELL, LABEL, VALUE, SOFT, NO, NAME, ICON_BTN, TABLE_WRAP, TABLE,
@@ -69,21 +71,36 @@ function paymentColour(o: ApiOrder): string {
 }
 
 /* ---------- the one next step ---------- */
+/*
+  ⚠️ THE LAST TWO STEPS ARE GONE FROM THIS ROW — audit 11 Sep 2026 #14.
+
+  "Out for delivery" and "Mark delivered" called `POST /orders/:id/…` straight
+  from here, and the API refused BOTH of them every single time: since R5 the
+  order may not outrun its own delivery assignment, so those two transitions
+  belong to the carrier path (`POST /delivery/assignments/:id/…`) and Sales
+  answers "send it out from the Delivery panel". A button that has never once
+  worked is worse than no button — staff press it, read a refusal they cannot
+  act on from this screen, and learn to distrust the row.
+
+  What is left are the two steps Sales genuinely owns: Confirm and Start
+  preparing. Past that the row says where to go, and Open is the button.
+*/
 type NextAction = Parameters<typeof orderAction>[1];
 type Next = { label: string; action: NextAction; colour: string; icon: string } | null;
 function nextStep(o: ApiOrder): Next {
   if (o.salesStatus === "cancelled" || o.salesStatus === "completed") return null;
   if (o.salesStatus === "placed") return { label: "Confirm", action: "confirm", colour: SOLID.indigo, icon: "check" };
-  switch (o.deliveryStatus) {
-    case "unassigned":
-      return { label: "Start preparing", action: "prepare", colour: SOLID.blue, icon: "bolt" };
-    case "preparing":
-      return { label: "Out for delivery", action: "out-for-delivery", colour: SOLID.orchid, icon: "truck" };
-    case "out_for_delivery":
-      return { label: "Mark delivered", action: "delivered", colour: SOLID.green, icon: "check" };
-    default:
-      return null;
-  }
+  if (o.deliveryStatus === "unassigned" && o.salesStatus === "confirmed")
+    return { label: "Start preparing", action: "prepare", colour: SOLID.blue, icon: "bolt" };
+  return null;
+}
+/** where the next step actually happens, when it is not this screen's to take */
+function handOff(o: ApiOrder): string | null {
+  if (o.salesStatus === "cancelled" || o.salesStatus === "completed") return null;
+  if (o.deliveryStatus === "preparing") return "Delivery board";
+  if (o.deliveryStatus === "out_for_delivery") return "Delivery board";
+  if (o.deliveryStatus === "failed") return "Decide on the order";
+  return null;
 }
 
 function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
@@ -96,6 +113,7 @@ function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
   const live = !cancelled && o.deliveryStatus !== "delivered";
   const hot = live && !!day?.today;
   const next = nextStep(o);
+  const where = handOff(o);
   const phone = orderContactPhone(o);
   const share = orderShareText(o);
   const wa = `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(share)}`;
@@ -119,13 +137,9 @@ function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
 
   return (
     <tr className="hover:bg-[#231538]">
-      <td className={`${CELL} w-[34px]`} style={hot ? { boxShadow: `inset 4px 0 0 ${SOLID.red}` } : undefined}>
-        <Said say={say} />
-        <input type="checkbox" className="w-[15px] h-[15px] accent-purple mt-0.5" aria-label={`Select ${o.orderNo}`} />
-      </td>
-
       {/* order no */}
-      <td className={`${CELL} w-[118px]`}>
+      <td className={`${CELL} w-[132px]`} style={hot ? { boxShadow: `inset 4px 0 0 ${SOLID.red}` } : undefined}>
+        <Said say={say} />
         <Link href={`/orders/${o.id}`} className={NO}>{o.orderNo}</Link>
         <div className="flex gap-1.5 mt-2">
           <button type="button" title="Copy details" className={ICON_BTN} onClick={() => copy(share)}>
@@ -220,6 +234,13 @@ function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
               {busy ? "…" : next.label}
             </ActButton>
           )}
+          {/*  #14 — where the next step is taken, said rather than offered as a
+               button that would only ever be refused  */}
+          {!next && where && (
+            <span className="text-[11.5px] font-medium text-[#afa4b7] leading-[1.3] px-1">
+              Next step: {where}
+            </span>
+          )}
           {!cancelled && <ActButton kind="call" href={`tel:${phone}`} external>Call</ActButton>}
         </div>
       </td>
@@ -237,97 +258,119 @@ const SEGS: [Seg, string][] = [
   ["due", "To collect"],
   ["cancelled", "Cancelled"],
 ];
-function inSeg(o: ApiOrder, s: Seg): boolean {
-  switch (s) {
-    case "":
-      return true;
-    case "placed":
-      return o.salesStatus === "placed";
-    case "fulfilling":
-      return o.salesStatus !== "cancelled" && (o.deliveryStatus === "preparing" || o.deliveryStatus === "out_for_delivery");
-    case "confirmed":
-      return o.salesStatus === "confirmed" && o.deliveryStatus === "unassigned";
-    case "delivered":
-      return o.deliveryStatus === "delivered";
-    case "due":
-      return o.duePaisa > 0 && o.salesStatus !== "cancelled";
-    case "cancelled":
-      return o.salesStatus === "cancelled";
-  }
-}
-const HEADS = ["", "Order No", "Date", "Customer", "Total", "Status", "Delivery", "Action"];
+/*  `inSeg` LEFT THIS FILE (audit 11 Sep 2026). The six segments are
+    `where` clauses on the server now — see `segWhere` in orders.service.ts.
+    Two copies of "what counts as fulfilling" is how a tile and a table end up
+    disagreeing about the same order.  */
+
+/*  the select column is gone — the checkbox on every row did nothing at
+    all, and there was no bulk action for it to do (audit 11 Sep 2026)  */
+const HEADS = ["Order No", "Date", "Customer", "Total", "Status", "Delivery", "Action"];
 
 const HELP =
   "Every website, Facebook, Instagram, WhatsApp and phone order, cancelled ones included. Walk-in POS is a separate module. " +
   "Needs action = placed and not yet confirmed. Preparing / out = being made or on the road. Revenue counts delivered orders only; " +
-  "To collect is every unpaid balance on an open order. Every tile filters this page — Revenue shows the delivered orders it is counted from, To collect the orders still owing.";
+  "To collect is every unpaid balance on an open order. Delivered today counts by the time it was actually handed over. " +
+  "Searching, filtering and every tile are counted in the database over all orders, not over this page.";
+
+const PAGE_SIZE = 50;
 
 export default function OrderListView() {
-  const [all, setAll] = useState<ApiOrder[]>([]);
+  /*
+    ⚠️ THE HUNDRED-ROW WINDOW IS GONE — audit 11 Sep 2026.
+
+    This screen used to fetch `pageSize=100` once and then do everything to
+    that array in the browser: search, the six segments, self/gift, payment
+    method, and the five band tiles. Under a hundred orders it was right by
+    accident. Past it, an order from last month could not be found by typing
+    its number, and Revenue and To collect reported a slice of the shop while
+    looking exactly as healthy as the truth would.
+
+    Every one of those is now a query parameter, and the tiles come from
+    `GET /orders/stats` over the WHOLE filtered set. The only thing this
+    component still decides is which page to ask for.
+  */
+  const [rows, setRows] = useState<ApiOrder[]>([]);
+  const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState<ApiOrderStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
+  /** the search box, debounced — one request per pause, not one per keystroke */
+  const [needle, setNeedle] = useState("");
   const [seg, setSeg] = useState<Seg>("");
   const [type, setType] = useState("");
   const [pay, setPay] = useState("");
+  const [page, setPage] = useState(1);
 
-  async function load() {
+  useEffect(() => {
+    const t = setTimeout(() => setNeedle(q.trim()), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  /** every filter, in the shape the API reads */
+  const query = useMemo(
+    () => ({
+      q: needle || undefined,
+      seg: seg || undefined,
+      paymentMethod: (pay || undefined) as "online" | "cod" | undefined,
+      isGift: type === "gift" ? true : type === "self" ? false : undefined,
+    }),
+    [needle, seg, pay, type],
+  );
+
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await listOrders();
-      setAll(res.items);
+      const [res, st] = await Promise.all([
+        listOrdersPage({ ...query, page, pageSize: PAGE_SIZE }),
+        orderStats(query),
+      ]);
+      setRows(res.rows);
+      setTotal(res.total);
+      setStats(st);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load orders");
     } finally {
       setLoading(false);
     }
-  }
+  }, [query, page]);
+
   useEffect(() => {
-    load();
-  }, []);
+    void load();
+  }, [load]);
 
-  const stats = useMemo(() => {
-    let revenue = 0, toCollect = 0, deliveredToday = 0, out = 0;
-    const counts: Record<Seg, number> = { "": all.length, placed: 0, fulfilling: 0, confirmed: 0, delivered: 0, due: 0, cancelled: 0 };
-    for (const o of all) {
-      for (const [k] of SEGS) if (k && inSeg(o, k)) counts[k]++;
-      if (o.deliveryStatus === "out_for_delivery" && o.salesStatus !== "cancelled") out++;
-      if (o.deliveryStatus === "delivered") {
-        revenue += o.totalPaisa;
-        if (fmtDay(o.date)?.today) deliveredToday++;
+  /*  changing a filter always goes back to page 1 — page 7 of a set that no
+      longer has seven pages is an empty table with no explanation  */
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
+
+  const counts: Partial<Record<Seg, number>> = stats
+    ? {
+        "": stats.counts.all,
+        placed: stats.counts.placed,
+        fulfilling: stats.counts.fulfilling,
+        confirmed: stats.counts.confirmed,
+        delivered: stats.counts.delivered,
+        due: stats.counts.due,
+        cancelled: stats.counts.cancelled,
       }
-      if (o.duePaisa > 0 && o.salesStatus !== "cancelled") toCollect += o.duePaisa;
-    }
-    return { counts, revenue, toCollect, deliveredToday, out };
-  }, [all]);
+    : {};
 
-  const rows = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return all.filter((o) => {
-      const name = (o.customer?.name ?? o.senderName).toLowerCase();
-      const okQ =
-        !needle ||
-        o.orderNo.toLowerCase().includes(needle) ||
-        name.includes(needle) ||
-        o.senderPhone.includes(needle) ||
-        (o.recipientName ?? "").toLowerCase().includes(needle) ||
-        (o.recipientPhone ?? "").includes(needle) ||
-        o.address.toLowerCase().includes(needle);
-      const okType = !type || (type === "gift" ? o.isGift : !o.isGift);
-      const okPay = !pay || o.paymentMethod === pay;
-      return okQ && inSeg(o, seg) && okType && okPay;
-    });
-  }, [all, q, seg, type, pay]);
-
-  const v = (s: string) => (loading ? "…" : s);
+  const v = (s: string) => (loading && !stats ? "…" : s);
   const tiles: Tile[] = [
-    { key: "placed", label: "Needs action", value: v(String(stats.counts.placed)), sub: "placed, not confirmed", hot: stats.counts.placed > 0 },
-    { key: "fulfilling", label: "Preparing / out", value: v(String(stats.counts.fulfilling)), sub: `${stats.out} out for delivery` },
-    { key: "delivered", label: "Delivered", value: v(String(stats.counts.delivered)), sub: `${stats.deliveredToday} today` },
-    { key: "revenue", label: "Revenue", value: v(formatTaka(stats.revenue)), sub: "delivered orders only" },
-    { key: "due", label: "To collect", value: v(formatTaka(stats.toCollect)), sub: `${stats.counts.due} orders still owing` },
+    { key: "placed", label: "Needs action", value: v(String(stats?.counts.placed ?? 0)), sub: "placed, not confirmed", hot: (stats?.counts.placed ?? 0) > 0 },
+    { key: "fulfilling", label: "Preparing / out", value: v(String(stats?.counts.fulfilling ?? 0)), sub: `${stats?.counts.outForDelivery ?? 0} out for delivery` },
+    { key: "delivered", label: "Delivered", value: v(String(stats?.counts.delivered ?? 0)), sub: `${stats?.counts.deliveredToday ?? 0} handed over today` },
+    { key: "revenue", label: "Revenue", value: v(formatTaka(stats?.revenuePaisa ?? 0)), sub: "delivered orders only" },
+    { key: "due", label: "To collect", value: v(formatTaka(stats?.duePaisa ?? 0)), sub: `${stats?.dueOrders ?? 0} orders still owing` },
   ];
+
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const first = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const last = Math.min(total, page * PAGE_SIZE);
 
   return (
     <div className={WRAP}>
@@ -341,7 +384,7 @@ export default function OrderListView() {
       />
 
       <div className="flex gap-2.5 flex-wrap items-center mb-3">
-        <Segs items={SEGS} value={seg} counts={loading ? undefined : stats.counts} onChange={setSeg} />
+        <Segs items={SEGS} value={seg} counts={stats ? counts : undefined} onChange={setSeg} />
         <Search value={q} onChange={setQ} placeholder="Order no, name, phone, recipient, address" />
         <select className="ipt max-w-[150px] h-[40px] font-medium" value={type} onChange={(e) => setType(e.target.value)}>
           <option value="">Self &amp; gift</option>
@@ -353,7 +396,7 @@ export default function OrderListView() {
           <option value="online">Online</option>
           <option value="cod">Cash on delivery</option>
         </select>
-        <Count n={rows.length} noun="order" loading={loading} />
+        <Count n={total} noun="order" loading={loading} />
       </div>
 
       {error && <ErrorBox error={error} onRetry={load} />}
@@ -369,6 +412,24 @@ export default function OrderListView() {
         </table>
         {!loading && rows.length === 0 && <Empty text="No orders match." />}
       </div>
+
+      {/*  Paging, said plainly: which orders these are out of how many. The
+           old screen simply stopped at a hundred and said nothing at all.  */}
+      {total > PAGE_SIZE && (
+        <div className="flex items-center justify-between gap-3 mt-3 flex-wrap">
+          <span className="text-[13px] font-medium text-body-soft">
+            {first}–{last} of {total}
+          </span>
+          <div className="flex gap-2">
+            <ActButton onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1 || loading}>
+              Previous
+            </ActButton>
+            <ActButton onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={page >= pages || loading}>
+              Next
+            </ActButton>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

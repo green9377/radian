@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getOrder, adaptOrder, editOrder, formatTaka, genBg, getAddOns, type ApiProduct, type ApiAddOn } from "../_data/api";
+import {
+  getOrder, adaptOrder, editOrder, formatTaka, takaToPaisa, genBg, getAddOns,
+  listDeliveryMethods,
+  type ApiProduct, type ApiAddOn, type ApiDeliveryMethod,
+} from "../_data/api";
 import { TONE, Panel, type Tone } from "./OrderViews";
 import ProductPicker from "./ProductPicker";
 import Icon from "./Icon";
@@ -58,6 +62,11 @@ type OrderX = {
   discountPaisa: number;
   couponCode: string | null;
   deliveryPaisa: number;
+  /*  ⚠️ READ AND KEPT SINCE 11 SEP 2026 (audit #8) — see `save()`  */
+  adjustmentPaisa: number;
+  deliveryMethodId: string | null;
+  deliverySlotId: string | null;
+  zoneRaw: "DHAKA" | "BANGLADESH";
   payment: { method: string; paidPaisa: number; refundPaisa: number };
   editableGates?: Gates;
 };
@@ -103,10 +112,23 @@ export default function OrderEditForm({ id }: { id: string }) {
   const [pickTab, setPickTab] = useState<"product" | "addon">("product");
   const [addons, setAddons] = useState<ApiAddOn[]>([]);
   const [addonQ, setAddonQ] = useState("");
+  /** add-ons attached in this edit, per existing line id */
+  const [lineAddons, setLineAddons] = useState<Record<string, string[]>>({});
+  /** which item a picked add-on goes with (blank = the first one) */
+  const [addonLineId, setAddonLineId] = useState("");
+  /** does the customer pay for it, or is the shop giving it away? */
+  const [chargeForAddon, setChargeForAddon] = useState(true);
 
   /* money edits */
   const [deliveryPaisa, setDeliveryPaisa] = useState(0);
   const [charges, setCharges] = useState<Charge[]>([]);
+  /*  What Delivery and earlier edits have already put on this order. It is
+      NOT editable here — the box below adds to it — but it has to be carried,
+      because sending only this form's charges would erase it (audit #8).  */
+  const [baseAdjustment, setBaseAdjustment] = useState(0);
+  /*  DEC-DLV-018 — the real slot list, so date and slot stop being free text  */
+  const [methods, setMethods] = useState<ApiDeliveryMethod[]>([]);
+  const [slotId, setSlotId] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -123,11 +145,14 @@ export default function OrderEditForm({ id }: { id: string }) {
         setDeliveryNotes(a.deliveryNotes ?? "");
         setInternalNote(a.internalNote ?? "");
         setDeliveryPaisa(a.deliveryPaisa ?? 0);
+        setBaseAdjustment(a.adjustmentPaisa ?? 0);
+        setSlotId(a.deliverySlotId ?? "");
         setLineDiscounts(Object.fromEntries((a.lines ?? []).map((l) => [l.id, l.discountPaisa ?? 0])));
         setQtyById(Object.fromEntries((a.lines ?? []).map((l) => [l.id, l.qty])));
       })
       .catch(() => setO(null))
       .finally(() => setLoading(false));
+    listDeliveryMethods().then(setMethods).catch(() => setMethods([]));
   }, [id]);
 
   if (loading) return <div className="px-8 pt-10"><p className="text-body-soft">Loading order…</p></div>;
@@ -147,6 +172,15 @@ export default function OrderEditForm({ id }: { id: string }) {
   /* adding a new item stays open longer than changing an existing one */
   const canAdd = gates.addItems ?? gates.items;
   const liveLines = (o.lines ?? []).filter((l) => !removed.includes(l.id));
+  /*  every live slot offered in this order's zone, newest masters first. One
+      flat list rather than method-by-method: staff pick a TIME, and which
+      priced method carries it is Delivery's business, not this form's.  */
+  const zoneSlots = methods
+    .filter((m) => m.isActive && m.zone === o.zoneRaw)
+    .flatMap((m) => m.slots ?? [])
+    .filter((sl) => sl.isActive)
+    .filter((sl, i, arr) => arr.findIndex((x) => x.id === sl.id) === i)
+    .sort((a, b) => (a.startMin ?? a.sortOrder) - (b.startMin ?? b.sortOrder));
 
   /* ---- money ---- */
   const existingSubtotal = liveLines.reduce((s, l) => s + l.unitPaisa * (qtyById[l.id] ?? l.qty), 0);
@@ -154,7 +188,9 @@ export default function OrderEditForm({ id }: { id: string }) {
   const subtotal = existingSubtotal + addedSubtotal;
   const lineDiscTotal = liveLines.reduce((s, l) => s + Math.min(lineDiscounts[l.id] ?? 0, l.unitPaisa * (qtyById[l.id] ?? l.qty)), 0);
   const chargeTotal = charges.reduce((s, c) => s + c.paisa, 0);
-  const total = Math.max(0, subtotal - o.discountPaisa - lineDiscTotal + chargeTotal) + deliveryPaisa;
+  /*  what this order already carries, plus whatever is being added here  */
+  const adjustmentTotal = baseAdjustment + chargeTotal;
+  const total = Math.max(0, subtotal - o.discountPaisa - lineDiscTotal + adjustmentTotal) + deliveryPaisa;
   const paidNet = (o.payment?.paidPaisa ?? 0) - (o.payment?.refundPaisa ?? 0);
   const due = Math.max(0, total - paidNet);
   const refund = Math.max(0, paidNet - total);
@@ -169,10 +205,26 @@ export default function OrderEditForm({ id }: { id: string }) {
     setShowPicker(false);
   };
   const addCharge = (label = "", paisa = 0) => setCharges((c) => [...c, { key: `c-${Date.now()}-${Math.random()}`, label, paisa }]);
-  /* an add-on is priced but is not a Product, so it lands as a named charge line
-     (⇄ next schema step: OrderLine.addOnId so add-ons become first-class lines) */
+  /*
+    ⚠️ AN ADD-ON IS AN ITEM, NOT A CHARGE — audit 11 Sep 2026.
+
+    This used to call `addCharge("Add-on: Greeting card", 5000)`, which made
+    the add-on a nameless number in `adjustmentPaisa`. Three things followed:
+    the card never reached the picking list, its stock was never taken off the
+    shelf (so the shop sold cards it did not have), and cancelling the order
+    gave back the flowers but not the card.
+
+    An add-on is not a line of its own — `OrderLine` hangs off a Product — so
+    it is attached to the item it goes WITH, which is where the stock rules
+    have always read it from (`OrderLine.addonIds`). Whether the customer is
+    billed for it stays a separate, deliberate act: the tick below adds a
+    charge, and leaving it off means the shop is giving it away.
+  */
   const addAddOn = (a: ApiAddOn) => {
-    addCharge(`Add-on: ${a.name}`, a.pricePaisa);
+    const lineId = addonLineId || liveLines[0]?.id;
+    if (!lineId) return;
+    setLineAddons((m) => ({ ...m, [lineId]: [...new Set([...(m[lineId] ?? []), a.id])] }));
+    if (chargeForAddon) addCharge(`Add-on: ${a.name}`, a.pricePaisa);
     setShowPicker(false);
   };
   const patchCharge = (key: string, patch: Partial<Charge>) => setCharges((c) => c.map((x) => (x.key === key ? { ...x, ...patch } : x)));
@@ -193,6 +245,11 @@ export default function OrderEditForm({ id }: { id: string }) {
         dto.date = dateVal || undefined;
         dto.slotLabel = slotVal || undefined;
         dto.deliveryNotes = deliveryNotes;
+        /*  DEC-DLV-002 — the booking moves with the label. Sending the label
+            alone left `deliverySlotId` on the slot the order was booked into,
+            so the overview counted the parcel under a slot it was no longer
+            in, and a typed-in label grew a slot card of its own (audit).  */
+        if (slotId !== (o.deliverySlotId ?? "")) dto.deliverySlotId = slotId || null;
       }
       if (gates.items) {
         if (removed.length) dto.removeLineIds = removed;
@@ -201,11 +258,32 @@ export default function OrderEditForm({ id }: { id: string }) {
       }
       // adding stays open longer than changing (see editableFields on the API)
       if (canAdd && added.length) dto.addLines = added.map((a) => ({ productId: a.productId, qty: a.qty }));
+      /*  add-ons attached to items already on the order — a real attachment
+          with real stock behind it, not a nameless charge (audit)  */
+      const attached = Object.entries(lineAddons).filter(([, ids]) => ids.length);
+      if (attached.length) dto.lineAddons = attached.map(([lineId, addonIds]) => ({ lineId, addonIds }));
       if (gates.notes) {
         dto.internalNote = internalNote;
         dto.deliveryPaisa = deliveryPaisa;
-        dto.adjustmentPaisa = chargeTotal;
-        if (charges.length) dto.adjustmentNote = charges.map((c) => `${c.label || "charge"} ${formatTaka(c.paisa)}`).join(" · ");
+        /*
+          ⚠️ ONLY WHEN THE CHARGES BLOCK WAS ACTUALLY TOUCHED — audit #8.
+
+          This line used to be `dto.adjustmentPaisa = chargeTotal` on EVERY
+          save. `charges` starts empty on every page load, so chargeTotal was
+          0, so every save sent `adjustmentPaisa: 0` — and that field is where
+          Delivery puts a retry fare charged to the customer and where a
+          manager puts a goodwill discount. Editing the delivery note on an
+          order wiped a ৳150 retry fare and the due silently dropped by ৳150
+          with nothing in the timeline to say why.
+
+          The order's own adjustment is loaded into `baseAdjustment` and this
+          form ADDS to it. When nobody has opened the charges box the field is
+          left out of the request entirely, and the API leaves it alone.
+        */
+        if (charges.length) {
+          dto.adjustmentPaisa = baseAdjustment + chargeTotal;
+          dto.adjustmentNote = charges.map((c) => `${c.label || "charge"} ${formatTaka(c.paisa)}`).join(" · ");
+        }
         dto.lineDiscounts = liveLines.map((l) => ({ lineId: l.id, discountPaisa: Math.min(lineDiscounts[l.id] ?? 0, l.unitPaisa * (qtyById[l.id] ?? l.qty)) }));
       }
       await editOrder(o.id, dto);
@@ -269,8 +347,38 @@ export default function OrderEditForm({ id }: { id: string }) {
               {!gates.delivery && <Lock text="Address and slot are locked — the order is out for delivery." />}
               <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
                 <div className="col-span-full"><label className={labelCls}>Delivery address</label><input className="ipt h-[42px]" value={address} disabled={!gates.delivery} onChange={(e) => setAddress(e.target.value)} /></div>
-                <div><label className={labelCls}>Date</label><input className="ipt h-[42px]" value={dateVal} disabled={!gates.delivery} onChange={(e) => setDateVal(e.target.value)} placeholder="2026-07-17" /></div>
-                <div><label className={labelCls}>Time slot</label><input className="ipt h-[42px]" value={slotVal} disabled={!gates.delivery} onChange={(e) => setSlotVal(e.target.value)} placeholder="10 AM – 1 PM" /></div>
+                {/*  ⚠️ PICKERS, NOT FREE TEXT — audit 11 Sep 2026.
+                     Both of these were plain text boxes. A typed slot label
+                     left `deliverySlotId` pointing at the OLD slot, so the
+                     day's overview counted the parcel in a slot it was no
+                     longer in; and a typo ("10 AM - 1PM") grew a slot card of
+                     its own that nobody could get rid of. The date is a real
+                     date field and the slot comes from the live slot list for
+                     this order's zone.  */}
+                <div><label className={labelCls}>Date</label><input type="date" className="ipt h-[42px]" value={dateVal} disabled={!gates.delivery} onChange={(e) => setDateVal(e.target.value)} /></div>
+                <div>
+                  <label className={labelCls}>Time slot</label>
+                  <select
+                    className="ipt h-[42px]"
+                    value={slotId}
+                    disabled={!gates.delivery || zoneSlots.length === 0}
+                    onChange={(e) => {
+                      setSlotId(e.target.value);
+                      const hit = zoneSlots.find((x) => x.id === e.target.value);
+                      setSlotVal(hit?.label ?? "");
+                    }}
+                  >
+                    <option value="">{zoneSlots.length ? "No slot" : "No slots set up for this zone"}</option>
+                    {zoneSlots.map((sl) => (
+                      <option key={sl.id} value={sl.id}>{sl.label}</option>
+                    ))}
+                  </select>
+                  {/*  an order booked before a slot was retired still has to be
+                       able to say what it was booked into  */}
+                  {slotVal && !zoneSlots.some((x) => x.id === slotId) && (
+                    <p className="text-[12px] text-body-soft mt-1 mb-0">Booked as “{slotVal}” — that slot is no longer offered.</p>
+                  )}
+                </div>
                 <div className="col-span-full"><label className={labelCls}>Delivery note (rider)</label><input className="ipt h-[42px]" value={deliveryNotes} disabled={!gates.delivery} onChange={(e) => setDeliveryNotes(e.target.value)} placeholder="Call on arrival, gate code…" /></div>
               </div>
               <p className="text-[13px] text-body-soft mt-2 mb-0">Method &amp; zone: {o.methodLabel} · {o.zone === "dhaka" ? "Inside Dhaka" : "Nationwide"} — changing the method is a Delivery-side action.</p>
@@ -319,9 +427,20 @@ export default function OrderEditForm({ id }: { id: string }) {
                           <button type="button" onClick={() => setRemoved((r) => [...r, l.id])} className="w-[34px] h-[34px] grid place-items-center rounded-[9px] border bg-white" style={{ borderColor: t.border, color: TONE.rose.text }} title="Remove"><Icon name="trash" size={15} /></button>
                         ) : <span />}
                       </div>
+                      {(lineAddons[l.id] ?? []).length > 0 && (
+                        <div className="flex items-center gap-2 mt-2 pl-[56px] flex-wrap">
+                          <span className="text-[12px]" style={{ color: TONE.green.text }}>Add-ons:</span>
+                          {(lineAddons[l.id] ?? []).map((aid) => (
+                            <span key={aid} className="text-[11.5px] px-2 py-0.5 rounded-full inline-flex items-center gap-1.5" style={{ background: TONE.green.soft, color: TONE.green.text }}>
+                              {addons.find((x) => x.id === aid)?.name ?? "add-on"}
+                              <button type="button" onClick={() => setLineAddons((m) => ({ ...m, [l.id]: (m[l.id] ?? []).filter((x) => x !== aid) }))} className="font-bold">×</button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 mt-2 pl-[56px] flex-wrap">
                         <span className="text-[12px]" style={{ color: t.text }}>Discount ৳</span>
-                        <div className="w-[100px]"><input type="number" min={0} className="ipt h-[34px]" value={Math.round(disc / 100)} onChange={(e) => setLineDiscounts((m) => ({ ...m, [l.id]: Math.max(0, Number(e.target.value)) * 100 }))} /></div>
+                        <div className="w-[100px]"><input type="number" min={0} step="0.01" className="ipt h-[34px]" value={disc ? disc / 100 : ""} onChange={(e) => setLineDiscounts((m) => ({ ...m, [l.id]: Math.max(0, takaToPaisa(e.target.value)) }))} /></div>
                         {disc > 0 && <span className="text-[12px]" style={{ color: TONE.green.text }}>line now {formatTaka(Math.max(0, lineTotal - disc))}</span>}
                       </div>
                     </div>
@@ -382,6 +501,21 @@ export default function OrderEditForm({ id }: { id: string }) {
                       ) : (
                         <div>
                           <label className={labelCls}>Add an add-on</label>
+                          {/*  which item it goes with, and whether it is billed —
+                               an add-on lives on a line, because that is where
+                               stock reads it from (audit 11 Sep 2026)  */}
+                          <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3 mb-2">
+                            <div>
+                              <label className={labelCls}>Goes with</label>
+                              <select className="ipt h-[38px]" value={addonLineId} onChange={(e) => setAddonLineId(e.target.value)}>
+                                {liveLines.map((l) => (<option key={l.id} value={l.id}>{l.name}</option>))}
+                              </select>
+                            </div>
+                            <label className="flex items-end gap-2 text-[12.5px] pb-2" style={{ color: TONE.purple.text }}>
+                              <input type="checkbox" className="accent-purple" checked={chargeForAddon} onChange={(e) => setChargeForAddon(e.target.checked)} />
+                              Charge the customer for it
+                            </label>
+                          </div>
                           <input className="ipt h-[42px]" placeholder="Search add-ons…" value={addonQ} onChange={(e) => setAddonQ(e.target.value)} />
                           <div className="mt-2 border rounded-[12px] max-h-[240px] overflow-auto bg-white" style={{ borderColor: TONE.purple.border }}>
                             {addons.filter((a) => a.isActive && a.name.toLowerCase().includes(addonQ.toLowerCase())).map((a) => (
@@ -398,7 +532,10 @@ export default function OrderEditForm({ id }: { id: string }) {
                               <div className="px-3 py-4 text-[13px] text-body-soft">No add-ons found. Create them under Products → Add-ons.</div>
                             )}
                           </div>
-                          <p className="text-[13px] text-body-soft mt-2 mb-0">An add-on is added as a named, priced charge — it shows on the summary and changes the total.</p>
+                          <p className="text-[13px] text-body-soft mt-2 mb-0">
+                            The add-on is attached to the item you chose, so it reaches the picking list and its stock comes off the shelf. Ticking
+                            “charge the customer” also adds it as a named charge; untick it when the shop is giving it away.
+                          </p>
                         </div>
                       )}
                     </div>
@@ -417,12 +554,19 @@ export default function OrderEditForm({ id }: { id: string }) {
             <div className="p-5">
               <div className="max-w-[280px]">
                 <label className={labelCls}>Delivery charge ৳</label>
-                <input type="number" min={0} className="ipt h-[42px]" value={Math.round(deliveryPaisa / 100)} disabled={!gates.notes} onChange={(e) => setDeliveryPaisa(Math.max(0, Number(e.target.value)) * 100)} />
+                <input type="number" min={0} step="0.01" className="ipt h-[42px]" value={deliveryPaisa ? deliveryPaisa / 100 : ""} disabled={!gates.notes} onChange={(e) => setDeliveryPaisa(Math.max(0, takaToPaisa(e.target.value)))} />
               </div>
 
               <div className="mt-4">
                 <label className={labelCls}>Extra charges &amp; discounts</label>
-                {charges.length === 0 && <p className="text-[13px] text-body-soft mt-0 mb-2">None yet. Add a charge (＋) or a goodwill discount (−).</p>}
+                {charges.length === 0 && (
+                  <p className="text-[13px] text-body-soft mt-0 mb-2">
+                    None added here.{" "}
+                    {baseAdjustment !== 0
+                      ? `This order already carries an adjustment of ${formatTaka(Math.abs(baseAdjustment))}${baseAdjustment < 0 ? " off" : ""} — it is kept as it is unless you add something below.`
+                      : "Add a charge (＋) or a goodwill discount (−)."}
+                  </p>
+                )}
                 <div className="flex flex-col gap-2">
                   {charges.map((c) => (
                     <div key={c.key} className="grid grid-cols-[minmax(0,1fr)_130px_34px] gap-2 items-center">
@@ -489,8 +633,8 @@ export default function OrderEditForm({ id }: { id: string }) {
                   {formatTaka(subtotal)}
                   {lineDiscTotal > 0 && <span> − {formatTaka(lineDiscTotal)}</span>}
                   {o.discountPaisa > 0 && <span> − {formatTaka(o.discountPaisa)}</span>}
-                  {chargeTotal !== 0 && (
-                    <span> {chargeTotal < 0 ? "−" : "+"} {formatTaka(Math.abs(chargeTotal))}</span>
+                  {adjustmentTotal !== 0 && (
+                    <span> {adjustmentTotal < 0 ? "−" : "+"} {formatTaka(Math.abs(adjustmentTotal))}</span>
                   )}
                   {deliveryPaisa > 0 && <span> + {formatTaka(deliveryPaisa)}</span>}
                 </div>
@@ -503,6 +647,15 @@ export default function OrderEditForm({ id }: { id: string }) {
               <div className="flex justify-between py-1 text-[13.5px]"><span className="text-body-soft">Sub-total</span><span>{formatTaka(subtotal)}</span></div>
               {lineDiscTotal > 0 && <div className="flex justify-between py-1 text-[13.5px]"><span className="text-body-soft">Line discounts</span><span style={{ color: TONE.green.text }}>− {formatTaka(lineDiscTotal)}</span></div>}
               {o.discountPaisa > 0 && <div className="flex justify-between py-1 text-[13.5px]"><span className="text-body-soft">Coupon {o.couponCode}</span><span>− {formatTaka(o.discountPaisa)}</span></div>}
+              {/*  what the order ALREADY carries — a retry delivery fare, a
+                   goodwill discount somebody gave last week. It used to be
+                   invisible here and wiped on save (audit #8).  */}
+              {baseAdjustment !== 0 && (
+                <div className="flex justify-between py-1 text-[13.5px]">
+                  <span className="text-body-soft">Adjustment already on this order</span>
+                  <span>{baseAdjustment < 0 ? "− " : "+ "}{formatTaka(Math.abs(baseAdjustment))}</span>
+                </div>
+              )}
               {charges.map((c) => c.paisa !== 0 && (
                 <div key={c.key} className="flex justify-between py-1 text-[13.5px]"><span className="text-body-soft truncate">{c.label || "Charge"}</span><span>{c.paisa < 0 ? "− " : "+ "}{formatTaka(Math.abs(c.paisa))}</span></div>
               ))}

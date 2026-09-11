@@ -152,7 +152,8 @@ function Carriers() {
                   <td className={`${CELL} w-[150px]`}>
                     <div className="flex gap-1.5">
                       <ActButton onClick={() => setCourier(c)}>Edit</ActButton>
-                      <ActButton onClick={() => { if (confirm(`Remove ${c.name}?`)) void run(() => deleteCourierService(c.id)); }}><span style={{ color: SOLID.red }}>Remove</span></ActButton>
+                      {/* (audit 11 Sep 2026, P1 #34) the rider guard, mirrored: the API refuses while parcels are on the road and says how many */}
+                      <ActButton onClick={() => { if (confirm(`Remove ${c.name}? Parcels already with them have to be handed over first.`)) void run(() => deleteCourierService(c.id)); }}><span style={{ color: SOLID.red }}>Remove</span></ActButton>
                     </div>
                   </td>
                 </tr>

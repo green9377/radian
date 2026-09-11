@@ -357,6 +357,11 @@ export class CheckoutLeadController {
     ChannelSender,
     OtpService,
     EscalationNotifier,
+    /*  Orders serves the Lost-orders screen at /orders/lost* as well (audit
+        11 Sep 2026 #15) — same service, judged under the `orders` access node
+        where the screen actually lives. The /messaging/lost* routes above are
+        untouched.  */
+    LostOrdersService,
   ],
 })
 export class MessagingModule {}

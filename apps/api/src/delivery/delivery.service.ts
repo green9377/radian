@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -33,6 +34,7 @@ import type {
   AssignDto,
   AssignmentActionDto,
   BoardQuery,
+  BoardSeg,
   BulkAssignDto,
   SettleDto,
 } from './delivery.dto';
@@ -53,6 +55,8 @@ const ENTITY = 'DeliveryAssignment';
 
 @Injectable()
 export class DeliveryService {
+  private readonly logger = new Logger(DeliveryService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
@@ -153,78 +157,148 @@ export class DeliveryService {
       `promisedBy` existed) sort last rather than first — an unknown deadline
       must not push a real one down the page.  */
   async board(q: BoardQuery = {}) {
-    const limit = Math.min(Math.max(q.limit ?? 50, 1), 200);
+    const pageSize = Math.min(Math.max(q.pageSize ?? q.limit ?? 50, 1), 200);
     const page = Math.max(q.page ?? 1, 1);
+    const now = new Date();
 
-    /*  Today's successful deliveries stay on the board until midnight
-        (owner, 10 Sep 2026: a "Delivery successful" tile) — the team sees
-        the day close out without leaving the page. Midnight is Dhaka's.  */
-    const dhakaNow = new Date(Date.now() + 6 * 3600_000);
-    const todayStart = new Date(Date.UTC(dhakaNow.getUTCFullYear(), dhakaNow.getUTCMonth(), dhakaNow.getUTCDate()) - 6 * 3600_000);
+    /*  (audit 11 Sep 2026) THE DAY IS DHAKA'S, chosen by `date`, today when
+        blank — the same definition Orders overview uses: promised inside the
+        day, or unscheduled and placed that day. The default scope is that day
+        PLUS anything overdue (promised before now, not finished), because a
+        late parcel from yesterday is today's problem. `scope=all` lists every
+        date. Delivered rows are only ever the chosen day's (deliveredAt).  */
+    const DHAKA = 6 * 3600_000;
+    const dhakaNow = new Date(now.getTime() + DHAKA);
+    let y = dhakaNow.getUTCFullYear(), m = dhakaNow.getUTCMonth(), d = dhakaNow.getUTCDate();
+    const mt = /^(\d{4})-(\d{2})-(\d{2})$/.exec(q.date ?? '');
+    if (mt) { y = Number(mt[1]); m = Number(mt[2]) - 1; d = Number(mt[3]); }
+    const dayStart = new Date(Date.UTC(y, m, d) - DHAKA);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 3600_000);
+    const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const allDates = q.scope === 'all';
+
+    const live: DeliveryStatus[] = [
+      DeliveryStatus.unassigned,
+      DeliveryStatus.preparing,
+      DeliveryStatus.out_for_delivery,
+      DeliveryStatus.failed,
+    ];
     const base: Prisma.OrderWhereInput = {
       deletedAt: null,
       fulfillmentType: FulfillmentType.DELIVERY,
       salesStatus: { in: [SalesStatus.confirmed, SalesStatus.completed] },
-      OR: [
-        {
-          deliveryStatus: {
-            in: [
-              DeliveryStatus.unassigned,
-              DeliveryStatus.preparing,
-              DeliveryStatus.out_for_delivery,
-              DeliveryStatus.failed,
-            ],
-          },
-        },
-        { deliveryStatus: DeliveryStatus.delivered, deliveredAt: { gte: todayStart } },
-      ],
     };
-
-    const where: Prisma.OrderWhereInput = { ...base };
-    if (q.status) {
-      delete where.OR;
-      where.deliveryStatus = q.status as DeliveryStatus;
-      if (q.status === 'delivered') where.deliveredAt = { gte: todayStart };
-    }
-    if (q.zone) where.zone = q.zone as DeliveryZone;
-    if (q.methodId) where.deliveryMethodId = q.methodId;
+    if (q.zone) base.zone = q.zone as DeliveryZone;
+    if (q.methodId) base.deliveryMethodId = q.methodId;
 
     /*  One box, three things people actually have in hand: the order number a
         customer read out, the phone they rang from, or a name. Anything more
         clever would need explaining. */
     const term = q.q?.trim();
-    if (term) {
-      where.AND = [...(where.OR ? [{ OR: where.OR }] : [])];
-      delete where.OR;
-      where.OR = [
-        { orderNo: { contains: term, mode: 'insensitive' } },
-        { recipientPhone: { contains: term } },
-        { recipientName: { contains: term, mode: 'insensitive' } },
-        { address: { contains: term, mode: 'insensitive' } },
-        { customer: { is: { name: { contains: term, mode: 'insensitive' } } } },
-        { customer: { is: { phone: { contains: term } } } },
-      ];
-    }
+    const search: Prisma.OrderWhereInput[] = term
+      ? [{
+          OR: [
+            { orderNo: { contains: term, mode: 'insensitive' } },
+            { recipientPhone: { contains: term } },
+            { recipientName: { contains: term, mode: 'insensitive' } },
+            { address: { contains: term, mode: 'insensitive' } },
+            { customer: { is: { name: { contains: term, mode: 'insensitive' } } } },
+            { customer: { is: { phone: { contains: term } } } },
+          ],
+        }]
+      : [];
 
-    /*  The chips count the WHOLE queue, not the filtered page — "412 waiting"
-        must not drop to "3" because somebody typed a name in the search box. */
-    const [total, grouped] = await Promise.all([
+    const inDay: Prisma.OrderWhereInput = {
+      OR: [
+        { promisedBy: { gte: dayStart, lt: dayEnd } },
+        { promisedBy: null, placedAt: { gte: dayStart, lt: dayEnd } },
+      ],
+    };
+    const overdue: Prisma.OrderWhereInput = { promisedBy: { lt: now } };
+    /* not finished, on the chosen day (or overdue) */
+    const unfinished: Prisma.OrderWhereInput = {
+      AND: [
+        base,
+        { deliveryStatus: { in: live } },
+        ...(allDates ? [] : [{ OR: [inDay, overdue] }]),
+        ...search,
+      ],
+    };
+    /* finished on the chosen day */
+    const finished: Prisma.OrderWhereInput = {
+      AND: [
+        base,
+        { deliveryStatus: DeliveryStatus.delivered, deliveredAt: { gte: dayStart, lt: dayEnd } },
+        ...search,
+      ],
+    };
+
+    /*  The tiles, in the database. A parcel "has a carrier" when its active
+        assignment is still ASSIGNED (on the road is its own tile). A failed
+        order that was assigned again is BACK IN PREPARATION (P1 #16), so it
+        counts under Not assigned / Photo pending / Ready, not under Failed.  */
+    const activeAssigned: Prisma.DeliveryAssignmentWhereInput = { isActive: true, deletedAt: null, status: AssignmentStatus.ASSIGNED };
+    const hasCarrier: Prisma.OrderWhereInput = { assignments: { some: activeAssigned } };
+    const noCarrier: Prisma.OrderWhereInput = { assignments: { none: activeAssigned } };
+    const needsPhoto: Prisma.OrderWhereInput = { photoUpdates: true, photos: { none: { kind: 'PREP', deletedAt: null } } };
+    const photoOk: Prisma.OrderWhereInput = { OR: [{ photoUpdates: false }, { photos: { some: { kind: 'PREP', deletedAt: null } } }] };
+    const prepping: Prisma.OrderWhereInput = {
+      OR: [
+        { deliveryStatus: { in: [DeliveryStatus.unassigned, DeliveryStatus.preparing] } },
+        { deliveryStatus: DeliveryStatus.failed, ...hasCarrier },
+      ],
+    };
+    const segWhere: Record<BoardSeg, Prisma.OrderWhereInput> = {
+      all: unfinished,
+      notAssigned: { AND: [unfinished, { deliveryStatus: { in: [DeliveryStatus.unassigned, DeliveryStatus.preparing] } }, noCarrier] },
+      photoPending: { AND: [unfinished, prepping, hasCarrier, needsPhoto] },
+      ready: { AND: [unfinished, prepping, hasCarrier, photoOk] },
+      onRoad: { AND: [unfinished, { deliveryStatus: DeliveryStatus.out_for_delivery }] },
+      late: { AND: [unfinished, { deliveryStatus: { not: DeliveryStatus.failed } }, overdue] },
+      failed: { AND: [unfinished, { deliveryStatus: DeliveryStatus.failed }, noCarrier] },
+      delivered: finished,
+    };
+
+    /* legacy `status=` callers get the raw status inside the same day scope */
+    const legacyStatus = q.status as DeliveryStatus | undefined;
+    const seg: BoardSeg = q.seg && q.seg in segWhere ? q.seg : legacyStatus === DeliveryStatus.delivered ? 'delivered' : 'all';
+    const where: Prisma.OrderWhereInput =
+      legacyStatus && legacyStatus !== DeliveryStatus.delivered && !q.seg
+        ? { AND: [unfinished, { deliveryStatus: legacyStatus }] }
+        : segWhere[seg];
+
+    /*  The chips count the WHOLE day, not the page — "412 waiting" must not
+        drop to "3" because the screen is on page 9. */
+    const segKeys = Object.keys(segWhere) as BoardSeg[];
+    const [total, grouped, ...tallies] = await Promise.all([
       this.prisma.db.order.count({ where }),
-      this.prisma.db.order.groupBy({ by: ['deliveryStatus'], where: base, _count: { _all: true } }),
+      this.prisma.db.order.groupBy({ by: ['deliveryStatus'], where: { OR: [unfinished, finished] }, _count: { _all: true } }),
+      ...segKeys.map((k) => this.prisma.db.order.count({ where: segWhere[k] })),
     ]);
+    /*  (review 11 Sep 2026, RISK 12) TWO DIFFERENT QUESTIONS, TWO OBJECTS.
+        `counts` is what it has always been — the raw delivery statuses — and
+        `segCounts` is the board's eight tiles. They were briefly merged, and
+        two keys collide: "failed" as a status counts every failed order,
+        "failed" as a tile counts only the ones with nobody carrying them now.
+        An old caller reading `counts.failed` would silently have got the
+        narrower number. Kept apart.  */
     const counts: Record<string, number> = {
       unassigned: 0, preparing: 0, out_for_delivery: 0, failed: 0, delivered: 0,
     };
     for (const g of grouped) counts[g.deliveryStatus as string] = g._count?._all ?? 0;
+    const segCounts: Record<string, number> = {};
+    segKeys.forEach((k, i) => { segCounts[k] = tallies[i]; });
 
     const orders = await this.prisma.db.order.findMany({
       where,
-      orderBy: [
-        { promisedBy: { sort: 'asc', nulls: 'last' } },
-        { placedAt: 'asc' },
-      ],
-      skip: (page - 1) * limit,
-      take: limit,
+      orderBy: seg === 'delivered'
+        ? [{ deliveredAt: 'desc' }]
+        : [
+            { promisedBy: { sort: 'asc', nulls: 'last' } },
+            { placedAt: 'asc' },
+          ],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
       include: {
         customer: { select: { id: true, name: true, phone: true } },
         _count: {
@@ -235,46 +309,86 @@ export class DeliveryService {
         },
         /*  the board's Photo column (owner, 10 Sep 2026): did the customer
             ask, and is the before-delivery shot there yet  */
-        photos: { where: { deletedAt: null, kind: 'PREP' }, select: { id: true }, take: 1 },
+        /*  one row per KIND, never the whole album (review 11 Sep 2026): all
+            this asks is "is there a prep shot, is there a hand-over shot".  */
+        photos: {
+          where: { deletedAt: null, kind: { in: ['PREP', 'DELIVERY'] } },
+          select: { kind: true },
+          distinct: ['kind'],
+          take: 2,
+        },
+        /* "photo sent" is only true when a PHOTO_UPDATE message really went (P2) */
+        messages: { where: { deletedAt: null, kind: 'PHOTO_UPDATE', status: 'SENT' }, select: { id: true }, take: 1 },
         lines: { where: { deletedAt: null }, select: { name: true, qty: true }, take: 3 },
+        /*  newest first: the active one is the newest (re-assign switches the
+            old one off), and for a failed order the newest is the attempt that
+            failed — the carrier and reason the row must show (P1 #23).  */
         assignments: {
-          where: { deletedAt: null, isActive: true },
+          where: { deletedAt: null },
+          orderBy: { assignedAt: 'desc' },
+          take: 3,
           include: { rider: { select: { id: true, name: true } }, courier: { select: { id: true, name: true } } },
-          take: 1,
         },
       },
     });
     return {
-      rows: orders.map((o) => ({
-        id: o.id,
-        orderNo: o.orderNo,
-        placedAt: o.placedAt,
-        promisedBy: o.promisedBy,
-        customer: o.customer,
-        recipientName: o.recipientName,
-        isGift: o.isGift,
-        zone: o.zone,
-        address: o.address,
-        methodLabel: o.methodLabel,
-        slotLabel: o.slotLabel,
-        date: o.date,
-        salesStatus: o.salesStatus,
-        deliveryStatus: o.deliveryStatus,
-        totalPaisa: o.totalPaisa,
-        duePaisa: o.duePaisa,
-        paymentMethod: o.paymentMethod,
-        deliveredAt: o.deliveredAt,
-        lineCount: o._count.lines,
-        photoCount: o._count.photos,
-        photoUpdates: o.photoUpdates,
-        hasPrepPhoto: o.photos.length > 0,
-        items: o.lines.map((l) => ({ name: l.name, qty: l.qty })),
-        assignment: o.assignments[0] ?? null,
-      })),
+      rows: orders.map((o) => {
+        const last = o.assignments[0] ?? null;
+        return {
+          id: o.id,
+          orderNo: o.orderNo,
+          placedAt: o.placedAt,
+          promisedBy: o.promisedBy,
+          customer: o.customer,
+          recipientName: o.recipientName,
+          isGift: o.isGift,
+          zone: o.zone,
+          address: o.address,
+          methodLabel: o.methodLabel,
+          slotLabel: o.slotLabel,
+          date: o.date,
+          salesStatus: o.salesStatus,
+          deliveryStatus: o.deliveryStatus,
+          totalPaisa: o.totalPaisa,
+          duePaisa: o.duePaisa,
+          paymentMethod: o.paymentMethod,
+          deliveredAt: o.deliveredAt,
+          lineCount: o._count.lines,
+          photoCount: o._count.photos,
+          photoUpdates: o.photoUpdates,
+          hasPrepPhoto: o.photos.some((p) => p.kind === 'PREP'),
+          hasDeliveryPhoto: o.photos.some((p) => p.kind === 'DELIVERY'),
+          photoSent: o.messages.length > 0,
+          items: o.lines.map((l) => ({ name: l.name, qty: l.qty })),
+          assignment: o.assignments.find((a) => a.isActive) ?? null,
+          lastAssignment: last
+            ? {
+                id: last.id,
+                assignmentNo: last.assignmentNo,
+                kind: last.kind,
+                isActive: last.isActive,
+                status: last.status,
+                carrierName: last.rider?.name ?? last.courier?.name ?? (last.platform ? `${last.platform} rider` : null),
+                failReason: last.failReason,
+                failDecision: last.failDecision,
+                failedAt: last.failedAt,
+              }
+            : null,
+        };
+      }),
       total,
       page,
-      limit,
+      pageSize,
+      limit: pageSize,
+      /** the raw delivery statuses, exactly as this endpoint has always returned them */
       counts,
+      /** the board's eight tiles — kept in their own object so no key collides with a status */
+      segCounts,
+      date: dateStr,
+      scope: allDates ? 'all' : 'today',
+      seg,
+      /* the photo gates, so the board can offer the hand-over photo right there (P1 #21) */
+      rules: await this.deliverySettings(),
     };
   }
 
@@ -326,6 +440,21 @@ export class DeliveryService {
       throw new BadRequestException('a counter (POS) sale has no delivery');
     if (order.salesStatus === 'cancelled' || order.salesStatus === 'completed')
       throw new BadRequestException(`cannot assign a ${order.salesStatus} order`);
+
+    /*  (review 11 Sep 2026, RISK 5) "THE CUSTOMER PAYS THIS RETRY" NEEDS THE
+        FARE NOW, NOT LATER.
+
+        The fare can only be added to an order that is still open — once the
+        parcel is delivered, a new due is a bill nobody collects, so the
+        charge is refused there (P0 #4). Settling happens AFTER delivery.
+        Together that left the tick meaning nothing: staff would say "the
+        customer pays" and the shop would silently eat the fare. Either the
+        fare is known at assign time and lands on the order at once, or the
+        tick is a promise the system cannot keep. So it is required here.  */
+    if (dto.chargeCustomer && !(dto.costPaisa && dto.costPaisa > 0))
+      throw new BadRequestException(
+        'Type the retry fare as well — a fare the customer pays has to go on the order now, while it is still open. It can no longer be added once the parcel is delivered.',
+      );
 
     const kind = dto.kind as AssignmentKind;
     let riderName: string | null = null;
@@ -380,44 +509,90 @@ export class DeliveryService {
           : AssignmentStatus.CANCELLED;
     const isSwap = !!prevActive && supersededStatus === AssignmentStatus.SWAPPED;
 
-    const assignmentNo = await this.nextNo();
-    const created = await this.prisma.db.$transaction(async (tx) => {
-      if (prevActive) {
-        await tx.deliveryAssignment.update({
-          where: { id: prevActive.id },
-          data: { isActive: false, status: supersededStatus },
+    /*  (audit 11 Sep 2026, P1 #24) ONE WINNER. The supersede is a guarded
+        updateMany — if somebody else already switched that row off, this
+        assign loses and says so instead of stacking a second carrier. The
+        DLV number is drawn INSIDE the transaction and retried on a clash;
+        and the partial unique index (one active per order) turns any race
+        the code missed into a refusal rather than two live assignments.  */
+    const costTyped = !!dto.costPaisa && dto.costPaisa > 0 ? Math.round(dto.costPaisa) : 0;
+    let created: Prisma.DeliveryAssignmentGetPayload<{ include: { rider: true; courier: true } }> | null = null;
+    for (let attempt = 1; attempt <= 3 && !created; attempt++) {
+      try {
+        created = await this.prisma.db.$transaction(async (tx) => {
+          if (prevActive) {
+            const won = await tx.deliveryAssignment.updateMany({
+              where: { id: prevActive.id, isActive: true },
+              data: { isActive: false, status: supersededStatus },
+            });
+            if (won.count !== 1)
+              throw new BadRequestException('This parcel\'s carrier was just changed by somebody else — refresh and look again');
+          }
+          const assignmentNo = await this.nextNo(tx);
+          return tx.deliveryAssignment.create({
+            data: {
+              assignmentNo,
+              orderId: dto.orderId,
+              kind,
+              riderId: kind === 'RIDER' ? dto.riderId : null,
+              courierId: kind === 'COURIER' ? dto.courierId : null,
+              consignmentNo: dto.consignmentNo,
+              trackingUrl,
+              note: dto.note,
+              actorName,
+              platform: kind === 'ONE_TIME' ? dto.platform?.trim() : null,
+              riderPhone: kind === 'ONE_TIME' ? dto.riderPhone?.trim() || null : null,
+              paidCash: kind === 'ONE_TIME' && !!dto.paidCash,
+              chargeCustomer: !!dto.chargeCustomer,
+              /*  A fare known at assign time is the cost — typed by a person, so
+                  costRecordedAt is set (DEC-DLV-016). Left blank, Settle asks.  */
+              ...(costTyped > 0 ? { costPaisa: costTyped, costRecordedAt: new Date() } : {}),
+              /*  R5 (4 Sep 2026) — a carrier given a parcel that is ALREADY on the
+                  road (a swap, or an order sent out before anyone was assigned)
+                  is carrying it now. Born ASSIGNED, this row could never be marked
+                  delivered through Delivery ("cannot deliver from ASSIGNED"), the
+                  order screen went round it, and the settle board — DELIVERED rows
+                  only — never saw the cash. Born on the road, the record tells the
+                  truth from its first second.  */
+              ...(wasOnTheRoad ? { status: AssignmentStatus.OUT_FOR_DELIVERY, outAt: new Date() } : {}),
+            },
+            include: { rider: true, courier: true },
+          });
         });
+      } catch (e) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+          const target = String((e.meta as { target?: unknown } | undefined)?.target ?? '');
+          if (target.includes('assignmentNo')) {
+            if (attempt < 3) continue; // number clash — draw again
+            throw new BadRequestException('Could not number this assignment (three clashes in a row) — try again');
+          }
+          // the partial unique index spoke: somebody assigned this order a moment ago
+          throw new BadRequestException('This order already has an active carrier — refresh; if you meant to change it, use Change carrier');
+        }
+        throw e;
       }
-      return tx.deliveryAssignment.create({
-        data: {
-          assignmentNo,
-          orderId: dto.orderId,
-          kind,
-          riderId: kind === 'RIDER' ? dto.riderId : null,
-          courierId: kind === 'COURIER' ? dto.courierId : null,
-          consignmentNo: dto.consignmentNo,
-          trackingUrl,
-          note: dto.note,
-          actorName,
-          platform: kind === 'ONE_TIME' ? dto.platform?.trim() : null,
-          riderPhone: kind === 'ONE_TIME' ? dto.riderPhone?.trim() || null : null,
-          paidCash: kind === 'ONE_TIME' && !!dto.paidCash,
-          chargeCustomer: !!dto.chargeCustomer,
-          /*  A fare known at assign time is the cost — typed by a person, so
-              costRecordedAt is set (DEC-DLV-016). Left blank, Settle asks.  */
-          ...(dto.costPaisa && dto.costPaisa > 0 ? { costPaisa: Math.round(dto.costPaisa), costRecordedAt: new Date() } : {}),
-          /*  R5 (4 Sep 2026) — a carrier given a parcel that is ALREADY on the
-              road (a swap, or an order sent out before anyone was assigned)
-              is carrying it now. Born ASSIGNED, this row could never be marked
-              delivered through Delivery ("cannot deliver from ASSIGNED"), the
-              order screen went round it, and the settle board — DELIVERED rows
-              only — never saw the cash. Born on the road, the record tells the
-              truth from its first second.  */
-          ...(wasOnTheRoad ? { status: AssignmentStatus.OUT_FOR_DELIVERY, outAt: new Date() } : {}),
-        },
-        include: { rider: true, courier: true },
-      });
-    });
+    }
+    if (!created) throw new BadRequestException('Could not number this assignment — try again');
+
+    /*  (audit 11 Sep 2026, P0 #5) A fare typed at assign is a cost the books
+        must see: it goes to 5200 Delivery Cost now, not "when Settle gets to
+        it" — Settle never did, because the parcel already read as recorded.
+        A posting failure is logged by Finance (FinancePostingFailure, replay
+        from the Ledger) and never undoes the assignment.  */
+    if (costTyped > 0) {
+      try {
+        await this.finance.onDeliveryCost(created.id);
+      } catch (e) {
+        this.logger.warn(`delivery cost posting failed for ${created.assignmentNo}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      /*  (P0 #4) staff decided the customer pays this retry's fare, and the
+          fare is known now, while the parcel is still undelivered — this is
+          the one moment it goes on the order. Sales does the once-only claim
+          (customerChargedAt) inside its own transaction.  */
+      if (created.chargeCustomer) {
+        await this.orders.chargeDeliveryToCustomer(dto.orderId, costTyped, actorName, created.id);
+      }
+    }
 
     // DEC-DLV-006 — keep the legacy Order courier fields in step (old screens live on)
     if (kind === 'COURIER') {
@@ -444,8 +619,8 @@ export class DeliveryService {
           order later has to be able to tell "we changed carrier mid-journey"
           from "we assigned it", and the two look identical otherwise.  */
       label: isSwap
-        ? `Carrier swapped on the road — now ${who} (${assignmentNo}), was ${prevActive?.assignmentNo}`
-        : `Assigned to ${who} — ${assignmentNo}`,
+        ? `Carrier swapped on the road — now ${who} (${created.assignmentNo}), was ${prevActive?.assignmentNo}`
+        : `Assigned to ${who} — ${created.assignmentNo}`,
       actorName,
     });
     return created;
@@ -479,13 +654,41 @@ export class DeliveryService {
         if (a.courier?.trackingUrlTemplate)
           trackingUrl = a.courier.trackingUrlTemplate.replace('{cn}', dto.consignmentNo);
       }
-      // DLV-R03 — the order transition carries the business rules (R5: told which assignment is moving)
-      await this.orders.outForDelivery(a.orderId, actorName, { viaAssignmentId: a.id });
-      return this.prisma.db.deliveryAssignment.update({
-        where: { id },
-        data: { status: AssignmentStatus.OUT_FOR_DELIVERY, outAt: new Date(), consignmentNo, trackingUrl },
-        include: { rider: true, courier: true },
+      /*  (audit 11 Sep 2026, P0 #6 — corrected on review, same day)
+          CLAIM, THEN CALL SALES, THEN COMPENSATE IF SALES REFUSED.
+
+          ⚠️ THE OBVIOUS SHAPE IS THE WRONG ONE. Wrapping this in
+          `$transaction(async tx => { claim; await this.orders.out(); })`
+          reads as "all or nothing" and is not: OrdersService opens its OWN
+          transaction on a second pooled connection and then does long
+          post-commit work (finance postings, COGS, LTV, best-seller re-rank,
+          message queueing). Prisma's interactive-transaction timeout is five
+          seconds, so on a slow run the OUTER transaction dies with P2028
+          AFTER Sales has committed — order delivered, assignment still on the
+          road, parcel never reaches the settle board, the rider's cash never
+          reconciled. That is the very split this fix exists to close, failing
+          in the worse direction. It also pins two pool connections per click.
+
+          So: the guarded `updateMany` is atomic ON ITS OWN and needs no
+          transaction. If Sales then refuses, the claim is put back exactly as
+          it was — guarded by the timestamp WE wrote, so a compensation can
+          never overwrite somebody else's later move.  */
+      const claimedAt = new Date();
+      const won = await this.prisma.db.deliveryAssignment.updateMany({
+        where: { id, isActive: true, status: AssignmentStatus.ASSIGNED },
+        data: { status: AssignmentStatus.OUT_FOR_DELIVERY, outAt: claimedAt, consignmentNo, trackingUrl },
       });
+      if (won.count !== 1) throw new BadRequestException('This parcel was just sent out by somebody else — refresh');
+      try {
+        // DLV-R03 — the order transition carries the business rules (R5: told which assignment is moving)
+        await this.orders.outForDelivery(a.orderId, actorName, { viaAssignmentId: a.id });
+      } catch (e) {
+        await this.undoClaim(id, { outAt: claimedAt }, {
+          status: a.status, outAt: a.outAt, consignmentNo: a.consignmentNo, trackingUrl: a.trackingUrl,
+        }, a.assignmentNo);
+        throw e;
+      }
+      return this.prisma.db.deliveryAssignment.findUniqueOrThrow({ where: { id }, include: { rider: true, courier: true } });
     }
 
     if (action === 'delivered') {
@@ -500,39 +703,73 @@ export class DeliveryService {
         if (proof === 0)
           throw new BadRequestException('A delivery photo is required before marking delivered — add one on the order');
       }
-      await this.orders.delivered(a.orderId, actorName, { viaAssignmentId: a.id }); // COD collect + LTV mirror live there
-      return this.prisma.db.deliveryAssignment.update({
-        where: { id },
-        data: { status: AssignmentStatus.DELIVERED, deliveredAt: new Date(), isActive: false },
-        include: { rider: true, courier: true },
+      /* same shape as `out`: claim, call Sales, put the claim back if Sales refused */
+      const claimedAt = new Date();
+      const won = await this.prisma.db.deliveryAssignment.updateMany({
+        where: { id, isActive: true, status: AssignmentStatus.OUT_FOR_DELIVERY },
+        data: { status: AssignmentStatus.DELIVERED, deliveredAt: claimedAt, isActive: false },
       });
+      if (won.count !== 1) throw new BadRequestException('This parcel was just marked delivered by somebody else — refresh');
+      try {
+        await this.orders.delivered(a.orderId, actorName, { viaAssignmentId: a.id }); // COD collect + LTV mirror live there
+      } catch (e) {
+        await this.undoClaim(id, { deliveredAt: claimedAt }, {
+          status: a.status, deliveredAt: a.deliveredAt, isActive: true,
+        }, a.assignmentNo);
+        throw e;
+      }
+      return this.prisma.db.deliveryAssignment.findUniqueOrThrow({ where: { id }, include: { rider: true, courier: true } });
     }
 
     if (action === 'fail') {
       if (a.status !== AssignmentStatus.OUT_FOR_DELIVERY && a.status !== AssignmentStatus.ASSIGNED)
         throw new BadRequestException(`cannot fail from ${a.status}`);
-      if (a.status === AssignmentStatus.OUT_FOR_DELIVERY) {
-        await this.orders.failDelivery(a.orderId, actorName);
-      }
       /*  Owner, 10 Sep 2026: what happens next is a staff decision, taken
           here with the reason. RETRY = the order stays failed and waits for
           a new carrier (DLV-R04); KEEP = same, nobody is retrying yet;
           CANCEL = the order is cancelled through Sales, refund rules apply. */
       const decision = dto.decision ?? 'KEEP';
-      const failed = await this.prisma.db.deliveryAssignment.update({
-        where: { id },
+      const reasonFields = await this.failReasonFields(dto);
+      /* same shape as `out`: claim, call Sales, put the claim back if Sales refused */
+      const claimedAt = new Date();
+      const won = await this.prisma.db.deliveryAssignment.updateMany({
+        where: { id, isActive: true, status: { in: [AssignmentStatus.OUT_FOR_DELIVERY, AssignmentStatus.ASSIGNED] } },
         data: {
           status: AssignmentStatus.FAILED,
-          failedAt: new Date(),
+          failedAt: claimedAt,
           failDecision: decision,
           /*  DEC-DLV-022 — the reason comes from the list, and its label is
               snapshotted beside the id. Renaming a reason later must not
               rewrite what this parcel said, the same discipline as
               `variantLabel` on an order line.  */
-          ...(await this.failReasonFields(dto)),
+          ...reasonFields,
           isActive: false, // DLV-R04 — retry = new assignment
         },
-        include: { rider: true, courier: true },
+      });
+      if (won.count !== 1) throw new BadRequestException('This parcel was just changed by somebody else — refresh');
+      if (a.status === AssignmentStatus.OUT_FOR_DELIVERY) {
+        try {
+          /*  (review 11 Sep 2026) the reason and the note travel with it, so
+              `Order.failReason` / `failNote` say the same thing the assignment
+              does. The DECISION is deliberately NOT passed: Sales would apply
+              CANCEL itself, and the cancel below already does that for both
+              paths (a parcel that never left has no failDelivery call at all).  */
+          await this.orders.failDelivery(a.orderId, actorName, {
+            failReasonId: dto.failReasonId,
+            /* with no reason picked, the typed text IS the reason; with one, it is the note beside it */
+            reason: dto.failReasonId ? undefined : dto.failReason?.trim() || undefined,
+            note: dto.failReason?.trim() || undefined,
+          });
+        } catch (e) {
+          await this.undoClaim(id, { failedAt: claimedAt }, {
+            status: a.status, failedAt: a.failedAt, failDecision: a.failDecision,
+            failReasonId: a.failReasonId, failReason: a.failReason, isActive: true,
+          }, a.assignmentNo);
+          throw e;
+        }
+      }
+      const failed = await this.prisma.db.deliveryAssignment.findUniqueOrThrow({
+        where: { id }, include: { rider: true, courier: true },
       });
       if (decision === 'CANCEL') {
         await this.orders.cancel(a.orderId, { reason: `delivery failed: ${dto.failReason ?? 'no reason typed'}`, actorName });
@@ -552,6 +789,36 @@ export class DeliveryService {
       data: { status: AssignmentStatus.CANCELLED, isActive: false },
       include: { rider: true, courier: true },
     });
+  }
+
+  /**
+   * (review 11 Sep 2026) Put a claim back after Sales refused the step.
+   *
+   * `guard` is the timestamp THIS request wrote, so the compensation touches
+   * the row only while it still holds our own claim — if somebody else has
+   * moved the parcel on in the meantime, we leave their work alone and simply
+   * log. A compensation that cannot be applied (the unique "one active
+   * assignment per order" index, when a replacement carrier was assigned while
+   * this row sat inactive) is logged rather than thrown: the caller is already
+   * receiving the real error, and burying it under a second one would tell the
+   * shop nothing about what actually went wrong.
+   */
+  private async undoClaim(
+    id: string,
+    guard: Prisma.DeliveryAssignmentWhereInput,
+    /*  UNCHECKED, not the checked input: putting a claim back may have to
+        restore `failReasonId` — a relation's own column, which the checked
+        update-many input does not accept (review 11 Sep 2026).  */
+    restore: Prisma.DeliveryAssignmentUncheckedUpdateManyInput,
+    assignmentNo: string,
+  ) {
+    try {
+      const back = await this.prisma.db.deliveryAssignment.updateMany({ where: { id, ...guard }, data: restore });
+      if (back.count !== 1)
+        this.logger.warn(`could not undo the claim on ${assignmentNo} — the row moved on; check it by hand`);
+    } catch (e) {
+      this.logger.error(`undoing the claim on ${assignmentNo} failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
   /* ============== DEC-DLV-022 · why a delivery failed ==================
@@ -685,16 +952,30 @@ export class DeliveryService {
   async unsettled(carrierId?: string) {
     const rows = await this.prisma.db.deliveryAssignment.findMany({
       where: {
-        status: AssignmentStatus.DELIVERED,
         deletedAt: null,
         ...(carrierId
           ? carrierId.startsWith('one-time:')
             ? { kind: AssignmentKind.ONE_TIME, platform: carrierId.slice(9) }
             : { OR: [{ riderId: carrierId }, { courierId: carrierId }] }
           : {}),
-        OR: [{ costRecordedAt: null }, { codHandedOver: false }],
+        /*  (audit 11 Sep 2026, P0 #7) a FAILED attempt cost money too — the
+            Pathao trip that came back from a locked gate is still a fare.
+            It is here until its cost is recorded; cash never applies to it. */
+        AND: [{
+          OR: [
+            { status: AssignmentStatus.DELIVERED, OR: [{ costRecordedAt: null }, { codHandedOver: false }] },
+            { status: AssignmentStatus.FAILED, costRecordedAt: null },
+          ],
+        }],
       },
-      orderBy: { deliveredAt: 'asc' },
+      /*  (review 11 Sep 2026, RISK 13) A FAILED ATTEMPT HAS NO `deliveredAt`.
+          Ordering on that column alone put every unpriced failure in one
+          null-shaped clump at one end of the list, and `daysSince` read null
+          beside it — the oldest unpaid fares, which is exactly what this list
+          is for, could be the least visible thing on it. The database sorts on
+          both columns and the effective date (delivered, else failed, else
+          assigned) is worked out below, where the shape is known.  */
+      orderBy: [{ deliveredAt: 'asc' }, { failedAt: 'asc' }],
       take: 500,
       include: {
         rider: { select: { id: true, name: true } },
@@ -719,11 +1000,14 @@ export class DeliveryService {
       .filter(
         (a) =>
           a.costRecordedAt === null ||
-          (!a.codHandedOver && (collected.get(a.order?.id ?? '') ?? 0) > 0),
+          (a.status === AssignmentStatus.DELIVERED && !a.codHandedOver && (collected.get(a.order?.id ?? '') ?? 0) > 0),
       )
       .map((a) => ({
         assignmentId: a.id,
         assignmentNo: a.assignmentNo,
+        status: a.status,
+        failedAt: a.failedAt,
+        failReason: a.failReason,
         deliveredAt: a.deliveredAt,
         daysSince: a.deliveredAt
           ? Math.floor((Date.now() - a.deliveredAt.getTime()) / 86400000)
@@ -742,8 +1026,8 @@ export class DeliveryService {
         orderNo: a.order?.orderNo,
         zone: a.order?.zone,
         address: a.order?.address,
-        /** the cash actually taken at the door — 0 on a prepaid parcel */
-        codDuePaisa: collected.get(a.order?.id ?? '') ?? 0,
+        /** the cash actually taken at the door — 0 on a prepaid parcel, 0 on a failed attempt */
+        codDuePaisa: a.status === AssignmentStatus.DELIVERED ? collected.get(a.order?.id ?? '') ?? 0 : 0,
         costPaisa: a.costPaisa,
         costRecorded: a.costRecordedAt !== null,
         codHandedOver: a.codHandedOver,
@@ -777,23 +1061,46 @@ export class DeliveryService {
   async money(q: { days?: number } = {}) {
     const days = Math.min(Math.max(q.days ?? 30, 1), 365);
     const since = new Date(Date.now() - days * 86400000);
+    /*  (audit 11 Sep 2026, P1 #20) THE WINDOW IS FOR FINISHED ROWS ONLY.
+        Cash still in a rider's hand, or a fee nobody has recorded, is owed
+        whatever the date on the order — filtering it by placedAt made COD
+        that was never handed in disappear after 30 days, which is the one
+        thing this screen exists to stop. So: recent rows, PLUS every row
+        that is still on the road, still holding cash, or still unpriced.  */
+    const openCost: Prisma.DeliveryAssignmentWhereInput = {
+      deletedAt: null,
+      status: { in: [AssignmentStatus.DELIVERED, AssignmentStatus.FAILED] },
+      costRecordedAt: null,
+    };
+    const openCash: Prisma.DeliveryAssignmentWhereInput = {
+      deletedAt: null,
+      status: AssignmentStatus.DELIVERED,
+      codHandedOver: false,
+    };
     const orders = await this.prisma.db.order.findMany({
       where: {
         deletedAt: null,
         fulfillmentType: FulfillmentType.DELIVERY,
         salesStatus: { not: SalesStatus.cancelled },
         deliveryStatus: { in: [DeliveryStatus.out_for_delivery, DeliveryStatus.delivered] },
-        placedAt: { gte: since },
+        OR: [
+          { placedAt: { gte: since } },
+          { deliveryStatus: DeliveryStatus.out_for_delivery },
+          { assignments: { some: openCost } },
+          { assignments: { some: openCash } },
+        ],
       },
       orderBy: [{ deliveryStatus: 'asc' }, { placedAt: 'desc' }],
       take: 500,
       include: {
         customer: { select: { id: true, name: true, phone: true } },
         lines: { where: { deletedAt: null }, select: { qty: true, name: true, product: { select: { costPaisa: true } } } },
+        /*  (P0 #7) EVERY attempt, newest first. The newest is "the carrier"
+            the row talks about; the older ones that failed still cost money
+            and are listed under it so each can be recorded and paid.  */
         assignments: {
           where: { deletedAt: null },
           orderBy: { assignedAt: 'desc' },
-          take: 1,
           include: { rider: { select: { id: true, name: true } }, courier: { select: { id: true, name: true } } },
         },
       },
@@ -812,67 +1119,92 @@ export class DeliveryService {
     const cogsByOrder = new Map<string, number>();
     for (const m of moved) if (m.refId) cogsByOrder.set(m.refId, Math.abs(m._sum.valuePaisa ?? 0));
 
-    const totals = { toCollect: 0, withCarrier: 0, received: 0, paidCarrier: 0, costMissing: 0, revenue: 0, profit: 0 };
-    const rows = orders.map((o) => {
-      const a = o.assignments[0] ?? null;
-      const cod = collected.get(o.id) ?? 0;
-      const delivered = o.deliveryStatus === DeliveryStatus.delivered;
-      const stage = !delivered
-        ? o.duePaisa > 0 ? 'TO_COLLECT' : 'PREPAID'
-        : cod > 0
-          ? a?.codHandedOver ? 'RECEIVED' : 'WITH_CARRIER'
-          : 'PREPAID';
-      const cogsPosted = cogsByOrder.get(o.id);
-      const cogs = cogsPosted ?? o.lines.reduce((s, l) => s + (l.product?.costPaisa ?? 0) * l.qty, 0);
-      const costRecorded = !!a?.costRecordedAt;
-      const carrierCost = costRecorded ? (a?.costPaisa ?? 0) : 0;
-      const profit = o.totalPaisa - cogs - carrierCost;
-      if (stage === 'TO_COLLECT') totals.toCollect += o.duePaisa;
-      if (stage === 'WITH_CARRIER') totals.withCarrier += cod;
-      if (stage === 'RECEIVED') totals.received += cod;
-      if (costRecorded) totals.paidCarrier += carrierCost;
-      else if (delivered) totals.costMissing++;
-      if (delivered) {
-        totals.revenue += o.totalPaisa;
-        totals.profit += profit;
-      }
-      return {
-        id: o.id,
-        orderNo: o.orderNo,
-        placedAt: o.placedAt,
-        deliveredAt: a?.deliveredAt ?? null,
-        deliveryStatus: o.deliveryStatus,
-        customer: o.customer,
-        isGift: o.isGift,
-        recipientName: o.recipientName,
-        address: o.address,
-        paymentMethod: o.paymentMethod,
-        totalPaisa: o.totalPaisa,
-        deliveryPaisa: o.deliveryPaisa,
-        duePaisa: o.duePaisa,
-        codCollectedPaisa: cod,
-        stage,
-        carrier: a
-          ? {
-              assignmentId: a.id,
-              kind: a.kind,
-              carrierType: a.kind === 'ONE_TIME' ? 'ONE_TIME' : a.kind,
-              carrierId: a.riderId ?? a.courierId ?? (a.platform ? `one-time:${a.platform}` : null),
-              name: a.rider?.name ?? a.courier?.name ?? (a.platform ? `${a.platform} rider` : 'Carrier'),
-              costPaisa: a.costPaisa,
-              costRecorded,
-              paidCash: a.paidCash,
-              chargeCustomer: a.chargeCustomer,
-              codHandedOver: a.codHandedOver,
-            }
-          : null,
-        cogsPaisa: cogs,
-        cogsFrom: cogsPosted !== undefined ? 'inventory' : 'product cost',
-        carrierCostPaisa: carrierCost,
-        profitPaisa: profit,
-        profitFinal: costRecorded || (delivered && a?.kind === 'ONE_TIME' && a.paidCash),
-      };
+    const shapeAttempt = (a: (typeof orders)[number]['assignments'][number]) => ({
+      assignmentId: a.id,
+      assignmentNo: a.assignmentNo,
+      status: a.status,
+      isActive: a.isActive,
+      kind: a.kind,
+      carrierType: a.kind === 'ONE_TIME' ? 'ONE_TIME' : a.kind,
+      carrierId: a.riderId ?? a.courierId ?? (a.platform ? `one-time:${a.platform}` : null),
+      name: a.rider?.name ?? a.courier?.name ?? (a.platform ? `${a.platform} rider` : 'Carrier'),
+      costPaisa: a.costPaisa,
+      costRecorded: !!a.costRecordedAt,
+      paidCash: a.paidCash,
+      chargeCustomer: a.chargeCustomer,
+      customerChargedAt: a.customerChargedAt,
+      codHandedOver: a.codHandedOver,
+      failReason: a.failReason,
+      failedAt: a.failedAt,
+      deliveredAt: a.deliveredAt,
     });
+
+    const totals = { toCollect: 0, withCarrier: 0, received: 0, paidCarrier: 0, costMissing: 0, revenue: 0, profit: 0 };
+    const rows = orders
+      .map((o) => {
+        const a = o.assignments[0] ?? null;
+        const cod = collected.get(o.id) ?? 0;
+        const delivered = o.deliveryStatus === DeliveryStatus.delivered;
+        const stage = !delivered
+          ? o.duePaisa > 0 ? 'TO_COLLECT' : 'PREPAID'
+          : cod > 0
+            ? a?.codHandedOver ? 'RECEIVED' : 'WITH_CARRIER'
+            : 'PREPAID';
+        const cogsPosted = cogsByOrder.get(o.id);
+        const cogs = cogsPosted ?? o.lines.reduce((s, l) => s + (l.product?.costPaisa ?? 0) * l.qty, 0);
+        /*  (P0 #7) the order paid for EVERY attempt, not only the one that
+            got there. Cost missing = any delivered/failed attempt nobody has
+            priced yet.  */
+        const attempts = o.assignments.map(shapeAttempt);
+        const settled = o.assignments.filter((x) => x.costRecordedAt);
+        const carrierCost = settled.reduce((n, x) => n + x.costPaisa, 0);
+        const unpriced = o.assignments.filter(
+          (x) => !x.costRecordedAt && (x.status === AssignmentStatus.DELIVERED || x.status === AssignmentStatus.FAILED),
+        );
+        const costRecorded = !!a?.costRecordedAt;
+        const costMissing = unpriced.length > 0;
+        const profit = o.totalPaisa - cogs - carrierCost;
+        const inWindow = o.placedAt >= since;
+        const open = stage === 'TO_COLLECT' || stage === 'WITH_CARRIER' || costMissing;
+        if (!inWindow && !open) return null;
+        if (stage === 'TO_COLLECT') totals.toCollect += o.duePaisa;
+        if (stage === 'WITH_CARRIER') totals.withCarrier += cod;
+        if (stage === 'RECEIVED') totals.received += cod;
+        totals.paidCarrier += carrierCost;
+        if (costMissing) totals.costMissing++;
+        if (delivered) {
+          totals.revenue += o.totalPaisa;
+          totals.profit += profit;
+        }
+        return {
+          id: o.id,
+          orderNo: o.orderNo,
+          placedAt: o.placedAt,
+          deliveredAt: a?.deliveredAt ?? o.deliveredAt ?? null,
+          deliveryStatus: o.deliveryStatus,
+          customer: o.customer,
+          isGift: o.isGift,
+          recipientName: o.recipientName,
+          address: o.address,
+          paymentMethod: o.paymentMethod,
+          totalPaisa: o.totalPaisa,
+          deliveryPaisa: o.deliveryPaisa,
+          duePaisa: o.duePaisa,
+          codCollectedPaisa: cod,
+          stage,
+          carrier: a ? shapeAttempt(a) : null,
+          attempts,
+          costMissing,
+          cogsPaisa: cogs,
+          cogsFrom: cogsPosted !== undefined ? 'inventory' : 'product cost',
+          carrierCostPaisa: carrierCost,
+          profitPaisa: profit,
+          /*  "final" once every attempt is priced — a cash-paid one-time rider
+              with no fare typed is still an unknown number, not a free ride  */
+          profitFinal: delivered && !costMissing && (costRecorded || o.assignments.length === 0),
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
     return { rows, totals, days };
   }
 
@@ -900,11 +1232,25 @@ export class DeliveryService {
     const lines = (dto.lines ?? []).filter((l) => l.assignmentId);
     if (lines.length === 0) throw new BadRequestException('nothing selected to settle');
     if (!dto.carrierId) throw new BadRequestException('which carrier is this?');
+    if (new Set(lines.map((l) => l.assignmentId)).size !== lines.length)
+      throw new BadRequestException('the same parcel is on the list twice');
 
     const ids = lines.map((l) => l.assignmentId);
     const found = await this.prisma.db.deliveryAssignment.findMany({
       where: { id: { in: ids }, deletedAt: null },
-      include: { order: { select: { id: true, duePaisa: true } } },
+      include: {
+        order: { select: { id: true, duePaisa: true, deliveryStatus: true, salesStatus: true } },
+        /*  Every receipt this parcel has already had: to name the last one when
+            the cash is fully in, and — since a SHORT receipt leaves the parcel
+            open (review 11 Sep 2026) — to know how much of the door money is
+            still outstanding.  */
+        remittanceLines: {
+          where: { deletedAt: null, codPaisa: { gt: 0 } },
+          select: { codPaisa: true, remittance: { select: { remittanceNo: true, receivedAt: true } } },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        },
+      },
     });
     /*  Same correction as `unsettled()`: whether this parcel put cash in a
         carrier's hand is answered by the COD_COLLECTED payment, never by
@@ -913,42 +1259,97 @@ export class DeliveryService {
       found.map((a) => a.order?.id).filter((v): v is string => !!v),
     );
     if (found.length !== ids.length) throw new BadRequestException('one of these parcels no longer exists');
-    for (const a of found) {
-      if (a.status !== AssignmentStatus.DELIVERED)
-        throw new BadRequestException(`${a.assignmentNo} has not been delivered yet`);
-    }
 
+    /*  (audit 11 Sep 2026) WHAT A LINE MAY SAY, checked before anything is
+        written:
+          · a DELIVERED parcel may carry cash and/or a fee
+          · a FAILED attempt may carry a fee only (P0 #7) — no cash was taken
+          · cash is refused a SECOND time (P0 #2): `codHandedOver` only ever
+            goes false -> true, and the receipt that set it is named
+          · a fee is written only when the line CARRIES one (P0 #1); a
+            "cash received" line without it leaves the cost untouched  */
     const byId = new Map(found.map((a) => [a.id, a]));
+    const norm = lines.map((l) => {
+      const a = byId.get(l.assignmentId)!;
+      const codTaken = collected.get(a.order?.id ?? '') ?? 0;
+      /* what earlier receipts already brought in for this parcel (a short one leaves a balance) */
+      const already = a.remittanceLines.reduce((n, r) => n + r.codPaisa, 0);
+      const outstanding = Math.max(0, codTaken - already);
+      const cod = Math.max(0, Math.round(l.codPaisa ?? 0));
+      const short = Math.max(0, Math.round(l.shortPaisa ?? 0));
+      const hasCharge = typeof l.chargePaisa === 'number' && Number.isFinite(l.chargePaisa);
+      const chg = hasCharge ? Math.max(0, Math.round(l.chargePaisa as number)) : null;
+      if (a.status !== AssignmentStatus.DELIVERED && a.status !== AssignmentStatus.FAILED)
+        throw new BadRequestException(`${a.assignmentNo} has not been delivered yet`);
+      if (a.status === AssignmentStatus.FAILED && (cod > 0 || short > 0))
+        throw new BadRequestException(`${a.assignmentNo} failed at the door — no cash was taken on it, only its fee can be recorded`);
+      /*  (review 11 Sep 2026, BLOCKER 3) A RECORDED FEE IS NOT REWRITTEN HERE.
+          `onDeliveryCost` posts to 5200 under the key `DELIVERY:<id>:cost` and
+          `postEntry` de-dupes on it, so a second, different number would change
+          the parcel and leave the ledger on the first one — the assignment
+          saying 120 while 5200 and the accrual say 80, for ever, with nothing
+          flagging the drift. DEC-DLV-016 says the fee is typed once; sending it
+          again unchanged is a harmless no-op, sending a different one is
+          refused and belongs in Finance as a reversal.  */
+      if (chg !== null && a.costRecordedAt && chg !== a.costPaisa)
+        throw new BadRequestException(
+          `The fee on ${a.assignmentNo} was already recorded as ${(a.costPaisa / 100).toFixed(0)} tk and is already in the accounts — it cannot be changed here. Reverse it in Finance if it was wrong.`,
+        );
+      /* already recorded and unchanged: nothing to write, nothing to post again */
+      const write = chg !== null && !a.costRecordedAt ? chg : null;
+      if (cod > 0 || short > 0) {
+        if (codTaken <= 0)
+          throw new BadRequestException(`${a.assignmentNo} was prepaid — there is no cash to receive on it`);
+        if (a.codHandedOver || outstanding <= 0) {
+          const prev = a.remittanceLines[0]?.remittance;
+          const when = prev?.receivedAt ? prev.receivedAt.toISOString().slice(0, 10) : 'an earlier date';
+          throw new BadRequestException(
+            `Cash for ${a.assignmentNo} was already received on ${when}${prev?.remittanceNo ? ` (${prev.remittanceNo})` : ''} — it cannot be received twice`,
+          );
+        }
+        if (cod + short > outstanding)
+          throw new BadRequestException(
+            `${a.assignmentNo}: received (${(cod / 100).toFixed(0)}) plus short (${(short / 100).toFixed(0)}) is more than the ${(outstanding / 100).toFixed(0)} tk still owed on this parcel`,
+          );
+      }
+      /*  (review 11 Sep 2026, RISK 6) A SHORT RECEIPT LEAVES THE PARCEL OPEN.
+          Marking it handed over would strand the balance: 1110 Cash with
+          Rider still holds it, and the rider bringing the rest tomorrow would
+          be refused as a second receipt. So the parcel only closes when the
+          whole of the door money has come back.  */
+      const closes = cod > 0 && codTaken > 0 && cod >= outstanding;
+      const feeKept = !!l.feeKeptFromCash && cod > 0 && (write ?? (a.costRecordedAt ? a.costPaisa : 0)) > 0;
+      return { l, a, codTaken, outstanding, cod, short, chg: write, feeKept, closes, shortNote: l.shortNote?.trim() || null };
+    });
+
     let gross = 0;
     let charge = 0;
-    for (const l of lines) {
-      const cod = Math.max(0, Math.round(l.codPaisa ?? 0));
-      const chg = Math.max(0, Math.round(l.chargePaisa ?? 0));
-      gross += cod;
-      charge += chg;
+    for (const n of norm) {
+      gross += n.cod;
+      charge += n.chg ?? 0;
     }
 
     const now = dto.receivedAt ? new Date(dto.receivedAt) : new Date();
 
     /*  The parcels are written first and each on its own terms: a line that
-        carries only a cost must not pretend the cash came back. */
+        carries only a cost must not pretend the cash came back, and a line
+        that carries only cash must not touch the cost. */
     await this.prisma.db.$transaction(async (tx) => {
-      for (const l of lines) {
-        const a = byId.get(l.assignmentId)!;
-        const chg = Math.max(0, Math.round(l.chargePaisa ?? 0));
-        const cod = Math.max(0, Math.round(l.codPaisa ?? 0));
-        await tx.deliveryAssignment.update({
-          where: { id: a.id },
+      for (const n of norm) {
+        const won = await tx.deliveryAssignment.updateMany({
+          /* one winner on the cash: a second receipt racing this one loses here */
+          where: { id: n.a.id, ...(n.cod > 0 ? { codHandedOver: false } : {}) },
           data: {
-            costPaisa: chg,
-            costRecordedAt: now,
+            ...(n.chg !== null ? { costPaisa: n.chg, costRecordedAt: now } : {}),
             /*  Only a parcel that actually took cash at the door can have that
-                cash come back. A prepaid parcel is left alone — marking it
-                handed over would invent a payment that never happened. */
-            codHandedOver:
-              (collected.get(a.order?.id ?? '') ?? 0) > 0 ? cod > 0 : a.codHandedOver,
+                cash come back — and once true it stays true (P0 #2). A receipt
+                that was SHORT does not close it (review, RISK 6): the balance
+                is still with the carrier and can be received later.  */
+            codHandedOver: n.a.codHandedOver || n.closes,
           },
         });
+        if (won.count !== 1)
+          throw new BadRequestException(`Cash for ${n.a.assignmentNo} was just received by somebody else — refresh`);
       }
     });
 
@@ -964,22 +1365,30 @@ export class DeliveryService {
         Finance knew how to post it, and nothing ever pulled the trigger — so
         5200 Delivery Cost has been empty the whole time and delivery margin
         has read as pure profit. */
-    for (const l of lines) {
-      if ((l.chargePaisa ?? 0) > 0) await this.finance.onDeliveryCost(l.assignmentId);
-      /*  Owner, 10 Sep 2026: a retry whose fare the customer pays — the
-          recorded cost lands on the order as an adjustment (Sales owns the
-          order's money; this only asks).  */
-      const a = byId.get(l.assignmentId)!;
-      if (a.chargeCustomer && (l.chargePaisa ?? 0) > 0 && a.order?.id) {
-        await this.orders.chargeDeliveryToCustomer(a.order.id, Math.round(l.chargePaisa ?? 0), actorName);
+    for (const n of norm) {
+      if (n.chg !== null && n.chg > 0) await this.finance.onDeliveryCost(n.a.id);
+      /*  (audit 11 Sep 2026, P0 #4) a retry whose fare the customer pays: the
+          fare goes on the order ONCE, at the moment it becomes known, and only
+          while the parcel is still undelivered — a due appearing on a
+          completed order is a bill nobody will ever collect. Sales does the
+          once-only claim (customerChargedAt) inside its own transaction.  */
+      if (
+        n.chg !== null && n.chg > 0 &&
+        n.a.chargeCustomer && n.a.customerChargedAt == null && n.a.order &&
+        n.a.order.deliveryStatus !== DeliveryStatus.delivered &&
+        n.a.order.salesStatus !== SalesStatus.cancelled
+      ) {
+        await this.orders.chargeDeliveryToCustomer(n.a.order.id, n.chg, actorName, n.a.id);
       }
     }
 
     /*  Only cash that actually came back becomes a remittance. A settlement of
         prepaid parcels moves no money — the cost is accrued and paid later like
         any other bill — so inventing a receipt for it would put money in the
-        books that never arrived. */
+        books that never arrived. The fee is netted off the cash ONLY on lines
+        where the rider kept it (P0 #3); Finance does that arithmetic.  */
     let remittance: { id: string; remittanceNo: string } | null = null;
+    let kept = 0;
     if (gross > 0) {
       if (!dto.intoAccountId) throw new BadRequestException('Where did the money land?');
       const r = await this.financeAssets.remitWithLines({
@@ -990,18 +1399,25 @@ export class DeliveryService {
         receivedAt: now,
         note: dto.note ?? null,
         actorName,
-        lines: lines.map((l) => ({
-          assignmentId: l.assignmentId,
-          codPaisa: Math.max(0, Math.round(l.codPaisa ?? 0)),
-          chargePaisa: Math.max(0, Math.round(l.chargePaisa ?? 0)),
-        })),
+        lines: norm
+          .filter((n) => n.cod > 0)
+          .map((n) => ({
+            assignmentId: n.a.id,
+            codPaisa: n.cod,
+            /* the recorded fee — this line's, or the one already on the parcel — but only counted when kept */
+            chargePaisa: n.feeKept ? (n.chg ?? n.a.costPaisa) : 0,
+            feeKeptFromCash: n.feeKept,
+            shortPaisa: n.short,
+            shortNote: n.shortNote,
+          })),
       });
+      kept = r.chargePaisa;
       remittance = { id: r.id, remittanceNo: r.remittanceNo };
     }
 
     await this.audit.record({
       entityType: ENTITY, entityId: dto.carrierId, action: 'UPDATE', actorName,
-      changes: { settled: lines.length, grossPaisa: gross, chargePaisa: charge },
+      changes: { settled: lines.length, grossPaisa: gross, chargePaisa: charge, keptFromCashPaisa: kept },
     });
 
     return {
@@ -1016,7 +1432,7 @@ export class DeliveryService {
           never issued is a number with no meaning, and on a money screen a
           meaningless number is a misleading one. What the shop owes is on the
           accrual, where it belongs.  */
-      netPaisa: gross > 0 ? gross - charge : null,
+      netPaisa: gross > 0 ? gross - kept : null,
       carrierName,
       remittance,
     };
@@ -1135,6 +1551,11 @@ export class DeliveryService {
   }
 
   async removeCourier(id: string) {
+    /* (audit 11 Sep 2026, P1 #34) the rider guard, mirrored: parcels on the road keep their courier */
+    const open = await this.prisma.db.deliveryAssignment.count({
+      where: { courierId: id, isActive: true, deletedAt: null },
+    });
+    if (open > 0) throw new BadRequestException(`courier has ${open} active assignment(s) — hand them over first`);
     await eraseOrBury(
       () => this.prisma.courierService.delete({ where: { id } }),
       () => this.prisma.db.courierService.update({ where: { id }, data: { deletedAt: new Date() } }),
@@ -1628,10 +2049,35 @@ export class DeliveryService {
 
   /* ================= helpers ================= */
 
-  private async nextNo(): Promise<string> {
-    // DEC-DLV-005 — numeric max over real DLV- numbers (RTN- self-healing pattern)
-    const rows = await this.prisma.db.deliveryAssignment.findMany({
+  /*  (audit 11 Sep 2026, P1 #24) drawn INSIDE the create transaction, so a
+      clash on the unique assignmentNo is a P2002 that `assign()` retries —
+      never a 500 from a number two requests both thought was free.  */
+  private async nextNo(
+    tx: {
+      deliveryAssignment: {
+        findMany(args: {
+          where: { assignmentNo: { startsWith: string } };
+          orderBy: { assignmentNo: 'desc' };
+          take: number;
+          select: { assignmentNo: true };
+        }): Promise<{ assignmentNo: string }[]>;
+      };
+    } = this.prisma.db,
+  ): Promise<string> {
+    /*  DEC-DLV-005 — numeric max over real DLV- numbers (RTN- self-healing
+        pattern), but BOUNDED (review 11 Sep 2026, RISK 11). This used to read
+        every assignment row the shop had ever written, every time a parcel was
+        assigned — now inside the create transaction and up to 200 times in a
+        bulk assign. The numbers are zero-padded to six digits, so the highest
+        string IS the highest number; a handful are read rather than one, so a
+        stray hand-typed or differently-shaped number cannot derail the count.
+        Past DLV-999999 the padding stops and string order could drift — the
+        P2002 retry in `assign()` is the backstop, and by then the shop can
+        afford a sequence.  */
+    const rows = await tx.deliveryAssignment.findMany({
       where: { assignmentNo: { startsWith: 'DLV-' } },
+      orderBy: { assignmentNo: 'desc' },
+      take: 25,
       select: { assignmentNo: true },
     });
     let max = 0;

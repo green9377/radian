@@ -1463,6 +1463,9 @@ export interface ApiOrder {
   date?: string | null;
   slotLabel?: string | null;
   etaLabel?: string | null;
+  /** DEC-DLV-002 — the FKs behind the label snapshots above */
+  deliveryMethodId?: string | null;
+  deliverySlotId?: string | null;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   paidPaisa: number;
@@ -1476,6 +1479,20 @@ export interface ApiOrder {
   adjustmentPaisa: number;
   totalPaisa: number;
   internalNote?: string | null;
+  /*  DEC-SAL-016 — WHEN it was delivered, not when it was promised. "Delivered
+      today" on All orders counted the promised date (audit 11 Sep 2026 #35),
+      so a parcel promised for today and still in the workshop was reported as
+      delivered, and one delivered today a day late was not counted at all.  */
+  deliveredAt?: string | null;
+  confirmedAt?: string | null;
+  outForDeliveryAt?: string | null;
+  cancelledAt?: string | null;
+  /*  audit #19 — why a delivery failed and what staff decided (RETRY | KEEP |
+      CANCEL). Stored on the order since 11 Sep 2026; the assignment keeps its
+      own copy for the attempt it belongs to.  */
+  failReason?: string | null;
+  failNote?: string | null;
+  failDecision?: string | null;
   lines?: ApiOrderLine[];
   photos?: ApiOrderPhoto[];
   transactions?: ApiOrderTxn[];
@@ -1483,21 +1500,105 @@ export interface ApiOrder {
   _count?: { lines: number };
 }
 
-export function listOrders(params?: {
+/** every filter `GET /orders` understands (audit 11 Sep 2026 — server paging) */
+export interface OrderQuery {
   search?: string;
+  /** the new name for `search`; both reach the same six-column match */
+  q?: string;
   salesStatus?: string;
   deliveryStatus?: string;
   needsAction?: string;
+  /** the All-orders segments: placed | fulfilling | confirmed | delivered | due | cancelled */
+  seg?: string;
+  paymentMethod?: "online" | "cod" | "";
+  isGift?: boolean;
+  zone?: "DHAKA" | "BANGLADESH" | "";
+  /** placedAt window, YYYY-MM-DD in Dhaka's day */
+  from?: string;
+  to?: string;
+  due?: boolean;
+  page?: number;
+  pageSize?: number;
   /** counter bills live in the same table; only Returns asks for them */
   includeCounter?: boolean;
-}): Promise<Paged<ApiOrder>> {
-  const q = new URLSearchParams({ pageSize: "100" });
+}
+
+function orderQuery(params?: OrderQuery): URLSearchParams {
+  const q = new URLSearchParams();
   if (params?.includeCounter) q.set("includeCounter", "true");
   if (params?.search) q.set("search", params.search);
+  if (params?.q) q.set("q", params.q);
   if (params?.salesStatus) q.set("salesStatus", params.salesStatus);
   if (params?.deliveryStatus) q.set("deliveryStatus", params.deliveryStatus);
   if (params?.needsAction) q.set("needsAction", params.needsAction);
+  if (params?.seg) q.set("seg", params.seg);
+  if (params?.paymentMethod) q.set("paymentMethod", params.paymentMethod);
+  if (params?.isGift !== undefined) q.set("isGift", String(params.isGift));
+  if (params?.zone) q.set("zone", params.zone);
+  if (params?.from) q.set("from", params.from);
+  if (params?.to) q.set("to", params.to);
+  if (params?.due) q.set("due", "true");
+  return q;
+}
+
+/**
+ * ⚠️ THE SHAPE IS UNCHANGED ON PURPOSE. Payments and Returns both read
+ * `listOrders().items` and neither is being touched by this pass, so `items`
+ * stays exactly what it was, with the same default page of 100. The API now
+ * also returns `rows` pointing at the same array, and accepts far more
+ * filters — both reachable through `listOrdersPage` below, which is what the
+ * All-orders screen uses.
+ */
+export function listOrders(params?: OrderQuery): Promise<Paged<ApiOrder>> {
+  const q = orderQuery(params);
+  if (!q.has("pageSize")) q.set("pageSize", String(params?.pageSize ?? 100));
+  if (params?.page) q.set("page", String(params.page));
   return j<Paged<ApiOrder>>(`/orders?${q.toString()}`);
+}
+
+/**
+ * The same endpoint, read as a PAGE — `{ rows, total, page, pageSize }`.
+ *
+ * All orders used to fetch a hundred rows and then search, segment, filter and
+ * total them in the browser. Everything below is a `where` on the server now,
+ * so an order from six months ago is findable by its number and the band tiles
+ * (which come from `orderStats`, not from this) describe the whole shop.
+ */
+export function listOrdersPage(
+  params?: OrderQuery,
+): Promise<{ rows: ApiOrder[]; total: number; page: number; pageSize: number }> {
+  const q = orderQuery(params);
+  q.set("page", String(Math.max(1, params?.page ?? 1)));
+  q.set("pageSize", String(Math.min(200, Math.max(1, params?.pageSize ?? 50))));
+  return j(`/orders?${q.toString()}`);
+}
+
+/** the band tiles, counted over the WHOLE filtered set rather than one page */
+export interface ApiOrderStats {
+  counts: {
+    all: number;
+    placed: number;
+    fulfilling: number;
+    confirmed: number;
+    delivered: number;
+    due: number;
+    cancelled: number;
+    outForDelivery: number;
+    deliveredToday: number;
+  };
+  /** delivered orders only — DEC-FIN-002 posts revenue at delivered */
+  revenuePaisa: number;
+  collectedPaisa: number;
+  duePaisa: number;
+  dueOrders: number;
+  deliveredToday: number;
+}
+export function orderStats(params?: OrderQuery): Promise<ApiOrderStats> {
+  /*  the segment is deliberately NOT sent: the tiles are how a segment is
+      chosen, so counting them inside the chosen one would zero the others  */
+  const q = orderQuery({ ...params, seg: undefined });
+  const qs = q.toString();
+  return j<ApiOrderStats>(`/orders/stats${qs ? `?${qs}` : ""}`);
 }
 export function getOrder(id: string): Promise<ApiOrder> {
   return j<ApiOrder>(`/orders/${id}`);
@@ -1513,6 +1614,23 @@ export function orderAction(
   action: "confirm" | "prepare" | "out-for-delivery" | "delivered" | "fail",
 ): Promise<ApiOrder> {
   return j<ApiOrder>(`/orders/${id}/${action}`, { method: "POST" });
+}
+/**
+ * A delivery that did not happen, from the ORDER side — audit 11 Sep 2026 #19.
+ *
+ * ⚠️ This endpoint took no body at all. The screen has always asked why it
+ * failed, for a note, and what staff decided (retry, keep, cancel) — and all
+ * three were thrown away here unless a delivery assignment happened to exist
+ * to carry them instead. "Cancel order" in particular did nothing: the box
+ * closed, the order stayed open, and nobody found out until the parcel was
+ * chased the next day. All three are stored now, and CANCEL runs the real
+ * cancel path with its refund ladder.
+ */
+export function failOrder(
+  id: string,
+  body: { failReasonId?: string; reason?: string; note?: string; decision?: "RETRY" | "KEEP" | "CANCEL" },
+): Promise<ApiOrder> {
+  return j<ApiOrder>(`/orders/${id}/fail`, { method: "POST", body: JSON.stringify(body) });
 }
 export function cancelOrder(id: string, reason?: string): Promise<ApiOrder> {
   return j<ApiOrder>(`/orders/${id}/cancel`, { method: "POST", body: JSON.stringify({ reason }) });
@@ -1630,6 +1748,17 @@ export function adaptOrder(a: ApiOrder): any {
     discountPaisa: a.discountPaisa,
     deliveryPaisa: a.deliveryPaisa,
     deliveryWaivedPaisa: a.deliveryWaivedPaisa,
+    /*  ⚠️ CARRIED THROUGH SINCE 11 SEP 2026 (audit #8). The Edit screen never
+        read this, so it had nothing to preserve and sent `adjustmentPaisa: 0`
+        on every save — wiping a retry delivery fare Delivery had charged, or a
+        goodwill discount a manager had given, because somebody changed the
+        address.  */
+    adjustmentPaisa: a.adjustmentPaisa,
+    /*  DEC-DLV-002 — the FKs behind the label snapshots, so Edit can move the
+        booking with the label instead of leaving it on the old slot  */
+    deliveryMethodId: a.deliveryMethodId ?? null,
+    deliverySlotId: a.deliverySlotId ?? null,
+    zoneRaw: a.zone,
     totalPaisa: a.totalPaisa,
     etaLabel: a.etaLabel || "",
     prepPhoto: photo("PREP"),
@@ -1713,9 +1842,29 @@ export function zoneLabel(z: string): string {
 }
 
 /* ---------------- helpers ---------------- */
+/**
+ * ⚠️ ALWAYS TWO DECIMAL PLACES — audit 11 Sep 2026.
+ *
+ * `toLocaleString` with no options drops trailing zeroes, so the same screen
+ * printed "৳ 1,299.5" beside "৳ 5,039.28" beside "৳ 400" and a column of
+ * figures had nothing to line up on. Money has two places or it is not money.
+ */
 export function formatTaka(paisa: number): string {
-  return "৳ " + (paisa / 100).toLocaleString("en-IN");
+  return (
+    "৳ " +
+    (paisa / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  );
 }
+/**
+ * Taka typed by a person → integer paisa, rounded. THE ONE CONVERSION.
+ *
+ * ⚠️ Every order screen used to write `Number(x) * 100` inline, and every one
+ * of them could produce a fraction: 1299.55 taka is 129954.99999999999 paisa
+ * in binary floating point, Prisma refuses a non-integer on an Int column, and
+ * the shop got "Internal server error" for typing a real price. Rounding here
+ * means there is one place it can go wrong instead of six.
+ */
+export const takaToPaisa = (t: number | string): number => Math.round(Number(t || 0) * 100);
 /** slug → soft brand-tinted gradient (thumbnail placeholder until real images) */
 export function genBg(seed: string): string {
   let h = 0;
@@ -4616,6 +4765,10 @@ export interface ApiReturn {
   refundPaisa: number;
   storeCreditPaisa: number;
   compensationPaisa: number;
+  /** what may still be paid back on this order — the server's own figure
+      (money in hand less every refund AND every store credit already issued).
+      Only on the single-return payload; the list omits it. */
+  payoutCapPaisa?: number;
   refundMethod: ReturnRefundMethod;
   refundReference?: string | null;
   actorName: string;
@@ -4656,6 +4809,8 @@ export interface EligibleLine {
   qty: number;
   returnedQty: number;
   returnableQty: number;
+  /** the same figure unclamped — negative means over-subscribed elsewhere */
+  remainingRaw?: number;
   unitPaisa: number;
   bg?: string | null;
 }
@@ -4669,11 +4824,22 @@ export interface EligibleOrder {
     paidPaisa: number;
     refundPaisa: number;
     totalPaisa: number;
+    deliveredAt?: string | null;
   };
   customer?: { id: string; name: string; phone?: string } | null;
   delivered: boolean;
   refundableCap: number;
   lines: EligibleLine[];
+  /*  audit 11 Sep 2026 — the policy travels with the order, so the screen
+      states the return window instead of guessing it, and the restock default
+      follows the shop's perishable setting instead of only the product type. */
+  returnWindowDays?: number;
+  restockDefaultPerishable?: boolean;
+  deliveredAt?: string | null;
+  daysSinceDelivery?: number | null;
+  outsideWindow?: boolean;
+  /** live returns already raised on this order (rejected/cancelled excluded) */
+  priorReturns?: number;
 }
 export interface ReturnSettings {
   returnWindowDays: number;
@@ -4690,16 +4856,68 @@ export interface ReturnAnalytics {
   compensationPaisa: number;
 }
 
-/** DEC-RTN-016 — `channel` narrows the SAME book to the door it came in
- *  through: "online" = website orders, "counter" = POS sales, undefined =
- *  everything. Nothing is duplicated; the totals screen never passes it. */
-export const listReturns = (params?: { search?: string; status?: string; channel?: "online" | "counter" }) => {
-  const q = new URLSearchParams({ pageSize: "100" });
+/** every filter `GET /returns` and `GET /returns/stats` understand
+ *  (audit 11 Sep 2026 — server paging; the list used to be one page of 100
+ *  searched in the browser, so an older return could not be found at all) */
+export interface ReturnQuery {
+  /** RTN no · order no · customer name · customer phone */
+  search?: string;
+  q?: string;
+  status?: string;
+  /** DEC-RTN-016 — `channel` narrows the SAME book to the door it came in
+   *  through: "online" = website orders, "counter" = POS sales, undefined =
+   *  everything. Nothing is duplicated; the totals screen never passes it. */
+  channel?: "online" | "counter";
+  /** createdAt window, YYYY-MM-DD in Dhaka's day */
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}
+function returnQuery(params?: ReturnQuery): URLSearchParams {
+  const q = new URLSearchParams();
   if (params?.search) q.set("search", params.search);
+  if (params?.q) q.set("q", params.q);
   if (params?.status) q.set("status", params.status);
   if (params?.channel) q.set("channel", params.channel);
-  return j<Paged<ApiReturn>>(`/returns?${q.toString()}`);
+  if (params?.from) q.set("from", params.from);
+  if (params?.to) q.set("to", params.to);
+  return q;
+}
+/** the per-status counts, always taken over the WHOLE filtered book */
+export type ReturnCounts = Record<string, number>;
+export interface ReturnPage extends Paged<ApiReturn> {
+  rows: ApiReturn[];
+  counts: ReturnCounts;
+}
+export const listReturns = (params?: ReturnQuery) => {
+  const q = returnQuery(params);
+  q.set("page", String(Math.max(1, params?.page ?? 1)));
+  q.set("pageSize", String(Math.min(200, Math.max(1, params?.pageSize ?? 50))));
+  return j<ReturnPage>(`/returns?${q.toString()}`);
 };
+export interface ReturnStats {
+  counts: ReturnCounts;
+  returnValuePaisa: number;
+  refundPaisa: number;
+  storeCreditPaisa: number;
+  compensationPaisa: number;
+  /** returns not settled yet, and what they are asking for — capped at what
+   *  is still in hand, which is why the tile no longer reads zero */
+  waiting: number;
+  waitingPaisa: number;
+  needsApproval: number;
+}
+export const returnStats = (params?: ReturnQuery) => {
+  const qs = returnQuery(params).toString();
+  return j<ReturnStats>(`/returns/stats${qs ? `?${qs}` : ""}`);
+};
+/** how many live returns each of these orders already has (rejected and
+ *  cancelled left out) — the honest "already returned once" */
+export const returnedOrderCounts = (orderIds: string[]) =>
+  orderIds.length
+    ? j<Record<string, number>>(`/returns/for-orders?orderIds=${encodeURIComponent(orderIds.join(","))}`)
+    : Promise.resolve({} as Record<string, number>);
 export const getReturn = (id: string) => j<ApiReturn>(`/returns/${id}`);
 export const getReturnTimeline = (id: string) =>
   j<{ id: string; kind: string; label: string; note?: string | null; actorName: string; createdAt: string }[]>(
@@ -4709,10 +4927,16 @@ export const returnAnalytics = (days = 30) => j<ReturnAnalytics>(`/returns/analy
 export const eligibleOrderForReturn = (orderId: string) => j<EligibleOrder>(`/returns/eligible/${orderId}`);
 export const createReturn = (b: Record<string, unknown>) =>
   j<ApiReturn>(`/returns`, { method: "POST", body: JSON.stringify(b) });
+/** audit 11 Sep 2026 #30 — a draft moves on through the same validation the
+ *  create ran; what it becomes (approved, or waiting) is the gate's answer */
+export const submitReturn = (id: string) => j<ApiReturn>(`/returns/${id}/submit`, { method: "POST" });
+/** OWNER/MANAGER only, and never the person who raised it (audit #31) */
 export const approveReturn = (id: string) => j<ApiReturn>(`/returns/${id}/approve`, { method: "POST" });
-export const rejectReturn = (id: string, note?: string) =>
-  j<ApiReturn>(`/returns/${id}/reject`, { method: "POST", body: JSON.stringify({ note }) });
-export const cancelReturn = (id: string) => j<ApiReturn>(`/returns/${id}/cancel`, { method: "POST" });
+/** audit #32 — the reason is REQUIRED; the API refuses an empty one */
+export const rejectReturn = (id: string, reason: string) =>
+  j<ApiReturn>(`/returns/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) });
+export const cancelReturn = (id: string, reason: string) =>
+  j<ApiReturn>(`/returns/${id}/cancel`, { method: "POST", body: JSON.stringify({ reason }) });
 export const repostReturnRestock = (id: string) =>
   j<{ posted: number; skipped: string[]; already: number }>(`/returns/${id}/repost-restock`, { method: "POST" });
 export const completeReturn = (id: string, b: Record<string, unknown>) =>
@@ -4733,12 +4957,12 @@ export const getCustomerCredit = (customerId: string) =>
   );
 
 export const RETURN_STATUS_META: Record<ReturnStatus, { label: string; tone: string }> = {
-  draft: { label: "Draft", tone: "#8a8a8a" },
-  pending_approval: { label: "Needs approval", tone: "#c77700" },
-  approved: { label: "Approved", tone: "#2563eb" },
-  completed: { label: "Completed", tone: "#15803d" },
-  rejected: { label: "Rejected", tone: "#b91c1c" },
-  cancelled: { label: "Cancelled", tone: "#8a8a8a" },
+  draft: { label: "Draft", tone: "#b9acc4" },
+  pending_approval: { label: "Needs approval", tone: "#f5a524" },
+  approved: { label: "Approved", tone: "#5aa9f0" },
+  completed: { label: "Completed", tone: "#3ddc84" },
+  rejected: { label: "Rejected", tone: "#ff6b60" },
+  cancelled: { label: "Cancelled", tone: "#b9acc4" },
 };
 export const RESOLUTION_LABEL: Record<ReturnResolution, string> = {
   REFUND: "Refund",
@@ -4984,24 +5208,38 @@ export interface ApiBoardOrder {
   paymentMethod: string; deliveredAt?: string | null; lineCount: number; photoCount: number;
   /** owner, 10 Sep 2026 — the board's Photo column */
   photoUpdates: boolean; hasPrepPhoto: boolean;
+  /** (audit 11 Sep 2026) the hand-over shot is there; the PHOTO_UPDATE message really went */
+  hasDeliveryPhoto?: boolean; photoSent?: boolean;
   items: { name: string; qty: number }[];
   assignment: ApiAssignment | null;
+  /** (audit 11 Sep 2026) the newest attempt, active or not — a failed row's carrier and reason */
+  lastAssignment?: {
+    id: string; assignmentNo: string; kind: "RIDER" | "COURIER" | "ONE_TIME"; isActive: boolean; status: ApiAssignment["status"];
+    carrierName: string | null; failReason: string | null; failDecision: string | null; failedAt: string | null;
+  } | null;
 }
 
 /*  The board is paged now — it used to fetch a flat 300 and say nothing about
     what it left behind (12 Aug 2026). `total` and `counts` are what let the
     screen admit how much work there really is. */
+export type BoardSeg = "all" | "notAssigned" | "photoPending" | "ready" | "onRoad" | "late" | "failed" | "delivered";
 export interface ApiBoardPage {
   rows: ApiBoardOrder[];
   total: number;
   page: number;
   limit: number;
-  /** the WHOLE queue by status, never narrowed by the current filter */
+  pageSize: number;
+  /** (audit 11 Sep 2026) the eight tiles counted over the WHOLE day (plus the raw statuses), never the page */
   counts: Record<string, number>;
+  /** YYYY-MM-DD, Dhaka's day the board is showing */
+  date: string;
+  scope: "today" | "all";
+  seg: BoardSeg;
+  rules: { requirePrepPhoto: boolean; requireDeliveryPhoto: boolean };
 }
 export interface BoardQuery {
-  status?: string; zone?: string; methodId?: string;
-  q?: string; page?: number; limit?: number;
+  status?: string; seg?: BoardSeg; zone?: string; methodId?: string;
+  q?: string; date?: string; scope?: "today" | "all"; page?: number; pageSize?: number; limit?: number;
 }
 export const deliveryBoard = (query: BoardQuery = {}) => {
   const p = new URLSearchParams();
@@ -5105,11 +5343,22 @@ export interface ApiMoneyRow {
   customer: { id: string; name: string; phone: string } | null; isGift: boolean; recipientName: string | null; address: string;
   paymentMethod: string; totalPaisa: number; deliveryPaisa: number; duePaisa: number; codCollectedPaisa: number;
   stage: MoneyStage;
-  carrier: {
-    assignmentId: string; kind: "RIDER" | "COURIER" | "ONE_TIME"; carrierType: "RIDER" | "COURIER" | "ONE_TIME"; carrierId: string | null; name: string;
-    costPaisa: number; costRecorded: boolean; paidCash: boolean; chargeCustomer: boolean; codHandedOver: boolean;
-  } | null;
+  carrier: ApiMoneyAttempt | null;
+  /** (audit 11 Sep 2026) every attempt on the order, newest first — failed ones cost money too */
+  attempts: ApiMoneyAttempt[];
+  /** some delivered/failed attempt has no recorded cost yet */
+  costMissing: boolean;
   cogsPaisa: number; cogsFrom: "inventory" | "product cost"; carrierCostPaisa: number; profitPaisa: number; profitFinal: boolean;
+}
+export interface ApiMoneyAttempt {
+  assignmentId: string; assignmentNo: string; status: ApiAssignment["status"]; isActive: boolean;
+  kind: "RIDER" | "COURIER" | "ONE_TIME"; carrierType: "RIDER" | "COURIER" | "ONE_TIME"; carrierId: string | null; name: string;
+  costPaisa: number; costRecorded: boolean; paidCash: boolean; chargeCustomer: boolean; customerChargedAt?: string | null; codHandedOver: boolean;
+  failReason?: string | null; failedAt?: string | null; deliveredAt?: string | null;
+}
+/** (audit 11 Sep 2026) one settle line — `chargePaisa` only when the fee is being recorded */
+export interface SettleLine {
+  assignmentId: string; codPaisa?: number; chargePaisa?: number; feeKeptFromCash?: boolean; shortPaisa?: number; shortNote?: string;
 }
 export interface ApiMoney {
   rows: ApiMoneyRow[];
@@ -7633,7 +7882,21 @@ export interface ApiLostList {
   rows: ApiLostRow[];
   stats: { open: number; atStakePaisa: number; recovered30: number; recovered30Paisa: number; messaged30: number };
 }
-export const listLostOrders = () => j<ApiLostList>("/messaging/lost");
+/*  ⚠️ /orders/lost, NOT /messaging/lost — audit 11 Sep 2026 #15.
+    The screen is an Orders screen (registry node `orders.lost`) and the access
+    guard judges a request by its first path segment, so asking Messaging for
+    it meant somebody whose template opens Orders was refused their own page.
+    Same service behind both; the messaging routes still answer for anything
+    else that calls them.  */
+export const listLostOrders = () => j<ApiLostList>("/orders/lost");
+export const lostOrderHistory = (p: { leadId?: string; orderId?: string }) => {
+  const q = new URLSearchParams();
+  if (p.leadId) q.set("leadId", p.leadId);
+  if (p.orderId) q.set("orderId", p.orderId);
+  return j<{ outcome: ApiRecoveryOutcome; note: string | null; actor: string; at: string }[]>(
+    `/orders/lost/history?${q.toString()}`,
+  );
+};
 /* ------------------------------------------------------------
    Payments (Orders -> Payments, 9 Sep 2026) — one page for money on
    website orders. Gateway attempts are READ ONLY: PaymentSession is
@@ -7665,7 +7928,7 @@ export const listOnlinePayments = (p?: { status?: string; q?: string; take?: num
 };
 
 export const handleLostOrder = (b: { leadId?: string; orderId?: string; outcome: ApiRecoveryOutcome; note?: string }) =>
-  j<{ id: string }>("/messaging/lost/handle", { method: "POST", body: JSON.stringify(b) });
+  j<{ id: string }>("/orders/lost/handle", { method: "POST", body: JSON.stringify(b) });
 
 export const orderMessagesFor = (orderId: string) =>
   j<ApiOrderMessage[]>(`/messaging/order/${orderId}`);

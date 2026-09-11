@@ -25,6 +25,7 @@ import type {
   AssignDto,
   AssignmentActionDto,
   BoardQuery,
+  BoardSeg,
   BulkAssignDto,
   SettleDto,
 } from './delivery.dto';
@@ -55,23 +56,31 @@ export class DeliveryController {
   @Get('board')
   board(
     @Query('status') status?: string,
+    @Query('seg') seg?: string,
     @Query('zone') zone?: string,
     @Query('methodId') methodId?: string,
     @Query('q') q?: string,
+    @Query('date') date?: string,
+    @Query('scope') scope?: string,
     @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
     @Query('limit') limit?: string,
   ) {
     const num = (v?: string) => {
       const n = Number(v);
       return Number.isFinite(n) && n > 0 ? n : undefined;
     };
+    const SEGS: BoardSeg[] = ['all', 'notAssigned', 'photoPending', 'ready', 'onRoad', 'late', 'failed', 'delivered'];
     return this.delivery.board({
       status: status as BoardQuery['status'],
-      zone: zone as BoardQuery['zone'],
+      seg: SEGS.includes(seg as BoardSeg) ? (seg as BoardSeg) : undefined,
+      zone: zone === 'DHAKA' || zone === 'BANGLADESH' ? zone : undefined,
       methodId: methodId || undefined,
       q: q || undefined,
+      date: date || undefined,
+      scope: scope === 'all' ? 'all' : 'today',
       page: num(page),
-      limit: num(limit),
+      pageSize: num(pageSize) ?? num(limit),
     });
   }
 

@@ -718,7 +718,8 @@ export function OrdersReturns() {
         {loading ? <EmptyRow text="Loading…" tone="blue" /> : delivered.length === 0 ? <EmptyRow text="No delivered orders yet." tone="blue" /> : delivered.map((o) => (
           <OrderRow key={o.id} o={o} tone="blue" right={<>
             {amountEl(o.totalPaisa)}
-            <Link href="/returns/new" className="text-[12.5px] text-white px-3 py-1.5 rounded-[9px] font-medium" style={{ background: TONE.blue.solid }}>
+            {/* (audit 11 Sep 2026) carry the order through, or the return screen opens empty */}
+            <Link href={`/returns/new?orderId=${o.id}`} className="text-[12.5px] text-white px-3 py-1.5 rounded-[9px] font-medium" style={{ background: TONE.blue.solid }}>
               Start return
             </Link>
           </>} />

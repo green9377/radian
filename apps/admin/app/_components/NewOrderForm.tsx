@@ -10,7 +10,7 @@ import {
   listChannels,
   createCustomer,
   createOrder,
-  addOrderPayment,
+  takaToPaisa,
   formatTaka,
   genBg,
   quoteOffers,
@@ -252,11 +252,21 @@ export default function NewOrderForm() {
         couponCode: couponCode.trim() || undefined, // server re-validates (OFR-R10)
         internalNote: internalNote || undefined,
         lines: lines.map((l) => ({ productId: prod(l.slug)?.id, qty: l.qty })).filter((x) => x.productId),
+        /*
+          ⚠️ ONE CALL, NOT TWO — audit 11 Sep 2026 #28.
+
+          The cash taken at the counter used to be a SECOND request:
+          `createOrder`, then `addOrderPayment`. When the second one failed —
+          a dropped connection, a refusal, the tab closed — the order was
+          already written, unpaid and unremarked, and staff (seeing an error)
+          typed the whole thing again. Two orders for one customer, one of them
+          showing money that was in the till.
+
+          `advancePaisa` is part of the create transaction now: either the
+          order and its payment both exist, or neither does.
+        */
+        ...(cashPaisa > 0 ? { advancePaisa: Math.min(cashPaisa, total) } : {}),
       });
-      // cash taken in hand at the counter / on the phone — recorded straight away
-      if (cashPaisa > 0) {
-        await addOrderPayment(order.id, { kind: "ADVANCE", amountPaisa: Math.min(cashPaisa, total), note: "Cash collected at order creation" });
-      }
       router.push(`/orders/${order.id}`);
     } catch (e) {
       setPlaceErr(e instanceof Error ? e.message : "Failed to create order");
@@ -494,7 +504,7 @@ export default function NewOrderForm() {
               <label className={labelCls} style={{ color: "#76efab" }}>Cash collected now ৳ (optional)</label>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <div className="w-[150px]">
-                  <input type="number" min={0} className="ipt h-[42px]" value={cashPaisa ? Math.round(cashPaisa / 100) : ""} placeholder="0" onChange={(e) => setCashPaisa(Math.max(0, Number(e.target.value)) * 100)} />
+                  <input type="number" min={0} step="0.01" className="ipt h-[42px]" value={cashPaisa ? cashPaisa / 100 : ""} placeholder="0" onChange={(e) => setCashPaisa(Math.max(0, takaToPaisa(e.target.value)))} />
                 </div>
                 <button type="button" onClick={() => setCashPaisa(total)} className="text-[12.5px] px-3 py-1.5 rounded-[9px] border bg-white font-medium" style={{ color: "#76efab", borderColor: "#c2ecd3" }}>
                   Full amount ({formatTaka(total)})

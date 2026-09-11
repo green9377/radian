@@ -9,35 +9,53 @@
   (SALE_RETURN). Order.salesStatus is never mutated — a return is its own document.
 */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Icon from "./Icon";
 import { WRAP, ACCENT, ItemPageHead, DemoBar, Kpi, DataTable, ErrBar, OkBar, msg } from "./ItemUI";
 import {
-  listReturns, returnAnalytics, getReturn, getReturnTimeline,
+  listReturns, returnStats, getReturn, getReturnTimeline,
   eligibleOrderForReturn, createReturn, approveReturn, rejectReturn, cancelReturn,
-  completeReturn, apiGet,
+  submitReturn, returnedOrderCounts, completeReturn, apiGet, meCached,
   repostReturnRestock, deleteReturn, getReturnReasons, createReturnReason, updateReturnReason,
-  deleteReturnReason, getReturnSettings, updateReturnSettings, getCustomerCredit, listOrders, formatTaka,
+  deleteReturnReason, getReturnSettings, updateReturnSettings, getCustomerCredit,
+  listOrdersPage, formatTaka, takaToPaisa,
   getCancelRules, saveCancelRules,
   posCatalogue, type ApiPosCatalogueRow,
   RETURN_STATUS_META, RESOLUTION_LABEL,
-  type ApiReturn, type ReturnAnalytics, type EligibleOrder, type ApiReturnReason,
+  type ApiReturn, type ReturnStats, type ReturnCounts, type EligibleOrder, type ApiReturnReason,
   type ReturnSettings, type ReturnResolution, type ReturnRefundMethod, type ReturnRestockAction,
-  type ReturnStatus, type ApiOrder,
+  type ReturnStatus, type ApiOrder, type ApiMe,
 } from "../_data/api";
 import { RefundDialog, usePaymentMethods, type PayOption } from "./MoneyBlock";
 /*  DEC-SAL-013 — the cancellation refund ladder, and the house info dot.  */
 import { Info } from "./ItemEditor";
 import QtyStepper from "./QtyStepper";
 
-/*  DEC-GBL-001 — ORIGINAL and STORE_CREDIT are rules, not tills, so they are
-    always offered; the real doors come from the shop's own list.  */
+/*  DEC-GBL-001 — ORIGINAL is a rule, not a till, so it is always offered; the
+    real doors come from the shop's own list.
+
+    ═══ audit 11 Sep 2026 (P2) — STORE CREDIT IS NOT A REFUND METHOD ═══
+
+    It used to sit in this list beside Cash and bKash, so "refund by store
+    credit" was a thing a cashier could pick — and the money numbers then lied
+    in both directions: the Refunded column counted a payout that never left
+    the shop, and the shop's liability was recorded as if a bill had been
+    settled. A credit is a PROMISE OF GOODS; cash is money going out. They are
+    two different answers to "what does the customer get", which is the
+    RESOLUTION, and that is where store credit now lives — the only place it
+    ever meant anything.
+
+    Nothing about the existing business rule changes: a return whose
+    resolution is STORE_CREDIT still issues credit, capped and gated by
+    DEC-RTN-018 exactly as before. Only the door into it moved. Rows already
+    carrying refundMethod = STORE_CREDIT still work server-side and still
+    display; they simply cannot be created any more.  */
 const REFUND_TENDERS = ["CASH", "BKASH", "NAGAD", "CARD", "BANK"];
 function useRefundMethods(): ReturnRefundMethod[] {
   const live = usePaymentMethods(REFUND_TENDERS);
-  return ["ORIGINAL", ...live.map((m) => m.id as ReturnRefundMethod), "STORE_CREDIT"];
+  return ["ORIGINAL", ...live.map((m) => m.id as ReturnRefundMethod)];
 }
 /*  the payout dialog needs the accounts too (DEC-GBL-006): "which bKash number
     did the money go back out of" is the same question as taking it in.  */
@@ -51,7 +69,8 @@ function usePayoutOptions(gatewayOk?: boolean): PayOption[] {
         pressed, on the screen where somebody is giving money back.  */
     ...(gatewayOk ? [{ id: "GATEWAY", label: "Back to the card (gateway)" } as PayOption] : []),
     ...live,
-    { id: "STORE_CREDIT", label: "Store credit" },
+    /*  no "Store credit" here — this dialog is money leaving the shop. Credit
+        is a resolution, not a till (see useRefundMethods above).  */
   ];
 }
 const RESOLUTIONS: ReturnResolution[] = ["REFUND", "REPLACEMENT", "PARTIAL_COMPENSATION", "STORE_CREDIT"];
@@ -99,6 +118,8 @@ const DOORS = {
   },
 } as const;
 
+const PAGE_SIZE = 50;
+
 export function ReturnsOverview() {
   const params = useSearchParams();
   const raw = params.get("channel");
@@ -106,26 +127,56 @@ export function ReturnsOverview() {
   const door = channel ? DOORS[channel] : null;
 
   const [rows, setRows] = useState<ApiReturn[]>([]);
-  const [stats, setStats] = useState<ReturnAnalytics | null>(null);
+  const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState<ReturnCounts | null>(null);
+  const [stats, setStats] = useState<ReturnStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("");
+  const [page, setPage] = useState(1);
 
-  async function load() {
+  /*  ═══ audit 11 Sep 2026 (P2) — THE HUNDRED-ROW CAP IS GONE ═══
+      The list asked for one page of a hundred and then searched, filtered and
+      totalled it in the browser, so a return from four months ago could not
+      be found by its own number and the strip above described that page
+      rather than the shop. Everything below is now a `where` on the server;
+      the counts and the money come from `GET /returns/stats`, over the whole
+      filtered book.  */
+  const load = useCallback(async (opts?: { page?: number; search?: string }) => {
+    const p = opts?.page ?? 1;
+    const s = opts?.search ?? search;
     setLoading(true);
     try {
-      const [list, an] = await Promise.all([
-        listReturns({ search: search || undefined, status: status || undefined, channel }),
-        returnAnalytics(30),
+      const [list, st] = await Promise.all([
+        listReturns({ search: s || undefined, status: status || undefined, channel, page: p, pageSize: PAGE_SIZE }),
+        returnStats({ search: s || undefined, channel }),
       ]);
-      setRows(list.items);
-      setStats(an);
+      setRows(list.rows ?? list.items ?? []);
+      setTotal(list.total);
+      setCounts(list.counts);
+      setPage(list.page);
+      setStats(st);
       setFailed(false);
     } catch { setFailed(true); }
     finally { setLoading(false); }
-  }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [status, channel]);
+  }, [search, status, channel]);
+
+  /*  the status filter and the door reset to page 1; the search box is
+      debounced so every keystroke is not a round trip  */
+  useEffect(() => { load({ page: 1 }); /* eslint-disable-next-line */ }, [status, channel]);
+  const typed = useRef(false);
+  useEffect(() => {
+    /*  the effect above already loads on mount; this one is only for typing,
+        so the first render does not fire a second identical request  */
+    if (!typed.current) { typed.current = true; return; }
+    const t = setTimeout(() => load({ page: 1, search }), 300);
+    return () => clearTimeout(t);
+    /* eslint-disable-next-line */
+  }, [search]);
+
+  const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(total, page * PAGE_SIZE);
 
   return (
     <div className={WRAP}>
@@ -135,7 +186,7 @@ export function ReturnsOverview() {
         blurb={door?.blurb ?? "Post-delivery returns — staff-initiated only. Refunds never exceed what was collected; returned goods restock through Inventory. Order status stays untouched (DEC-RTN)."}
         right={<NewBtn />}
       />
-      {failed && <DemoBar what="returns (API offline?)" onRetry={load} />}
+      {failed && <DemoBar what="returns (API offline?)" onRetry={() => load({ page })} />}
 
       {/*  The way OUT of a filtered door, always visible. Without it the only
           escape from a narrowed list is the sidebar, and a person who arrived
@@ -150,9 +201,12 @@ export function ReturnsOverview() {
       {stats && (
         <Kpi items={[
           /*  Named "All returns" behind a door so nobody reads the strip as the
-              door's own count. The figure is the same on every door on purpose. */
-          { l: door ? "All returns (30d)" : "Returns (30d)", v: stats.count, c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
-          { l: "Needs approval", v: stats.pending, c: "#f7c06e", bg: "#3b2b17", icon: "bolt" },
+              door's own count. The figure is the same on every door on purpose.
+              Every number here is counted over the whole book, not a page.  */
+          { l: door ? "All returns" : "Returns", v: stats.counts.all ?? 0, c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
+          /*  a queue, not a report — a return raised in June that nobody has
+              decided is still waiting today (audit 11 Sep 2026)  */
+          { l: "Needs approval", v: stats.needsApproval, c: "#f7c06e", bg: "#3b2b17", icon: "bolt" },
           { l: "Refunded", v: formatTaka(stats.refundPaisa), c: "#e1837a", bg: "#3b1a16", icon: "cash" },
           { l: "Store credit", v: formatTaka(stats.storeCreditPaisa), c: "#6a94f1", bg: "#16243b", icon: "star" },
           { l: "Return value", v: formatTaka(stats.returnValuePaisa), c: "#76efab", bg: "#1f3529", icon: "tag" },
@@ -160,15 +214,18 @@ export function ReturnsOverview() {
       )}
 
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <input className="ipt max-w-[280px]" placeholder="Search RTN / order / customer…"
-          value={search} onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && load()} />
+        <input className="ipt max-w-[280px]" placeholder="Search RTN / order / customer / phone…"
+          value={search} onChange={(e) => setSearch(e.target.value)} />
         <select className="ipt max-w-[190px]" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All statuses</option>
+          <option value="">All statuses{counts ? ` (${counts.all ?? 0})` : ""}</option>
           {(Object.keys(RETURN_STATUS_META) as ReturnStatus[]).map((s) =>
-            <option key={s} value={s}>{RETURN_STATUS_META[s].label}</option>)}
+            <option key={s} value={s}>
+              {RETURN_STATUS_META[s].label}{counts ? ` (${counts[s] ?? 0})` : ""}
+            </option>)}
         </select>
-        <button className="text-[13px] px-4 py-2.5 rounded-[10px] border border-lavender-deep" onClick={load}>Search</button>
+        <span className="text-[12.5px] text-body-soft ml-auto">
+          {loading ? "Searching…" : total === 0 ? "No returns" : `${from}–${to} of ${total}`}
+        </span>
       </div>
 
       <DataTable head={
@@ -198,6 +255,16 @@ export function ReturnsOverview() {
           </Link>
         ))}
       </DataTable>
+
+      {total > PAGE_SIZE && (
+        <div className="flex items-center gap-2 mt-3">
+          <button className="text-[12.5px] px-3 py-2 rounded-[9px] border border-lavender-deep disabled:opacity-40"
+            disabled={loading || page <= 1} onClick={() => load({ page: page - 1 })}>← Prev</button>
+          <span className="text-[12.5px] text-body-soft">{from}–{to} of {total}</span>
+          <button className="text-[12.5px] px-3 py-2 rounded-[9px] border border-lavender-deep disabled:opacity-40"
+            disabled={loading || to >= total} onClick={() => load({ page: page + 1 })}>Next →</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -263,10 +330,19 @@ type ReplRow = {
   unitPaisa: number;
 };
 
+const ORDER_PAGE = 25;
+
 export function NewReturn() {
   const router = useRouter();
+  const params = useSearchParams();
+  /*  audit 11 Sep 2026 (P2/P3) — "Start return" on an order page used to land
+      here empty, so whoever pressed it had to find the order they were already
+      looking at. `/returns/new?orderId=…` loads it straight away.  */
+  const fromOrderId = params.get("orderId");
   const [orderSearch, setOrderSearch] = useState("");
   const [orderHits, setOrderHits] = useState<ApiOrder[]>([]);
+  const [orderTotal, setOrderTotal] = useState(0);
+  const [orderPage, setOrderPage] = useState(1);
   const [el, setEl] = useState<EligibleOrder | null>(null);
   const [reasons, setReasons] = useState<ApiReturnReason[]>([]);
   const [drafts, setDrafts] = useState<Record<string, LineDraft>>({});
@@ -312,46 +388,63 @@ export function NewReturn() {
 
   /*  Counter bills are orders too (DEC-POS-001) but the online list hides them,
       so searching a POS number found nothing at all (owner, 21 Aug). Returns
-      asks for both, and the screen offers the recent ones without a search.  */
-  const [returnedIds, setReturnedIds] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    /*  an order that has already been returned still belongs in the list — a
-        second line can come back later — but it must SAY so (owner, 21 Aug)  */
-    listReturns()
-      .then((r) => setReturnedIds(new Set(r.items.map((x) => x.orderId))))
-      .catch(() => {});
-  }, []);
+      asks for both, and the screen offers the recent ones without a search.
 
-  const loadOrders = useCallback(async (search?: string) => {
+      ═══ audit 11 Sep 2026 (P2) — THE PICKER SEARCHES THE SERVER ═══
+      It used to pull one page of a hundred orders and filter them here, so an
+      order older than the last hundred simply did not exist as far as this
+      screen was concerned. It now asks the server, page by page, with the
+      delivered filter applied THERE (agent B's `GET /orders`), and the
+      "already returned once" flag is answered for exactly the rows on screen
+      by `GET /returns/for-orders` — over every return, and with rejected and
+      cancelled ones left out, which the old hundred-row count did not do.  */
+  const [returnedIds, setReturnedIds] = useState<Record<string, number>>({});
+
+  const loadOrders = useCallback(async (search?: string, page = 1) => {
     setErr("");
     try {
-      const res = await listOrders({ search, includeCounter: true });
-      const done = res.items.filter((o) => o.deliveryStatus === "delivered");
-      setOrderHits(done);
-      if (search && res.items.length && !done.length)
-        setErr("Matching orders found, but none are delivered yet — only delivered orders can be returned.");
-      if (search && !res.items.length) setErr("Nothing matches that number, name or phone.");
+      const res = await listOrdersPage({
+        search,
+        includeCounter: true,
+        deliveryStatus: "delivered",
+        page,
+        pageSize: ORDER_PAGE,
+      });
+      setOrderHits(res.rows);
+      setOrderTotal(res.total);
+      setOrderPage(res.page);
+      if (search && !res.rows.length)
+        setErr("No delivered order matches that number, name or phone. Only a delivered order can be returned.");
+      returnedOrderCounts(res.rows.map((o) => o.id)).then(setReturnedIds).catch(() => {});
     } catch (e) { setErr(msg(e, "Could not search orders")); }
   }, []);
-  useEffect(() => { loadOrders(); }, [loadOrders]);
+  useEffect(() => { if (!fromOrderId) loadOrders(); }, [loadOrders, fromOrderId]);
 
-  async function findOrders() { await loadOrders(orderSearch.trim() || undefined); }
+  async function findOrders() { await loadOrders(orderSearch.trim() || undefined, 1); }
 
-  async function pickOrder(id: string) {
+  const pickOrder = useCallback(async (id: string) => {
     setErr("");
     try {
       const e = await eligibleOrderForReturn(id);
       setEl(e);
+      /*  audit 11 Sep 2026 (P2) — the restock default followed the product
+          type alone and ignored the shop's own perishable setting, so a shop
+          that had said "perishables are written off" still had every readymade
+          line pre-ticked back onto the shelf. Both now decide it.  */
       const d: Record<string, LineDraft> = {};
       for (const l of e.lines)
         d[l.orderLineId] = {
           checked: false,
           qty: l.returnableQty,
-          restockAction: l.productType === "CRAFTED" ? "WRITE_OFF" : "RESTOCK",
+          restockAction:
+            l.productType === "CRAFTED" || e.restockDefaultPerishable ? "WRITE_OFF" : "RESTOCK",
         };
       setDrafts(d);
     } catch (e) { setErr(msg(e, "Could not load order")); }
-  }
+  }, []);
+
+  /*  arrived from an order page with the order already named  */
+  useEffect(() => { if (fromOrderId) pickOrder(fromOrderId); }, [fromOrderId, pickOrder]);
 
   const selectedValue = useMemo(() => {
     if (!el) return 0;
@@ -381,8 +474,20 @@ export function NewReturn() {
 
   /*  and the credit starts at what the goods are worth  */
   useEffect(() => {
-    if (resolution === "STORE_CREDIT") setCreditTk((selectedValue / 100).toString());
+    if (resolution === "STORE_CREDIT") setCreditTk((selectedValue / 100).toFixed(2));
   }, [resolution, selectedValue]);
+
+  /*  audit 11 Sep 2026 (P2) — the three money figures this form can produce,
+      with their ceilings, in one place. Every one of them used to be typed
+      free and clamped (or not) somewhere far away.  */
+  const replValue = useMemo(() => repl.reduce((s, r) => s + r.unitPaisa * r.qty, 0), [repl]);
+  const compPaisa = takaToPaisa(compensationTk || "0");
+  const creditPaisa = takaToPaisa(creditTk || "0");
+  /** a compensation is money leaving: never more than the goods, never more than is in hand */
+  const compMax = Math.min(selectedValue, el?.refundableCap ?? 0);
+  const blocked =
+    (resolution === "REPLACEMENT" && replValue > selectedValue) ||
+    (resolution === "PARTIAL_COMPENSATION" && (compPaisa <= 0 || compPaisa > compMax));
 
   useEffect(() => {
     if (!pickOpen) return;
@@ -411,8 +516,7 @@ export function NewReturn() {
         reasonNote: reasonNote || undefined,
         resolution,
         refundMethod,
-        compensationPaisa:
-          resolution === "PARTIAL_COMPENSATION" ? Math.round(parseFloat(compensationTk || "0") * 100) : undefined,
+        compensationPaisa: resolution === "PARTIAL_COMPENSATION" ? compPaisa : undefined,
         note: note || undefined,
         lines,
         replacements: resolution === "REPLACEMENT"
@@ -420,9 +524,7 @@ export function NewReturn() {
               itemId: r.itemId, productId: r.productId, name: r.name, qty: r.qty, unitPaisa: r.unitPaisa,
             }))
           : undefined,
-        creditAskPaisa: resolution === "STORE_CREDIT"
-          ? Math.round(parseFloat(creditTk || "0") * 100)
-          : undefined,
+        creditAskPaisa: resolution === "STORE_CREDIT" ? creditPaisa : undefined,
       });
       router.push(`/returns/${created.id}`);
     } catch (e) {
@@ -448,13 +550,13 @@ export function NewReturn() {
           <label className="lbl">Pick the delivered order</label>
           {/*  two ways in, because a counter bill is remembered by its number and a
                website order by the customer's name (owner, 21 Aug)  */}
-          <select className="ipt mt-1" value={el ? (el as EligibleOrder).order.id : ""}
+          <select className="ipt mt-1" value=""
             onChange={(e) => e.target.value && pickOrder(e.target.value)}>
             <option value="">Choose from the recent delivered orders…</option>
             {orderHits.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.orderNo} · {o.customer?.name ?? o.senderName} · {formatTaka(o.totalPaisa)} · {new Date(o.placedAt).toLocaleDateString()}
-                {returnedIds.has(o.id) ? " · already returned once" : ""}
+                {returnedIds[o.id] ? ` · returned ${returnedIds[o.id]}x already` : ""}
               </option>
             ))}
           </select>
@@ -477,8 +579,10 @@ export function NewReturn() {
                 <span className="text-[13px]">
                   <b style={{ color: ACCENT }}>{o.orderNo}</b> · {o.customer?.name ?? o.senderName}
                   <span className="text-body-soft"> · {o.senderPhone || "—"}</span>
-                  {returnedIds.has(o.id) && (
-                    <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: "#3b2b17", color: "#f7a96e" }}>already returned once</span>
+                  {returnedIds[o.id] > 0 && (
+                    <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: "#3b2b17", color: "#f7a96e" }}>
+                      {returnedIds[o.id] === 1 ? "already returned once" : `already returned ${returnedIds[o.id]} times`}
+                    </span>
                   )}
                 </span>
                 <span className="text-[12px] text-body-soft">{formatTaka(o.totalPaisa)} · paid {formatTaka(o.paidPaisa)}</span>
@@ -486,6 +590,20 @@ export function NewReturn() {
             ))}
             {orderHits.length === 0 && <div className="text-[12.5px] text-body-soft py-3">No delivered order to return yet.</div>}
           </div>
+
+          {orderTotal > ORDER_PAGE && (
+            <div className="flex items-center gap-2 mt-3">
+              <button type="button" className="text-[12.5px] px-3 py-1.5 rounded-[9px] border border-lavender-deep disabled:opacity-40"
+                disabled={orderPage <= 1}
+                onClick={() => loadOrders(orderSearch.trim() || undefined, orderPage - 1)}>← Prev</button>
+              <span className="text-[12px] text-body-soft">
+                {(orderPage - 1) * ORDER_PAGE + 1}–{Math.min(orderTotal, orderPage * ORDER_PAGE)} of {orderTotal} delivered orders
+              </span>
+              <button type="button" className="text-[12.5px] px-3 py-1.5 rounded-[9px] border border-lavender-deep disabled:opacity-40"
+                disabled={orderPage * ORDER_PAGE >= orderTotal}
+                onClick={() => loadOrders(orderSearch.trim() || undefined, orderPage + 1)}>Next →</button>
+            </div>
+          )}
         </div>
       )}
 
@@ -497,8 +615,35 @@ export function NewReturn() {
               <div className="text-[13px]"><b style={{ color: ACCENT }}>{el.order.orderNo}</b> · {el.customer?.name}
                 <span className="text-body-soft"> · paid {formatTaka(el.order.paidPaisa)}, refundable up to {formatTaka(el.refundableCap)}</span>
               </div>
-              <button className="text-[12px] underline" onClick={() => { setEl(null); setOrderHits([]); }}>Change order</button>
+              {/*  audit 11 Sep 2026 (P2) — this used to empty `orderHits` as
+                   well, so "Change order" dropped you back on a picker with
+                   nothing in it and no way to refill it but a search. It now
+                   puts the recent list back.  */}
+              <button className="text-[12px] underline" onClick={() => {
+                setEl(null);
+                setDrafts({});
+                setRepl([]);
+                setReplTouched(false);
+                loadOrders(orderSearch.trim() || undefined, 1);
+              }}>Change order</button>
             </div>
+
+            {/*  audit 11 Sep 2026 (P2) — the return-window warning existed in
+                 the policy and was never once drawn, because nothing on the
+                 payload said when the parcel arrived. It WARNS and never
+                 blocks: DEC-RTN-014 leaves the call to the shop.  */}
+            {el.outsideWindow && (
+              <div className="px-4 py-2.5 text-[12.5px] border-b border-lavender-deep" style={{ background: "#3b2b17", color: "#f7c06e" }}>
+                Delivered {el.daysSinceDelivery} days ago — past the shop&apos;s {el.returnWindowDays}-day return window.
+                You can still take it back; it is your call.
+              </div>
+            )}
+            {(el.priorReturns ?? 0) > 0 && (
+              <div className="px-4 py-2.5 text-[12.5px] border-b border-lavender-deep text-body-soft">
+                This order has {el.priorReturns === 1 ? "one return" : `${el.priorReturns} returns`} already
+                (rejected and cancelled ones not counted).
+              </div>
+            )}
             {el.lines.map((l) => {
               const d = drafts[l.orderLineId];
               const disabled = l.returnableQty <= 0;
@@ -626,7 +771,23 @@ export function NewReturn() {
                     <input className="ipt" autoFocus placeholder="Search the counter list…"
                       value={pickSearch} onChange={(e) => setPickSearch(e.target.value)} />
                     <div className="mt-1.5 max-h-[190px] overflow-y-auto">
-                      {pickHits.map((h) => (
+                      {/*  audit 11 Sep 2026 (P2) — an item the shop does not
+                           hold could be picked as a replacement, promising the
+                           customer something nobody could hand over and taking
+                           the stock negative at completion. A counted item with
+                           nothing on the shelf is shown, greyed, with the
+                           reason: hiding it would look like a search fault.
+                           `stockQty === null` means "not counted" (a service),
+                           which is not the same as "none left".  */}
+                      {pickHits.map((h) => {
+                        const out = h.stockQty !== null && h.stockQty !== undefined && h.stockQty <= 0;
+                        return out ? (
+                          <div key={h.id}
+                            className="w-full text-left px-2 py-1.5 rounded-[8px] opacity-45 flex items-center justify-between gap-2">
+                            <span className="text-[12.5px] truncate">{h.name}</span>
+                            <span className="text-[11.5px] shrink-0" style={{ color: "#e1837a" }}>none in stock</span>
+                          </div>
+                        ) : (
                         <button key={h.id} type="button"
                           onClick={() => {
                             setReplTouched(true);
@@ -652,7 +813,8 @@ export function NewReturn() {
                             {h.stockQty !== null && h.stockQty !== undefined ? ` · ${h.stockQty} left` : ""}
                           </span>
                         </button>
-                      ))}
+                        );
+                      })}
                       {pickHits.length === 0 && <div className="text-[12px] text-body-soft px-2 py-2">Nothing matches.</div>}
                     </div>
                   </div>
@@ -674,22 +836,55 @@ export function NewReturn() {
                     <div className="text-[12px] text-body-soft">Tick the goods coming back, or add an item.</div>
                   )}
                 </div>
+
+                {/*  audit 11 Sep 2026 (P2) — a replacement is goods leaving for
+                     nothing, and it was uncapped: any item in the shop could be
+                     given away against a small return. The API refuses it too;
+                     this is so nobody meets that refusal by surprise.  */}
+                <div className="flex items-center justify-between text-[12px] mt-2 pt-2 border-t border-lavender-deep">
+                  <span className="text-body-soft">Going out</span>
+                  <b style={{ color: replValue > selectedValue ? "#e1837a" : undefined }}>
+                    {formatTaka(replValue)} of {formatTaka(selectedValue)}
+                  </b>
+                </div>
+                {replValue > selectedValue && (
+                  <div className="text-[11.5px] mt-1" style={{ color: "#e1837a" }}>
+                    More is going out than came back. Take something off, or sell the difference as an order.
+                  </div>
+                )}
               </div>
             )}
 
-            {/*  DEC-RTN-018 — how much credit is the shop's call, not a formula  */}
+            {/*  DEC-RTN-018 — how much credit is the shop's call, not a formula.
+                 Above what was collected the API asks for an owner or a manager,
+                 so the line under the box says so rather than letting a cashier
+                 meet a 403 after typing.  */}
             {resolution === "STORE_CREDIT" && (
               <div>
                 <label className="lbl">How much credit (৳)</label>
-                <input className="ipt" type="number" value={creditTk}
+                <input className="ipt" type="number" min={0} step="0.01" value={creditTk}
                   onChange={(e) => setCreditTk(e.target.value)} placeholder="e.g. 300" />
+                <div className="text-[11.5px] text-body-soft mt-1">
+                  Goods coming back are worth {formatTaka(selectedValue)}; {formatTaka(el.refundableCap)} was collected and is still in hand.
+                  {creditPaisa > el.refundableCap && " Above that needs the owner or a manager."}
+                </div>
               </div>
             )}
 
             {resolution === "PARTIAL_COMPENSATION" && (
               <div>
                 <label className="lbl">How much goes back (৳)</label>
-                <input className="ipt" type="number" value={compensationTk} onChange={(e) => setCompensationTk(e.target.value)} placeholder="e.g. 200" />
+                <input className="ipt" type="number" min={0} step="0.01" max={compMax / 100}
+                  value={compensationTk} onChange={(e) => setCompensationTk(e.target.value)} placeholder="e.g. 200" />
+                {/*  audit 11 Sep 2026 (P2) — this was unvalidated on both
+                     sides: any figure could be typed and it was only clamped,
+                     silently, at payout. The ceiling is the smaller of what
+                     the goods are worth and what is still in hand.  */}
+                <div className="text-[11.5px] mt-1" style={{ color: compPaisa > compMax ? "#e1837a" : undefined }}>
+                  {compPaisa > compMax
+                    ? `At most ${formatTaka(compMax)} — that is what is still in hand on this bill.`
+                    : `At most ${formatTaka(compMax)} (goods ${formatTaka(selectedValue)}, still in hand ${formatTaka(el.refundableCap)}).`}
+                </div>
               </div>
             )}
 
@@ -708,8 +903,8 @@ export function NewReturn() {
               <span className="text-body-soft">Goods coming back</span>
               <b className="text-purple" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(selectedValue)}</b>
             </div>
-            <button disabled={busy} onClick={submit}
-              className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px]" style={{ background: ACCENT }}>
+            <button disabled={busy || blocked} onClick={submit}
+              className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px] disabled:opacity-45" style={{ background: ACCENT }}>
               {busy ? "Creating…" : "Create return"}
             </button>
           </div>
@@ -720,6 +915,42 @@ export function NewReturn() {
 }
 
 /* ================================================================== DETAIL */
+
+/*  audit 11 Sep 2026 #32 — the three ways a return can be ended from this
+    screen, each with its own words. Reject and Cancel need a reason; Delete
+    needs nothing but a moment's pause, because it removes the document rather
+    than deciding it.  */
+type AskKind = "reject" | "cancel" | "delete";
+const ASK_META: Record<AskKind, {
+  title: string; verb: string; confirm: string; tone: string;
+  placeholder: string; blurb: (no: string) => string;
+}> = {
+  reject: {
+    title: "Reject this return",
+    verb: "it is being rejected",
+    confirm: "Reject it",
+    tone: "#e1837a",
+    placeholder: "e.g. Goods were used, not faulty",
+    blurb: (no) => `${no} will be refused. The customer gets nothing back, so the reason has to stand up when they ask.`,
+  },
+  cancel: {
+    title: "Cancel this return",
+    verb: "it is being cancelled",
+    confirm: "Cancel it",
+    tone: "#f7c06e",
+    placeholder: "e.g. Customer changed their mind",
+    blurb: (no) => `${no} stops here. Nothing is refunded, credited or restocked.`,
+  },
+  delete: {
+    title: "Delete this return",
+    verb: "",
+    confirm: "Delete it",
+    tone: "#e1837a",
+    placeholder: "",
+    blurb: (no) =>
+      `${no} disappears from the book entirely — no record of the claim, no reason, nothing on the order's timeline. If it was a real claim that you are turning down, Reject or Cancel it instead so the shop can still answer for it.`,
+  },
+};
 
 export function ReturnDetail({ id }: { id: string }) {
   const router = useRouter();
@@ -738,6 +969,11 @@ export function ReturnDetail({ id }: { id: string }) {
   const [gatewayOk, setGatewayOk] = useState<{ ok: boolean; why?: string } | null>(null);
   const payoutOptions = usePayoutOptions(gatewayOk?.ok); // DEC-GBL-006
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  /*  audit 11 Sep 2026 #31 — who is looking. Approval is an OWNER/MANAGER act
+      and never the requester's own, and the button has to say so BEFORE it is
+      pressed; the server refuses either way.  */
+  const [me, setMe] = useState<ApiMe | null>(null);
+  useEffect(() => { meCached().then(setMe).catch(() => {}); }, []);
 
   async function load() {
     try {
@@ -765,19 +1001,63 @@ export function ReturnDetail({ id }: { id: string }) {
     finally { setBusy(false); }
   }
 
+  /*  audit #32 — reject / cancel / delete all pass through one dialog  */
+  const [ask, setAsk] = useState<{ kind: AskKind } | null>(null);
+  const [askWhy, setAskWhy] = useState("");
+  async function runAsk() {
+    if (!ask) return;
+    const why = askWhy.trim();
+    if (ask.kind === "delete") {
+      await act(async () => { await deleteReturn(id); router.push("/returns"); }, "Deleted");
+    } else if (ask.kind === "reject") {
+      await act(() => rejectReturn(id, why), "Rejected");
+    } else {
+      await act(() => cancelReturn(id, why), "Cancelled");
+    }
+    setAsk(null); setAskWhy("");
+  }
+
   if (!r) return <div className={WRAP}>{err ? <ErrBar text={err} onClose={() => setErr("")} /> : "Loading…"}</div>;
 
-  const canApprove = r.status === "pending_approval";
+  const isDraft = r.status === "draft";
+  const pending = r.status === "pending_approval";
   const canComplete = r.status === "approved";
   const canCancel = r.status !== "completed" && r.status !== "cancelled" && r.status !== "rejected";
   const needsPayout = r.resolution === "REFUND" || r.resolution === "PARTIAL_COMPENSATION";
-  /*  a partial compensation pays the agreed amount, not the value of the goods,
-      and nothing ever passes what was collected (DEC-RTN-008)  */
-  const payoutCap = Math.max(0, (r.order?.paidPaisa ?? 0) - (r.order?.refundPaisa ?? 0));
-  const payoutPaisa = Math.min(
-    r.resolution === "PARTIAL_COMPENSATION" ? r.compensationPaisa : r.returnValuePaisa,
-    payoutCap || r.returnValuePaisa,
+
+  /*  audit 11 Sep 2026 #31 — the two walls, drawn. `mayApprove` is the role;
+      `isRequester` is the person. Neither is trusted: the API refuses both
+      cases on its own. Drawing them here only saves somebody the 403.  */
+  const mayApprove = !me || me.role === "OWNER" || me.role === "MANAGER";
+  const isRequester =
+    !!me && !!r.actorName && me.name.trim().toLowerCase() === r.actorName.trim().toLowerCase();
+  const canApprove = pending && mayApprove && !isRequester;
+
+  /*  ═══ audit 11 Sep 2026 #12 — WHAT MAY ACTUALLY BE PAID OUT ═══
+
+      This line used to read `payoutCap || r.returnValuePaisa`: on a bill with
+      NOTHING left in hand the cap is 0, `0 || x` is x, and the dialog cheerfully
+      proposed the whole value of the goods. A COD order never paid for, or an
+      order already refunded in full, offered a second payout of money the
+      customer was never owed — and the person paying it had no way to see that
+      from the screen.
+
+      The cap is the floor as well as the ceiling now, the API enforces the same
+      number from its own reading of the order, and at zero the button is not
+      drawn at all: there is nothing to press, and a sentence saying why beats a
+      button that fails.  */
+  /*  (review the same day) the API sends its OWN cap — which also subtracts
+      store credit already issued on this order (DEC-RTN-011). Working it out
+      again here got a bigger number on any bill that had had credit, so the
+      dialog offered what the API then refused. Its number wins; the local sum
+      is only a fallback for an older payload.  */
+  const payoutCap = Math.max(
+    0,
+    r.payoutCapPaisa ?? (r.order?.paidPaisa ?? 0) - (r.order?.refundPaisa ?? 0),
   );
+  const payoutBase = r.resolution === "PARTIAL_COMPENSATION" ? r.compensationPaisa : r.returnValuePaisa;
+  const payoutPaisa = Math.min(payoutBase, payoutCap);
+  const nothingPayable = needsPayout && payoutPaisa <= 0;
 
   return (
     <div className={WRAP}>
@@ -801,8 +1081,14 @@ export function ReturnDetail({ id }: { id: string }) {
               <div key={l.id} className="px-4 py-3 border-b border-lavender-deep flex items-center justify-between gap-3">
                 <div className="text-[13.5px]">{l.name} <span className="text-body-soft">× {l.qty}</span></div>
                 <div className="flex items-center gap-3">
+                  {/*  audit 11 Sep 2026 (P2) — "Restocked" was printed the
+                       moment the return was written, before anything had gone
+                       anywhere near a shelf. Until the return completes this
+                       is a DECISION, not a fact, and it now reads as one.  */}
                   <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: l.restockAction === "RESTOCK" ? "#1f3529" : "#29242e", color: l.restockAction === "RESTOCK" ? "#76efab" : "#aea4b7" }}>
-                    {l.restockAction === "RESTOCK" ? "Restocked" : "Write-off"}
+                    {l.restockAction === "RESTOCK"
+                      ? (r.status === "completed" ? "Restocked" : "To be restocked")
+                      : (r.status === "completed" ? "Written off" : "To be written off")}
                   </span>
                   <span className="text-[13px] w-[90px] text-right">{formatTaka(l.valuePaisa)}</span>
                 </div>
@@ -860,10 +1146,17 @@ export function ReturnDetail({ id }: { id: string }) {
                    dialog (CLAUDE.md §14). Store credit and a replacement move no
                    cash, so asking "which way does the money go back" there was a
                    dead end the owner walked into (21 Aug).  */}
-              {needsPayout ? (
+              {needsPayout && nothingPayable ? (
+                /*  audit #12 — no button at all, and the reason in one line.  */
+                <div className="text-[12.5px] leading-[1.5]" style={{ color: "#f7c06e" }}>
+                  Nothing is payable on this return: {formatTaka(r.order?.paidPaisa ?? 0)} was collected on the order
+                  and {formatTaka(r.order?.refundPaisa ?? 0)} has already gone back, so there is nothing left in hand.
+                  Cancel the return, or settle it as store credit or a replacement instead.
+                </div>
+              ) : needsPayout ? (
                 <button disabled={busy} onClick={() => setPayoutOpen(true)}
                   className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px]" style={{ background: "#0e7a3d" }}>
-                  {busy ? "Working…" : "Complete & pay out"}
+                  {busy ? "Working…" : `Complete & pay out ${formatTaka(payoutPaisa)}`}
                 </button>
               ) : (
                 <button disabled={busy}
@@ -880,20 +1173,46 @@ export function ReturnDetail({ id }: { id: string }) {
             </div>
           )}
 
-          {canApprove && (
+          {/*  audit 11 Sep 2026 #30 — a draft had no way forward at all: the
+               status was in every filter and reachable by nothing. Submitting
+               re-runs the same checks the create ran.  */}
+          {isDraft && (
+            <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4 space-y-2">
+              <div className="text-[13px] font-semibold" style={{ color: ACCENT }}>Draft</div>
+              <div className="text-[12px] text-body-soft">Nothing has happened yet. Submitting sends it for approval, or approves it outright if the shop&apos;s rules do not need a signature.</div>
+              <button disabled={busy} onClick={() => act(() => submitReturn(id), "Submitted")}
+                className="w-full text-white text-[13px] font-medium px-4 py-2.5 rounded-[10px]" style={{ background: ACCENT }}>
+                {busy ? "Working…" : "Submit this return"}
+              </button>
+            </div>
+          )}
+
+          {pending && (
             <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4 space-y-2">
               <div className="text-[13px] font-semibold" style={{ color: "#f7c06e" }}>Needs approval</div>
+              {/*  audit #31 — the two reasons somebody cannot decide this, each
+                   said plainly instead of a button that returns 403.  */}
+              {isRequester && (
+                <div className="text-[12px] text-body-soft">
+                  You raised this return, so somebody else has to approve it — ask the owner or another manager.
+                </div>
+              )}
+              {!isRequester && !mayApprove && (
+                <div className="text-[12px] text-body-soft">
+                  Approving a return is the owner&apos;s or a manager&apos;s call. Ask one of them to look at it.
+                </div>
+              )}
               <div className="flex gap-2">
-                <button disabled={busy} onClick={() => act(() => approveReturn(id), "Approved")}
-                  className="flex-1 text-white text-[13px] font-medium px-4 py-2.5 rounded-[10px]" style={{ background: ACCENT }}>Approve</button>
-                <button disabled={busy} onClick={() => act(() => rejectReturn(id), "Rejected")}
-                  className="flex-1 text-[13px] font-medium px-4 py-2.5 rounded-[10px] border border-[#4d2e2e] text-[#e1837a]">Reject</button>
+                <button disabled={busy || !canApprove} onClick={() => act(() => approveReturn(id), "Approved")}
+                  className="flex-1 text-white text-[13px] font-medium px-4 py-2.5 rounded-[10px] disabled:opacity-40" style={{ background: ACCENT }}>Approve</button>
+                <button disabled={busy || !mayApprove} onClick={() => setAsk({ kind: "reject" })}
+                  className="flex-1 text-[13px] font-medium px-4 py-2.5 rounded-[10px] border border-[#4d2e2e] text-[#e1837a] disabled:opacity-40">Reject</button>
               </div>
             </div>
           )}
 
           {canCancel && (
-            <button disabled={busy} onClick={() => act(() => cancelReturn(id), "Cancelled")}
+            <button disabled={busy} onClick={() => setAsk({ kind: "cancel" })}
               className="w-full text-[12.5px] px-4 py-2.5 rounded-[10px] border border-lavender-deep text-body-soft">Cancel return</button>
           )}
           {r.status === "completed" && (
@@ -910,12 +1229,52 @@ export function ReturnDetail({ id }: { id: string }) {
               Put the goods back on the shelf
             </button>
           )}
+          {/*  audit #32 — a one-click Delete on a document with a customer
+               behind it. It asks now, and says what it removes.  */}
           {r.status !== "completed" && (
-            <button disabled={busy} onClick={() => act(async () => { await deleteReturn(id); router.push("/returns"); }, "Deleted")}
+            <button disabled={busy} onClick={() => setAsk({ kind: "delete" })}
               className="w-full text-[12px] px-4 py-2 rounded-[10px] text-[#e1837a]">Delete</button>
           )}
         </div>
       </div>
+
+      {/*  ═══ audit 11 Sep 2026 #32 — SAY WHY ═══
+           Reject and Cancel both end a claim a customer made, and both used to
+           happen on one click with nothing written down. The reason is required
+           (the API refuses an empty one), it is stored on the return and it
+           shows on the timeline, so the next person to answer that customer's
+           phone call can see who decided what, and why.  */}
+      {ask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(10,6,16,0.62)" }}
+          role="dialog" aria-modal="true">
+          <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-5 w-full max-w-[420px]">
+            <div className="text-[15px] font-semibold mb-1" style={{ color: ASK_META[ask.kind].tone }}>
+              {ASK_META[ask.kind].title}
+            </div>
+            <div className="text-[12.5px] text-body-soft mb-3">{ASK_META[ask.kind].blurb(r.returnNo)}</div>
+
+            {ask.kind !== "delete" && (
+              <>
+                <label className="lbl">Why {ASK_META[ask.kind].verb}</label>
+                <input className="ipt" autoFocus value={askWhy} onChange={(e) => setAskWhy(e.target.value)}
+                  placeholder={ASK_META[ask.kind].placeholder}
+                  onKeyDown={(e) => { if (e.key === "Enter" && askWhy.trim()) runAsk(); }} />
+              </>
+            )}
+
+            <div className="flex gap-2 mt-4">
+              <button className="flex-1 text-[13px] px-4 py-2.5 rounded-[10px] border border-lavender-deep"
+                onClick={() => { setAsk(null); setAskWhy(""); }}>Keep it</button>
+              <button disabled={busy || (ask.kind !== "delete" && !askWhy.trim())}
+                onClick={runAsk}
+                className="flex-1 text-white text-[13px] font-medium px-4 py-2.5 rounded-[10px] disabled:opacity-40"
+                style={{ background: ASK_META[ask.kind].tone }}>
+                {busy ? "Working…" : ASK_META[ask.kind].confirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {payoutOpen && (
         <RefundDialog
@@ -945,6 +1304,11 @@ export function ReturnDetail({ id }: { id: string }) {
                 refundMethod,
                 refundAccountId: refundAccountId || undefined,
                 refundReference: refundRef || undefined,
+                /*  audit #12 — the screen tells the API what it believes it is
+                    paying. The API checks it against its own cap and REFUSES
+                    anything above it rather than quietly paying a different
+                    number than the one on this dialog.  */
+                payoutPaisa,
               }),
               "Return completed",
             );
@@ -1024,8 +1388,11 @@ export function ReturnSettingsView() {
           <div className="px-4 py-3 space-y-2">
             <input className="ipt" placeholder="New reason (e.g. Damaged on arrival)" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} />
             <div className="flex items-center gap-2">
+              {/*  no Store credit here either — it is a resolution, not a till
+                   (audit 11 Sep 2026). A reason saved with it before today
+                   still displays; it just cannot be chosen again.  */}
               <select className="ipt flex-1" value={newMethod} onChange={(e) => setNewMethod(e.target.value as ReturnRefundMethod)}>
-                {refundMethods.map((m) => <option key={m} value={m}>{m === "ORIGINAL" ? "Original method" : m === "STORE_CREDIT" ? "Store credit" : m}</option>)}
+                {refundMethods.map((m) => <option key={m} value={m}>{m === "ORIGINAL" ? "Original method" : m}</option>)}
               </select>
               <label className="text-[12px] flex items-center gap-1.5 shrink-0">
                 <input type="checkbox" checked={newApproval} onChange={(e) => setNewApproval(e.target.checked)} /> needs approval

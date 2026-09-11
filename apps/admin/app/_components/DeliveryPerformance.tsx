@@ -18,10 +18,12 @@
     next to the rate, because a rate that hides its own denominator has stopped
     being a rate (INT-R09).
 
-    WHY DELIVERY COST MAY READ ৳0. Nothing writes `DeliveryAssignment.costPaisa`
-    yet — the carrier settle screen that captures it is the next piece of work.
-    Until it exists, cost is genuinely zero in the database and margin equals
-    the charge. That is shown plainly rather than filled in with a guess.
+    WHY DELIVERY COST MAY READ ৳0. `DeliveryAssignment.costPaisa` is written
+    on Delivery money — at assign when a one-time fare is typed, and at settle
+    when the rider or courier is paid. A parcel nobody has recorded a fare
+    against is therefore genuinely zero in the database, and margin here is
+    only the charge. That is shown plainly rather than filled in with a guess;
+    Delivery money lists every unpriced parcel so the gap can be closed.
 */
 
 import { useCallback, useEffect, useState } from "react";
@@ -111,7 +113,7 @@ export function DeliveryPerformance() {
       />
 
       {error && (
-        <div className="flex items-center gap-2 bg-[#3c2e17] text-[#f7a96e] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">
+        <div className="flex items-center gap-2 bg-[#fff4e2] text-[#b45309] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">
           <Icon name="bolt" size={15} /> API offline — nothing on this screen is live. ({error})
         </div>
       )}
@@ -148,8 +150,8 @@ export function DeliveryPerformance() {
 
           {a.costPaisa === 0 && a.delivered > 0 && (
             <NoteBox tone="amber">
-              Delivery cost reads ৳0 because no rider or courier payment has been recorded against a parcel yet. Until
-              the carrier settle screen exists, margin here is simply the charge, and the real margin is lower.
+              Delivery cost reads ৳0 because no rider or courier fare has been recorded against a parcel yet. Record
+              them on Delivery money — until then margin here is simply the charge, and the real margin is lower.
             </NoteBox>
           )}
 

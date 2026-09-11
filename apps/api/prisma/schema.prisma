@@ -2592,6 +2592,23 @@ model Order {
   deliveredAt      DateTime?
   cancelledAt      DateTime?
 
+  /// ── Why a delivery failed, and what staff decided · audit 11 Sep 2026 #19
+  ///
+  /// `DeliveryAssignment` has carried these three since DEC-DLV-022, and the
+  /// order screen has always ASKED for them — but `POST /orders/:id/fail` took
+  /// none of them, so a failure raised from the order (no carrier assigned
+  /// yet, or the assignment already closed) recorded nothing but the status.
+  /// "Cancel order" was silently ignored in exactly that case.
+  ///
+  /// `failReason` is the label SNAPSHOT plus whatever was typed with it, the
+  /// same shape the assignment stores, so renaming a reason later cannot
+  /// rewrite what this order says happened. `failDecision` is RETRY | KEEP |
+  /// CANCEL — a string, matching DeliveryAssignment.failDecision rather than
+  /// inventing a second enum for the same three words.
+  failReason   String?
+  failNote     String?
+  failDecision String?
+
   // DEC-DLV-002 — FK into the Delivery masters; the label/fee SNAPSHOTS above
   // stay the receipt (old orders untouched, method edits never rewrite history)
   deliveryMethodId String?
@@ -2675,6 +2692,10 @@ model Order {
   @@index([channelId])
   @@index([salesStatus])
   @@index([deliveryStatus])
+  /// the All-orders list orders by placedAt and the "delivered today" tile
+  /// counts by deliveredAt — both page in the database now (audit 11 Sep 2026)
+  @@index([placedAt])
+  @@index([deliveredAt])
 }
 
 /// The record of one message sent to a customer about one order.
@@ -5047,6 +5068,10 @@ model DeliveryAssignment {
   costRecordedAt  DateTime?
   codHandedOver   Boolean   @default(false) // cash reached us (CarrierRemittance)
   financePostedAt DateTime?
+  /// (audit 11 Sep 2026) the retry fare was put on the customer's order ONCE.
+  /// Claimed by OrdersService.chargeDeliveryToCustomer inside its transaction;
+  /// null = never charged. Never set after the order is delivered.
+  customerChargedAt DateTime?
 
   remittanceLines CarrierRemittanceLine[]
 
@@ -5058,6 +5083,11 @@ model DeliveryAssignment {
   @@index([courierId])
   @@index([status])
   @@index([isActive])
+  /// (audit 11 Sep 2026) DLV-R01 is enforced by the database too: a PARTIAL
+  /// unique index `DeliveryAssignment_one_active_per_order`
+  ///   ON "DeliveryAssignment"("orderId") WHERE "isActive" = true AND "deletedAt" IS NULL
+  /// lives in migration 20260911120000_delivery_settle_guards. Prisma cannot
+  /// express a partial index, so it is SQL-only — do not add a plain @@unique.
 }
 
 // ============================================================
@@ -5860,6 +5890,14 @@ model CarrierRemittanceLine {
   codPaisa    Int @default(0)
   /// what they charged to carry it — mirrored onto the assignment
   chargePaisa Int @default(0)
+  /// (audit 11 Sep 2026) the carrier kept its fee out of the cash it handed
+  /// over — only then is `chargePaisa` netted off the receipt. False = the
+  /// full COD came back and the fee is paid separately (accrual stays open).
+  feeKeptFromCash Boolean @default(false)
+  /// (audit 11 Sep 2026) cash received short of the COD taken at the door,
+  /// and why. Recorded, never silently absorbed.
+  shortPaisa Int     @default(0)
+  shortNote  String?
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?

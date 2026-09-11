@@ -175,14 +175,29 @@ export class FinanceAssetsService {
     receivedAt?: Date;
     note?: string | null;
     actorName?: string;
-    lines: { assignmentId: string; codPaisa: number; chargePaisa: number }[];
+    /*  (audit 11 Sep 2026) `chargePaisa` is netted off the cash ONLY when
+        `feeKeptFromCash` says the carrier kept it out of what it handed over.
+        Otherwise the full COD is the receipt and the fee stays payable on the
+        accrual — a salaried rider, or a one-time rider paid at the door, never
+        "keeps" anything, and netting their fee here made the shop's cash
+        short by exactly that fee every time. `shortPaisa`/`shortNote` record
+        a receipt that was less than the COD taken, per parcel.  */
+    lines: {
+      assignmentId: string;
+      codPaisa: number;
+      chargePaisa: number;
+      feeKeptFromCash?: boolean;
+      shortPaisa?: number;
+      shortNote?: string | null;
+    }[];
   }) {
     const gross = dto.lines.reduce((n, l) => n + Math.max(0, l.codPaisa), 0);
-    const charge = dto.lines.reduce((n, l) => n + Math.max(0, l.chargePaisa), 0);
+    // only the fees the carrier actually kept out of the cash reduce the receipt
+    const charge = dto.lines.reduce((n, l) => n + (l.feeKeptFromCash ? Math.max(0, l.chargePaisa) : 0), 0);
     if (gross <= 0) throw new BadRequestException('No cash came back on these parcels — there is nothing to remit');
     if (charge > gross)
       throw new BadRequestException(
-        'They charged more than they handed over. Record the cash they returned here, and pay the rest as an expense',
+        `The fee kept from the cash (${(charge / 100).toFixed(0)} tk) is more than the cash handed over (${(gross / 100).toFixed(0)} tk). Untick "kept the fee from the cash" and pay the fee separately`,
       );
     if (!dto.intoAccountId) throw new BadRequestException('Where did the money land?');
 
@@ -214,17 +229,21 @@ export class FinanceAssetsService {
             assignmentId: l.assignmentId,
             codPaisa: Math.max(0, l.codPaisa),
             chargePaisa: Math.max(0, l.chargePaisa),
+            feeKeptFromCash: !!l.feeKeptFromCash,
+            shortPaisa: Math.max(0, Math.round(l.shortPaisa ?? 0)),
+            shortNote: l.shortNote?.trim() || null,
           })),
         },
       },
     });
 
-    const lines: LineInput[] = [{ accountId: dto.intoAccountId, debitPaisa: net }];
+    const lines: LineInput[] = [];
+    if (net > 0) lines.push({ accountId: dto.intoAccountId, debitPaisa: net });
     if (charge > 0)
       lines.push({
         accountId: await this.accId(ACC.ACCRUED),
         debitPaisa: charge,
-        note: 'Carrier kept its charge — accrual cleared, already expensed per parcel',
+        note: 'Carrier kept its charge from the cash — accrual cleared, already expensed per parcel',
       });
     lines.push({ accountId: await this.accId(ACC.CASH_WITH_CARRIER), creditPaisa: gross });
 

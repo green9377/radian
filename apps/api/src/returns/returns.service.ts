@@ -113,12 +113,34 @@ export class ReturnsService {
 
   /* ============================ reads ============================ */
 
-  async list(q: ListReturnQuery) {
-    const page = Math.max(1, parseInt(q.page ?? '1', 10) || 1);
-    const pageSize = Math.min(100, Math.max(1, parseInt(q.pageSize ?? '20', 10) || 20));
+  /**
+   * A YYYY-MM-DD read as Dhaka's day (UTC+6), or a full ISO instant taken as
+   * it is. `end` gives the START of the next day, so a `lt` covers the whole
+   * of the day named. Same shape as `OrdersService.dayBoundary` (COMMON rule 9)
+   * rather than a second idea of when a day begins. (audit 11 Sep 2026)
+   */
+  private dayBoundary(v: string | undefined, edge: 'start' | 'end'): Date | null {
+    if (!v?.trim()) return null;
+    const DHAKA = 6 * 3600_000;
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v.trim());
+    if (m) {
+      const base = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) - DHAKA;
+      return new Date(edge === 'end' ? base + 24 * 3600_000 : base);
+    }
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
 
+  /**
+   * audit 11 Sep 2026 (P2, 100-row cap) — every filter `GET /returns` and
+   * `GET /returns/stats` understand, in ONE place, so the page and the counts
+   * can never be computed over different sets. `status` is deliberately
+   * separated out: the segment tiles are how a status is chosen, so counting
+   * inside the chosen one would zero the rest.
+   */
+  private listWhere(q: ListReturnQuery, withStatus: boolean): Prisma.SalesReturnWhereInput {
     const where: Prisma.SalesReturnWhereInput = { deletedAt: null };
-    if (q.status) where.status = q.status as ReturnStatus;
+    if (withStatus && q.status) where.status = q.status as ReturnStatus;
     /*  DEC-RTN-016 — one book, two doors. The menu shows Returns under both
         the website and the counter, but nothing is copied: this filters on the
         order it came from (DELIVERY = online, COUNTER = POS, DEC-POS-001).
@@ -126,15 +148,38 @@ export class ReturnsService {
         nobody asked for must never silently hide rows.  */
     if (q.channel === 'online') where.order = { fulfillmentType: 'DELIVERY' };
     else if (q.channel === 'counter') where.order = { fulfillmentType: 'COUNTER' };
-    if (q.search) {
+
+    const from = this.dayBoundary(q.from, 'start');
+    const to = this.dayBoundary(q.to, 'end');
+    if (from || to) where.createdAt = { ...(from ? { gte: from } : {}), ...(to ? { lt: to } : {}) };
+
+    const search = (q.q ?? q.search ?? '').trim();
+    if (search) {
       where.OR = [
-        { returnNo: { contains: q.search, mode: 'insensitive' } },
-        { order: { orderNo: { contains: q.search, mode: 'insensitive' } } },
-        { customer: { name: { contains: q.search, mode: 'insensitive' } } },
+        { returnNo: { contains: search, mode: 'insensitive' } },
+        { order: { orderNo: { contains: search, mode: 'insensitive' } } },
+        { customer: { name: { contains: search, mode: 'insensitive' } } },
+        { customer: { phone: { contains: search, mode: 'insensitive' } } },
       ];
     }
+    return where;
+  }
 
-    const [rows, total] = await Promise.all([
+  /**
+   * The returns book, ONE PAGE at a time, with the counts taken over the whole
+   * filtered set (audit 11 Sep 2026). It used to hand back a hundred rows and
+   * let the browser search, segment and total them, so a return from four
+   * months ago could not be found by its own number and the segment tiles
+   * described a page rather than the shop.
+   *
+   * `items` is kept alongside `rows` because every existing caller reads it.
+   */
+  async list(q: ListReturnQuery) {
+    const page = Math.max(1, parseInt(q.page ?? '1', 10) || 1);
+    const pageSize = Math.min(200, Math.max(1, parseInt(q.pageSize ?? '50', 10) || 50));
+    const where = this.listWhere(q, true);
+
+    const [rows, total, counts] = await Promise.all([
       this.prisma.db.salesReturn.findMany({
         where,
         include: RETURN_INCLUDE,
@@ -143,9 +188,153 @@ export class ReturnsService {
         take: pageSize,
       }),
       this.prisma.db.salesReturn.count({ where }),
+      this.counts(q),
     ]);
 
-    return { items: rows, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+    return {
+      items: rows, // kept: every existing caller reads `items`
+      rows,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize) || 1,
+      counts,
+    };
+  }
+
+  /** per-status counts over the whole filtered set, status itself ignored */
+  private async counts(q: ListReturnQuery) {
+    const where = this.listWhere(q, false);
+    const grouped = await this.prisma.db.salesReturn.groupBy({
+      by: ['status'],
+      where,
+      _count: { _all: true },
+    });
+    const out: Record<string, number> = {
+      all: 0,
+      draft: 0,
+      pending_approval: 0,
+      approved: 0,
+      completed: 0,
+      rejected: 0,
+      cancelled: 0,
+    };
+    for (const g of grouped) {
+      out[g.status] = g._count._all;
+      out.all += g._count._all;
+    }
+    /*  the two shapes the screens actually group by  */
+    out.open = out.draft + out.pending_approval;
+    out.closed = out.rejected + out.cancelled;
+    return out;
+  }
+
+  /**
+   * `GET /returns/stats` — the band tiles, over the whole filtered set rather
+   * than one page (audit 11 Sep 2026). `waitingPaisa` is what the queue still
+   * has to pay out: not `refundPaisa`, which is zero until a return completes,
+   * but what each waiting return is ASKING for, capped at what is still in
+   * hand. That is the number the "Refunds pending" tile was showing as zero.
+   */
+  async stats(q: ListReturnQuery) {
+    const where = this.listWhere(q, false);
+    const [counts, rows] = await Promise.all([
+      this.counts(q),
+      this.prisma.db.salesReturn.findMany({
+        where,
+        select: {
+          id: true,
+          status: true,
+          resolution: true,
+          returnValuePaisa: true,
+          refundPaisa: true,
+          storeCreditPaisa: true,
+          compensationPaisa: true,
+          ...({ creditAskPaisa: true } as object),
+          order: { select: { paidPaisa: true, refundPaisa: true } },
+        },
+      }),
+    ]);
+
+    let returnValuePaisa = 0;
+    let refundPaisa = 0;
+    let storeCreditPaisa = 0;
+    let compensationPaisa = 0;
+    let waitingPaisa = 0;
+    let waiting = 0;
+    for (const r of rows as (typeof rows[number] & { creditAskPaisa?: number | null })[]) {
+      returnValuePaisa += r.returnValuePaisa;
+      refundPaisa += r.refundPaisa;
+      storeCreditPaisa += r.storeCreditPaisa;
+      compensationPaisa += r.compensationPaisa;
+      if (
+        r.status === ReturnStatus.draft ||
+        r.status === ReturnStatus.pending_approval ||
+        r.status === ReturnStatus.approved
+      ) {
+        waiting++;
+        waitingPaisa += this.expectedSettlement(r);
+      }
+    }
+
+    return {
+      counts,
+      returnValuePaisa,
+      refundPaisa,
+      storeCreditPaisa,
+      compensationPaisa,
+      /** returns not yet settled, and what they are asking for */
+      waiting,
+      waitingPaisa,
+      /** every return still waiting for a decision — NOT windowed (audit #P2) */
+      needsApproval: counts.pending_approval,
+    };
+  }
+
+  /**
+   * What a return that has not completed yet would pay or credit, capped at
+   * what is still in hand on the order. A replacement settles in goods, so it
+   * is zero money on purpose.
+   */
+  private expectedSettlement(r: {
+    resolution: ReturnResolution;
+    returnValuePaisa: number;
+    compensationPaisa: number;
+    creditAskPaisa?: number | null;
+    order?: { paidPaisa: number; refundPaisa: number } | null;
+  }): number {
+    if (r.resolution === ReturnResolution.REPLACEMENT) return 0;
+    const cap = Math.max(0, (r.order?.paidPaisa ?? 0) - (r.order?.refundPaisa ?? 0));
+    if (r.resolution === ReturnResolution.PARTIAL_COMPENSATION)
+      return Math.min(r.compensationPaisa || 0, cap);
+    if (r.resolution === ReturnResolution.STORE_CREDIT)
+      /*  DEC-RTN-018 — credit may stand above the cap when an owner said so,
+          so it is NOT capped here; it is a promise of goods, not of cash.  */
+      return r.creditAskPaisa ?? r.returnValuePaisa;
+    return Math.min(r.returnValuePaisa, cap);
+  }
+
+  /**
+   * audit 11 Sep 2026 (P2) — "already returned once", computed over EVERY
+   * return rather than the hundred rows a screen happened to hold, and with
+   * rejected/cancelled returns left out: a refused claim is not a return.
+   * Bounded by the ids the caller is actually showing.
+   */
+  async returnedOrderCounts(orderIds: string[]): Promise<Record<string, number>> {
+    const ids = [...new Set(orderIds.filter(Boolean))].slice(0, 500);
+    if (!ids.length) return {};
+    const grouped = await this.prisma.db.salesReturn.groupBy({
+      by: ['orderId'],
+      where: {
+        deletedAt: null,
+        orderId: { in: ids },
+        status: { notIn: [ReturnStatus.rejected, ReturnStatus.cancelled] },
+      },
+      _count: { _all: true },
+    });
+    const out: Record<string, number> = {};
+    for (const g of grouped) out[g.orderId] = g._count._all;
+    return out;
   }
 
   async analytics(days = 30) {
@@ -160,9 +349,16 @@ export class ReturnsService {
         compensationPaisa: true,
       },
     });
+    /*  audit 11 Sep 2026 — "Needs approval" is a QUEUE, not a report. A return
+        raised in June that nobody has decided is still waiting today, so it is
+        counted over the whole book while every money figure below stays inside
+        the window the caller asked for.  */
+    const pending = await this.prisma.db.salesReturn.count({
+      where: { deletedAt: null, status: ReturnStatus.pending_approval },
+    });
     const acc = {
       count: rows.length,
-      pending: rows.filter((r) => r.status === 'pending_approval').length,
+      pending,
       completed: rows.filter((r) => r.status === 'completed').length,
       returnValuePaisa: 0,
       refundPaisa: 0,
@@ -184,7 +380,37 @@ export class ReturnsService {
       include: RETURN_INCLUDE,
     });
     if (!r) throw new NotFoundException('return not found');
-    return { ...r, replacements: await this.replacementsOf(id) };
+    return {
+      ...r,
+      replacements: await this.replacementsOf(id),
+      /*  (review 11 Sep 2026) THE SCREEN MUST SEE THE SERVER'S CAP.
+          The dialog worked its own cap out as paid − refunded, while
+          `complete()` also subtracts store credit already issued on this order
+          (DEC-RTN-011). On any bill that has had credit, the screen offered a
+          figure the API then refused outright — a dead button and a puzzling
+          error. One number, computed in one place.  */
+      payoutCapPaisa: await this.payoutCap(r.orderId, id),
+    };
+  }
+
+  /** What can still be paid back on this order: money in hand less every cash
+      refund AND every store credit already issued on it (DEC-RTN-011). */
+  async payoutCap(orderId: string, exceptReturnId?: string): Promise<number> {
+    const order = await this.prisma.db.order.findFirst({
+      where: { id: orderId },
+      select: { paidPaisa: true, refundPaisa: true },
+    });
+    if (!order) return 0;
+    const priorCredit = await this.prisma.db.salesReturn.aggregate({
+      where: {
+        orderId,
+        ...(exceptReturnId ? { id: { not: exceptReturnId } } : {}),
+        status: ReturnStatus.completed,
+        deletedAt: null,
+      },
+      _sum: { storeCreditPaisa: true },
+    });
+    return Math.max(0, order.paidPaisa - (order.refundPaisa + (priorCredit._sum.storeCreditPaisa ?? 0)));
   }
 
   /*  Read on its own instead of through `include`: the extended (soft-delete)
@@ -251,12 +477,34 @@ export class ReturnsService {
         qty: l.qty,
         returnedQty: returned,
         returnableQty: Math.max(0, l.qty - returned),
+        /*  the same figure UNCLAMPED — a draft's own lines are counted in
+            `returned`, so only the raw number can tell `submit()` that the
+            line has been over-subscribed since (audit 11 Sep 2026 #30).  */
+        remainingRaw: l.qty - returned,
         unitPaisa: unitNet,
         bg: l.bg,
       };
     });
 
     const refundableCap = Math.max(0, order.paidPaisa - order.refundPaisa);
+
+    /*  audit 11 Sep 2026 — the screen could never draw the return-window
+        warning, because nothing on this payload said when the parcel arrived
+        or how long the window is. Both travel with the order now, together
+        with the answer, so the shop and the screen cannot disagree about it.
+        A past window WARNS and never blocks (DEC-RTN-014).  */
+    const settings = await this.settings();
+    const deliveredAt = (order as { deliveredAt?: Date | null }).deliveredAt ?? null;
+    const windowDays = settings.returnWindowDays ?? 0;
+    const daysSinceDelivery = deliveredAt
+      ? Math.floor((Date.now() - new Date(deliveredAt).getTime()) / 86_400_000)
+      : null;
+    const outsideWindow =
+      windowDays > 0 && daysSinceDelivery !== null && daysSinceDelivery > windowDays;
+
+    /*  and how many times this order has come back before, counted over every
+        return rather than a page, rejected/cancelled left out  */
+    const priorReturns = (await this.returnedOrderCounts([orderId]))[orderId] ?? 0;
 
     return {
       order: {
@@ -268,11 +516,19 @@ export class ReturnsService {
         paidPaisa: order.paidPaisa,
         refundPaisa: order.refundPaisa,
         totalPaisa: order.totalPaisa,
+        deliveredAt,
       },
       customer: order.customer,
       delivered,
       refundableCap,
       lines,
+      /** DEC-RTN-014 — the policy, so the screen states it rather than guesses */
+      returnWindowDays: windowDays,
+      restockDefaultPerishable: settings.restockDefaultPerishable,
+      deliveredAt,
+      daysSinceDelivery,
+      outsideWindow,
+      priorReturns,
     };
   }
 
@@ -342,7 +598,34 @@ export class ReturnsService {
     const overThreshold =
       settings.approvalThresholdPaisa > 0 && returnValuePaisa >= settings.approvalThresholdPaisa;
     const needsApproval = Boolean(reason?.requiresApproval) || hasCrafted || overThreshold;
-    const status = needsApproval ? ReturnStatus.pending_approval : ReturnStatus.approved;
+    /*  audit 11 Sep 2026 #30 — a draft is a real state now: it is written,
+        nothing is executed, and `submit()` walks it through exactly this gate
+        again. Without the submit path the status was a dead end.  */
+    const status = dto.asDraft
+      ? ReturnStatus.draft
+      : needsApproval
+        ? ReturnStatus.pending_approval
+        : ReturnStatus.approved;
+
+    /*  audit 11 Sep 2026 (P2) — a compensation is money leaving, so it is
+        checked here and not only at payout. Never negative, never more than
+        the goods are worth, never more than is still in hand on the bill.  */
+    let compensationPaisa = 0;
+    if (resolution === ReturnResolution.PARTIAL_COMPENSATION) {
+      const want = Math.round(dto.compensationPaisa ?? 0);
+      if (!Number.isFinite(want) || want < 0)
+        throw new BadRequestException('Compensation must be a whole, positive amount in paisa');
+      if (want > returnValuePaisa)
+        throw new BadRequestException(
+          `Compensation cannot be more than the goods coming back (${(returnValuePaisa / 100).toFixed(2)} taka)`,
+        );
+      const cap = await this.settleCap(dto.orderId);
+      if (want > cap)
+        throw new BadRequestException(
+          `Only ${(cap / 100).toFixed(2)} taka is still in hand on this bill — compensation cannot be more than that.`,
+        );
+      compensationPaisa = want;
+    }
 
     /*  DEC-RTN-017 — a replacement takes goods OUT of the shop. Default is the
         same goods in the same count; the staff can swap them on the screen.  */
@@ -367,12 +650,31 @@ export class ReturnsService {
               })))
         : [];
 
+    /*  audit 11 Sep 2026 (P2) — a replacement is goods leaving the shop for
+        nothing, so what goes out may not be worth more than what came back.
+        Uncapped, "replacement" was a door through which any item in the shop
+        could be given away against a 200-taka return.  */
+    if (replacementRows.length) {
+      for (const x of replacementRows) {
+        if (!Number.isInteger(x.qty) || x.qty <= 0)
+          throw new BadRequestException(`${x.name}: replacement quantity must be a whole number`);
+        if (!Number.isFinite(x.unitPaisa) || x.unitPaisa < 0)
+          throw new BadRequestException(`${x.name}: replacement price cannot be negative`);
+      }
+      const outValue = replacementRows.reduce((s, x) => s + Math.round(x.unitPaisa) * x.qty, 0);
+      if (outValue > returnValuePaisa)
+        throw new BadRequestException(
+          `What goes out (${(outValue / 100).toFixed(2)} taka) is worth more than what came back (${(returnValuePaisa / 100).toFixed(2)} taka). Take something off, or settle the difference as a sale.`,
+        );
+    }
+
     /*  DEC-RTN-018 — the shop says how much credit it gives. Above what was
         collected is the owner's call, not a cashier's.  */
     let creditAskPaisa: number | null = null;
     if (resolution === ReturnResolution.STORE_CREDIT) {
       const want = Math.round(dto.creditAskPaisa ?? returnValuePaisa);
-      if (want < 0) throw new BadRequestException('store credit cannot be negative');
+      if (!Number.isFinite(want) || want < 0)
+        throw new BadRequestException('Store credit must be a whole, positive amount in paisa');
       const cap = await this.settleCap(dto.orderId);
       const role = (dto.actorRole ?? '').toUpperCase();
       if (want > cap && role !== 'OWNER' && role !== 'MANAGER')
@@ -396,8 +698,7 @@ export class ReturnsService {
           returnValuePaisa,
           refundMethod,
           refundReference: dto.refundReference,
-          compensationPaisa:
-            resolution === ReturnResolution.PARTIAL_COMPENSATION ? dto.compensationPaisa ?? 0 : 0,
+          compensationPaisa, // validated + capped above (audit 11 Sep 2026)
           ...({ creditAskPaisa } as object), // DEC-RTN-018 (cast: pre-migration client)
           ...(replacementRows.length
             ? ({ replacements: { create: replacementRows } } as object) // DEC-RTN-017
@@ -430,7 +731,7 @@ export class ReturnsService {
       created.id,
       'sales',
       `Return ${returnNo} opened for ${el.order.orderNo} — ${resolution}${
-        needsApproval ? ' (needs approval)' : ''
+        status === ReturnStatus.draft ? ' (draft)' : needsApproval ? ' (needs approval)' : ''
       }`,
       actorName,
     );
@@ -440,43 +741,155 @@ export class ReturnsService {
 
   /* ============================ approve / reject ============================ */
 
-  async approve(id: string, actorName = 'Admin') {
+  /**
+   * ═══ audit 11 Sep 2026 #30 — FINISHING A DRAFT ═══
+   *
+   * `draft` was offered in every filter and segment and reachable by nothing:
+   * a return opened as one could never move. Submitting re-runs the SAME
+   * checks `create()` ran — the order is still delivered, every line still has
+   * that much left to return, and the approval gate is asked again from
+   * today's settings — because a draft can sit for a week while somebody else
+   * returns the same line.
+   */
+  async submit(id: string, actorName = 'Admin') {
+    const r = await this.findOne(id);
+    if (r.status !== ReturnStatus.draft)
+      throw new BadRequestException(`only a draft can be submitted (is ${r.status})`);
+
+    const el = await this.eligibleOrder(r.orderId);
+    if (!el.delivered)
+      throw new BadRequestException(
+        'only a delivered order can be returned — cancel the order instead (Sales)',
+      );
+    if (!r.lines?.length) throw new BadRequestException('this draft has no lines to return');
+
+    /*  `returnedQty` already counts this draft's own lines (a draft is neither
+        rejected nor cancelled), so what the draft holds is legal exactly while
+        nothing is over-subscribed. A NEGATIVE remainder means somebody else
+        returned the same goods while the draft sat there, and this one can no
+        longer be honoured whole.  */
+    let hasCrafted = false;
+    for (const l of r.lines) {
+      const src = el.lines.find((x) => x.orderLineId === l.orderLineId);
+      if (!src) throw new BadRequestException(`${l.name} is no longer on this order`);
+      if (src.remainingRaw < 0)
+        throw new BadRequestException(
+          `${l.name}: more of this line has been returned elsewhere since this draft was written — reduce it to ${Math.max(0, l.qty + src.remainingRaw)}.`,
+        );
+      if (src.productType === 'CRAFTED') hasCrafted = true;
+    }
+
+    const settings = await this.settings();
+    const reason = r.reasonId
+      ? await this.prisma.db.returnReason.findFirst({ where: { id: r.reasonId, deletedAt: null } })
+      : null;
+    const overThreshold =
+      settings.approvalThresholdPaisa > 0 && r.returnValuePaisa >= settings.approvalThresholdPaisa;
+    const needsApproval = Boolean(reason?.requiresApproval) || hasCrafted || overThreshold;
+    const status = needsApproval ? ReturnStatus.pending_approval : ReturnStatus.approved;
+
+    const updated = await this.prisma.db.salesReturn.updateMany({
+      where: { id, status: ReturnStatus.draft },
+      data: { status },
+    });
+    if (updated.count !== 1)
+      throw new BadRequestException('This return has already been submitted — reload the page.');
+
+    await this.event(
+      id,
+      'sales',
+      `Return submitted — ${needsApproval ? 'waiting for approval' : 'approved'}`,
+      actorName,
+    );
+    return this.findOne(id);
+  }
+
+  /**
+   * ═══ audit 11 Sep 2026 #31 — WHO MAY APPROVE ═══
+   *
+   * Two separate walls, and both matter:
+   *   · the ROLE — approving a return is signing off money leaving, so it is
+   *     OWNER/MANAGER, enforced on the route (`@Roles`) and again here in case
+   *     the method is ever called from somewhere else
+   *   · the PERSON — the one who raised it may not wave it through, whatever
+   *     their role. `actorName` is what the create stored, so that is what is
+   *     compared; it is the only identity a return carries.
+   */
+  async approve(id: string, actorName = 'Admin', actorRole?: string) {
     const r = await this.findOne(id);
     if (r.status !== ReturnStatus.pending_approval)
       throw new BadRequestException(`only a pending return can be approved (is ${r.status})`);
-    const updated = await this.prisma.db.salesReturn.update({
-      where: { id },
+
+    const role = (actorRole ?? '').toUpperCase();
+    if (role && role !== 'OWNER' && role !== 'MANAGER')
+      throw new ForbiddenException('Only the owner or a manager can approve a return.');
+
+    const same = (a?: string | null, b?: string | null) =>
+      !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
+    if (same(r.actorName, actorName))
+      throw new ForbiddenException(
+        'You raised this return, so somebody else has to approve it. Ask the owner or another manager.',
+      );
+
+    const updated = await this.prisma.db.salesReturn.updateMany({
+      where: { id, status: ReturnStatus.pending_approval },
       data: { status: ReturnStatus.approved, approvedBy: actorName, approvedAt: new Date() },
-      include: RETURN_INCLUDE,
     });
+    if (updated.count !== 1)
+      throw new BadRequestException('This return has already been decided — reload the page.');
     await this.event(id, 'sales', `Return approved`, actorName);
-    return updated;
+    return this.findOne(id);
   }
 
-  async reject(id: string, actorName = 'Admin', note?: string) {
+  /*  audit 11 Sep 2026 #32 — a refusal without a reason is a refusal nobody
+      can answer for. The customer is going to ask why; the shop has to have
+      written it down at the moment it was decided, not remembered it later.  */
+  private requireReason(what: string, reason?: string): string {
+    const text = (reason ?? '').trim();
+    if (!text) throw new BadRequestException(`Say in one line why this return is being ${what}.`);
+    return text.slice(0, 300);
+  }
+
+  async reject(id: string, actorName = 'Admin', reason?: string) {
     const r = await this.findOne(id);
     if (r.status !== ReturnStatus.pending_approval)
       throw new BadRequestException(`only a pending return can be rejected (is ${r.status})`);
-    const updated = await this.prisma.db.salesReturn.update({
-      where: { id },
-      data: { status: ReturnStatus.rejected, note: note ?? r.note },
-      include: RETURN_INCLUDE,
+    const why = this.requireReason('rejected', reason);
+    const updated = await this.prisma.db.salesReturn.updateMany({
+      where: { id, status: ReturnStatus.pending_approval },
+      data: {
+        status: ReturnStatus.rejected,
+        /*  kept on the document as well as on the timeline: a list row shows
+            `note`, and "rejected" with an empty note reads like a mistake.  */
+        note: r.note ? `${r.note}\nRejected: ${why}` : `Rejected: ${why}`,
+      },
     });
-    await this.event(id, 'sales', `Return rejected${note ? ` — ${note}` : ''}`, actorName);
-    return updated;
+    if (updated.count !== 1)
+      throw new BadRequestException('This return has already been decided — reload the page.');
+    await this.event(id, 'sales', `Return rejected — ${why}`, actorName);
+    await this.orderEvent(r.orderId, 'sales', `Return ${r.returnNo} rejected — ${why}`, actorName);
+    return this.findOne(id);
   }
 
-  async cancel(id: string, actorName = 'Admin') {
+  async cancel(id: string, actorName = 'Admin', reason?: string) {
     const r = await this.findOne(id);
     if (r.status === ReturnStatus.completed)
       throw new BadRequestException('a completed return cannot be cancelled');
-    const updated = await this.prisma.db.salesReturn.update({
-      where: { id },
-      data: { status: ReturnStatus.cancelled },
-      include: RETURN_INCLUDE,
+    if (r.status === ReturnStatus.cancelled)
+      throw new BadRequestException('this return is already cancelled');
+    const why = this.requireReason('cancelled', reason);
+    const updated = await this.prisma.db.salesReturn.updateMany({
+      where: { id, status: { not: ReturnStatus.completed } },
+      data: {
+        status: ReturnStatus.cancelled,
+        note: r.note ? `${r.note}\nCancelled: ${why}` : `Cancelled: ${why}`,
+      },
     });
-    await this.event(id, 'sales', `Return cancelled`, actorName);
-    return updated;
+    if (updated.count !== 1)
+      throw new BadRequestException('This return has already been decided — reload the page.');
+    await this.event(id, 'sales', `Return cancelled — ${why}`, actorName);
+    await this.orderEvent(r.orderId, 'sales', `Return ${r.returnNo} cancelled — ${why}`, actorName);
+    return this.findOne(id);
   }
 
 
@@ -546,6 +959,10 @@ export class ReturnsService {
       throw new BadRequestException('return already completed');
     if (r.status === ReturnStatus.pending_approval)
       throw new BadRequestException('approve the return before completing it');
+    /*  audit 11 Sep 2026 #30 — a draft used to fall straight through this
+        ladder and complete, skipping the approval gate entirely.  */
+    if (r.status === ReturnStatus.draft)
+      throw new BadRequestException('submit the draft before completing it');
     if (r.status === ReturnStatus.rejected || r.status === ReturnStatus.cancelled)
       throw new BadRequestException(`a ${r.status} return cannot be completed`);
 
@@ -611,6 +1028,29 @@ export class ReturnsService {
     const alreadyBack = order.refundPaisa + (priorCredit._sum.storeCreditPaisa ?? 0);
     const cap = Math.max(0, order.paidPaisa - alreadyBack);
 
+    /*  ═══ audit 11 Sep 2026 #12 — THE CAP IS THE SERVER'S, NOT THE SCREEN'S ═══
+
+        The screen used to propose `cap || returnValue`, so a return on a bill
+        with nothing left in hand offered the full value of the goods and a
+        staff member could pay out money the customer was never owed. The
+        screen is fixed; this is the wall behind it. `payoutPaisa` is what the
+        screen BELIEVES it is paying: above the cap it is refused outright
+        rather than clamped, because a clamp would pay a different number than
+        the one somebody read and approved.  */
+    let asked: number | null = null;
+    if (dto.payoutPaisa !== undefined && dto.payoutPaisa !== null) {
+      asked = Math.round(dto.payoutPaisa);
+      if (!Number.isFinite(asked) || asked < 0)
+        throw new BadRequestException('A payout must be a whole, positive amount in paisa');
+      if (asked > cap)
+        throw new BadRequestException(
+          cap === 0
+            ? 'Nothing is left to pay back on this bill — it has already been refunded or credited in full.'
+            : `Only ${(cap / 100).toFixed(2)} taka is still in hand on this bill; ${(asked / 100).toFixed(2)} cannot be paid out.`,
+        );
+    }
+    const narrow = (n: number) => (asked === null ? n : Math.min(n, asked));
+
     let refundPaisa = 0;
     let storeCreditPaisa = 0;
     let compensationPaisa = 0;
@@ -618,16 +1058,20 @@ export class ReturnsService {
     const asStoreCredit = refundMethod === ReturnRefundMethod.STORE_CREDIT;
 
     if (r.resolution === ReturnResolution.REFUND) {
-      if (asStoreCredit) storeCreditPaisa = Math.min(r.returnValuePaisa, cap);
-      else refundPaisa = Math.min(r.returnValuePaisa, cap);
+      if (asStoreCredit) storeCreditPaisa = narrow(Math.min(r.returnValuePaisa, cap));
+      else refundPaisa = narrow(Math.min(r.returnValuePaisa, cap));
     } else if (r.resolution === ReturnResolution.STORE_CREDIT) {
       /*  DEC-RTN-018 — the amount the shop decided, which may sit above the cap
           because an owner or a manager said so when the return was written.  */
-      const asked = (r as { creditAskPaisa?: number | null }).creditAskPaisa;
-      storeCreditPaisa = asked === null || asked === undefined ? Math.min(r.returnValuePaisa, cap) : asked;
+      /*  (review 11 Sep 2026) named apart from the outer `asked` — the two
+          are different questions ("how much credit did the shop decide" vs
+          "how much is being paid out now"), and sharing a name hid the fact
+          that `narrow()` closes over the outer one.  */
+      const creditAsk = (r as { creditAskPaisa?: number | null }).creditAskPaisa;
+      storeCreditPaisa = creditAsk === null || creditAsk === undefined ? Math.min(r.returnValuePaisa, cap) : creditAsk;
     } else if (r.resolution === ReturnResolution.PARTIAL_COMPENSATION) {
       const want = r.compensationPaisa || 0;
-      compensationPaisa = Math.min(want, cap);
+      compensationPaisa = narrow(Math.min(want, cap));
       if (asStoreCredit) storeCreditPaisa = compensationPaisa;
       else refundPaisa = compensationPaisa;
     } else if (r.resolution === ReturnResolution.REPLACEMENT) {

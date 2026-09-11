@@ -492,6 +492,13 @@ export default function AdminSidebar() {
   const { me, signOut } = useAuth();
   const pathname = usePathname() ?? "";
   const router = useRouter();
+  /*  Subs that differ only by query (Online / Counter returns) — the query
+      is read on the client after navigation and on click, so the right door
+      lights up instead of "All returns" every time (owner, 11 Sep 2026).  */
+  const [search, setSearch] = useState("");
+  useEffect(() => {
+    try { setSearch(window.location.search); } catch { /* server */ }
+  }, [pathname]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   /*  THE ONE LIST, finally read (ADM-RULE-001).
@@ -721,11 +728,14 @@ export default function AdminSidebar() {
                         className="ml-[14px] mt-1 mb-2 pl-[10px] py-1.5 border-l-2 border-white/25"
                       >
                         {it.subs.map((s) => {
-                          const on = subOwns(s, pathname);
+                          const full = pathname + search;
+                          const exactSib = it.subs!.find((x) => x.href.includes("?") && x.href === full);
+                          const on = exactSib ? exactSib.href === s.href : !s.href.includes("?") && subOwns(s, pathname);
                           return (
                             <Link
                               key={s.href}
                               href={s.href}
+                              onClick={() => setSearch(s.href.includes("?") ? s.href.slice(s.href.indexOf("?")) : "")}
                               className={"block px-3 py-[7px] rounded-[9px] mb-0.5 text-[13.5px] font-bold transition-colors " +
                                 (on ? "text-[#ce6ef7] bg-white" : "text-[#e3cff0] hover:text-white hover:bg-white/[0.1]")}
                               style={on ? { boxShadow: "0 8px 18px -10px rgba(0,0,0,.7)" } : undefined}

@@ -144,13 +144,9 @@ function Row({ r, onChanged }: { r: ApiLostRow; onChanged: () => void }) {
 
   return (
     <tr className="hover:bg-[#231538]">
-      <td className={`${CELL} w-[34px]`}>
-        <Said say={say} />
-        <input type="checkbox" className="w-[15px] h-[15px] accent-purple mt-0.5" aria-label={`Select ${r.ref}`} />
-      </td>
-
       {/* ref */}
-      <td className={`${CELL} w-[126px]`}>
+      <td className={`${CELL} w-[140px]`}>
+        <Said say={say} />
         {r.orderId ? (
           <>
             <Link href={`/orders/${r.orderId}`} className={NO}>{r.orderNo ?? r.ref}</Link>
@@ -255,7 +251,9 @@ function Row({ r, onChanged }: { r: ApiLostRow; onChanged: () => void }) {
   );
 }
 
-const HEADS = ["", "Ref", "When", "Who & what they left", "Value", "Why it stopped", "Action"];
+/*  the select column is gone — the checkbox on every row did nothing at all,
+    and there was no bulk action for it to do (audit 11 Sep 2026)  */
+const HEADS = ["Ref", "When", "Who & what they left", "Value", "Why it stopped", "Action"];
 const HELP =
   "Everyone who started to buy and did not finish: typed something at checkout and left, pressed Place Order and the payment failed or was cancelled, " +
   "or opened the gateway and closed the tab. Whatever they typed is on the row. Recovered = came back and ordered, or paid on a later attempt, or marked Ordered by staff.";

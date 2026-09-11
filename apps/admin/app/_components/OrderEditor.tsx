@@ -22,6 +22,8 @@ import {
   type ApiFailReason,
   addOrderPhoto,
   editOrder,
+  failOrder,
+  takaToPaisa,
   uploadItemImage,
   type ApiOrderMessage,
   type ApiCustomer,
@@ -244,9 +246,16 @@ export default function OrderEditor({ id }: { id: string }) {
   /* proof photographs, added from the order itself (8 Sep 2026) */
   const [uploading, setUploading] = useState<"PREP" | "DELIVERY" | null>(null);
   const [photoErr, setPhotoErr] = useState("");
-  /* record a payment */
+  /*  Record a payment.
+
+      ⚠️ THE KIND IS NOT DEFAULTED TO COD_COLLECTED ANY MORE — audit #13.
+      It was, for every order: an online order where no rider collects
+      anything was recorded as "COD collected", and so was a part payment that
+      left money owing, which made the order read "COD collected · ৳1,200 due"
+      — a sentence that cannot be true. `payKind` starts empty and the API
+      picks from the order's payment METHOD unless somebody says otherwise.  */
   const [payAmt, setPayAmt] = useState(0);
-  const [payKind, setPayKind] = useState<"COD_COLLECTED" | "ADVANCE" | "PAYMENT" | "REFUND">("COD_COLLECTED");
+  const [payKind, setPayKind] = useState<"" | "COD_COLLECTED" | "ADVANCE" | "PAYMENT" | "REFUND">("");
 
   async function reload() {
     const adapted = adaptOrder(await getOrder(id)) as unknown as Order;
@@ -382,6 +391,38 @@ export default function OrderEditor({ id }: { id: string }) {
   const codClosed = codClosedReason(o);
   const due = Math.max(0, o.payment.duePaisa);
   const paidNet = o.payment.paidPaisa - o.payment.refundPaisa;
+  /*  What "Record" will do when nobody chooses (audit #13). The METHOD
+      decides, exactly as the API does: cash at the door that settles the bill
+      is a COD collection, anything else is a payment. Said out loud on the
+      dropdown so the default is never a surprise.  */
+  const isRefund = payKind === "REFUND";
+  const defaultKindLabel =
+    o.payment.method === "cod"
+      ? "Cash collected at the door — from the method"
+      : "Payment received — from the method";
+  /*  an empty box means "all of it" — and which "all" depends on the
+      direction the money is going  */
+  const payDefault = isRefund ? Math.max(0, paidNet) : due;
+  /*  the two terms the money breakdown was missing  */
+  const lineDiscountTotal = o.lines.reduce((n, l) => n + ((l as unknown as { discountPaisa?: number }).discountPaisa ?? 0), 0);
+  const adjustment = (o as unknown as { adjustmentPaisa?: number }).adjustmentPaisa ?? 0;
+
+  /*
+    ⚠️ THE CONFIRM USED TO CITE A RULE THAT HAS NOT APPLIED SINCE 25 AUG 2026.
+    It said "per-line refund (readymade full, crafted advance forfeit)" —
+    DEC-SAL-013 replaced that with a share of what was actually RECEIVED,
+    decided by how far the order had got, and not one product in this shop
+    carries an advance so the old wording promised a full refund it would never
+    give. It now says what will really happen, with the real number in it.
+  */
+  const cancelConfirm =
+    paidNet <= 0
+      ? "Cancel this order? Nothing has been collected on it, so there is nothing to refund."
+      : o.deliveryStatus === "unassigned"
+        ? `Cancel this order? Nothing has been made yet, so the refund is a share of the ${formatTaka(paidNet)} already paid — the exact percentage is the one set under Cancellation rules.`
+        : o.deliveryStatus === "preparing"
+          ? `Cancel this order? It has already been made, so only part of the ${formatTaka(paidNet)} paid comes back — the percentage set under Cancellation rules.`
+          : `Cancel this order? The rider has already left with it, so nothing of the ${formatTaka(paidNet)} paid is refundable.`;
   const custName = cust?.name ?? o.sender.name;
   const orderNo = (o as { orderNo?: string }).orderNo ?? o.id;
 
@@ -575,7 +616,7 @@ export default function OrderEditor({ id }: { id: string }) {
           </button>
         )}
         {!terminal && (
-          <button type="button" disabled={busy} onClick={() => { if (confirm("Cancel this order? Per-line refund (readymade full, crafted advance forfeit) will be applied.")) act(() => cancelOrder(id, "staff cancelled")); }} className={`${actBtn} ml-auto bg-white border-[1.5px]`} style={{ borderColor: "#f3c4c0", color: SOLID.red }}>
+          <button type="button" disabled={busy} onClick={() => { if (confirm(cancelConfirm)) act(() => cancelOrder(id, "staff cancelled")); }} className={`${actBtn} ml-auto bg-white border-[1.5px]`} style={{ borderColor: "#f3c4c0", color: SOLID.red }}>
             Cancel order
           </button>
         )}
@@ -635,9 +676,14 @@ export default function OrderEditor({ id }: { id: string }) {
               type="button"
               disabled={busy || (!failReasonId && !failNote.trim())}
               onClick={() => act(async () => {
+                /*  ⚠️ THE ORDER-SIDE CALL CARRIES THE SAME THREE ANSWERS NOW
+                     (audit #19). It used to be a bare `orderAction(id, "fail")`
+                     whenever no assignment existed — so on an order that had
+                     never been handed to a carrier, the reason, the note and
+                     "Cancel order" were all silently dropped.  */
                 const body = { failReasonId: failReasonId || undefined, failReason: failNote.trim() || undefined, decision: failDecision };
                 if (live && (live.status === "OUT_FOR_DELIVERY" || live.status === "ASSIGNED")) await assignmentAction(live.id, "fail", body);
-                else await orderAction(id, "fail");
+                else await failOrder(id, { failReasonId: failReasonId || undefined, note: failNote.trim() || undefined, decision: failDecision });
                 setFailOpen(false);
                 setFailReasonId("");
                 setFailNote("");
@@ -701,14 +747,43 @@ export default function OrderEditor({ id }: { id: string }) {
                         <div className="font-semibold text-[15px] text-body">{formatTaka(l.linePaisa)}</div>
                       </div>
                     ))}
+                    {/*
+                      ⚠️ THE WHOLE SUM, NOT THREE LINES OF IT — audit 11 Sep 2026.
+
+                      This showed the coupon, the delivery charge and the total.
+                      There was no sub-total, no line discounts, no adjustment —
+                      so on any order carrying a retry delivery fare or a
+                      goodwill discount the figures visibly did not add up, and
+                      the only way to find out why was to read the activity log.
+                      Every term the API already returns is printed, in the
+                      order the arithmetic happens.
+                    */}
                     <div className="pt-2 mt-1 border-t-2 border-lavender-deep">
-                      {o.couponCode ? <Row k={`Coupon (${o.couponCode})`} v={`− ${formatTaka(o.discountPaisa)}`} /> : null}
+                      <Row k="Sub-total" v={formatTaka(o.subtotalPaisa)} />
+                      {lineDiscountTotal > 0 && (
+                        <Row k="Item discounts" v={<span style={{ color: SOLID.green }}>− {formatTaka(lineDiscountTotal)}</span>} />
+                      )}
+                      {o.discountPaisa > 0 && (
+                        <Row
+                          k={o.couponCode ? `Coupon (${o.couponCode})` : "Offers applied"}
+                          v={<span style={{ color: SOLID.green }}>− {formatTaka(o.discountPaisa)}</span>}
+                        />
+                      )}
                       <Row k="Delivery" v={o.deliveryWaivedPaisa > 0 ? `${formatTaka(o.deliveryPaisa)} (waived ${formatTaka(o.deliveryWaivedPaisa)})` : formatTaka(o.deliveryPaisa)} />
+                      {adjustment !== 0 && (
+                        <Row
+                          k="Adjustment"
+                          v={<span style={{ color: adjustment < 0 ? SOLID.green : SOLID.amber }}>{adjustment < 0 ? "− " : "+ "}{formatTaka(Math.abs(adjustment))}</span>}
+                        />
+                      )}
                       <div className="flex justify-between items-center pt-2">
                         <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-body-soft">Total</span>
                         <span className="font-semibold text-[22px] text-purple">{formatTaka(o.totalPaisa)}</span>
                       </div>
                       <div className="flex justify-between text-[13px] font-semibold"><span className="text-body-soft">Paid</span><span style={{ color: paidNet > 0 ? SOLID.green : SOLID.grey }}>{formatTaka(paidNet)}</span></div>
+                      {o.payment.refundPaisa > 0 && (
+                        <div className="flex justify-between text-[13px] font-semibold"><span className="text-body-soft">Refunded</span><span style={{ color: SOLID.red }}>{formatTaka(o.payment.refundPaisa)}</span></div>
+                      )}
                       {due > 0 && <div className="flex justify-between text-[13px] font-semibold"><span className="text-body-soft">Due</span><span style={{ color: SOLID.red }}>{formatTaka(due)}</span></div>}
                     </div>
                   </div>
@@ -965,7 +1040,7 @@ export default function OrderEditor({ id }: { id: string }) {
                         </div>
                         <div>
                           <label className="text-[13px] text-body-soft font-medium mb-1 block">Fare ৳</label>
-                          <input type="number" min={0} className="ipt h-[42px]" value={fare} onChange={(e) => setFare(e.target.value)} placeholder="leave blank for Settle" />
+                          <input type="number" min={0} step="0.01" className="ipt h-[42px]" value={fare} onChange={(e) => setFare(e.target.value)} placeholder="leave blank for Settle" />
                         </div>
                         <label className="flex items-center gap-2 text-[13px] font-medium text-body self-end h-[42px]">
                           <input type="checkbox" className="w-4 h-4 accent-purple" checked={paidCash} onChange={(e) => setPaidCash(e.target.checked)} /> Paid in cash now
@@ -1020,7 +1095,7 @@ export default function OrderEditor({ id }: { id: string }) {
                                 : {
                                     platform,
                                     riderPhone: riderPhone.trim() || undefined,
-                                    costPaisa: fare ? Math.round(Number(fare) * 100) : undefined,
+                                    costPaisa: fare ? takaToPaisa(fare) : undefined, // audit #27 — the one conversion
                                     paidCash,
                                   }),
                           });
@@ -1175,31 +1250,66 @@ export default function OrderEditor({ id }: { id: string }) {
                       <div>
                         <label className="text-[13px] text-body-soft font-medium mb-1 block">What happened</label>
                         <select className="ipt h-[42px]" value={payKind} onChange={(e) => setPayKind(e.target.value as typeof payKind)}>
-                          <option value="COD_COLLECTED">Cash collected</option>
+                          {/*  the default says what it will actually record, so
+                               nobody has to know the four enum names (audit #13)  */}
+                          <option value="">{defaultKindLabel}</option>
                           <option value="ADVANCE">Advance received</option>
                           <option value="PAYMENT">Payment received</option>
+                          <option value="COD_COLLECTED">Cash collected at the door</option>
                           <option value="REFUND">Refund given</option>
                         </select>
                       </div>
                       <div>
                         <label className="text-[13px] text-body-soft font-medium mb-1 block">Amount ৳</label>
-                        <input type="number" min={0} className="ipt h-[42px]" value={payAmt ? Math.round(payAmt / 100) : ""} placeholder={due > 0 ? String(Math.round(due / 100)) : "0"} onChange={(e) => setPayAmt(Math.max(0, Number(e.target.value)) * 100)} />
+                        {/*  #27 — taka in, integer paisa out. `Number(x) * 100`
+                             turned 1299.55 into 129954.99999999999 and Prisma
+                             refused it as a 500 with no readable reason.  */}
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          className="ipt h-[42px]"
+                          value={payAmt ? payAmt / 100 : ""}
+                          placeholder={(payDefault / 100).toFixed(2)}
+                          onChange={(e) => setPayAmt(Math.max(0, takaToPaisa(e.target.value)))}
+                        />
                       </div>
                       <button
                         type="button"
                         disabled={busy}
                         onClick={() => {
-                          const amt = payAmt || due;
-                          if (amt <= 0) { setActErr("Type how much first."); return; }
-                          act(() => addOrderPayment(id, { kind: payKind, amountPaisa: amt }).then(() => setPayAmt(0)));
+                          const amt = payAmt || payDefault;
+                          if (amt <= 0) { setActErr(isRefund ? "There is nothing to refund on this order." : "Type how much first."); return; }
+                          act(() =>
+                            addOrderPayment(id, {
+                              ...(payKind ? { kind: payKind } : {}),
+                              amountPaisa: amt,
+                            }).then(() => setPayAmt(0)),
+                          );
                         }}
                         className="h-[42px] px-4 rounded-[11px] text-white text-[13px] font-semibold disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-                        style={{ background: payKind === "REFUND" ? SOLID.red : SOLID.green }}
+                        style={{ background: isRefund ? SOLID.red : SOLID.green }}
                       >
                         <Icon name="cash" size={15} /> Record
                       </button>
                     </div>
-                    {due > 0 && <p className="text-[12px] font-medium text-body-soft mt-2 mb-0">Empty amount = the full due, {formatTaka(due)}.</p>}
+                    {/*
+                      ⚠️ AN EMPTY REFUND AMOUNT IS THE MONEY IN HAND, NOT THE DUE
+                      — audit #13. It used to fall back to `due` whichever way
+                      the money was going, so pressing Record on a refund with
+                      the box empty tried to give back what the customer still
+                      OWED. On an unpaid COD order that is a refund of money
+                      nobody ever paid.
+                    */}
+                    <p className="text-[12px] font-medium text-body-soft mt-2 mb-0">
+                      {isRefund
+                        ? paidNet > 0
+                          ? `Empty amount = everything we are holding, ${formatTaka(paidNet)}.`
+                          : "Nothing has been collected on this order, so there is nothing to refund."
+                        : due > 0
+                          ? `Empty amount = the full due, ${formatTaka(due)}.`
+                          : "Nothing is outstanding on this order."}
+                    </p>
                   </div>
                 )}
 
