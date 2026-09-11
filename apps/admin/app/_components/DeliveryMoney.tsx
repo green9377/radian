@@ -36,7 +36,6 @@ import { SOLID, CELL, LABEL, VALUE, SOFT, NO, NAME, TABLE_WRAP, TABLE, Pill, Act
   · Every attempt is here, including one that FAILED at the door — a trip
     that came back still cost a fare, and it can be recorded and paid on the
     same row.
-  · Short payments are recorded (amount + why), not silently absorbed.
   · One carrier, one action: "Settle all" builds every outstanding receipt
     for that carrier and posts them in a single settle().
 */
@@ -102,8 +101,6 @@ export default function DeliveryMoney() {
   const [account, setAccount] = useState("");
   const [amount, setAmount] = useState("");
   const [feeKept, setFeeKept] = useState(false);
-  const [short, setShort] = useState("");
-  const [shortNote, setShortNote] = useState("");
   /* carrier-level settle */
   const [bulkCarrier, setBulkCarrier] = useState("");
 
@@ -137,8 +134,6 @@ export default function DeliveryMoney() {
     setOpen(null);
     setAmount("");
     setFeeKept(false);
-    setShort("");
-    setShortNote("");
   }
 
   /*  ONE PARCEL. "Cash received" sends the cash and, only when the rider kept
@@ -148,17 +143,12 @@ export default function DeliveryMoney() {
     const c = what === "paid" ? attempt ?? r.carrier : r.carrier;
     if (!c || !c.carrierId) return;
     const paisa = amount ? Math.round(Number(amount) * 100) : 0;
-    const shortPaisa = short ? Math.round(Number(short) * 100) : 0;
     if (what === "received" && !account) {
       setErr("Say which account the cash landed in.");
       return;
     }
     if (what === "paid" && paisa <= 0) {
       setErr("Type what was paid to the carrier.");
-      return;
-    }
-    if (what === "received" && shortPaisa > 0 && !shortNote.trim()) {
-      setErr("A short payment needs a reason — say why less came back.");
       return;
     }
     setBusy(r.id);
@@ -169,12 +159,11 @@ export default function DeliveryMoney() {
         what === "received"
           ? {
               assignmentId: c.assignmentId,
-              codPaisa: Math.max(0, r.codCollectedPaisa - shortPaisa),
+              codPaisa: r.codCollectedPaisa,
               /*  (P0 #1) the fee travels ONLY when it is being kept out of the
                   cash. No number here = the recorded cost is left untouched,
                   and the parcel stays on "not paid" until it is really paid.  */
               ...(feeKept && c.costRecorded ? { chargePaisa: c.costPaisa, feeKeptFromCash: true } : {}),
-              ...(shortPaisa > 0 ? { shortPaisa, shortNote: shortNote.trim() } : {}),
             }
           : { assignmentId: c.assignmentId, chargePaisa: paisa };
       const res = await settleCarrier({
@@ -185,7 +174,7 @@ export default function DeliveryMoney() {
       });
       setOk(
         what === "received"
-          ? `${formatTaka(Math.max(0, r.codCollectedPaisa - shortPaisa))} received from ${c.name}${shortPaisa > 0 ? ` · ${formatTaka(shortPaisa)} short, recorded` : ""}${res.remittance ? ` · ${res.remittance.remittanceNo}` : ""}.`
+          ? `${formatTaka(r.codCollectedPaisa)} received from ${c.name}${res.remittance ? ` · ${res.remittance.remittanceNo}` : ""}.`
           : `${formatTaka(paisa)} recorded for ${c.name} on ${r.orderNo}.`,
       );
       closeBox();
@@ -385,7 +374,7 @@ export default function DeliveryMoney() {
                     {c ? (
                       <>
                         <span className={VALUE}>{c.name}</span>
-                        <span className={`block ${SOFT}`}>{c.kind === "RIDER" ? "own rider" : c.kind === "ONE_TIME" ? "one-time" : "courier"}{c.chargeCustomer ? " · retry, customer pays" : ""}</span>
+                        <span className={`block ${SOFT}`}>{c.kind === "RIDER" ? "own rider" : c.kind === "ONE_TIME" ? "one-time" : "courier"}</span>
                         {/* (audit 11 Sep 2026, P0 #7) the attempts before this one — they cost money too */}
                         {r.attempts.slice(1).map((a) => (
                           <span key={a.assignmentId} className={`block ${SOFT}`}>
@@ -470,10 +459,6 @@ export default function DeliveryMoney() {
                                   <span className={`block ${SOFT}`}>{formatTaka(c.costPaisa)} — leave it off if he handed over the whole {formatTaka(r.codCollectedPaisa)} and is paid separately</span>
                                 </span>
                               </label>
-                            )}
-                            <input type="number" min={0} className="ipt h-[34px] text-[12.5px]" placeholder="Short by ৳ (optional)" value={short} onChange={(e) => setShort(e.target.value)} />
-                            {Number(short) > 0 && (
-                              <input className="ipt h-[34px] text-[12.5px]" placeholder="Why was it short?" value={shortNote} onChange={(e) => setShortNote(e.target.value)} />
                             )}
                             <ActButton kind="solid" colour={SOLID.green} disabled={busy === r.id} onClick={() => void act(r, "received")}>{busy === r.id ? "…" : "Confirm received"}</ActButton>
                           </div>

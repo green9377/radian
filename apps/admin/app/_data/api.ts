@@ -5185,7 +5185,7 @@ export interface ApiCourierService {
 export interface ApiAssignment {
   id: string; assignmentNo: string; orderId: string; kind: "RIDER" | "COURIER" | "ONE_TIME";
   /** ONE_TIME (owner, 10 Sep 2026): Pathao ride / Uber / other — never a Rider row */
-  platform?: string | null; riderPhone?: string | null; paidCash?: boolean; chargeCustomer?: boolean;
+  platform?: string | null; riderPhone?: string | null; paidCash?: boolean;
   failDecision?: string | null; costPaisa?: number;
   riderId?: string | null; courierId?: string | null;
   rider?: { id: string; name: string } | null; courier?: { id: string; name: string } | null;
@@ -5332,7 +5332,7 @@ export interface ApiUnsettledParcel {
   kind: "RIDER" | "COURIER" | "ONE_TIME";
   carrier: { id: string; name: string } | null;
   carrierId: string | null;
-  platform?: string | null; riderPhone?: string | null; paidCash?: boolean; chargeCustomer?: boolean;
+  platform?: string | null; riderPhone?: string | null; paidCash?: boolean;
   consignmentNo: string | null;
   orderId?: string; orderNo?: string; zone?: string; address?: string;
   codDuePaisa: number;
@@ -5357,12 +5357,12 @@ export interface ApiMoneyRow {
 export interface ApiMoneyAttempt {
   assignmentId: string; assignmentNo: string; status: ApiAssignment["status"]; isActive: boolean;
   kind: "RIDER" | "COURIER" | "ONE_TIME"; carrierType: "RIDER" | "COURIER" | "ONE_TIME"; carrierId: string | null; name: string;
-  costPaisa: number; costRecorded: boolean; paidCash: boolean; chargeCustomer: boolean; customerChargedAt?: string | null; codHandedOver: boolean;
+  costPaisa: number; costRecorded: boolean; paidCash: boolean; codHandedOver: boolean;
   failReason?: string | null; failedAt?: string | null; deliveredAt?: string | null;
 }
 /** (audit 11 Sep 2026) one settle line — `chargePaisa` only when the fee is being recorded */
 export interface SettleLine {
-  assignmentId: string; codPaisa?: number; chargePaisa?: number; feeKeptFromCash?: boolean; shortPaisa?: number; shortNote?: string;
+  assignmentId: string; codPaisa?: number; chargePaisa?: number; feeKeptFromCash?: boolean;
 }
 export interface ApiMoney {
   rows: ApiMoneyRow[];

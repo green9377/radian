@@ -219,6 +219,10 @@ export default function OrderEditForm({ id }: { id: string }) {
     have always read it from (`OrderLine.addonIds`). Whether the customer is
     billed for it stays a separate, deliberate act: the tick below adds a
     charge, and leaving it off means the shop is giving it away.
+
+    AT TODAY'S PRICE (owner, 11 Sep 2026). An add-on put on an old order is
+    something the customer is buying now, so it is billed at what it costs
+    now — not at what it cost on the day the order was placed.
   */
   const addAddOn = (a: ApiAddOn) => {
     const lineId = addonLineId || liveLines[0]?.id;
@@ -513,7 +517,7 @@ export default function OrderEditForm({ id }: { id: string }) {
                             </div>
                             <label className="flex items-end gap-2 text-[12.5px] pb-2" style={{ color: TONE.purple.text }}>
                               <input type="checkbox" className="accent-purple" checked={chargeForAddon} onChange={(e) => setChargeForAddon(e.target.checked)} />
-                              Charge the customer for it
+                              Charge the customer for it, at today&apos;s price
                             </label>
                           </div>
                           <input className="ipt h-[42px]" placeholder="Search add-ons…" value={addonQ} onChange={(e) => setAddonQ(e.target.value)} />

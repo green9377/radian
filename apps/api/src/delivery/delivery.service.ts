@@ -441,20 +441,18 @@ export class DeliveryService {
     if (order.salesStatus === 'cancelled' || order.salesStatus === 'completed')
       throw new BadRequestException(`cannot assign a ${order.salesStatus} order`);
 
-    /*  (review 11 Sep 2026, RISK 5) "THE CUSTOMER PAYS THIS RETRY" NEEDS THE
-        FARE NOW, NOT LATER.
+    /*  ═══ THE CUSTOMER IS NEVER CHARGED A DELIVERY FARE — owner, 11 Sep 2026 ═══
 
-        The fare can only be added to an order that is still open — once the
-        parcel is delivered, a new due is a bill nobody collects, so the
-        charge is refused there (P0 #4). Settling happens AFTER delivery.
-        Together that left the tick meaning nothing: staff would say "the
-        customer pays" and the shop would silently eat the fare. Either the
-        fare is known at assign time and lands on the order at once, or the
-        tick is a promise the system cannot keep. So it is required here.  */
-    if (dto.chargeCustomer && !(dto.costPaisa && dto.costPaisa > 0))
-      throw new BadRequestException(
-        'Type the retry fare as well — a fare the customer pays has to go on the order now, while it is still open. It can no longer be added once the parcel is delivered.',
-      );
+        > *"A courier bill, a fare, a second trip — we are not going to get
+        >  into a fight with the customer over any of it. We clear those with
+        >  the carrier and settle them in the commission."*
+
+        A failed first attempt, a second trip, a courier who charges more than
+        we quoted: none of it reaches the customer's bill. It is settled with
+        the carrier, and the margin is what absorbs it. So there is no "the
+        customer pays this retry" tick, no fare required at assign, and no
+        charge at settle — the three places that used to exist are gone rather
+        than left switched off, so nobody can turn them back on by accident.  */
 
     const kind = dto.kind as AssignmentKind;
     let riderName: string | null = null;
@@ -543,7 +541,6 @@ export class DeliveryService {
               platform: kind === 'ONE_TIME' ? dto.platform?.trim() : null,
               riderPhone: kind === 'ONE_TIME' ? dto.riderPhone?.trim() || null : null,
               paidCash: kind === 'ONE_TIME' && !!dto.paidCash,
-              chargeCustomer: !!dto.chargeCustomer,
               /*  A fare known at assign time is the cost — typed by a person, so
                   costRecordedAt is set (DEC-DLV-016). Left blank, Settle asks.  */
               ...(costTyped > 0 ? { costPaisa: costTyped, costRecordedAt: new Date() } : {}),
@@ -584,13 +581,6 @@ export class DeliveryService {
         await this.finance.onDeliveryCost(created.id);
       } catch (e) {
         this.logger.warn(`delivery cost posting failed for ${created.assignmentNo}: ${e instanceof Error ? e.message : String(e)}`);
-      }
-      /*  (P0 #4) staff decided the customer pays this retry's fare, and the
-          fare is known now, while the parcel is still undelivered — this is
-          the one moment it goes on the order. Sales does the once-only claim
-          (customerChargedAt) inside its own transaction.  */
-      if (created.chargeCustomer) {
-        await this.orders.chargeDeliveryToCustomer(dto.orderId, costTyped, actorName, created.id);
       }
     }
 
@@ -1020,7 +1010,6 @@ export class DeliveryService {
         platform: a.platform,
         riderPhone: a.riderPhone,
         paidCash: a.paidCash,
-        chargeCustomer: a.chargeCustomer,
         consignmentNo: a.consignmentNo,
         orderId: a.order?.id,
         orderNo: a.order?.orderNo,
@@ -1131,8 +1120,6 @@ export class DeliveryService {
       costPaisa: a.costPaisa,
       costRecorded: !!a.costRecordedAt,
       paidCash: a.paidCash,
-      chargeCustomer: a.chargeCustomer,
-      customerChargedAt: a.customerChargedAt,
       codHandedOver: a.codHandedOver,
       failReason: a.failReason,
       failedAt: a.failedAt,
@@ -1272,16 +1259,15 @@ export class DeliveryService {
     const norm = lines.map((l) => {
       const a = byId.get(l.assignmentId)!;
       const codTaken = collected.get(a.order?.id ?? '') ?? 0;
-      /* what earlier receipts already brought in for this parcel (a short one leaves a balance) */
+      /* what earlier receipts already brought in for this parcel (a part one leaves a balance) */
       const already = a.remittanceLines.reduce((n, r) => n + r.codPaisa, 0);
       const outstanding = Math.max(0, codTaken - already);
       const cod = Math.max(0, Math.round(l.codPaisa ?? 0));
-      const short = Math.max(0, Math.round(l.shortPaisa ?? 0));
       const hasCharge = typeof l.chargePaisa === 'number' && Number.isFinite(l.chargePaisa);
       const chg = hasCharge ? Math.max(0, Math.round(l.chargePaisa as number)) : null;
       if (a.status !== AssignmentStatus.DELIVERED && a.status !== AssignmentStatus.FAILED)
         throw new BadRequestException(`${a.assignmentNo} has not been delivered yet`);
-      if (a.status === AssignmentStatus.FAILED && (cod > 0 || short > 0))
+      if (a.status === AssignmentStatus.FAILED && cod > 0)
         throw new BadRequestException(`${a.assignmentNo} failed at the door — no cash was taken on it, only its fee can be recorded`);
       /*  (review 11 Sep 2026, BLOCKER 3) A RECORDED FEE IS NOT REWRITTEN HERE.
           `onDeliveryCost` posts to 5200 under the key `DELIVERY:<id>:cost` and
@@ -1297,7 +1283,7 @@ export class DeliveryService {
         );
       /* already recorded and unchanged: nothing to write, nothing to post again */
       const write = chg !== null && !a.costRecordedAt ? chg : null;
-      if (cod > 0 || short > 0) {
+      if (cod > 0) {
         if (codTaken <= 0)
           throw new BadRequestException(`${a.assignmentNo} was prepaid — there is no cash to receive on it`);
         if (a.codHandedOver || outstanding <= 0) {
@@ -1307,19 +1293,21 @@ export class DeliveryService {
             `Cash for ${a.assignmentNo} was already received on ${when}${prev?.remittanceNo ? ` (${prev.remittanceNo})` : ''} — it cannot be received twice`,
           );
         }
-        if (cod + short > outstanding)
+        if (cod > outstanding)
           throw new BadRequestException(
-            `${a.assignmentNo}: received (${(cod / 100).toFixed(0)}) plus short (${(short / 100).toFixed(0)}) is more than the ${(outstanding / 100).toFixed(0)} tk still owed on this parcel`,
+            `${a.assignmentNo}: ${(cod / 100).toFixed(0)} tk is more than the ${(outstanding / 100).toFixed(0)} tk still owed on this parcel`,
           );
       }
-      /*  (review 11 Sep 2026, RISK 6) A SHORT RECEIPT LEAVES THE PARCEL OPEN.
-          Marking it handed over would strand the balance: 1110 Cash with
-          Rider still holds it, and the rider bringing the rest tomorrow would
-          be refused as a second receipt. So the parcel only closes when the
-          whole of the door money has come back.  */
+      /*  A PART RECEIPT LEAVES THE PARCEL OPEN. Marking it handed over would
+          strand the balance: 1110 Cash with Rider still holds it, and the
+          rider bringing the rest tomorrow would be refused as a second
+          receipt. So the parcel only closes when the whole of the door money
+          has come back — there is no "short, written off" state, because the
+          rider is not a debtor here (owner, 11 Sep 2026: the cash he collects
+          simply goes onto the order, and we pay him his fee).  */
       const closes = cod > 0 && codTaken > 0 && cod >= outstanding;
       const feeKept = !!l.feeKeptFromCash && cod > 0 && (write ?? (a.costRecordedAt ? a.costPaisa : 0)) > 0;
-      return { l, a, codTaken, outstanding, cod, short, chg: write, feeKept, closes, shortNote: l.shortNote?.trim() || null };
+      return { l, a, codTaken, outstanding, cod, chg: write, feeKept, closes };
     });
 
     let gross = 0;
@@ -1367,19 +1355,6 @@ export class DeliveryService {
         has read as pure profit. */
     for (const n of norm) {
       if (n.chg !== null && n.chg > 0) await this.finance.onDeliveryCost(n.a.id);
-      /*  (audit 11 Sep 2026, P0 #4) a retry whose fare the customer pays: the
-          fare goes on the order ONCE, at the moment it becomes known, and only
-          while the parcel is still undelivered — a due appearing on a
-          completed order is a bill nobody will ever collect. Sales does the
-          once-only claim (customerChargedAt) inside its own transaction.  */
-      if (
-        n.chg !== null && n.chg > 0 &&
-        n.a.chargeCustomer && n.a.customerChargedAt == null && n.a.order &&
-        n.a.order.deliveryStatus !== DeliveryStatus.delivered &&
-        n.a.order.salesStatus !== SalesStatus.cancelled
-      ) {
-        await this.orders.chargeDeliveryToCustomer(n.a.order.id, n.chg, actorName, n.a.id);
-      }
     }
 
     /*  Only cash that actually came back becomes a remittance. A settlement of
@@ -1407,8 +1382,6 @@ export class DeliveryService {
             /* the recorded fee — this line's, or the one already on the parcel — but only counted when kept */
             chargePaisa: n.feeKept ? (n.chg ?? n.a.costPaisa) : 0,
             feeKeptFromCash: n.feeKept,
-            shortPaisa: n.short,
-            shortNote: n.shortNote,
           })),
       });
       kept = r.chargePaisa;

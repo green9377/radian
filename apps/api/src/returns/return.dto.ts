@@ -37,6 +37,8 @@ export interface CreateReturnDto {
   actorName?: string;
   /** set by the controller from the signed-in user, never trusted from the body */
   actorRole?: string;
+  /** the signed-in account's id — who raised this, independent of their name */
+  actorUserId?: string;
   /**
    * audit 11 Sep 2026 #30 — open it as a draft instead of submitting it now.
    * A draft executes nothing and is finished later through
@@ -50,6 +52,8 @@ export interface ReturnActorDto {
   actorName?: string;
   /** set by the controller from the signed-in session, never from the body */
   actorRole?: string;
+  /** the signed-in account's id — who raised this, independent of their name */
+  actorUserId?: string;
   /** required on reject and cancel; stored on the return and on its timeline */
   reason?: string;
   /** accepted as an alias for `reason`, because the old screen sent `note` */

@@ -128,6 +128,9 @@ export class ReturnsController {
       ...dto,
       actorName: dto.actorName ?? actor,
       actorRole: req.actor?.role,
+      /*  who raised it, by account id — self-approval is judged on this, not
+          on a display name two people can share (owner, 11 Sep 2026).  */
+      actorUserId: req.actor?.id,
     });
   }
 
@@ -162,7 +165,7 @@ export class ReturnsController {
     @Req() req: AuthedRequest,
     @Headers('x-actor-name') actor?: string,
   ) {
-    return this.svc.approve(id, this.actor(req, actor), req?.actor?.role);
+    return this.svc.approve(id, this.actor(req, actor), req?.actor?.role, req?.actor?.id);
   }
   @Roles('OWNER', 'MANAGER')
   @Post(':id/reject')

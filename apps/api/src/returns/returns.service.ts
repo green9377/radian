@@ -704,6 +704,10 @@ export class ReturnsService {
             ? ({ replacements: { create: replacementRows } } as object) // DEC-RTN-017
             : {}),
           actorName,
+          /*  who raised it, by account — the name above is only the label
+              (owner, 11 Sep 2026). Cast: the generated client on a machine
+              that has not run the 11 Sep migration yet does not know it.  */
+          ...({ actorUserId: dto.actorUserId ?? null } as object),
           note: dto.note,
           lines: {
             /*  cast: on a machine whose client predates DEC-POS-018 productId is
@@ -812,10 +816,12 @@ export class ReturnsService {
    *     OWNER/MANAGER, enforced on the route (`@Roles`) and again here in case
    *     the method is ever called from somewhere else
    *   · the PERSON — the one who raised it may not wave it through, whatever
-   *     their role. `actorName` is what the create stored, so that is what is
-   *     compared; it is the only identity a return carries.
+   *     their role. Judged on the ACCOUNT ID (owner, 11 Sep 2026): two staff
+   *     can share a display name, and a renamed account would stop matching
+   *     its own returns. The name comparison survives only as the fallback
+   *     for returns raised before ids were stored.
    */
-  async approve(id: string, actorName = 'Admin', actorRole?: string) {
+  async approve(id: string, actorName = 'Admin', actorRole?: string, actorUserId?: string) {
     const r = await this.findOne(id);
     if (r.status !== ReturnStatus.pending_approval)
       throw new BadRequestException(`only a pending return can be approved (is ${r.status})`);
@@ -824,16 +830,28 @@ export class ReturnsService {
     if (role && role !== 'OWNER' && role !== 'MANAGER')
       throw new ForbiddenException('Only the owner or a manager can approve a return.');
 
-    const same = (a?: string | null, b?: string | null) =>
-      !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
-    if (same(r.actorName, actorName))
+    const raisedBy = (r as { actorUserId?: string | null }).actorUserId;
+    const isSelf = raisedBy
+      /*  the return knows whose account raised it — names cannot confuse this  */
+      ? !!actorUserId && raisedBy === actorUserId
+      /*  raised before ids were stored: fall back to the name, which is all
+          such a row has. Two people sharing a name is the old behaviour, and
+          only for rows that predate today.  */
+      : !!r.actorName && !!actorName &&
+        r.actorName.trim().toLowerCase() === actorName.trim().toLowerCase();
+    if (isSelf)
       throw new ForbiddenException(
         'You raised this return, so somebody else has to approve it. Ask the owner or another manager.',
       );
 
     const updated = await this.prisma.db.salesReturn.updateMany({
       where: { id, status: ReturnStatus.pending_approval },
-      data: { status: ReturnStatus.approved, approvedBy: actorName, approvedAt: new Date() },
+      data: {
+        status: ReturnStatus.approved,
+        approvedBy: actorName,
+        approvedByUserId: actorUserId ?? null,
+        approvedAt: new Date(),
+      },
     });
     if (updated.count !== 1)
       throw new BadRequestException('This return has already been decided — reload the page.');

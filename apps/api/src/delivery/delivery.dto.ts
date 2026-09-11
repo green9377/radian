@@ -126,8 +126,6 @@ export interface AssignDto {
   costPaisa?: number;
   /** the fare was handed over in cash at the door */
   paidCash?: boolean;
-  /** retry after a failure: staff decided the customer pays this fare */
-  chargeCustomer?: boolean;
   note?: string;
   actorName?: string;
 }
@@ -196,8 +194,8 @@ export interface BulkAssignDto {
 /*  SETTLING A CARRIER — DEC-DLV-016/017.
 
     One line per parcel. `codPaisa` is what the carrier actually handed over for
-    it, which is NOT assumed to equal what was due: a short payment is a fact
-    worth recording, not an error to reject. `chargePaisa` is what they charged
+    it, which is NOT assumed to equal what was due — a part receipt simply
+    leaves the parcel open for the rest. `chargePaisa` is what they charged
     to carry it, and it is written onto the parcel — the parcel is what posts to
     Delivery Cost.
 
@@ -222,9 +220,6 @@ export interface SettleLineDto {
    * and the fee is paid separately (it stays on the accrual).
    */
   feeKeptFromCash?: boolean;
-  /** cash received short of the COD taken at the door, with the reason */
-  shortPaisa?: number;
-  shortNote?: string;
 }
 
 export interface SettleDto {

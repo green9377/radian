@@ -180,15 +180,12 @@ export class FinanceAssetsService {
         Otherwise the full COD is the receipt and the fee stays payable on the
         accrual — a salaried rider, or a one-time rider paid at the door, never
         "keeps" anything, and netting their fee here made the shop's cash
-        short by exactly that fee every time. `shortPaisa`/`shortNote` record
-        a receipt that was less than the COD taken, per parcel.  */
+        short by exactly that fee every time.  */
     lines: {
       assignmentId: string;
       codPaisa: number;
       chargePaisa: number;
       feeKeptFromCash?: boolean;
-      shortPaisa?: number;
-      shortNote?: string | null;
     }[];
   }) {
     const gross = dto.lines.reduce((n, l) => n + Math.max(0, l.codPaisa), 0);
@@ -230,8 +227,6 @@ export class FinanceAssetsService {
             codPaisa: Math.max(0, l.codPaisa),
             chargePaisa: Math.max(0, l.chargePaisa),
             feeKeptFromCash: !!l.feeKeptFromCash,
-            shortPaisa: Math.max(0, Math.round(l.shortPaisa ?? 0)),
-            shortNote: l.shortNote?.trim() || null,
           })),
         },
       },

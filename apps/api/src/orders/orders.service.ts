@@ -1586,9 +1586,13 @@ export class OrdersService {
    * flowers and that is the end of it.
    *
    *   unassigned        nothing made yet          → beforeStartPct (100%)
-   *   preparing         made, rider not out       → afterStartPct  (50%)
-   *   out_for_delivery  the rider has left        → 0
+   *   preparing         made, nobody carried it   → afterStartPct  (50%)
+   *   ever went out     a carrier was marked out  → 0
    *   delivered         refused above — that is a Return, not a cancel
+   *
+   * (11 Sep 2026) "ever went out" replaced a plain status test, because a
+   * failed order is `failed` whether or not the parcel ever left the shop —
+   * see the note beside `everLeft` below.
    *
    * ⚠️ WHAT THIS REPLACED, AND WHY IT WAS A LEAK. The old rule refunded each
    * line in full unless the product carried an advance, and `advanceForfeit`
@@ -1612,15 +1616,34 @@ export class OrdersService {
     const collected = Math.max(0, o.paidPaisa - o.refundPaisa);
 
     const rates = await this.salesRates();
+    /*  ⚠️ "FAILED" IS NOT A STAGE, IT IS AN OUTCOME — owner, 11 Sep 2026.
+
+        > *"Cancelled while it is being prepared, the customer gets 50% back.
+        >  Once the product has gone out for delivery, nothing comes back."*
+
+        The ladder asks one question — has the parcel left the shop? — and
+        `deliveryStatus` stopped being able to answer it: a fail sets the
+        status to `failed` whether the rider got to the door or nobody ever
+        picked the order up. So the same order gave 50% through Cancel and 0%
+        through Failed → "Cancel order", for no reason a customer could be
+        told. It is answered from the parcel's own history instead: a carrier
+        that was ever marked out is the thing that makes the flowers gone.  */
+    const everLeft =
+      o.deliveryStatus === DeliveryStatus.out_for_delivery ||
+      o.deliveryStatus === DeliveryStatus.delivered ||
+      (await this.prisma.db.deliveryAssignment.count({
+        where: { orderId: id, deletedAt: null, outAt: { not: null } },
+      })) > 0;
     const refundPct =
       o.deliveryStatus === DeliveryStatus.unassigned
         ? rates.beforeStartPct
-        : o.deliveryStatus === DeliveryStatus.preparing
-          ? rates.afterStartPct
-          : /*  out_for_delivery, failed, stock_reverted — the rider has been
-                out with it. Not a setting: "once it is on the road it is
-                gone" is the ruling itself.  */
-            0;
+        : everLeft
+          ? /*  on the road, or it was and came back — "once it is on the road
+                it is gone" is the ruling itself, not a setting.  */
+            0
+          : /*  made, but nobody has carried it out yet: preparing, or failed
+                before it ever left  */
+            rates.afterStartPct;
     const entitlement = Math.round((collected * refundPct) / 100);
 
     const lines = await this.prisma.db.orderLine.findMany({ where: { orderId: id, deletedAt: null } });
@@ -1640,7 +1663,7 @@ export class OrdersService {
     const stageNote =
       refundPct >= 100 ? 'Cancelled before the workshop started'
         : refundPct > 0 ? `Cancelled after it was made — ${refundPct}% of what was paid`
-          : 'Cancelled after the rider left — nothing refundable';
+          : 'Cancelled after the parcel left with a carrier — nothing refundable';
 
     /*  REV-C1 — never refund money that was never collected. Since DEC-SAL-013
         the entitlement is already a share OF `collected`, so this can no
@@ -1690,15 +1713,29 @@ export class OrdersService {
           delivery board, counted against its rider, and blocked "remove
           rider" for ever. SWAPPED would be a lie (nobody finished it), so
           CANCELLED it is.  */
-      const stood = await tx.deliveryAssignment.updateMany({
+      /*  ⚠️ READ THEN WRITE, so the carrier's own note survives (11 Sep 2026).
+          `updateMany` cannot append, and a plain assignment threw away
+          whatever the rider or the office had written on the parcel —
+          "customer asked to hold at the gate", a phone number, a landmark.
+          There are never many live assignments on one order (the partial
+          unique index allows exactly one), so reading them first costs
+          nothing and keeps what somebody bothered to type.  */
+      const live = await tx.deliveryAssignment.findMany({
         where: { orderId: id, isActive: true, deletedAt: null },
-        data: {
-          isActive: false,
-          status: AssignmentStatus.CANCELLED,
-          note: `Order cancelled${dto.reason ? ` — ${dto.reason}` : ''}`,
-        },
+        select: { id: true, note: true },
       });
-      if (stood.count > 0) cancelledAssignments = stood.count;
+      const stoodNote = `Order cancelled${dto.reason ? ` — ${dto.reason}` : ''}`;
+      for (const a of live) {
+        await tx.deliveryAssignment.update({
+          where: { id: a.id },
+          data: {
+            isActive: false,
+            status: AssignmentStatus.CANCELLED,
+            note: a.note?.trim() ? `${a.note.trim()}\n${stoodNote}` : stoodNote,
+          },
+        });
+      }
+      cancelledAssignments = live.length;
 
       for (const [i, l] of lines.entries()) {
         const p = l.productId ? pMap.get(l.productId) : undefined;
@@ -2822,102 +2859,21 @@ export class OrdersService {
    * over-payment — it is surfaced as `overpaidPaisa` so staff can refund it,
    * instead of silently sitting in duePaisa = 0.
    */
-  /**
-   * Owner, 10 Sep 2026: a retry after a failed delivery where staff decided
-   * the customer pays the second fare. Called by Delivery when the cost is
-   * recorded at Settle — the fare lands on the order as an adjustment and
-   * the due is recomputed, so it is collected like any other balance.
-   */
-  /*  ⚠️ FOUR ARGUMENTS SINCE 11 SEP 2026 (audit 11 Sep 2026, P0 #4).
-      Delivery calls this twice — at assign, when a one-time fare is typed, and
-      at settle, when the fee is first recorded on a parcel still on the road.
-      Both hand over the ASSIGNMENT the fare belongs to, because that row is
-      where "this fare has already been put on the customer" is written.
+  /*  ═══ THERE IS NO "CHARGE THE DELIVERY FARE TO THE CUSTOMER" ═══════════
 
-      The claim is the whole point: `customerChargedAt` goes null → now inside
-      the same transaction that moves the money, so two settle clicks (or a
-      settle racing an assign) can only charge the customer once. A caller that
-      loses the claim gets `{ charged: false }` and nothing happens — this is
-      not an error, it is the second click doing its job.
-
-      It refuses outright on a delivered or cancelled order: a due raised on a
-      completed order is a bill nobody is going to collect, and a cancelled
-      order collects nothing more by rule.  */
-  async chargeDeliveryToCustomer(
-    orderId: string,
-    paisa: number,
-    actorName: string | undefined,
-    assignmentId: string,
-  ): Promise<{ charged: boolean; reason?: string }> {
-    const who = actorName ?? 'Delivery';
-    const amount = Math.round(paisa);
-    if (!amount || amount <= 0) return { charged: false, reason: 'nothing to charge' };
-    if (!assignmentId) return { charged: false, reason: 'no assignment given' };
-
-    /*  (audit 11 Sep 2026, corrected on review the same day)
-        ⚠️ A REFUSAL MUST ROLL THE CLAIM BACK, NOT COMMIT IT.
-        `customerChargedAt` is a one-shot: it is the only thing standing
-        between this fare and being charged twice. The first version of this
-        method took the claim, then `return`ed `{charged:false}` when the
-        order turned out to be cancelled or already delivered — and a plain
-        return COMMITS, stamping "charged" on a parcel nobody ever charged.
-        The fare could then never be put on the customer again, silently.
-        So every refusal inside the transaction THROWS (rolling the claim
-        back) and is turned into a quiet answer out here.  */
-    const REFUSED = 'CHARGE_REFUSED:';
-    let outcome: { charged: boolean; reason?: string };
-    try {
-      outcome = await this.prisma.db.$transaction(async (tx) => {
-      /*  R4 — take the right to charge BEFORE reading anything else. If
-          another request already took it, this one stops here.  */
-      const claim = await tx.deliveryAssignment.updateMany({
-        where: { id: assignmentId, customerChargedAt: null },
-        data: { customerChargedAt: new Date() },
-      });
-      if (claim.count !== 1) throw new Error(REFUSED + 'already charged');
-
-      const order = await tx.order.findFirst({
-        where: { id: orderId, deletedAt: null },
-        include: { lines: { where: NOT_DELETED } },
-      });
-      if (!order) throw new Error(REFUSED + 'order not found');
-      if (order.salesStatus === SalesStatus.cancelled)
-        throw new Error(REFUSED + 'order is cancelled');
-      if (order.deliveryStatus === DeliveryStatus.delivered)
-        throw new Error(REFUSED + 'order is already delivered');
-
-      const adjustment = order.adjustmentPaisa + amount;
-      const m = this.moneyOf({ ...order, adjustmentPaisa: adjustment });
-      await tx.order.update({
-        where: { id: orderId },
-        data: {
-          adjustmentPaisa: adjustment,
-          subtotalPaisa: m.subtotal,
-          totalPaisa: m.total,
-          duePaisa: m.due,
-          paymentStatus: m.status,
-          discountPaisa: m.discount,
-        },
-      });
-      return { charged: true };
-      });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (msg.startsWith(REFUSED)) return { charged: false, reason: msg.slice(REFUSED.length) };
-      throw e; // a real failure — the claim rolled back with it, so a retry is safe
-    }
-
-    if (outcome.charged) {
-      await this.event(orderId, 'payment', `Delivery fee charged to the customer: ${amount} paisa`, who);
-    }
-    return outcome;
-  }
+      Removed 11 Sep 2026. The owner: a courier bill, a second trip, a fare
+      that came out higher than quoted — none of it goes onto the customer's
+      order; it is settled with the carrier and absorbed by the commission.
+      The method that put such a fare on an order (and the assignment claim
+      that kept it once-only) is gone rather than left unreachable, so it
+      cannot quietly come back. `DeliveryAssignment.customerChargedAt` stays
+      in the database, unused, carrying whatever history it already holds.  */
 
   /**
    * The ONE piece of order arithmetic — subtotal, capped discount, total, due,
-   * payment status. Extracted 11 Sep 2026 (audit) so `recomputeMoney` and
-   * `chargeDeliveryToCustomer` (which has to do its sums inside its own claim
-   * transaction) cannot drift apart. Pure: it reads, it does not write.
+   * payment status. Extracted 11 Sep 2026 (audit) so every caller that has to
+   * do its sums inside its own transaction cannot drift from `recomputeMoney`.
+   * Pure: it reads, it does not write.
    */
   private moneyOf(order: {
     lines: { linePaisa: number; discountPaisa: number }[];

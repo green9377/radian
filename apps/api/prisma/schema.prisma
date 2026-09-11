@@ -3316,6 +3316,14 @@ model SalesReturn {
   refundReference String? // bKash txn / bank ref
 
   actorName String
+  /*  WHO, NOT WHAT THEY ARE CALLED (owner, 11 Sep 2026). "The person who
+      raised this return may not approve it" was decided by comparing NAMES,
+      and two staff members can share a name — or one can be renamed and stop
+      matching their own returns. The account id is the only thing that is
+      actually the person. `actorName` stays as the label shown on screen and
+      on old rows that have no id.  */
+  actorUserId    String?
+  approvedByUserId String?
   note      String?
 
   createdAt DateTime  @default(now())

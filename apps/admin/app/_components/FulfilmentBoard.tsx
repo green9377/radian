@@ -536,7 +536,6 @@ function BoardPanel({
   const [riderPhone, setRiderPhone] = useState("");
   const [fare, setFare] = useState("");
   const [paidCash, setPaidCash] = useState(true);
-  const [chargeCustomer, setChargeCustomer] = useState(false);
   const [reasonId, setReasonId] = useState("");
   const [note, setNote] = useState("");
   const [decision, setDecision] = useState<"RETRY" | "KEEP" | "CANCEL">("RETRY");
@@ -632,13 +631,12 @@ function BoardPanel({
             </>
           )}
           {failed && (
-            <label className="flex items-center gap-2 text-[12.5px]"><input type="checkbox" className="w-4 h-4 accent-purple" checked={chargeCustomer} onChange={(e) => setChargeCustomer(e.target.checked)} /> This retry&apos;s fare is charged to the customer</label>
-          )}
-          {failed && chargeCustomer && (
-            <span className={`text-[12px] ${SOFT}`}>The fare goes on the order once, when it is known and while the parcel is still undelivered — type it here for a one-time rider, or record it on Delivery money before the parcel is marked delivered.</span>
+            /*  owner, 11 Sep 2026: a retry's fare never reaches the customer —
+                it is settled with the carrier and absorbed by the commission.  */
+            <span className={`text-[12px] ${SOFT}`}>This retry&apos;s fare is ours, not the customer&apos;s — record it on Delivery money.</span>
           )}
           <ActButton kind="primary" disabled={busy || (kind !== "ONE_TIME" && !carrierId)} onClick={() => run(() => createAssignment({
-            orderId: o.id, kind, chargeCustomer: failed ? chargeCustomer : false,
+            orderId: o.id, kind,
             ...(kind === "RIDER" ? { riderId: carrierId } : kind === "COURIER" ? { courierId: carrierId, consignmentNo: consignment.trim() || undefined }
               : { platform, riderPhone: riderPhone.trim() || undefined, costPaisa: fare ? Math.round(Number(fare) * 100) : undefined, paidCash }),
           }), "Could not assign.")}>
