@@ -5229,8 +5229,12 @@ export interface ApiBoardPage {
   page: number;
   limit: number;
   pageSize: number;
-  /** (audit 11 Sep 2026) the eight tiles counted over the WHOLE day (plus the raw statuses), never the page */
+  /** the RAW delivery statuses, as this endpoint has always returned them */
   counts: Record<string, number>;
+  /** (audit 11 Sep 2026) the board's eight tiles, counted over the WHOLE day
+      and never over the page. Kept apart from `counts` because two keys
+      ("failed", "delivered") mean different things in the two objects. */
+  segCounts: Record<string, number>;
   /** YYYY-MM-DD, Dhaka's day the board is showing */
   date: string;
   scope: "today" | "all";

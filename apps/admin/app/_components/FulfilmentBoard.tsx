@@ -316,7 +316,12 @@ export default function FulfilmentBoard() {
   }, [load]);
 
   const rows = useMemo(() => data?.rows ?? [], [data]);
-  const counts = data?.counts ?? {};
+  /*  ⚠️ THE TILES READ `segCounts`, NOT `counts` (fixed on DEV, 11 Sep 2026).
+      The server keeps the raw delivery statuses in `counts` and the eight
+      board tiles in `segCounts`; reading `counts` here looked up keys like
+      "notAssigned" that a status object has never had, so every tile printed
+      0 while four parcels sat on the screen underneath.  */
+  const counts = data?.segCounts ?? {};
   const total = data?.total ?? 0;
   const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const to = Math.min(page * PAGE_SIZE, total);
