@@ -227,7 +227,7 @@ export function ReceiptSlip({ r, gift }: ReceiptSlipProps) {
         <div style={{ fontSize: 10.5, textAlign: "center" }}>
           Prices are not shown on a gift receipt.
           <br />
-          {r.lines.reduce((n, l) => n + l.qty, 0)} item(s) · exchange within the shop&apos;s policy.
+          {r.lines.reduce((n, l) => n + l.qty, 0)}{" "}item{r.lines.reduce((n, l) => n + l.qty, 0) === 1 ? "" : "s"} · exchange within the shop&apos;s policy.
         </div>
       ) : (
         <>
