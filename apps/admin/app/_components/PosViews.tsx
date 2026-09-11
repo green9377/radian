@@ -579,7 +579,7 @@ export function PosDayClose() {
             <Stat label={`Sold · ${day.bills.count} bill${day.bills.count === 1 ? "" : "s"}`} value={formatTaka(day.bills.salesPaisa)} tone="plum" />
             <Stat label="Owed on today's bills" value={formatTaka(day.bills.duePaisa)} tone="amber" />
             <Stat label="Cash taken out" value={formatTaka(money?.cashOutPaisa ?? 0)} tone="orchid" />
-            <Stat label="Cash box should hold" value={formatTaka(expected)} tone="green" />
+            <Stat label={expected < 0 ? "Cash box is short" : "Cash box should hold"} value={formatTaka(expected)} tone={expected < 0 ? "amber" : "green"} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5 items-start">
@@ -665,9 +665,24 @@ export function PosDayClose() {
                   <p className="text-[12px] text-body-soft m-0 mb-3">Cash only. bKash, card and Nagad are already with the bank.</p>
                   <div className="space-y-2 text-[13px] mb-3">
                     <div className="flex justify-between"><span className="text-body-soft">Started with</span><span>{formatTaka(open.openingFloatPaisa)}</span></div>
-                    <div className="flex justify-between"><span className="text-body-soft">Cash in and out since</span><span className="text-[#0e7a3d]">{formatTaka(expected - open.openingFloatPaisa)}</span></div>
+                    <div className="flex justify-between">
+                      <span className="text-body-soft">Cash in and out since</span>
+                      <span className={expected - open.openingFloatPaisa < 0 ? "text-[#c0392b]" : "text-[#0e7a3d]"}>{formatTaka(expected - open.openingFloatPaisa)}</span>
+                    </div>
                     <div className="flex justify-between border-t border-lavender-deep pt-2"><span className="text-purple font-medium">Should be in the box</span><span className="font-semibold text-purple">{formatTaka(expected)}</span></div>
                   </div>
+
+                  {/*  ⚠️ A NEGATIVE BOX IS NOT AN ARITHMETIC ERROR, it is a
+                      real thing that happened: more cash was paid OUT of this
+                      box than ever came in — a refund handed over at the
+                      counter on a day the till had barely taken anything. The
+                      screen says which, because the alternative is a person
+                      staring at a minus sign while counting notes.  */}
+                  {expected < 0 && (
+                    <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px] font-medium" style={{ background: "#3a1616", color: "#ff9c92" }}>
+                      More cash has gone out of this box than came into it — {formatTaka(-expected)} more. Look at the movements below: a refund or a cash-out was paid from money that was never in the box. Count what is actually there; the difference will show as an excess.
+                    </div>
+                  )}
 
                   {/*  ⚠️ A BOX OPEN SINCE BEFORE TODAY HOLDS MORE THAN TODAY.
                       Saying so is the difference between a count that looks
@@ -685,7 +700,7 @@ export function PosDayClose() {
                         type="text"
                         inputMode="decimal"
                         className="ipt h-[46px] text-[16px]"
-                        placeholder={(expected / 100).toFixed(2)}
+                        placeholder={(Math.max(0, expected) / 100).toFixed(2)}
                         value={draft}
                         onChange={(e) => { const v = e.target.value; if (/^\d*\.?\d{0,2}$/.test(v)) setDraft(v); }}
                       />
