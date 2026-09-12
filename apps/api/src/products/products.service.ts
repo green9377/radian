@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, DiscountType, ProductType, ProductZone, StockMode } from '@prisma/client';
+import { Prisma, DiscountType, ProductType, ProductZone, StockMode, FulfillmentType} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 import {
@@ -146,7 +146,15 @@ export class ProductsService {
       March heading. Found in the 29 Jul review.
       The fix belongs here, not there: a report may not quietly redefine what
       the owning module measured. */
-  private async funnelRows(window: number | { from: Date; to: Date }, productId?: string) {
+  private async funnelRows(
+    window: number | { from: Date; to: Date },
+    productId?: string,
+    /*  DEC-POS-018 gives a counter line an itemId and no productId - but only
+        when the counter sells an ITEM. Sell a website product across the
+        counter and the line carries a productId, so it landed in a table
+        headed "website". The caller may now say which shop it means. */
+    only?: 'web' | 'counter',
+  ) {
     /*  "The last 7 days" means seven Dhaka days ending tonight, not a rolling
         168 hours in UTC. Counted the old way, at 09:00 in Dhaka a 1-day report
         reached back to 09:00 yesterday and billed half of yesterday to today.
@@ -161,7 +169,15 @@ export class ProductsService {
     const lines = await this.prisma.db.orderLine.findMany({
       where: {
         ...(productId ? { productId } : {}),
-        order: { deletedAt: null, placedAt: until ? { gte: since, lte: until } : { gte: since } },
+        order: {
+          deletedAt: null,
+          placedAt: until ? { gte: since, lte: until } : { gte: since },
+          ...(only === 'web'
+            ? { fulfillmentType: { in: [FulfillmentType.DELIVERY, FulfillmentType.PICKUP] } }
+            : only === 'counter'
+              ? { fulfillmentType: FulfillmentType.COUNTER }
+              : {}),
+        },
       },
       select: {
         productId: true,
@@ -226,8 +242,8 @@ export class ProductsService {
   /**  `analytics(30)` — the last 30 days, as before.
    *   `analytics({ from, to })` — an exact window, for a report that names dates.
    */
-  async analytics(window: number | { from: Date; to: Date } = 30) {
-    const { map } = await this.funnelRows(window);
+  async analytics(window: number | { from: Date; to: Date } = 30, only?: 'web' | 'counter') {
+    const { map } = await this.funnelRows(window, undefined, only);
     const days = typeof window === 'number'
       ? window
       : Math.max(1, Math.round((window.to.getTime() - window.from.getTime()) / 86400000));

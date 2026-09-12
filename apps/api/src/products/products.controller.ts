@@ -43,9 +43,27 @@ export class ProductsController {
 
   // NOTE: static route must stay ABOVE ':id', otherwise Nest treats
   // "analytics" as an id.
+  /*  the service has always been able to answer an exact window; only this
+      route could not ask for one, so Reports computed a day count from the
+      chosen dates and labelled the answer with those dates. */
   @Get('analytics')
-  analytics(@Query('days') days?: string) {
-    return this.products.analytics(ProductsController.days(days));
+  analytics(
+    @Query('days') days?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    /*  `channel=web` answers "what the WEBSITE sold". Without it a counter
+        bill for a bouquet - a real Product, so it carries a productId - was
+        counted under a heading that said website. */
+    @Query('channel') channel?: string,
+  ) {
+    const only = channel === 'web' ? 'web' : channel === 'counter' ? 'counter' : undefined;
+    if (from && to) {
+      const a = new Date(from), b = new Date(to);
+      if (!Number.isNaN(a.getTime()) && !Number.isNaN(b.getTime()) && a <= b) {
+        return this.products.analytics({ from: a, to: b }, only);
+      }
+    }
+    return this.products.analytics(ProductsController.days(days), only);
   }
 
   // static route — must also stay ABOVE ':id'
