@@ -158,6 +158,19 @@ export function InventoryOverviewView() {
   const presets: RangeKey[] = ["today", "yesterday", "d7", "d30", "d90", "custom"]
     .filter((k) => (k === "d7" ? reach >= 7 : k === "d30" ? reach >= 30 : k === "d90" ? reach >= 90 : true)) as RangeKey[];
 
+  /*  the screen opens on 30 days, but the movement list may not reach that far.
+      Once it has been read, fall back to the longest period the list can
+      actually answer - a heading naming 30 days over a 23-day book is the same
+      lie as letting the picker choose those dates.  */
+  useEffect(() => {
+    if (mvSt !== "ok" || firstMoveDay === null) return;
+    if (presets.includes(range.key)) return;
+    const fit: RangeKey[] = ["d90", "d30", "d7", "yesterday", "today"];
+    const pick = fit.find((k) => presets.includes(k)) ?? "today";
+    setRange(presetRange(pick as Exclude<RangeKey, "custom">));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mvSt, firstMoveDay]);
+
   const reasonMax = Math.max(1, ...cut.reasons.map((r) => r.inPaisa + r.outPaisa));
 
   /* ── what the stockroom holds, now ─────────────────────────────────────── */

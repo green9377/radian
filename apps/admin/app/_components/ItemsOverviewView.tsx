@@ -154,7 +154,7 @@ export function ItemsOverviewView() {
         figures={[
           { label: "Items in use", value: items ? count(m.live.length) : "—", quiet: !items,
             sub: items ? `of ${count(m.all.length)}` : undefined },
-          { label: "Sold at the counter", value: items ? count(m.saleable.length) : "—", quiet: !items,
+          { label: "Can be sold at the counter", value: items ? count(m.saleable.length) : "—", quiet: !items,
             sub: items ? `${count(m.online.length)} also on the website` : undefined },
           { label: "Built from a recipe", value: items ? count(m.assembled.length) : "—", quiet: !items || m.assembled.length === 0 },
           { label: "Hidden", value: items ? count(m.hidden.length) : "—", quiet: !items || m.hidden.length === 0,
