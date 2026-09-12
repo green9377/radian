@@ -539,6 +539,20 @@ function ProfitChart({ rows }: { rows: Row[] }) {
 
 const JOB_TONE: Record<string, "bad" | "warn" | "mute"> = { danger: "bad", warn: "warn", info: "mute", ok: "mute" };
 
+/*  THE CHIP WORDING THE OWNER ASKED FOR, over the server's own label.
+    The server names each job in its own words; the owner's design names the
+    same five jobs slightly differently. Only the WORDING is changed here -
+    the key, the count and the link are the server's, and a job this map has
+    never heard of keeps the label it arrived with, so a new job added on the
+    API side still reads correctly the day it appears.  */
+const JOB_NAME: Record<string, string> = {
+  "Orders being prepared": "Orders waiting to prepare",
+  "Deliveries with no rider": "Deliveries without rider",
+  "Items running low": "Low stock items",
+  "Items showing negative stock": "Negative stock items",
+};
+const jobName = (label: string) => JOB_NAME[label] ?? label;
+
 /*  Today is not a row of numbers among other numbers: it is the only part of
     the page that can still be changed by walking across the shop. So it gets
     its own band - dark, above the fold, the live figures large on the left and
@@ -575,7 +589,7 @@ function TodayBand({ dash, pos, counter }: {
               <Tile icon="sparkle" tone="accent" />
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[15px] font-semibold" style={{ color: "var(--t-main)" }}>Today, live</span>
+                  <span className="text-[15px] font-semibold" style={{ color: "var(--t-main)" }}>Live today</span>
                   <span className="w-[8px] h-[8px] rounded-full" style={{ background: "var(--t-live)", boxShadow: "0 0 0 3px var(--s-ok)" }} />
                 </div>
                 <div className="text-[12.5px] mt-[5px]" style={{ color: "var(--t-soft)" }}>
@@ -590,7 +604,7 @@ function TodayBand({ dash, pos, counter }: {
           <div className="pl-5 pr-5 border-l flex items-start gap-2.5" style={{ borderColor: "var(--l-accent)" }}>
             <Tile icon="cart" tone="orchid" />
             <div>
-              <div className="text-[12.5px] font-semibold" style={{ color: "var(--t-soft)" }}>Orders on the website</div>
+              <div className="text-[12.5px] font-semibold" style={{ color: "var(--t-soft)" }}>Online orders</div>
               <div className="text-[30px] font-bold tabular-nums leading-none mt-[9px] tracking-[-0.03em]"
                 style={{ color: (web ?? 0) > 0 ? "var(--t-main)" : "var(--t-faint)" }}>
                 {web === null ? "—" : web}
@@ -602,7 +616,7 @@ function TodayBand({ dash, pos, counter }: {
           <div className="pl-5 pr-5 border-l flex items-start gap-2.5" style={{ borderColor: "var(--l-accent)" }}>
             <Tile icon="register" tone="info" />
             <div>
-              <div className="text-[12.5px] font-semibold" style={{ color: "var(--t-soft)" }}>Bills at the counter</div>
+              <div className="text-[12.5px] font-semibold" style={{ color: "var(--t-soft)" }}>Counter sales</div>
               <div className="text-[30px] font-bold tabular-nums leading-none mt-[9px] tracking-[-0.03em]"
                 style={{ color: (pos?.bills.count ?? 0) > 0 ? "var(--t-main)" : "var(--t-faint)" }}>
                 {pos === null ? "—" : pos.bills.count}
@@ -635,11 +649,7 @@ function TodayBand({ dash, pos, counter }: {
               <div>
                 <div className="text-[15px] font-semibold" style={{ color: "var(--t-main)" }}>Needs your attention</div>
                 <div className="text-[11.5px] mt-[5px]" style={{ color: "var(--t-faint)" }}>
-                  {dash
-                    ? jobs.length === 0
-                      ? "nothing is waiting"
-                      : `${jobs.length} ${jobs.length === 1 ? "thing needs" : "things need"} doing`
-                    : "reading your shop…"}
+                  {dash ? (jobs.length === 0 ? "nothing is waiting" : "tap one to open it") : "reading your shop…"}
                 </div>
               </div>
             </div>
@@ -664,7 +674,7 @@ function TodayBand({ dash, pos, counter }: {
                 <Link key={l.key} href={l.href}
                   className="inline-flex items-center gap-2 rounded-full border pl-3 pr-2 py-[6px] text-[12px] font-medium transition-transform hover:-translate-y-[1px]"
                   style={st}>
-                  {l.label}
+                  {jobName(l.label)}
                   <b className="tabular-nums text-[13px] font-bold px-[7px] py-[1px] rounded-full"
                     style={{ background: "color-mix(in srgb, currentColor 16%, transparent)" }}>
                     {l.count}
@@ -725,7 +735,7 @@ function useClock(): Date | null {
 function ClockPill() {
   const now = useClock();
   return (
-    <div className="biz-panel flex items-center gap-3 px-4 py-[10px]">
+    <div className="flex items-center gap-3 pl-1 pr-2">
       <Tile icon="clock" tone="accent" />
       <div>
         <div className="text-[16px] font-bold tabular-nums leading-none" style={{ color: "var(--t-main)" }}>
@@ -756,14 +766,15 @@ function RangeBar({ range, onPick }: { range: Range; onPick: (r: Range) => void 
     <div className="flex items-start justify-end gap-3 flex-wrap">
       {/*  THE PERIOD, SPELLED OUT. The presets say which button is pressed;
            this says what that button actually resolved to, which is the thing
-           every figure below is measured over.  */}
+           every figure below is measured over. The width is PINNED so the row
+           does not jump when "Today" gives way to a two-date span.  */}
       <button type="button" onClick={() => setOpenCustom((o) => !o)}
         aria-expanded={openCustom}
         className="biz-panel flex items-center gap-3 px-4 py-[10px] text-left transition-colors"
         style={{ minWidth: 268 }}
         title="Pick your own dates">
         <Tile icon="grid" tone="orchid" />
-        <span>
+        <span className="flex-1 min-w-0">
           <span className="block text-[14px] font-semibold tabular-nums" style={{ color: "var(--t-main)" }}>
             {range.from === range.to ? longDay(range.from) : `${longDay(range.from)} — ${longDay(range.to)}`}
           </span>
@@ -772,9 +783,16 @@ function RangeBar({ range, onPick }: { range: Range; onPick: (r: Range) => void 
             {range.from !== range.to ? ` · ${daysBetween(range.from, range.to)} days` : ""}
           </span>
         </span>
+        <Icon name="chevronDown" size={16}
+          style={{ color: "var(--t-faint)", flex: "none",
+            transform: openCustom ? "rotate(180deg)" : undefined, transition: "transform .15s" }} />
       </button>
 
-      <div className="flex items-center gap-3 flex-wrap">
+      {/*  the clock and the presets share ONE panel, so the strip reads as two
+           blocks rather than three loose pieces  */}
+      <div className="biz-panel flex items-center gap-3 px-3 py-[7px] flex-wrap">
+        <ClockPill />
+        <span className="w-px self-stretch" style={{ background: "var(--l-soft)" }} />
         <Seg<RangeKey>
           label="Period"
           value={range.key}
@@ -813,7 +831,6 @@ function RangeBar({ range, onPick }: { range: Range; onPick: (r: Range) => void 
           </div>
         ) : null}
       </div>
-      <ClockPill />
     </div>
   );
 }
@@ -1113,10 +1130,10 @@ export function BusinessDashboard() {
   const marked = !!att && att.everMarked;
 
   const meta = chart === "sales"
-    ? { title: "Money taken, day by day", big: formatTaka(revenue) }
+    ? { title: "Revenue trend (day by day)", big: formatTaka(revenue) }
     : chart === "orders"
-      ? { title: "Orders, day by day", big: `${orders} orders` }
-      : { title: "Profit, day by day", big: formatTaka(profit) };
+      ? { title: "Orders trend (day by day)", big: `${orders} orders` }
+      : { title: "Profit trend (day by day)", big: formatTaka(profit) };
 
   const oneDay = range.from === range.to;
 
@@ -1146,31 +1163,31 @@ export function BusinessDashboard() {
              delivered-orders basis. The chart below reads the books instead and
              says so - two sources, never presented as one number.  */}
         <Kpi icon="chart" tone="accent"
-          label="Money taken" value={ordsAll ? formatTaka(ordsAll.revenuePaisa) : "—"}
-          scope={<Scope text="from delivered orders, website and counter" />}
+          label="Total revenue" value={ordsAll ? formatTaka(ordsAll.revenuePaisa) : "—"}
+          scope={<Scope text="from delivered orders (both shops)" />}
           delta={<Delta now={ordsAll?.revenuePaisa ?? null} before={ordsPrev?.revenuePaisa ?? null} />}>
           <SplitLine web={ordsWeb?.revenuePaisa ?? null} counter={counterBilled} fmt={formatTaka} />
           <div className="mt-3.5 -mx-[22px] -mb-4"><Spark rows={rows} pick={(r) => r.revenue} mode="area" /></div>
         </Kpi>
 
         <Kpi icon="bag" tone="orchid"
-          label="Orders" value={ordsAll ? String(ordsAll.counts.all) : "—"}
-          scope={<Scope text="website and counter together" />}
+          label="Total orders" value={ordsAll ? String(ordsAll.counts.all) : "—"}
+          scope={<Scope text="both shops" />}
           delta={<Delta now={ordsAll?.counts.all ?? null} before={ordsPrev?.counts.all ?? null} />}>
           <SplitLine web={ordsWeb?.counts.all ?? null} counter={counterOrders} fmt={(n) => String(n)} />
           <div className="mt-3.5 -mx-[22px] -mb-4"><Spark rows={rows} pick={(r) => r.orders} mode="bars" /></div>
         </Kpi>
 
         <Kpi icon="cash" tone={profit < 0 ? "bad" : "ok"}
-          label="Profit" value={formatTaka(profit)} negative={profit < 0}
-          scope={<Scope text="from the books, after every cost" />}
+          label="Net profit" value={formatTaka(profit)} negative={profit < 0}
+          scope={<Scope text="after the books (both shops)" />}
           delta={<Delta now={rowsComplete ? profit : null} before={before ? sum(before, (r) => r.profit) : null} />}>
           <div className="mt-3.5 -mx-[22px] -mb-4"><Spark rows={rows} pick={(r) => r.profit} mode="diverge" /></div>
         </Kpi>
 
         <Kpi icon="clock" tone="warn"
-          label="Unpaid" value={dueAll ? formatTaka(dueAll.duePaisa) : "—"}
-          scope={<Scope text="now · all time" tone="now" />}
+          label="Unpaid amount" value={dueAll ? formatTaka(dueAll.duePaisa) : "—"}
+          scope={<Scope text="all time" tone="now" />}
           delta={<span className="ml-auto text-[10.5px] font-bold px-2 py-[3px] rounded-full whitespace-nowrap"
             style={{ background: "var(--s-sunken)", color: "var(--t-faint)" }}>
             {dueAll ? `${dueAll.dueOrders} orders` : ""}
@@ -1205,14 +1222,14 @@ export function BusinessDashboard() {
         </div>
 
         {/* ── who is in today ── */}
-        <Card title="Staff today" icon="users" tone="info" right={<Scope text="now" tone="now" />}>
+        <Card title="Team attendance (today)" icon="users" tone="info" right={<Scope text="now" tone="now" />}>
           {notMarked ? (
             <div className="rounded-[12px] border px-4 py-3 mt-4 flex items-start gap-3"
               style={{ background: "var(--s-warn)", borderColor: "var(--l-warn)" }}>
               <Icon name="alert" size={17} style={{ color: "var(--t-warn)", flex: "none", marginTop: 1 }} />
               <div className="text-[12.5px] leading-[1.5]" style={{ color: "var(--t-warn)" }}>
-                Attendance has not been taken today.{" "}
-                <Link href="/employees/attendance" className="underline font-semibold">Take it now</Link>
+                Attendance hasn&apos;t been taken today.{" "}
+                <Link href="/employees/attendance" className="underline font-semibold">Take attendance now →</Link>
               </div>
             </div>
           ) : null}
@@ -1222,7 +1239,7 @@ export function BusinessDashboard() {
               sub={marked && half ? `${half} half day` : !marked ? "not taken yet" : undefined} />
             <Stat label="On leave" value={marked ? String(leave) : "—"} />
             <Stat label="Absent" value={marked ? String(absent) : "—"} tone={marked && absent > 0 ? "bad" : undefined} />
-            <Stat label="On the books" value={staff.length ? String(staff.length) : "—"} sub="staff in total" />
+            <Stat label="Working now" value={marked ? String(present + half) : "—"} sub={staff.length ? `of ${staff.length} on the books` : undefined} />
           </div>
 
           {marked && late.length > 0 ? (
@@ -1246,12 +1263,21 @@ export function BusinessDashboard() {
         </Card>
       </div>
 
-      {/* ── what sold ── */}
+      {/*  THE LOWER HALF, LAID OUT AS THE OWNER'S DESIGN HAS IT.
+
+           One row of three columns, each column a stack:
+             left   what sold, and under it delivery beside the riders
+             middle which shelf sells, and under it the customers
+             right  which days sold, and under it where the money is
+           `items-start` so a short column does not stretch to match a tall
+           one - three panels of different heights is the design, not a bug.  */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.62fr_0.7fr_0.7fr] gap-[18px] mb-[18px] items-start">
+        <div className="flex flex-col gap-[18px] min-w-0">
       <div className="biz-panel px-6 py-[22px] mb-[18px]">
         <div className="flex items-center justify-between gap-3.5 flex-wrap">
           <div className="flex items-center gap-3">
             <Tile icon="box" tone="accent" />
-            <h2 className="text-[16px] font-semibold m-0 tracking-[-0.01em]" style={{ color: "var(--t-main)" }}>What sold</h2>
+            <h2 className="text-[16px] font-semibold m-0 tracking-[-0.01em]" style={{ color: "var(--t-main)" }}>Top selling products</h2>
           </div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <Scope text={soldTab === "web" ? "orders placed" : "line value, delivered"} />
@@ -1327,85 +1353,8 @@ export function BusinessDashboard() {
           ) : <Empty state={st.items ?? "loading"} empty="Nothing sold at the counter in this period." error="Could not read the counter figures." />
         )}
       </div>
-
-      {/* ── shelves and days ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-[18px] mb-[18px]">
-        <Card title="Which shelf sells" icon="layers" tone="orchid" right={<Scope text="website" />}>
-          <div className="mt-4">
-            {categories.length > 0 ? categories.map((c) => (
-              <TrackRow key={c.name} label={c.name} value={formatTaka(c.paisa)} width={(c.paisa / catMax) * 100} color="var(--f-chart)" />
-            )) : <Empty state={st.funnel ?? "loading"} empty="Nothing sold in this period." error="Could not read the shelf figures." />}
-          </div>
-        </Card>
-
-        <Card title="Which days sold" icon="grid" tone="accent">
-          <div className="grid gap-1.5 mt-[18px]"
-            style={{ gridTemplateColumns: `repeat(${Math.min(10, Math.max(1, rows.length))}, 1fr)` }}>
-            {rows.map((r) => (
-              <i key={r.date} title={`${dayLabel(r.date)} · ${r.revenue ? formatTaka(r.revenue) : "nothing"}`}
-                className="block rounded-[5px]"
-                style={{ aspectRatio: "1",
-                  background: r.revenue > 0 ? "var(--f-chart)" : "var(--f-chart-dim)",
-                  opacity: r.revenue > 0 ? 0.3 + (r.revenue / dotMax) * 0.7 : 1 }} />
-            ))}
-          </div>
-          <div className="flex items-baseline gap-2 mt-4">
-            <span className="text-[24px] font-bold tabular-nums" style={{ color: "var(--t-main)" }}>{soldDays}</span>
-            <span className="text-[12.5px]" style={{ color: "var(--t-faint)" }}>
-              of {rows.length} day{rows.length === 1 ? "" : "s"} took money
-            </span>
-          </div>
-        </Card>
-
-        <Card title="Customers" icon="heart" tone="info">
-          <div className="grid grid-cols-2 gap-4 mt-[18px]">
-            <Stat label="On the books" value={custTotal === null ? "—" : String(custTotal)} />
-            <Stat label="First time buyers" value={newCustomers === null ? "—" : String(newCustomers)} sub="this month" />
-            <Stat label="Goods returned" value={rets ? formatTaka(rets.returnValuePaisa) : "—"}
-              sub={rets ? `${rets.counts.all ?? 0} returns, all time` : undefined} />
-            <Stat label="Refunded" value={rets ? formatTaka(rets.refundPaisa) : "—"} tone={rets && rets.refundPaisa > 0 ? "warn" : undefined} />
-          </div>
-        </Card>
-      </div>
-
-      {/* ── the money ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.1fr] gap-[18px] mb-[18px]">
-        <Card title="Where the money is" icon="wallet" tone="ok" right={<Scope text="now" tone="now" />}>
-          <div className="mt-[18px]">
-            {moneyAccounts.length > 0 ? moneyAccounts.map((a) => (
-              <TrackRow key={a.id} label={a.name} value={formatTaka(a.balancePaisa)}
-                width={(Math.abs(a.balancePaisa) / accMax) * 100}
-                color={a.balancePaisa < 0 ? "var(--t-bad)" : a.balancePaisa ? "var(--f-chart)" : "var(--f-chart-dim)"} />
-            )) : <Empty state={st.accs ?? "loading"} empty="No money account is set up yet." error="Could not read the accounts." />}
-          </div>
-          <div className="h-px my-5" style={{ background: "var(--l-soft)" }} />
-          <div className="grid grid-cols-2 gap-4">
-            <Stat label="All accounts" value={cash && !cash.unavailable ? formatTaka(cash.value)
-              : moneyAccounts.length > 0 ? formatTaka(accTotal) : "—"} />
-            <Stat label="Free to spend" value={spendable && !spendable.unavailable ? formatTaka(spendable.value) : "—"}
-              sub="the rest is held against unfinished orders" />
-          </div>
-        </Card>
-
-        <Card title="What the shop will get, and must pay" icon="cash" tone="warn" right={<Scope text="now" tone="now" />}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5 mt-[18px]">
-            <Stat label="Customers owe the shop" tone="warn"
-              value={dueAll ? formatTaka(dueAll.duePaisa) : "—"}
-              sub={dueAll ? `on ${dueAll.dueOrders} orders` : undefined} />
-            <Stat label="Shop owes suppliers" tone={payable && !payable.unavailable && payable.value > 0 ? "warn" : undefined}
-              value={payable && !payable.unavailable ? formatTaka(payable.value) : "—"} />
-            <Stat label="Stock on the shelves" tone={stock && stock.value < 0 ? "bad" : undefined}
-              value={stock && !stock.unavailable ? formatTaka(stock.value) : "—"}
-              sub={stock && stock.value < 0 ? "below zero - a cost price is wrong" : "at cost price"} />
-            <Stat label="Money in the till" value={pos ? formatTaka(pos.money.takenPaisa) : "—"}
-              sub={pos ? (pos.drawer.isOpen ? "till open today" : "till closed today") : undefined} />
-          </div>
-        </Card>
-      </div>
-
-      {/* ── delivery ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.2fr] gap-[18px]">
-        <Card title="Delivery" icon="truck" tone="info">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.15fr] gap-[18px]">
+        <Card title="Delivery performance" icon="truck" tone="info">
           {/*  `inFlight` carries no date window, so counting it here opened the
                 card on a period with no deliveries and drew "0 of 0" beside a
                 100%-green margin bar over nothing charged  */}
@@ -1447,8 +1396,7 @@ export function BusinessDashboard() {
             </>
           ) : <Empty state={st.deliv ?? "loading"} empty="No delivery in this period." error="Could not read the delivery figures." />}
         </Card>
-
-        <Card title="Riders" icon="user" tone="orchid">
+        <Card title="Rider performance" icon="user" tone="orchid">
           {deliv && deliv.byCarrier.length > 0 ? (
             <Table head={[{ label: "Rider" }, { label: "Delivered", right: true }, { label: "Judged", right: true },
               { label: "On time", right: true }, { label: "Paid", right: true }]} min={520}>
@@ -1470,6 +1418,86 @@ export function BusinessDashboard() {
             </Table>
           ) : <Empty state={st.deliv ?? "loading"} empty="No rider carried a delivery in this period." error="Could not read the rider figures." />}
         </Card>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-[18px] min-w-0">
+        <Card title="Best performing categories" icon="layers" tone="orchid" right={<Scope text="website" />}>
+          <div className="mt-4">
+            {categories.length > 0 ? categories.map((c) => (
+              <TrackRow key={c.name} label={c.name} value={formatTaka(c.paisa)} width={(c.paisa / catMax) * 100} color="var(--f-chart)" />
+            )) : <Empty state={st.funnel ?? "loading"} empty="Nothing sold in this period." error="Could not read the shelf figures." />}
+          </div>
+        </Card>
+        <Card title="Customer summary" icon="heart" tone="info">
+          <div className="grid grid-cols-2 gap-4 mt-[18px]">
+            <Stat label="On the books" value={custTotal === null ? "—" : String(custTotal)} />
+            <Stat label="First time buyers" value={newCustomers === null ? "—" : String(newCustomers)} sub="this month" />
+            <Stat label="Goods returned" value={rets ? formatTaka(rets.returnValuePaisa) : "—"}
+              sub={rets ? `${rets.counts.all ?? 0} returns, all time` : undefined} />
+            <Stat label="Refunded" value={rets ? formatTaka(rets.refundPaisa) : "—"} tone={rets && rets.refundPaisa > 0 ? "warn" : undefined} />
+          </div>
+        </Card>
+        </div>
+
+        <div className="flex flex-col gap-[18px] min-w-0">
+        <Card title="Sales by day" icon="grid" tone="accent"
+          right={rows.length ? <Scope text={`last ${rows.length} day${rows.length === 1 ? "" : "s"}`} /> : null}>
+          <div className="grid gap-1.5 mt-[18px]"
+            style={{ gridTemplateColumns: `repeat(${Math.min(10, Math.max(1, rows.length))}, 1fr)` }}>
+            {rows.map((r) => (
+              <i key={r.date} title={`${dayLabel(r.date)} · ${r.revenue ? formatTaka(r.revenue) : "nothing"}`}
+                className="block rounded-[5px]"
+                style={{ aspectRatio: "1",
+                  background: r.revenue > 0 ? "var(--f-chart)" : "var(--f-chart-dim)",
+                  opacity: r.revenue > 0 ? 0.3 + (r.revenue / dotMax) * 0.7 : 1 }} />
+            ))}
+          </div>
+          <div className="flex items-baseline gap-2 mt-4">
+            <span className="text-[24px] font-bold tabular-nums" style={{ color: "var(--t-main)" }}>{soldDays}</span>
+            <span className="text-[12.5px]" style={{ color: "var(--t-faint)" }}>
+              of {rows.length} day{rows.length === 1 ? "" : "s"} took money
+            </span>
+          </div>
+        </Card>
+        <Card title="Payment collection" icon="wallet" tone="ok" right={<Scope text="now" tone="now" />}>
+          <div className="mt-[18px]">
+            {moneyAccounts.length > 0 ? moneyAccounts.map((a) => (
+              <TrackRow key={a.id} label={a.name} value={formatTaka(a.balancePaisa)}
+                width={(Math.abs(a.balancePaisa) / accMax) * 100}
+                color={a.balancePaisa < 0 ? "var(--t-bad)" : a.balancePaisa ? "var(--f-chart)" : "var(--f-chart-dim)"} />
+            )) : <Empty state={st.accs ?? "loading"} empty="No money account is set up yet." error="Could not read the accounts." />}
+          </div>
+          <div className="h-px my-5" style={{ background: "var(--l-soft)" }} />
+          <div className="grid grid-cols-2 gap-4">
+            <Stat label="All accounts" value={cash && !cash.unavailable ? formatTaka(cash.value)
+              : moneyAccounts.length > 0 ? formatTaka(accTotal) : "—"} />
+            <Stat label="Free to spend" value={spendable && !spendable.unavailable ? formatTaka(spendable.value) : "—"}
+              sub="the rest is held against unfinished orders" />
+          </div>
+        </Card>
+        </div>
+      </div>
+
+      {/*  NOT IN THE OWNER'S DESIGN, KEPT ON PURPOSE: this card is the answer
+           to "what will the shop get, and what must it pay", which he asked
+           for by name earlier. It sits last so the top of the page matches the
+           design exactly.  */}
+      <div className="mb-[18px]">
+        <Card title="What the shop will get, and must pay" icon="cash" tone="warn" right={<Scope text="now" tone="now" />}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5 mt-[18px]">
+            <Stat label="Customers owe the shop" tone="warn"
+              value={dueAll ? formatTaka(dueAll.duePaisa) : "—"}
+              sub={dueAll ? `on ${dueAll.dueOrders} orders` : undefined} />
+            <Stat label="Shop owes suppliers" tone={payable && !payable.unavailable && payable.value > 0 ? "warn" : undefined}
+              value={payable && !payable.unavailable ? formatTaka(payable.value) : "—"} />
+            <Stat label="Stock on the shelves" tone={stock && stock.value < 0 ? "bad" : undefined}
+              value={stock && !stock.unavailable ? formatTaka(stock.value) : "—"}
+              sub={stock && stock.value < 0 ? "below zero - a cost price is wrong" : "at cost price"} />
+            <Stat label="Money in the till" value={pos ? formatTaka(pos.money.takenPaisa) : "—"}
+              sub={pos ? (pos.drawer.isOpen ? "till open today" : "till closed today") : undefined} />
+          </div>
+        </Card>
       </div>
 
       {/*  THE FOOT OF THE PAGE: when it was read, and which source answered
@@ -1479,8 +1507,8 @@ export function BusinessDashboard() {
         style={{ borderColor: "var(--l-soft)" }}>
         <p className="text-[11.5px] m-0 tabular-nums whitespace-nowrap" style={{ color: "var(--t-faint)" }}>
           {dash?.meta.generatedAt
-            ? `Read at ${new Date(dash.meta.generatedAt).toLocaleString("en-GB", { hour12: false })}`
-            : "Not read yet"}
+            ? `Last updated: ${new Date(dash.meta.generatedAt).toLocaleString("en-GB", { hour12: false })}`
+            : "Last updated: not read yet"}
         </p>
         <p className="text-[11.5px] leading-[1.65] m-0 max-w-[980px] text-right" style={{ color: "var(--t-faint)" }}>
           Money taken, orders and unpaid are counted from the order list on delivered orders, website and counter
