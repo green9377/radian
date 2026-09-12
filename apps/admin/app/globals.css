@@ -75,6 +75,19 @@
   --f-chart:     #6b0d93;
   --f-chart-dim: #ece4f2;
 
+  /* THE STUDIO SKIN (12 Sep 2026, owner's design) — a softer, rounder panel
+     on a page that glows a little, and a card border with colour in it rather
+     than plain grey. Both skins define every one of these, so the same screen
+     reads the same way by day and by night. */
+  --r-card:     20px;
+  --l-card:     #e7d9f2;                    /* the panel edge, with hue in it */
+  --elev-card:  0 1px 2px rgba(28, 16, 38, 0.04), 0 10px 30px rgba(107, 13, 147, 0.06);
+  --s-glow-a:   rgba(168, 33, 184, 0.07);   /* the ambient light, top left  */
+  --s-glow-b:   rgba(107, 13, 147, 0.06);   /*                   top right  */
+  --t-live:     #12a172;                    /* the "live" dot               */
+  --s-pill-on:  #a021b8;                    /* the chosen period            */
+  --t-pill-on:  #ffffff;
+
   --elev-soft: 0 1px 2px rgba(28, 16, 38, 0.05), 0 8px 24px rgba(28, 16, 38, 0.05);
   --elev-lift: 0 2px 6px rgba(28, 16, 38, 0.07), 0 18px 44px rgba(28, 16, 38, 0.09);
 }
@@ -129,6 +142,15 @@
   --rail-hover:  rgba(255, 255, 255, 0.07);
   --rail-line:   rgba(255, 255, 255, 0.12);
   --rail-mark:   0 0 18px rgba(207, 67, 234, 0.5);
+
+  --r-card:     20px;
+  --l-card:     #342a44;
+  --elev-card:  0 1px 2px rgba(0, 0, 0, 0.45), 0 12px 34px rgba(0, 0, 0, 0.35);
+  --s-glow-a:   rgba(168, 33, 184, 0.18);
+  --s-glow-b:   rgba(91, 33, 182, 0.16);
+  --t-live:     #34d399;
+  --s-pill-on:  #b32d9e;
+  --t-pill-on:  #ffffff;
 
   --elev-soft: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.25);
   --elev-lift: 0 2px 8px rgba(0, 0, 0, 0.5), 0 18px 44px rgba(0, 0, 0, 0.4);
@@ -560,3 +582,39 @@ textarea.ipt {
 /* ---- the rail's rows (AdminSidebar) ---- */
 .rail-row { transition: background-color 0.18s, color 0.18s; }
 .rail-row:hover { background: var(--rail-hover); color: var(--rail-on-fg); }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THE STUDIO SKIN — the dashboard's own surface treatment.
+
+   Two classes, so a screen opts in rather than every panel in the admin
+   changing at once:
+     .biz-glow   the page's ambient light, fixed so it does not scroll away
+     .biz-panel  the card: rounder, a border with hue in it, a soft lift
+   Both are written from tokens only, so the Day and the Night skin each
+   get their own version of the same look.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.biz-glow {
+  background-image:
+    radial-gradient(900px 520px at 10% -8%, var(--s-glow-a), transparent 72%),
+    radial-gradient(760px 460px at 100% 4%, var(--s-glow-b), transparent 72%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.biz-panel {
+  background: var(--s-card);
+  border: 1px solid var(--l-card);
+  border-radius: var(--r-card);
+  box-shadow: var(--elev-card);
+}
+
+/*  a card's icon tile. The colour pair comes from the tone the caller sets;
+    this only fixes the shape, so every tile on the page matches.  */
+.biz-tile {
+  width: 38px; height: 38px;
+  border-radius: 12px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
