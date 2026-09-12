@@ -1039,7 +1039,7 @@ export function BusinessDashboard() {
         )}
         {funnel && sold.length > 0 ? (
           <p className="text-[11.5px] mt-3.5 m-0 leading-[1.6]" style={{ color: "var(--t-faint)" }}>
-            Counted on the day the order was placed, and website orders only \u2014 a counter bill carries no product line,
+            Counted on the day the order was placed, and website orders only — a counter bill carries no product line,
             so this total is not meant to match the Sales figure at the top.
           </p>
         ) : null}
