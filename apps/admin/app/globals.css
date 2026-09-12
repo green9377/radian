@@ -71,6 +71,10 @@
   --rail-line:   #ece2f3;
   --rail-mark:   0 0 14px rgba(207, 67, 234, 0.28);
 
+  /* chart marks — one pair per skin, picked for contrast on that skin's card */
+  --f-chart:     #6b0d93;
+  --f-chart-dim: #ece4f2;
+
   --elev-soft: 0 1px 2px rgba(28, 16, 38, 0.05), 0 8px 24px rgba(28, 16, 38, 0.05);
   --elev-lift: 0 2px 6px rgba(28, 16, 38, 0.07), 0 18px 44px rgba(28, 16, 38, 0.09);
 }
@@ -112,6 +116,9 @@
   --t-warn:     #f0b46e;  --s-warn: #332413;  --l-warn: #573f1d;  --f-warn: #d98a0f;
   --t-bad:      #ff8e86;  --s-bad:  #3a1b1b;  --l-bad:  #5e2b2b;  --f-bad:  #c0392b;
   --t-info:     #7fb4f0;  --s-info: #16243a;  --l-info: #2b4260; --f-info: #3b76c4;
+
+  --f-chart:     #c77de0;
+  --f-chart-dim: #3a3348;
 
   --rail-bg:     linear-gradient(180deg, #241033 0%, #2d0f43 45%, #3a1257 100%);
   --rail-shadow: inset -18px 0 32px -20px rgba(0, 0, 0, 0.55), inset 0 40px 60px -40px rgba(207, 67, 234, 0.3);
