@@ -957,6 +957,13 @@ export function BusinessDashboard() {
   const absent = staff.filter((r) => r.status === "ABSENT").length;
   const late = staff.filter((r) => r.status === "PRESENT" && r.inTime && r.shiftStart && r.inTime > r.shiftStart);
   const notMarked = !!att && !att.everMarked;
+  /*  ⚠️ AN UNMARKED SHEET IS NOT AN ATTENDANCE RECORD. The endpoint answers
+      with a row per employee whether or not anyone took the register, each
+      pre-filled PRESENT from the shift and flagged `saved: false`. Read as a
+      fact that printed "5 came in" on a morning nobody had been counted -
+      and the same five would have read PRESENT if the shop never opened. So
+      until the register is taken, the counts are withheld.  */
+  const marked = !!att && att.everMarked;
 
   const meta = chart === "sales"
     ? { title: "Money taken, day by day", big: formatTaka(revenue) }
@@ -1053,14 +1060,14 @@ export function BusinessDashboard() {
           ) : null}
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-[18px]">
-            <Stat label="Came in" value={staff.length ? String(present + half) : "—"} tone="ok"
-              sub={half ? `${half} half day` : undefined} />
-            <Stat label="On leave" value={staff.length ? String(leave) : "—"} />
-            <Stat label="Absent" value={staff.length ? String(absent) : "—"} tone={absent > 0 ? "bad" : undefined} />
+            <Stat label="Came in" value={marked ? String(present + half) : "—"} tone={marked ? "ok" : undefined}
+              sub={marked && half ? `${half} half day` : !marked ? "not taken yet" : undefined} />
+            <Stat label="On leave" value={marked ? String(leave) : "—"} />
+            <Stat label="Absent" value={marked ? String(absent) : "—"} tone={marked && absent > 0 ? "bad" : undefined} />
             <Stat label="On the books" value={staff.length ? String(staff.length) : "—"} sub="staff in total" />
           </div>
 
-          {late.length > 0 ? (
+          {marked && late.length > 0 ? (
             <>
               <div className="h-px my-5" style={{ background: "var(--l-soft)" }} />
               <div className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--t-faint)" }}>Came late</div>
