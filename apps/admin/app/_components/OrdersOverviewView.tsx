@@ -1,459 +1,347 @@
 "use client";
 
+/*  ORDERS OVERVIEW — the day on the shop floor, and the run behind it.
+
+    Rebuilt on OverviewKit (12 Sep 2026) so it matches the Business and
+    Accounts dashboards. It replaces the one dark-canvas screen in the admin:
+    that page carried its own colour table, which meant the Day skin could not
+    reach it. Every colour here is a token.
+
+    ⚠️ TWO PERIODS, BECAUSE THE ENDPOINT HAS TWO.
+    `/orders/overview` takes a `date` and a `range`, and the range ALWAYS ends
+    tonight - `monthStart` is computed from today, not from the chosen date. So
+    this screen shows them as the two separate things they are: a DAY switch
+    that moves the slot board, and a LAST-N-DAYS switch for the figures that
+    look back. Folding them into one control would have put a chosen date in
+    the heading over figures measured from today. Until the endpoint accepts an
+    exact window, "pick dates" is not offered here - a period you cannot
+    measure must not be offered.
+
+    ⚠️ WEBSITE ORDERS ONLY. The endpoint filters `fulfillmentType` to DELIVERY
+    and PICKUP, so counter bills are not here. The scope marks say so; the
+    Business dashboard is where the two shops are added together.  */
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Icon from "./Icon";
+import { WRAP, Header } from "./DeliveryUI";
 import { ErrorBox } from "./OrderViews";
-import { ordersOverview, deliveryMoney, formatTaka, type ApiOrdersOverview, type ApiOverviewWatch } from "../_data/api";
+import {
+  ordersOverview, deliveryMoney, formatTaka,
+  type ApiOrdersOverview, type ApiMoney, type ApiOverviewWatch,
+} from "../_data/api";
+import {
+  BarChart, Card, Chip, Delta, Empty, Kpi, KpiRow, NowBand, Rule, Scope, Seg, SourceNote,
+  Stat, SubHead, Table, Td, TrackRow, bdDay, count, dayLabel, useLoadState,
+  type NowJob, type Point,
+} from "./OverviewKit";
 
-/*
-  Orders → Overview — design E, "Today's slots", exactly as the owner chose
-  it (11 Sep 2026): the dark canvas, the framed page, four slot cards, three
-  small cards (payment, self vs gift, money) and the watch list. Nothing
-  added, nothing moved. Everything is counted in the database
-  (GET /orders/overview); "Cash with rider" comes from Delivery money, which
-  owns that number.
+type DayKey = "today" | "yesterday";
+type RangeKey = "7" | "30" | "90";
 
-  This page is the one dark screen in the admin — on purpose, it is the
-  design the owner approved from five. The colours below are that design's
-  dark tokens, kept here and nowhere else so the rest of the admin stays as
-  it is.
-*/
-
-const T = {
-  bg: "var(--s-accent)",
-  card: "var(--s-accent)",
-  line: "var(--l-accent)",
-  ink: "var(--t-accent)",
-  grey: "var(--t-accent)",
-  lav: "var(--t-accent)",
-  lav2: "var(--t-accent)",
-  purple: "var(--t-accent)",
-  orchid: "var(--t-orchid)",
-  green: "var(--t-ok)",
-  amber: "var(--t-warn)",
-  red: "#ff6b60",
-  blue: "#5aa9f0",
-  tint: { g: "var(--t-ok)", a: "var(--t-warn)", r: "var(--t-bad)", b: "var(--t-info)", p: "var(--t-accent)", n: "var(--t-accent)" },
+const WATCH_LABEL: Record<ApiOverviewWatch["kind"], { text: string; tone: "bad" | "warn" | "mute" }> = {
+  LATE: { text: "Late", tone: "bad" },
+  FAILED: { text: "Failed", tone: "bad" },
+  COD_CALL: { text: "Cash to confirm", tone: "warn" },
+  PHOTO: { text: "Photo missing", tone: "warn" },
+  UNCONFIRMED: { text: "Not confirmed", tone: "warn" },
 };
-
-const DHAKA = 6 * 3600_000;
-function dhakaToday(): string {
-  const d = new Date(Date.now() + DHAKA);
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
-}
-function shift(date: string, days: number): string {
-  const [y, m, d] = date.split("-").map(Number);
-  const t = new Date(Date.UTC(y, m - 1, d + days));
-  return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, "0")}-${String(t.getUTCDate()).padStart(2, "0")}`;
-}
-function dayName(date: string, style: "long" | "short"): string {
-  const [y, m, d] = date.split("-").map(Number);
-  const t = new Date(Date.UTC(y, m - 1, d, 12));
-  return style === "long"
-    ? t.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })
-    : t.toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" });
-}
-
-const WATCH_DOT: Record<ApiOverviewWatch["kind"], string> = {
-  LATE: T.red,
-  FAILED: T.red,
-  COD_CALL: T.amber,
-  PHOTO: T.amber,
-  UNCONFIRMED: T.blue,
-};
-
-function Pill({ tone, children }: { tone: "g" | "a" | "r" | "b" | "p" | "n"; children: React.ReactNode }) {
-  const colour = { g: T.green, a: T.amber, r: T.red, b: T.blue, p: T.orchid, n: T.grey }[tone];
-  return (
-    <span className="inline-block rounded-full px-[9px] py-[2px] text-[11px] font-medium leading-[1.5] whitespace-nowrap" style={{ background: T.tint[tone], color: colour }}>
-      {children}
-    </span>
-  );
-}
-
-function Btn({ primary, onClick, href, children }: { primary?: boolean; onClick?: () => void; href?: string; children: React.ReactNode }) {
-  const cls = "inline-flex items-center gap-1.5 h-[36px] px-3.5 rounded-[10px] text-[12.5px] font-medium whitespace-nowrap border";
-  const style = primary ? { background: T.purple, borderColor: T.purple, color: "#fff" } : { background: T.card, borderColor: T.line, color: T.ink };
-  if (href) return <Link href={href} className={cls} style={style}>{children}</Link>;
-  return <button type="button" onClick={onClick} className={cls} style={style}>{children}</button>;
-}
-
-function Donut({ parts }: { parts: { value: number; colour: string }[] }) {
-  const total = parts.reduce((s, p) => s + p.value, 0);
-  const r = 14;
-  const c = 2 * Math.PI * r;
-  let offset = 0;
-  return (
-    <svg viewBox="0 0 36 36" width={74} height={74} className="shrink-0" aria-hidden="true">
-      <circle cx="18" cy="18" r={r} fill="none" stroke={T.lav2} strokeWidth="6" />
-      {total > 0 &&
-        parts.map((p, i) => {
-          const len = (p.value / total) * c;
-          const el = <circle key={i} cx="18" cy="18" r={r} fill="none" stroke={p.colour} strokeWidth="6" strokeDasharray={`${len} ${c}`} strokeDashoffset={-offset} transform="rotate(-90 18 18)" />;
-          offset += len;
-          return el;
-        })}
-    </svg>
-  );
-}
-
-function Legend({ colour, children }: { colour: string; children: React.ReactNode }) {
-  return (
-    <span className="text-[12px] flex items-center gap-1.5" style={{ color: T.ink }}>
-      <i className="inline-block w-[9px] h-[9px] rounded-[2px]" style={{ background: colour }} />
-      {children}
-    </span>
-  );
-}
-
-const card: React.CSSProperties = { background: T.card, border: `1px solid ${T.line}`, borderRadius: 14, padding: "14px 16px" };
-function H3({ children, hint }: { children: React.ReactNode; hint?: string }) {
-  return (
-    <div className="text-[13px] font-semibold mb-2.5" style={{ color: T.ink }}>
-      {children}
-      {hint && <span className="text-[11px] font-normal ml-1.5" style={{ color: T.grey }}>{hint}</span>}
-    </div>
-  );
-}
-function KV({ label, value, colour }: { label: string; value: string; colour?: string }) {
-  return (
-    <div className="flex justify-between items-center py-[7px] text-[13px]" style={{ borderBottom: `1px dashed ${T.line}` }}>
-      <span style={{ color: T.ink }}>{label}</span>
-      <b className="font-medium tabular-nums" style={{ color: colour ?? T.ink }}>{value}</b>
-    </div>
-  );
-}
-
-
-/*  The bar chart (owner, 11 Sep 2026: "the graph is not understandable").
-    Gridlines with the count on the left, the number on top of every bar,
-    the weekday letter under the day, today in orchid, a hover tooltip.  */
-function DayChart({ days, max }: { days: { day: string; label: string; n: number }[]; max: number }) {
-  const W = 1000, H = 190, padL = 30, padR = 8, padT = 22, padB = 36;
-  const n = Math.max(1, days.length);
-  const innerW = W - padL - padR, innerH = H - padT - padB;
-  const gap = n > 40 ? 2 : n > 20 ? 4 : 8;
-  const bw = (innerW - gap * (n - 1)) / n;
-  const top = Math.max(1, max);
-  const ticks = top <= 4 ? [0, 1, 2, 3, 4].filter((t) => t <= top) : [0, Math.round(top / 2), top];
-  const y = (v: number) => padT + innerH - (v / top) * innerH;
-  const wd = (day: string) => {
-    const [yy, mm, dd] = day.split("-").map(Number);
-    return ["S", "M", "T", "W", "T", "F", "S"][new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay()];
-  };
-  const showEvery = n > 40 ? 7 : n > 20 ? 2 : 1;
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto mt-2" style={{ maxHeight: 220 }} role="img" aria-label="Orders per day">
-      {ticks.map((t) => (
-        <g key={t}>
-          <line x1={padL} x2={W - padR} y1={y(t)} y2={y(t)} stroke={T.line} strokeWidth={1} strokeDasharray={t === 0 ? undefined : "3 4"} />
-          <text x={padL - 8} y={y(t) + 4} textAnchor="end" fontSize={11} fill={T.grey}>{t}</text>
-        </g>
-      ))}
-      {days.map((d, i) => {
-        const x = padL + i * (bw + gap);
-        const h = d.n ? Math.max(3, (d.n / top) * innerH) : 0;
-        const today = i === days.length - 1;
-        return (
-          <g key={d.day}>
-            <title>{`${d.day} · ${d.n} order${d.n === 1 ? "" : "s"}`}</title>
-            <rect x={x} y={y(0) - h} width={bw} height={h} rx={Math.min(6, bw / 2)} fill={today ? T.orchid : d.n ? T.purple : T.lav2} opacity={d.n || today ? 1 : 0.6} />
-            {!d.n && <rect x={x} y={y(0) - 3} width={bw} height={3} rx={1.5} fill={T.lav2} />}
-            {d.n > 0 && (n <= 31 || d.n === max) && <text x={x + bw / 2} y={y(d.n) - 6} textAnchor="middle" fontSize={12} fontWeight={600} fill={today ? T.orchid : T.ink}>{d.n}</text>}
-            {i % showEvery === 0 && (
-              <>
-                <text x={x + bw / 2} y={H - padB + 16} textAnchor="middle" fontSize={11} fontWeight={today ? 700 : 500} fill={today ? T.orchid : T.ink}>{d.label}</text>
-                <text x={x + bw / 2} y={H - padB + 30} textAnchor="middle" fontSize={10} fill={T.grey}>{today ? "today" : wd(d.day)}</text>
-              </>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
 
 export default function OrdersOverviewView() {
-  const [date, setDate] = useState<string>(dhakaToday());
-  const [range, setRange] = useState<"today" | "7" | "30" | "90">("today");
-  const [data, setData] = useState<ApiOrdersOverview | null>(null);
-  const [withRider, setWithRider] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [day, setDay] = useState<DayKey>("today");
+  const [range, setRange] = useState<RangeKey>("30");
+  const [o, setO] = useState<ApiOrdersOverview | null>(null);
+  const [prev, setPrev] = useState<ApiOrdersOverview | null>(null);
+  const [money, setMoney] = useState<ApiMoney | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { settle, begin, at } = useLoadState();
 
-  const load = useCallback(async (d: string, r: string) => {
-    setLoading(true);
+  const load = useCallback(async (d: DayKey, r: RangeKey) => {
+    begin("overview", "money");
     setError(null);
-    try {
-      const [o, m] = await Promise.all([ordersOverview(d, r === "today" ? "" : r), deliveryMoney(30).catch(() => null)]);
-      setData(o);
-      setWithRider(m ? m.totals.withCarrier : null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load the overview.");
-    } finally {
-      setLoading(false);
-    }
+    const date = d === "today" ? bdDay(0) : bdDay(1);
+    const [a, b, m] = await Promise.allSettled([
+      ordersOverview(date, r),
+      /*  the same window, one window earlier, so the deltas compare like with
+          like. The endpoint only gives "the last N days", so the earlier one is
+          asked for as 2N and the first half taken by subtraction below.  */
+      ordersOverview(date, String(Number(r) * 2)),
+      deliveryMoney(Number(r)),
+    ]);
+    if (a.status === "fulfilled") setO(a.value);
+    else { setO(null); setError(a.reason instanceof Error ? a.reason.message : "The order list did not answer."); }
+    setPrev(b.status === "fulfilled" ? b.value : null);
+    setMoney(m.status === "fulfilled" ? m.value : null);
+    settle({ overview: a, money: m });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => {
-    void load(date, range);
-  }, [date, range, load]);
 
-  const c = data?.counts;
-  const money = (n: number | undefined) => (loading || n === undefined ? "…" : formatTaka(n));
-  const pct = (n: number, t: number) => (t ? `${Math.round((n / t) * 100)}%` : "0%");
-  const isToday = data ? data.isToday : date === dhakaToday();
-  const rangeLabel = range === "today" ? "today" : `last ${range} days`;
-  const RANGES: ["today" | "7" | "30" | "90", string][] = [["today", "Today"], ["7", "7 days"], ["30", "30 days"], ["90", "90 days"]];
-  const maxBar = Math.max(1, ...(data?.daily ?? []).map((x) => x.n));
+  useEffect(() => { void load(day, range); }, [day, range, load]);
+
+  const state = at("overview");
+  const days = Number(range);
+
+  /*  the double window minus the single one IS the window before it  */
+  const prevOrders = o && prev ? prev.daily.reduce((t, x) => t + x.n, 0) - o.daily.reduce((t, x) => t + x.n, 0) : null;
+  const prevRevenue = o && prev ? prev.money.revenueMonth - o.money.revenueMonth : null;
+  const ordersNow = o ? o.daily.reduce((t, x) => t + x.n, 0) : null;
+
+  const pts: Point[] = (o?.daily ?? []).map((x) => ({ date: x.day, value: x.n }));
+
+  const jobs: NowJob[] = o ? [
+    { key: "toConfirm", label: "To confirm", count: o.counts.toConfirm, href: "/orders/list?seg=placed", tone: "warn" },
+    { key: "preparing", label: "Being prepared", count: o.counts.preparing, href: "/orders/list?seg=fulfilling", tone: "info" },
+    { key: "photo", label: "Photo missing", count: o.counts.photoPending, href: "/delivery", tone: "warn" },
+    { key: "notAssigned", label: "No rider yet", count: o.counts.notAssigned, href: "/delivery", tone: "danger" },
+    { key: "onRoad", label: "On the road", count: o.counts.onRoad, href: "/delivery/tracking", tone: "info" },
+    { key: "late", label: "Late", count: o.counts.late, href: "/delivery", tone: "danger" },
+    { key: "failed", label: "Failed", count: o.counts.failed, href: "/delivery/failed", tone: "danger" },
+  ] : [];
+
+  const mix = o?.mix;
+  const zoneMax = Math.max(1, ...(o?.zones ?? []).map((z) => z.paisa));
+  const prodMax = Math.max(1, ...(o?.topProducts ?? []).map((p) => p.paisa));
 
   return (
-    <div className="px-4 md:px-6 xl:px-8 pt-6 pb-16 w-full min-h-full" style={{ background: T.bg, color: T.ink, fontSize: 13 }}>
-      <div style={{ background: T.card, border: `1px solid ${T.line}`, borderRadius: 18, padding: 22, boxShadow: "0 10px 30px rgba(0,0,0,.35)" }}>
-        {/* head */}
-        <div className="flex justify-between items-end gap-3 flex-wrap">
-          <div>
-            <div className="text-[10.5px] font-semibold tracking-[0.14em] uppercase" style={{ color: T.orchid }}>
-              Sales · Orders · {isToday ? "Today" : "Day"}
-            </div>
-            <h1 className="text-[22px] leading-[1.1] font-semibold mt-1" style={{ color: T.ink }}>{dayName(date, "long")}</h1>
-            <div className="text-[13px] mt-1" style={{ color: T.grey }}>
-              {loading || !c ? "…" : `${c.toConfirm} waiting for a confirm · ${c.goingOutToday} going out ${isToday ? "today" : "that day"} · ${c.late} late`}
-            </div>
+    <div className={WRAP}>
+      <Header
+        eyebrow="Orders"
+        title="Orders overview"
+        desc="What is on the floor today, and how the last few days have run."
+      />
+
+      {/* two periods, named as two things */}
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <SubHead>The board</SubHead>
+            <Seg<DayKey> label="Which day" value={day} onPick={setDay}
+              options={[{ v: "today", label: "Today" }, { v: "yesterday", label: "Yesterday" }]} />
           </div>
-          <div className="flex gap-2.5 items-center flex-wrap">
-            {/* day: previous · today · next */}
-            <div className="inline-flex items-center rounded-[10px] overflow-hidden" style={{ border: `1px solid ${T.line}`, background: T.card }}>
-              <button type="button" onClick={() => setDate(shift(date, -1))} title={dayName(shift(date, -1), "long")} className="h-[36px] w-[36px] grid place-items-center text-[13px]" style={{ color: T.ink, borderRight: `1px solid ${T.line}` }}>‹</button>
-              <button type="button" onClick={() => setDate(dhakaToday())} className="h-[36px] px-3.5 text-[12.5px] font-medium" style={{ color: isToday ? "#fff" : T.ink, background: isToday ? T.purple : "transparent" }}>
-                {isToday ? "Today" : dayName(date, "short") + " · back to today"}
-              </button>
-              <button type="button" onClick={() => setDate(shift(date, 1))} title={dayName(shift(date, 1), "long")} className="h-[36px] w-[36px] grid place-items-center text-[13px]" style={{ color: T.ink, borderLeft: `1px solid ${T.line}` }}>›</button>
-            </div>
-            {/* range for the numbers below */}
-            <div className="inline-flex items-center rounded-[10px] overflow-hidden" style={{ border: `1px solid ${T.line}`, background: T.card }}>
-              {RANGES.map(([k, label], i) => (
-                <button key={k} type="button" onClick={() => setRange(k)} className="h-[36px] px-3 text-[12.5px] font-medium" style={{ color: range === k ? "#fff" : T.grey, background: range === k ? T.purple : "transparent", borderLeft: i ? `1px solid ${T.line}` : "none" }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            <Btn primary href="/orders/new">+ New order</Btn>
+          <div className="flex items-center gap-2">
+            <SubHead>The figures</SubHead>
+            <Seg<RangeKey> label="How far back" value={range} onPick={setRange}
+              options={[{ v: "7", label: "7 days" }, { v: "30", label: "30 days" }, { v: "90", label: "90 days" }]} />
           </div>
         </div>
-        {error && <div className="mt-3"><ErrorBox error={error} onRetry={() => void load(date, range)} /></div>}
-
-        {/* pipeline — where every open order is, left to right */}
-        <div className="grid grid-cols-1 md:grid-cols-5 mt-4 rounded-[14px] overflow-hidden" style={{ border: `1px solid ${T.line}` }}>
-          {([
-            ["Placed · to confirm", c?.toConfirm, c ? `${c.toConfirmPaid} paid · ${c.toConfirmCod} COD need a call` : "", "att", 70],
-            ["Preparing", c?.preparing, c ? `${c.photoPending} waiting for a photo` : "", "", 22],
-            ["Ready to go", c?.ready, "", "", 8],
-            ["On the road", c?.onRoad, c ? `${c.late} late` : "", "late", 35],
-            ["Delivered " + (isToday ? "today" : "that day"), c?.deliveredToday, c ? `${c.failed} failed · ${c.cancelled} cancelled ${rangeLabel}` : "", "ok", 100],
-          ] as [string, number | undefined, string, string, number][]).map(([label, n, sub, kind, w], i) => (
-            <div key={label} className="relative px-4 py-3.5" style={{ background: kind === "att" ? T.tint.a : T.card, borderRight: i < 4 ? `1px solid ${T.line}` : "none" }}>
-              <div className="text-[11px] font-medium tracking-[0.06em] uppercase" style={{ color: T.grey }}>{label}</div>
-              <div className="text-[28px] leading-none font-semibold my-2 tabular-nums" style={{ color: kind === "att" ? T.amber : kind === "ok" ? T.green : T.ink }}>{loading || n === undefined ? "…" : n}</div>
-              <div className="text-[12px]" style={{ color: T.grey }}>{kind === "late" && (c?.late ?? 0) > 0 ? <Pill tone="r">{sub}</Pill> : sub}</div>
-              <div className="h-[4px] rounded-[4px] mt-2.5 overflow-hidden" style={{ background: T.lav2 }}>
-                <i className="block h-full" style={{ width: `${n ? Math.min(100, Math.max(w, Math.round((n / Math.max(1, c?.toConfirm ?? 1)) * 100))) : 0}%`, background: kind === "ok" ? T.green : T.orchid }} />
-              </div>
-              {i < 4 && <span className="hidden md:block absolute -right-[8px] top-1/2 -translate-y-1/2 rotate-45 w-[14px] h-[14px]" style={{ background: kind === "att" ? T.tint.a : T.card, borderRight: `1px solid ${T.line}`, borderTop: `1px solid ${T.line}`, zIndex: 1 }} />}
-            </div>
-          ))}
-        </div>
-
-        {/* slots */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mt-3">
-          {(data?.slots ?? []).map((s, i, all) => (
-            <div key={s.label + s.time} style={{ ...card, background: i === all.length - 1 && all.length > 1 ? T.lav : T.card, padding: "12px 14px" }}>
-              <div className="flex justify-between items-center gap-2">
-                <b className="font-semibold" style={{ color: T.ink }}>{s.label}</b>
-                <span className="text-[11px] whitespace-nowrap" style={{ color: T.grey }}>{s.time}</span>
-              </div>
-              <div className="text-[26px] leading-none font-semibold my-2 tabular-nums" style={{ color: T.ink }}>{s.total}</div>
-              <div className="flex gap-[5px] flex-wrap">
-                {s.toConfirm > 0 && <Pill tone="a">{s.toConfirm} to confirm</Pill>}
-                {s.preparing > 0 && <Pill tone="p">{s.preparing} preparing</Pill>}
-                {s.ready > 0 && <Pill tone="g">{s.ready} ready</Pill>}
-                {s.out > 0 && <Pill tone="b">{s.out} on the road</Pill>}
-                {s.late > 0 && <Pill tone="r">{s.late} late</Pill>}
-                {s.delivered > 0 && <Pill tone="g">{s.delivered} delivered</Pill>}
-                {s.failed > 0 && <Pill tone="r">{s.failed} failed</Pill>}
-              </div>
-            </div>
-          ))}
-          {!loading && data && data.slots.length === 0 && (
-            <div className="col-span-full text-[13px] py-3 text-center" style={{ ...card, color: T.grey }}>
-              {isToday ? "Nothing scheduled for today yet." : "Nothing scheduled for this day."}
-            </div>
-          )}
-          {loading && !data && [0, 1, 2, 3].map((i) => <div key={i} className="h-[104px] animate-pulse" style={card} />)}
-        </div>
-
-        {/* mix + money */}
-        <div className="grid md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.2fr] gap-3 mt-3">
-          <div style={card}>
-            <H3 hint={rangeLabel}>Payment</H3>
-            <div className="flex items-center gap-3.5">
-              <Donut parts={[{ value: data?.mix.online ?? 0, colour: T.purple }, { value: data?.mix.cod ?? 0, colour: T.amber }]} />
-              <div className="grid gap-1">
-                <Legend colour={T.purple}>Online {data ? pct(data.mix.online, data.mix.total) : "…"}</Legend>
-                <Legend colour={T.amber}>COD {data ? pct(data.mix.cod, data.mix.total) : "…"}</Legend>
-                <span className="text-[11px]" style={{ color: T.grey }}>{data ? `${data.mix.total} orders placed` : ""}</span>
-              </div>
-            </div>
-          </div>
-          <div style={card}>
-            <H3 hint={rangeLabel}>Self vs gift</H3>
-            <div className="flex items-center gap-3.5">
-              <Donut parts={[{ value: data?.mix.gift ?? 0, colour: T.orchid }, { value: data?.mix.self ?? 0, colour: T.lav2 }]} />
-              <div className="grid gap-1">
-                <Legend colour={T.orchid}>Gift {data ? pct(data.mix.gift, data.mix.total) : "…"}</Legend>
-                <Legend colour={T.lav2}>Self {data ? pct(data.mix.self, data.mix.total) : "…"}</Legend>
-              </div>
-            </div>
-          </div>
-          <div style={card}>
-            <H3 hint={`delivered only · ${rangeLabel}`}>Money</H3>
-            <KV label="Revenue" value={money(data?.money.revenueMonth)} />
-            <KV label="Due from customer" value={money(data?.money.dueFromCustomer)} colour={T.amber} />
-            <KV label="Cash with rider" value={withRider === null ? "—" : formatTaka(withRider)} />
-            <KV label="Refunded" value={money(data?.money.refundedMonth)} colour={T.red} />
-          </div>
-        </div>
-
-        {/* orders per day — a real chart: gridlines, values on the bars, weekday under each */}
-        <div className="mt-3" style={card}>
-          <div className="flex justify-between items-baseline gap-3 flex-wrap">
-            <H3 hint={`last ${data?.daily.length ?? 14} days · ${(data?.daily ?? []).reduce((s2, x) => s2 + x.n, 0)} orders`}>Orders per day</H3>
-            <span className="text-[11px]" style={{ color: T.grey }}>
-              best day {data && data.daily.length ? `${data.daily.reduce((m2, x) => (x.n > m2.n ? x : m2), data.daily[0]).label} · ${maxBar}` : "…"} · average {data && data.daily.length ? (data.daily.reduce((s2, x) => s2 + x.n, 0) / data.daily.length).toFixed(1) : "…"} a day
-            </span>
-          </div>
-          <DayChart days={data?.daily ?? []} max={maxBar} />
-        </div>
-
-        {/* top products + zones */}
-        <div className="grid md:grid-cols-[1.4fr_1fr] gap-3 mt-3">
-          <div style={card}>
-            <H3 hint={rangeLabel}>Top 10 products</H3>
-            {data && data.topProducts.length === 0 && !loading && <div className="text-[13px] py-2" style={{ color: T.grey }}>Nothing sold in this range.</div>}
-            <ol className="m-0 p-0 list-none grid gap-1.5">
-              {(data?.topProducts ?? []).map((p, i) => (
-                <li key={p.productId ?? i} className="flex items-center gap-3 py-1.5" style={{ borderBottom: i < (data?.topProducts.length ?? 0) - 1 ? `1px dashed ${T.line}` : "none" }}>
-                  <span className="w-[18px] text-[11px] tabular-nums text-right" style={{ color: T.grey }}>{i + 1}</span>
-                  <span className="w-[40px] h-[40px] rounded-[10px] overflow-hidden shrink-0 grid place-items-center" style={{ background: T.lav2 }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px]" style={{ color: T.grey }}>no photo</span>}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    {p.productId ? <Link href={`/products/${p.productId}`} className="font-medium hover:underline block truncate" style={{ color: T.ink }}>{p.name}</Link> : <span className="font-medium block truncate" style={{ color: T.ink }}>{p.name}</span>}
-                    <span className="text-[11.5px]" style={{ color: T.grey }}>{p.orders} order{p.orders === 1 ? "" : "s"}</span>
-                  </span>
-                  <span className="text-right shrink-0">
-                    <b className="block font-medium tabular-nums" style={{ color: T.ink }}>{p.qty} pcs</b>
-                    <span className="text-[11.5px] tabular-nums" style={{ color: T.grey }}>{formatTaka(p.paisa)}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
-          <div className="grid gap-3 content-start">
-            <div style={card}>
-              <H3 hint={rangeLabel}>Zone split</H3>
-              {(["DHAKA", "BANGLADESH"] as const).map((z) => {
-                const row = data?.zones.find((x) => x.zone === z);
-                const total = (data?.zones ?? []).reduce((s2, x) => s2 + x.orders, 0);
-                const n = row?.orders ?? 0;
-                return (
-                  <div key={z} className="py-1.5">
-                    <div className="flex justify-between text-[12.5px]"><span style={{ color: T.ink }}>{z === "DHAKA" ? "Inside Dhaka" : "Nationwide"}</span><b className="font-medium tabular-nums" style={{ color: T.ink }}>{n} · {pct(n, total)} · {formatTaka(row?.paisa ?? 0)}</b></div>
-                    <div className="h-[6px] rounded-[6px] mt-1.5 overflow-hidden" style={{ background: T.lav2 }}><i className="block h-full" style={{ width: pct(n, total), background: z === "DHAKA" ? T.orchid : T.blue }} /></div>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={card}>
-              <H3 hint={rangeLabel}>Repeat vs new customers</H3>
-              <div className="flex items-center gap-3.5">
-                <Donut parts={[{ value: data?.customers.repeatCount ?? 0, colour: T.green }, { value: data?.customers.newCount ?? 0, colour: T.orchid }]} />
-                <div className="grid gap-1">
-                  <Legend colour={T.green}>Repeat · {data?.customers.repeatCount ?? "…"} customers · {money(data?.customers.repeatPaisa)}</Legend>
-                  <Legend colour={T.orchid}>New · {data?.customers.newCount ?? "…"} customers · {money(data?.customers.newPaisa)}</Legend>
-                  <span className="text-[11px]" style={{ color: T.grey }}>{data ? `${pct(data.customers.repeatPaisa, data.customers.repeatPaisa + data.customers.newPaisa)} of revenue` : ""}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* occasions + lost + returns */}
-        <div className="grid md:grid-cols-3 gap-3 mt-3">
-          <div style={card}>
-            <H3 hint="next 7 days">Upcoming occasions</H3>
-            {data && data.occasions.length === 0 && !loading && <div className="text-[13px] py-2" style={{ color: T.grey }}>No saved birthdays or anniversaries this week.</div>}
-            <ul className="m-0 p-0 list-none">
-              {(data?.occasions ?? []).slice(0, 8).map((o, i, all) => (
-                <li key={`${o.date}-${o.recipient}-${i}`} className="py-1.5 text-[12.5px]" style={{ borderBottom: i < all.length - 1 ? `1px dashed ${T.line}` : "none" }}>
-                  <div className="flex justify-between gap-2">
-                    <span style={{ color: T.ink }}><b className="font-medium">{o.recipient}</b> · {o.type === "CUSTOM" ? (o.label ?? "occasion") : o.type === "BIRTHDAY" ? "Birthday" : "Anniversary"}</span>
-                    <Pill tone={o.inDays === 0 ? "r" : o.inDays <= 2 ? "a" : "n"}>{o.inDays === 0 ? "today" : o.inDays === 1 ? "tomorrow" : `in ${o.inDays} days`}</Pill>
-                  </div>
-                  <div className="text-[11.5px]" style={{ color: T.grey }}>
-                    {o.customer ? <>{o.relationship.toLowerCase()} of <Link href={`/customers/${o.customer.id}`} className="hover:underline" style={{ color: T.ink }}>{o.customer.name}</Link>{o.customer.phone ? ` · ${o.customer.phone}` : ""}</> : o.relationship.toLowerCase()}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div style={card}>
-            <H3 hint={rangeLabel}>Lost orders</H3>
-            <div className="text-[26px] leading-none font-semibold tabular-nums" style={{ color: (data?.lost.count ?? 0) > 0 ? T.amber : T.ink }}>{loading ? "…" : data?.lost.count ?? 0}</div>
-            <div className="text-[12px] mt-1.5" style={{ color: T.grey }}>{money(data?.lost.paisa)} in baskets</div>
-            <div className="text-[12px] mt-1" style={{ color: T.grey }}>{data ? `${data.lost.open} still open` : ""}</div>
-            <div className="mt-3"><Btn href="/orders/lost">Open Lost orders</Btn></div>
-          </div>
-          <div style={card}>
-            <H3 hint="waiting for a decision">Returns &amp; refunds</H3>
-            {data && data.returns.length === 0 && !loading && <div className="text-[13px] py-2" style={{ color: T.grey }}>No return is waiting.</div>}
-            <ul className="m-0 p-0 list-none">
-              {(data?.returns ?? []).map((r, i, all) => (
-                <li key={r.id} className="flex justify-between gap-2 py-1.5 text-[12.5px]" style={{ borderBottom: i < all.length - 1 ? `1px dashed ${T.line}` : "none" }}>
-                  <span className="min-w-0">
-                    <Link href={`/returns/${r.id}`} className="font-medium hover:underline" style={{ color: T.ink }}>{r.returnNo}</Link>
-                    <span style={{ color: T.grey }}> · {r.orderNo} · {r.customer}</span>
-                  </span>
-                  <span className="shrink-0 text-right">
-                    <Pill tone={r.status === "pending_approval" ? "a" : r.status === "approved" ? "b" : "n"}>{r.status.replace("_", " ")}</Pill>
-                    <span className="block text-[11px] tabular-nums mt-0.5" style={{ color: T.grey }}>{formatTaka(r.valuePaisa)}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {data && data.returns.length > 0 && <div className="mt-2"><Btn href="/returns">All returns</Btn></div>}
-          </div>
-        </div>
-
-        {/* watch list */}
-        <div className="mt-3" style={card}>
-          <H3>Watch list</H3>
-          {data && data.watch.length === 0 && !loading && <div className="text-[13px] py-2" style={{ color: T.grey }}>Nothing needs a hand right now.</div>}
-          <ul className="m-0 p-0 list-none">
-            {(data?.watch ?? []).map((w, i, all) => (
-              <li key={w.id} className="flex gap-2.5 items-start py-2" style={{ borderBottom: i < all.length - 1 ? `1px solid ${T.line}` : "none" }}>
-                <span className="w-2 h-2 rounded-full mt-[7px] shrink-0" style={{ background: WATCH_DOT[w.kind] }} />
-                <div className="min-w-0 flex-1">
-                  <Link href={`/orders/${w.id}`} className="font-semibold hover:underline" style={{ color: T.ink }}>
-                    {w.orderNo}{w.slot ? ` · ${w.slot}` : ""} · {w.title}
-                  </Link>
-                  <span className="text-[12px] ml-2" style={{ color: T.grey }}>{w.detail}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
+        <div className="text-[12px]" style={{ color: "var(--t-faint)" }}>
+          Board: {o ? dayLabel(o.date) : "—"} · Figures: last {days} days to today
         </div>
       </div>
+
+      {error ? <div className="mb-4"><ErrorBox error={error} onRetry={() => void load(day, range)} /></div> : null}
+
+      <NowBand
+        title={o?.isToday ? "Today, live" : "That day"}
+        figures={[
+          { label: "Orders that day", value: o ? count(o.slots.reduce((t, s) => t + s.total, 0)) : "—", quiet: !o },
+          { label: "Going out", value: o ? count(o.counts.goingOutToday) : "—", quiet: !o },
+          { label: "Delivered", value: o ? count(o.counts.deliveredToday) : "—", quiet: !o },
+          { label: "Cash with riders", value: money ? formatTaka(money.totals.withCarrier) : "—", quiet: !money },
+        ]}
+        jobs={jobs}
+        loading={state === "loading"}
+        note="Counter bills are not on this screen - the Business dashboard adds both shops together."
+      />
+
+      <KpiRow>
+        <Kpi icon={<Icon name="bag" size={18} />} iconBg="var(--s-accent)" iconColor="var(--t-accent)"
+          label="Orders" value={ordersNow === null ? "—" : count(ordersNow)}
+          scope={<Scope text="website only" />}
+          delta={<Delta now={ordersNow} before={prevOrders} />} />
+
+        <Kpi icon={<Icon name="cash" size={18} />} iconBg="var(--s-accent)" iconColor="var(--t-accent)"
+          label="Money taken" value={o ? formatTaka(o.money.revenueMonth) : "—"}
+          scope={<Scope text="delivered only" />}
+          delta={<Delta now={o ? o.money.revenueMonth : null} before={prevRevenue} />}>
+          <div className="text-[11.5px] mt-3.5" style={{ color: "var(--t-faint)" }}>
+            {o ? `${count(o.money.deliveredMonth)} delivered · ${formatTaka(o.money.aov)} an order` : ""}
+          </div>
+        </Kpi>
+
+        <Kpi icon={<Icon name="clock" size={18} />} iconBg="var(--s-warn)" iconColor="var(--t-warn)"
+          label="Unpaid" value={o ? formatTaka(o.money.dueFromCustomer) : "—"}
+          scope={<Scope text="now" tone="now" />}
+          delta={o ? <span className="ml-auto text-[10.5px] font-bold px-2 py-[3px] rounded-full whitespace-nowrap"
+            style={{ background: "var(--s-sunken)", color: "var(--t-faint)" }}>{o.money.dueOrders} orders</span> : null} />
+
+        <Kpi icon={<Icon name="returnArrow" size={18} />}
+          iconBg={o && o.counts.cancelled > 0 ? "var(--s-bad)" : "var(--s-sunken)"}
+          iconColor={o && o.counts.cancelled > 0 ? "var(--t-bad)" : "var(--t-faint)"}
+          label="Cancelled" value={o ? count(o.counts.cancelled) : "—"}
+          scope={<Scope text={`last ${days} days`} />}>
+          <div className="text-[11.5px] mt-3.5" style={{ color: "var(--t-faint)" }}>
+            {o ? `${formatTaka(o.money.refundedMonth)} refunded on ${count(o.money.refundedOrders)} orders` : ""}
+          </div>
+        </Kpi>
+      </KpiRow>
+
+      {/* the board, and the day's stages */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.4fr_1fr] gap-[18px] mb-[18px]">
+        <Card title={`Slots on ${o ? dayLabel(o.date) : "the day"}`} right={<Scope text="that day" />}>
+          {(o?.slots ?? []).length > 0 ? (
+            <Table head={[{ label: "Slot" }, { label: "Orders", right: true }, { label: "To confirm", right: true },
+              { label: "Preparing", right: true }, { label: "Ready", right: true }, { label: "Out", right: true },
+              { label: "Late", right: true }, { label: "Delivered", right: true }, { label: "Failed", right: true }]} min={700}>
+              {o!.slots.map((s) => (
+                <tr key={s.label}>
+                  <Td>
+                    {s.label}
+                    {s.time ? <span className="ml-2 text-[11px]" style={{ color: "var(--t-faint)" }}>{s.time}</span> : null}
+                  </Td>
+                  <Td right bold>{s.total}</Td>
+                  <Td right color={s.toConfirm ? "var(--t-warn)" : "var(--t-faint)"}>{s.toConfirm}</Td>
+                  <Td right color={s.preparing ? "var(--t-main)" : "var(--t-faint)"}>{s.preparing}</Td>
+                  <Td right color={s.ready ? "var(--t-main)" : "var(--t-faint)"}>{s.ready}</Td>
+                  <Td right color={s.out ? "var(--t-info)" : "var(--t-faint)"}>{s.out}</Td>
+                  <Td right color={s.late ? "var(--t-bad)" : "var(--t-faint)"}>{s.late}</Td>
+                  <Td right color={s.delivered ? "var(--t-ok)" : "var(--t-faint)"}>{s.delivered}</Td>
+                  <Td right color={s.failed ? "var(--t-bad)" : "var(--t-faint)"}>{s.failed}</Td>
+                </tr>
+              ))}
+            </Table>
+          ) : <Empty state={state} empty="No order carries a slot on this day." error="Could not read the slot board." />}
+        </Card>
+
+        <Card title="Needs a person" right={<Scope text="now" tone="now" />}>
+          <div className="mt-4">
+            {(o?.watch ?? []).length > 0 ? o!.watch.slice(0, 8).map((w) => {
+              const m = WATCH_LABEL[w.kind] ?? { text: w.kind, tone: "mute" as const };
+              return (
+                <Link key={w.id} href={`/orders/${w.id}`}
+                  className="flex items-start gap-3 py-2.5 border-b last:border-b-0 transition-opacity hover:opacity-80"
+                  style={{ borderColor: "var(--l-soft)" }}>
+                  <Chip tone={m.tone}>{m.text}</Chip>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[12.5px] font-semibold truncate" style={{ color: "var(--t-main)" }}>
+                      {w.orderNo} · {w.title}
+                    </div>
+                    <div className="text-[11.5px] truncate" style={{ color: "var(--t-faint)" }}>
+                      {w.detail}{w.slot ? ` · ${w.slot}` : ""}
+                    </div>
+                  </div>
+                </Link>
+              );
+            }) : <Empty state={state} empty="Nothing needs a person right now." error="Could not read the watch list." />}
+          </div>
+          {(o?.watch ?? []).length > 8 ? (
+            <div className="text-[11.5px] mt-3" style={{ color: "var(--t-faint)" }}>
+              {o!.watch.length - 8} more on the order list.
+            </div>
+          ) : null}
+        </Card>
+      </div>
+
+      {/* the run */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.55fr_1fr] gap-[18px] mb-[18px]">
+        <Card title="Orders, day by day" right={<Scope text={`last ${days} days`} />}>
+          {pts.length > 1
+            ? <BarChart pts={pts} id="ord-ov" noun="Orders each day" unit="orders" />
+            : <Empty state={state} empty="Not enough days to draw." error="Could not read the day-by-day figures." />}
+        </Card>
+
+        <div className="flex flex-col gap-[18px]">
+          <Card title="How they paid" right={<Scope text={`last ${days} days`} />}>
+            <div className="mt-4">
+              {mix && mix.total > 0 ? (
+                <>
+                  <TrackRow label="Paid online" value={count(mix.online)} width={(mix.online / mix.total) * 100} color="var(--t-ok)" />
+                  <TrackRow label="Cash on delivery" value={count(mix.cod)} width={(mix.cod / mix.total) * 100} color="var(--t-warn)" />
+                  <Rule />
+                  <TrackRow label="Sent as a gift" value={count(mix.gift)} width={(mix.gift / mix.total) * 100} color="var(--t-gold)" />
+                  <TrackRow label="Bought for themselves" value={count(mix.self)} width={(mix.self / mix.total) * 100} color="var(--f-chart)" />
+                </>
+              ) : <Empty state={state} empty="No order in this period." error="Could not read the payment mix." />}
+            </div>
+          </Card>
+
+          <Card title="Where they went" right={<Scope text={`last ${days} days`} />}>
+            <div className="mt-4">
+              {(o?.zones ?? []).length > 0 ? o!.zones.map((z) => (
+                <TrackRow key={z.zone} label={z.zone === "DHAKA" ? "Inside Dhaka" : "Outside Dhaka"}
+                  value={formatTaka(z.paisa)} width={(z.paisa / zoneMax) * 100} color="var(--f-chart)"
+                  right={<span className="text-[10.5px]" style={{ color: "var(--t-faint)" }}>{count(z.orders)} orders</span>} />
+              )) : <Empty state={state} empty="No delivery in this period." error="Could not read the zones." />}
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* who bought, what sold, what went wrong */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-[18px]">
+        <Card title="Who bought" right={<Scope text={`last ${days} days`} />}>
+          <div className="grid grid-cols-2 gap-4 mt-[18px]">
+            <Stat label="First time" value={o ? count(o.customers.newCount) : "—"}
+              sub={o ? `${count(o.customers.newOrders)} orders · ${formatTaka(o.customers.newPaisa)}` : undefined} />
+            <Stat label="Came back" value={o ? count(o.customers.repeatCount) : "—"}
+              sub={o ? `${count(o.customers.repeatOrders)} orders · ${formatTaka(o.customers.repeatPaisa)}` : undefined} />
+          </div>
+          {(o?.occasions ?? []).length > 0 ? (
+            <>
+              <Rule />
+              <SubHead>Occasions coming up</SubHead>
+              <div className="mt-3">
+                {o!.occasions.slice(0, 5).map((oc, i) => (
+                  <div key={`${oc.date}-${i}`} className="flex justify-between gap-3 text-[12.5px] py-1.5">
+                    <span className="truncate" style={{ color: "var(--t-main)" }}>
+                      {oc.recipient}
+                      <span style={{ color: "var(--t-faint)" }}> · {oc.label ?? oc.type.toLowerCase()}</span>
+                    </span>
+                    <span className="whitespace-nowrap tabular-nums" style={{ color: oc.inDays <= 3 ? "var(--t-warn)" : "var(--t-faint)" }}>
+                      {oc.inDays === 0 ? "today" : `in ${oc.inDays} d`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </Card>
+
+        <Card title="What sold" right={<Scope text={`last ${days} days`} />}>
+          <div className="mt-4">
+            {(o?.topProducts ?? []).length > 0 ? o!.topProducts.slice(0, 6).map((p) => (
+              <TrackRow key={p.productId ?? p.name} label={p.name} value={formatTaka(p.paisa)}
+                width={(p.paisa / prodMax) * 100} color="var(--f-chart)"
+                right={<span className="text-[10.5px]" style={{ color: "var(--t-faint)" }}>{p.qty} units</span>} />
+            )) : <Empty state={state} empty="Nothing sold in this period." error="Could not read what sold." />}
+          </div>
+        </Card>
+
+        <Card title="What went wrong" right={<Scope text={`last ${days} days`} />}>
+          <div className="grid grid-cols-2 gap-4 mt-[18px]">
+            <Stat label="Lost orders" value={o ? count(o.lost.count) : "—"}
+              tone={o && o.lost.open > 0 ? "bad" : undefined}
+              sub={o ? `${formatTaka(o.lost.paisa)} · ${count(o.lost.open)} still open` : undefined} />
+            <Stat label="Returns" value={o ? count(o.returns.length) : "—"}
+              sub={o && o.returns.length > 0
+                ? `${formatTaka(o.returns.reduce((t, r) => t + r.valuePaisa, 0))} of goods`
+                : undefined} />
+          </div>
+          {(o?.returns ?? []).length > 0 ? (
+            <>
+              <Rule />
+              <SubHead>Newest returns</SubHead>
+              <div className="mt-3">
+                {o!.returns.slice(0, 4).map((r) => (
+                  <Link key={r.id} href={`/returns/${r.id}`} className="flex justify-between gap-3 text-[12.5px] py-1.5 transition-opacity hover:opacity-80">
+                    <span className="truncate" style={{ color: "var(--t-main)" }}>
+                      {r.returnNo}
+                      <span style={{ color: "var(--t-faint)" }}> · {r.customer}</span>
+                    </span>
+                    <span className="whitespace-nowrap tabular-nums" style={{ color: "var(--t-faint)" }}>{formatTaka(r.valuePaisa)}</span>
+                  </Link>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </Card>
+      </div>
+
+      <SourceNote>
+        Every count on this screen is counted in the database, and covers <b>website orders only</b> - counter bills
+        live on the Business dashboard. The board shows one day; the figures look back {days} days to today. Money
+        taken counts delivered orders, and figures marked <b>now</b> are true at this moment.
+      </SourceNote>
     </div>
   );
 }

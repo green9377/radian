@@ -36,7 +36,20 @@ import {
   type ApiPosShift,
   type ApiPosSettings,
   type ApiPosAnalytics,
+  orderStats,
+  posItemsSold,
+  type ApiOrderStats,
+  type ApiItemsSold,
 } from "../_data/api";
+import { WRAP, Header } from "./DeliveryUI";
+import {
+  Card, Delta, Empty, Kpi, KpiRow, NowBand, RangeBar, Rule, Scope, SourceNote,
+  /*  this file already has its own `Stat` for the till screens, so the kit's
+      one comes in under a name of its own rather than shadowing it  */
+  Stat as OvStat,
+  Table, Td, TrackRow, count, daysBetween, presetRange, previousRange, useLoadState,
+  type NowJob, type Range,
+} from "./OverviewKit";
 import { PayDialog, PaymentLines, RefundDialog, usePayRows, usePaymentMethods, TILL_TENDERS } from "./MoneyBlock";
 import ReceiptDialog, { ReceiptPreview, sampleReceipt } from "./PosReceipt";
 
@@ -108,68 +121,279 @@ function GradientStat({ label, value, sub, icon, from, to }: { label: string; va
   );
 }
 
-export function PosOverview() {
-  const [a, setA] = useState<ApiPosAnalytics | null>(null);
-  const [sales, setSales] = useState<ApiPosSale[]>([]);
-  useEffect(() => {
-    posAnalyticsToday().then(setA).catch(() => {});
-    posListSales({ days: 30 }).then((r) => { if (r.length) setSales(r); }).catch(() => {});
-  }, []);
-  return (
-    <div className={wrap}>
-      <Head
-        title="POS"
-        action={<Link href="/pos/sell" className="bg-purple hover:bg-purple-deep text-white text-[13.5px] px-5 py-2.5 rounded-[11px] font-medium inline-flex items-center gap-2 shadow-soft"><Icon name="cash" size={17} /> Open Sell screen</Link>}
-      />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
-        <GradientStat label="Today's sales" value={formatTaka(a?.salesPaisa ?? 0)} sub={`${a?.count ?? 0} transactions`} icon="bag" from="var(--a-solid)" to="var(--a-solid)" />
-        <GradientStat label="Cash in drawer" value={formatTaka(a?.cashInDrawer ?? 0)} sub={a?.shiftOpen ? "shift open" : "no open shift"} icon="cash" from="var(--f-ok)" to="var(--f-ok)" />
-        <GradientStat label="Avg. bill" value={formatTaka(a?.avgPaisa ?? 0)} sub="today" icon="chart" from="var(--o-solid)" to="var(--a-solid)" />
-        <GradientStat label="Outstanding due" value={formatTaka(a?.duePaisa ?? 0)} sub="counter credit" icon="clock" from="var(--f-bad)" to="var(--f-bad)" />
-      </div>
+/*  POS OVERVIEW — the counter, in the same shape as every other overview.
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 items-start">
-        <div className={card + " p-5"}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-display text-[16px] text-purple m-0">Recent sales</h3>
-            <Link href="/pos/sales" className="text-[12.5px] text-purple font-medium">View all →</Link>
-          </div>
-          <div className="flex flex-col">
-            {sales.slice(0, 6).map((s) => (
-              <div key={s.id} className="flex items-center gap-3 py-2.5 border-b border-lavender-deep last:border-0">
-                <div className="w-[38px] h-[38px] rounded-[11px] grid place-items-center text-white shrink-0" style={{ background: s.isGift ? "linear-gradient(145deg,var(--o-solid),var(--t-gold))" : "linear-gradient(145deg,var(--a-solid),var(--a-solid))" }}><Icon name={s.isGift ? "heart" : "hash"} size={16} /></div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-medium text-purple">{s.orderNo} {s.isGift && <span className="text-orchid">· gift</span>}</div>
-                  <div className="text-[12px] text-body-soft">{fmtTime(s.placedAt)} · {s.customer?.name ?? s.senderName} · {s._count?.lines ?? 0} item(s) · {methodLabel(s)}</div>
+    Rebuilt on OverviewKit (12 Sep 2026). The four gradient stat tiles are gone:
+    they read "Today's sales ৳0" in white-on-purple whichever skin was on, and
+    they answered only about today.
+
+    HOW THE COUNTER IS COUNTED HERE. A counter bill is an Order with
+    `fulfillmentType = COUNTER`, and `/orders/stats` filters those out unless
+    asked. So the window figures are the same question asked twice - with the
+    counter and without - and the DIFFERENCE is the counter, counted the same
+    way on both sides. Nothing on this screen is a client-side sum of a list.
+
+    WHAT IS "NOW" AND WHAT IS THE WINDOW. The till, the drawer and the credit
+    customers owe are balances: they are marked `now` and never move with the
+    date filter. Bills, money taken and what sold follow it.  */
+
+export function PosOverview() {
+  const [range, setRange] = useState<Range>(() => presetRange("d30"));
+  const [today, setToday] = useState<ApiPosDay | null>(null);
+  const [live, setLive] = useState<ApiPosAnalytics | null>(null);
+  const [due, setDue] = useState<ApiPosDue[] | null>(null);
+  const [all, setAll] = useState<ApiOrderStats | null>(null);
+  const [web, setWeb] = useState<ApiOrderStats | null>(null);
+  const [prevAll, setPrevAll] = useState<ApiOrderStats | null>(null);
+  const [prevWeb, setPrevWeb] = useState<ApiOrderStats | null>(null);
+  const [items, setItems] = useState<ApiItemsSold | null>(null);
+  const [sales, setSales] = useState<ApiPosSale[] | null>(null);
+  const { settle, begin, at } = useLoadState();
+
+  /* the till and the drawer — balances, read once, no dates */
+  useEffect(() => {
+    let alive = true;
+    begin("till", "due");
+    void (async () => {
+      const [d, a, u] = await Promise.allSettled([posDay(), posAnalyticsToday(), posDue()]);
+      if (!alive) return;
+      if (d.status === "fulfilled") setToday(d.value);
+      if (a.status === "fulfilled") setLive(a.value);
+      if (u.status === "fulfilled") setDue(u.value);
+      settle({ till: d, due: u });
+    })();
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* the window */
+  useEffect(() => {
+    let alive = true;
+    begin("window", "items", "sales");
+    const prev = previousRange(range);
+    void (async () => {
+      const [oa, ow, pa, pw, it, sl] = await Promise.allSettled([
+        orderStats({ from: range.from, to: range.to, includeCounter: true }),
+        orderStats({ from: range.from, to: range.to }),
+        orderStats({ from: prev.from, to: prev.to, includeCounter: true }),
+        orderStats({ from: prev.from, to: prev.to }),
+        posItemsSold({ from: range.from, to: range.to }),
+        posListSales({ days: Math.max(1, daysBetween(range.from, range.to)) }),
+      ]);
+      if (!alive) return;
+      setAll(oa.status === "fulfilled" ? oa.value : null);
+      setWeb(ow.status === "fulfilled" ? ow.value : null);
+      setPrevAll(pa.status === "fulfilled" ? pa.value : null);
+      setPrevWeb(pw.status === "fulfilled" ? pw.value : null);
+      setItems(it.status === "fulfilled" ? it.value : null);
+      setSales(sl.status === "fulfilled" ? sl.value : null);
+      settle({ window: oa, items: it, sales: sl });
+    })();
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range.from, range.to]);
+
+  /*  with the counter minus without it. FulfillmentType has exactly three
+      values and the default asks for the other two, so this difference is the
+      counter and nothing else.  */
+  const bills = all && web ? all.counts.all - web.counts.all : null;
+  const taken = all && web ? all.revenuePaisa - web.revenuePaisa : null;
+  const prevBills = prevAll && prevWeb ? prevAll.counts.all - prevWeb.counts.all : null;
+  const prevTaken = prevAll && prevWeb ? prevAll.revenuePaisa - prevWeb.revenuePaisa : null;
+  const avgBill = bills && taken !== null && bills > 0 ? Math.round(taken / bills) : null;
+
+  const counterCredit = due ? due.reduce((t, d) => t + d.duePaisa, 0) : null;
+  const drawerOpen = today?.drawer.isOpen ?? false;
+
+  const topItems = (items?.rows ?? []).slice(0, 8);
+  const itemMax = Math.max(1, ...topItems.map((i) => i.revenuePaisa));
+  const methods = today?.money.methods ?? [];
+  const methodMax = Math.max(1, ...methods.map((m) => m.paisaTotal));
+
+  const jobs: NowJob[] = [
+    { key: "drawer", label: drawerOpen ? "Till still open" : "Till closed", count: drawerOpen ? 1 : 0, href: "/pos/day-close", tone: "warn" },
+    { key: "due", label: "Customers on credit", count: due?.length ?? 0, href: "/pos/due", tone: "warn" },
+    { key: "advance", label: "Advance orders waiting", count: 0, href: "/pos/advance", tone: "info" },
+  ];
+
+  const recent = (sales ?? []).filter((s) => s.salesStatus !== "cancelled").slice(0, 7);
+
+  return (
+    <div className={WRAP}>
+      <Header
+        eyebrow="Shop"
+        title="Counter"
+        desc="What the till took, what it sold, and what customers still owe on credit."
+        actions={
+          <Link href="/pos/sell"
+            className="text-[13.5px] px-5 py-2.5 rounded-[11px] font-medium inline-flex items-center gap-2 shadow-soft"
+            style={{ background: "var(--a-solid)", color: "var(--t-on-solid)" }}>
+            <Icon name="cash" size={17} /> Open the sell screen
+          </Link>
+        }
+      />
+
+      <RangeBar range={range} onPick={setRange} />
+
+      <NowBand
+        title="The till, now"
+        figures={[
+          { label: "Bills today", value: today ? count(today.bills.count) : "—", quiet: !today || today.bills.count === 0 },
+          { label: "Taken today", value: today ? formatTaka(today.money.takenPaisa) : "—", quiet: !today || today.money.takenPaisa === 0,
+            sub: today && today.money.olderBillPaisa > 0 ? `${formatTaka(today.money.olderBillPaisa)} on old bills` : undefined },
+          { label: "Cash in the drawer", value: live ? formatTaka(live.cashInDrawer) : "—", quiet: !live },
+        ]}
+        jobs={jobs}
+        loading={at("till") === "loading"}
+        note={today
+          ? drawerOpen
+            ? "The drawer is open. Day-close counts it and books the difference."
+            : "The drawer is closed for today."
+          : undefined}
+      />
+
+      <KpiRow>
+        <Kpi icon={<Icon name="register" size={18} />} iconBg="var(--s-accent)" iconColor="var(--t-accent)"
+          label="Bills" value={bills === null ? "—" : count(bills)}
+          scope={<Scope text="counter only" />}
+          delta={<Delta now={bills} before={prevBills} />} />
+
+        <Kpi icon={<Icon name="cash" size={18} />} iconBg="var(--s-accent)" iconColor="var(--t-accent)"
+          label="Money taken" value={taken === null ? "—" : formatTaka(taken)}
+          scope={<Scope text="counter only" />}
+          delta={<Delta now={taken} before={prevTaken} />} />
+
+        <Kpi icon={<Icon name="chart" size={18} />} iconBg="var(--s-accent)" iconColor="var(--t-accent)"
+          label="Average bill" value={avgBill === null ? "—" : formatTaka(avgBill)}
+          scope={<Scope text="counter only" />} />
+
+        <Kpi icon={<Icon name="clock" size={18} />}
+          iconBg={counterCredit ? "var(--s-warn)" : "var(--s-sunken)"}
+          iconColor={counterCredit ? "var(--t-warn)" : "var(--t-faint)"}
+          label="On credit" value={counterCredit === null ? "—" : formatTaka(counterCredit)}
+          scope={<Scope text="now" tone="now" />}
+          delta={due ? <span className="ml-auto text-[10.5px] font-bold px-2 py-[3px] rounded-full whitespace-nowrap"
+            style={{ background: "var(--s-sunken)", color: "var(--t-faint)" }}>{due.length} customers</span> : null} />
+      </KpiRow>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-[18px] mb-[18px]">
+        <Card title="What the counter sold" right={<Scope text="line value, delivered" />}>
+          {topItems.length > 0 ? (
+            <>
+              <div className="flex items-baseline gap-3 mt-3.5 flex-wrap">
+                <div className="text-[20px] font-bold tabular-nums" style={{ color: "var(--t-main)" }}>
+                  {formatTaka(items?.totals.revenuePaisa ?? 0)}
                 </div>
-                <div className="text-right">
-                  <div className="text-[13.5px] font-medium">{formatTaka(s.totalPaisa)}</div>
-                  {s.duePaisa > 0 && <div className="text-[11.5px] text-[var(--t-warn)]">{formatTaka(s.duePaisa)} due</div>}
+                <div className="text-[12px]" style={{ color: "var(--t-faint)" }}>
+                  {items?.totals.items ?? 0} items · {items?.totals.units ?? 0} units · {items?.totals.bills ?? 0} bills
+                  {topItems.length < (items?.totals.items ?? 0) ? " · top 8" : ""}
                 </div>
               </div>
-            ))}
-            {sales.length === 0 && <div className="text-[13px] text-body-soft py-6 text-center">No sales yet today.</div>}
-          </div>
-        </div>
+              <div className="mt-3.5">
+                {topItems.map((i) => (
+                  <TrackRow key={i.itemId} label={i.name} value={formatTaka(i.revenuePaisa)}
+                    width={(i.revenuePaisa / itemMax) * 100} color="var(--t-gold)"
+                    right={<span className="text-[10.5px]" style={{ color: "var(--t-faint)" }}>
+                      {i.units}{i.unitName ? ` ${i.unitName}` : ""}
+                    </span>} />
+                ))}
+              </div>
+            </>
+          ) : <Empty state={at("items")} empty="Nothing sold at the counter in this period." error="Could not read what the counter sold." />}
+        </Card>
 
-        <div className="flex flex-col gap-4">
-          <div className={card + " p-5"}>
-            <h3 className="font-display text-[16px] text-purple m-0 mb-3">Quick actions</h3>
-            <div className="grid grid-cols-1 gap-2">
-              {[
-                { href: "/pos/sell", label: "New sale", icon: "cash", from: "var(--a-solid)", to: "var(--a-solid)" },
-                { href: "/pos/day-close", label: "Day-close", icon: "clock", from: "var(--f-ok)", to: "var(--f-ok)" },
-                { href: "/pos/due", label: "Collect due", icon: "user", from: "var(--f-bad)", to: "var(--f-bad)" },
-              ].map((x) => (
-                <Link key={x.href} href={x.href} className="text-[13.5px] font-medium text-white rounded-[12px] px-3.5 py-3 inline-flex items-center gap-2.5 shadow-soft hover:opacity-90" style={{ background: `linear-gradient(145deg, ${x.from}, ${x.to})` }}>
-                  <span className="w-[28px] h-[28px] rounded-[9px] bg-white/20 grid place-items-center"><Icon name={x.icon} size={15} /></span>
-                  {x.label}
-                </Link>
-              ))}
-            </div>
+        <Card title="How they paid" right={<Scope text="today" />}>
+          <div className="mt-4">
+            {methods.length > 0 ? methods.map((m) => (
+              <TrackRow key={m.method} label={m.method} value={formatTaka(m.paisaTotal)}
+                width={(m.paisaTotal / methodMax) * 100} color="var(--f-chart)"
+                right={<span className="text-[10.5px]" style={{ color: "var(--t-faint)" }}>{m.count}×</span>} />
+            )) : <Empty state={at("till")} empty="No money came in today." error="Could not read the till." />}
           </div>
-        </div>
+          <Rule />
+          <div className="grid grid-cols-2 gap-4">
+            <OvStat label="Billed today" value={today ? formatTaka(today.bills.salesPaisa) : "—"}
+              sub={today && today.bills.duePaisa > 0 ? `${formatTaka(today.bills.duePaisa)} not collected` : "all collected"} />
+            <OvStat label="Refunded today" value={today ? formatTaka(today.money.refundedPaisa) : "—"}
+              tone={today && today.money.refundedPaisa > 0 ? "warn" : undefined} />
+            <OvStat label="VAT on today's bills" value={today ? formatTaka(today.bills.vatPaisa) : "—"} />
+            <OvStat label="Discount given today" value={today ? formatTaka(today.bills.discountPaisa) : "—"} />
+          </div>
+        </Card>
       </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-[18px]">
+        <Card title="Latest bills"
+          right={<Link href="/pos/sales" className="text-[12.5px] font-semibold" style={{ color: "var(--t-accent)" }}>All bills →</Link>}>
+          {recent.length > 0 ? (
+            <Table head={[{ label: "Bill" }, { label: "Customer" }, { label: "Items", right: true },
+              { label: "Total", right: true }, { label: "Unpaid", right: true }]} min={560}>
+              {recent.map((s) => (
+                <tr key={s.id}>
+                  <Td>
+                    {s.orderNo}
+                    {s.isGift ? <span className="ml-2 text-[11px]" style={{ color: "var(--t-orchid)" }}>gift</span> : null}
+                    <span className="ml-2 text-[11px]" style={{ color: "var(--t-faint)" }}>
+                      {new Date(s.placedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </Td>
+                  <Td>{s.customer?.name ?? s.senderName ?? "Walk-in"}</Td>
+                  <Td right>{s._count?.lines ?? 0}</Td>
+                  <Td right bold>{formatTaka(s.totalPaisa)}</Td>
+                  <Td right color={s.duePaisa > 0 ? "var(--t-warn)" : "var(--t-faint)"}>
+                    {s.duePaisa > 0 ? formatTaka(s.duePaisa) : "—"}
+                  </Td>
+                </tr>
+              ))}
+            </Table>
+          ) : <Empty state={at("sales")} empty="No bill in this period." error="Could not read the bills." />}
+        </Card>
+
+        <Card title="Who owes the counter" right={<Scope text="now" tone="now" />}>
+          <div className="mt-4">
+            {(due ?? []).length > 0 ? (
+              <>
+                {due!.slice(0, 6).map((d) => (
+                  <Link key={d.customerId} href="/pos/due" className="block">
+                    <TrackRow label={d.name} value={formatTaka(d.duePaisa)}
+                      width={(d.duePaisa / Math.max(1, ...due!.map((x) => x.duePaisa))) * 100} color="var(--t-warn)"
+                      right={<span className="text-[10.5px]" style={{ color: "var(--t-faint)" }}>
+                        {d.orders.length} bill{d.orders.length === 1 ? "" : "s"}
+                      </span>} />
+                  </Link>
+                ))}
+                {due!.length > 6 ? (
+                  <div className="text-[11.5px] mt-3" style={{ color: "var(--t-faint)" }}>
+                    {due!.length - 6} more on the credit list.
+                  </div>
+                ) : null}
+              </>
+            ) : <Empty state={at("due")} empty="Nobody owes the counter anything." error="Could not read the credit list." />}
+          </div>
+          <Rule />
+          <div className="flex flex-wrap gap-2">
+            {[
+              { href: "/pos/sell", label: "New sale", icon: "cash" },
+              { href: "/pos/day-close", label: "Day-close", icon: "clock" },
+              { href: "/pos/due", label: "Collect due", icon: "user" },
+            ].map((x) => (
+              <Link key={x.href} href={x.href}
+                className="inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[12.5px] font-semibold transition-transform hover:-translate-y-[1px]"
+                style={{ background: "var(--s-raised)", borderColor: "var(--l-soft)", color: "var(--t-main)" }}>
+                <Icon name={x.icon} size={14} />
+                {x.label}
+              </Link>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <SourceNote>
+        Bills, money taken and the average are the counter's own share of the order list - asked with the counter and
+        without it, so the difference is the counter and nothing else. Money taken counts delivered bills; what sold is
+        line value before VAT. Figures marked <b>now</b> are balances true at this moment and do not follow the date
+        filter, and the payment mix is today's till only.
+      </SourceNote>
     </div>
   );
 }
