@@ -1,5 +1,5 @@
-import { PurchasesOverview } from "../_components/PurchaseViews";
+import { PurchasesOverviewView } from "../_components/PurchasesOverviewView";
 
 export default function PurchasesPage() {
-  return <PurchasesOverview />;
+  return <PurchasesOverviewView />;
 }
