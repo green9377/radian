@@ -1,5 +1,5 @@
-import { SuppliersOverview } from "../_components/SupplierViews";
+import { SuppliersOverviewView } from "../_components/SuppliersOverviewView";
 
 export default function SuppliersPage() {
-  return <SuppliersOverview />;
+  return <SuppliersOverviewView />;
 }
