@@ -147,8 +147,7 @@ export function Card({ title, right, children, className }: {
   title?: string; right?: React.ReactNode; children: React.ReactNode; className?: string;
 }) {
   return (
-    <div className={`rounded-[16px] border px-6 py-[22px] ${className ?? ""}`}
-      style={{ background: "var(--s-card)", borderColor: "var(--l-soft)", boxShadow: "var(--elev-soft)" }}>
+    <div className={`biz-panel px-6 py-[22px] ${className ?? ""}`}>
       {title || right ? (
         <div className="flex items-center justify-between gap-3 flex-wrap">
           {title ? (
@@ -449,14 +448,13 @@ export function Kpi({ icon, iconBg, iconColor, label, value, negative, scope, de
   negative?: boolean; scope?: React.ReactNode; delta?: React.ReactNode; children?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col rounded-[16px] border overflow-hidden"
-      style={{ background: "var(--s-card)", borderColor: "var(--l-soft)", boxShadow: "var(--elev-soft)" }}>
+    <div className="biz-panel flex flex-col overflow-hidden">
       <div className="flex-1 px-[22px] pt-5 pb-4">
         <div className="flex items-center gap-[11px] min-h-[36px]">
           <span className="w-9 h-9 rounded-[11px] grid place-items-center shrink-0" style={{ background: iconBg, color: iconColor }}>
             {icon}
           </span>
-          <h3 className="m-0 text-[13px] font-bold uppercase tracking-[0.07em]" style={{ color: "var(--t-soft)" }}>{label}</h3>
+          <h3 className="m-0 text-[14.5px] font-semibold tracking-[-0.005em]" style={{ color: "var(--t-main)" }}>{label}</h3>
           {delta}
         </div>
         <div className="flex items-baseline gap-2.5 flex-wrap mt-[18px]">
@@ -824,8 +822,8 @@ export function NowBand({ title, figures, jobs, note, loading, failed }: {
 }) {
   const live = jobs.filter((j) => j.count > 0);
   return (
-    <div className="rounded-[18px] border overflow-hidden mb-[18px]"
-      style={{ background: "var(--s-accent)", borderColor: "var(--l-accent)", boxShadow: "var(--elev-soft)" }}>
+    <div className="biz-panel overflow-hidden mb-[18px]"
+      style={{ background: "var(--s-accent)", borderColor: "var(--l-accent)" }}>
       <div className="flex flex-wrap items-stretch">
         <div className="flex flex-wrap gap-x-10 gap-y-5 px-6 py-5 flex-1" style={{ minWidth: 300 }}>
           <div>

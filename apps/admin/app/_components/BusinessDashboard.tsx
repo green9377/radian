@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
-import { WRAP, Header } from "./DeliveryUI";
+import { WRAP } from "./DeliveryUI";
 import {
   formatTaka,
   getIntelDashboard, getIntelHistory,
@@ -107,12 +107,39 @@ function sum(rows: Row[], pick: (r: Row) => number): number {
 
 /* ─────────────────────────── small pieces ─────────────────────────── */
 
-function Card({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
+/*  A TONE IS A PAIR, NEVER A COLOUR. Every icon tile takes its fill and its
+    ink from one of these, so a tile can never end up with ink the same shade
+    as the fill it sits on - which is what happens the moment somebody writes a
+    hex value into a card.  */
+const TONES = {
+  accent: { bg: "var(--s-accent)", fg: "var(--t-accent)" },
+  orchid: { bg: "var(--s-orchid)", fg: "var(--t-orchid)" },
+  ok:     { bg: "var(--s-ok)",     fg: "var(--t-ok)" },
+  warn:   { bg: "var(--s-warn)",   fg: "var(--t-warn)" },
+  bad:    { bg: "var(--s-bad)",    fg: "var(--t-bad)" },
+  info:   { bg: "var(--s-info)",   fg: "var(--t-info)" },
+} as const;
+type Tone = keyof typeof TONES;
+
+function Tile({ icon, tone }: { icon: string; tone: Tone }) {
+  const t = TONES[tone];
   return (
-    <div className="rounded-[16px] border px-6 py-[22px]"
-      style={{ background: "var(--s-card)", borderColor: "var(--l-soft)", boxShadow: "var(--elev-soft)" }}>
+    <span className="biz-tile" style={{ background: t.bg }}>
+      <Icon name={icon} size={18} style={{ color: t.fg }} />
+    </span>
+  );
+}
+
+function Card({ title, icon, tone = "accent", right, children }: {
+  title: string; icon?: string; tone?: Tone; right?: React.ReactNode; children: React.ReactNode;
+}) {
+  return (
+    <div className="biz-panel px-6 py-[22px]">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-[15.5px] font-semibold m-0 tracking-[-0.01em]" style={{ color: "var(--t-main)" }}>{title}</h2>
+        <div className="flex items-center gap-3">
+          {icon ? <Tile icon={icon} tone={tone} /> : null}
+          <h2 className="text-[16px] font-semibold m-0 tracking-[-0.01em]" style={{ color: "var(--t-main)" }}>{title}</h2>
+        </div>
         {right}
       </div>
       {children}
@@ -122,13 +149,18 @@ function Card({ title, right, children }: { title: string; right?: React.ReactNo
 
 /** a scope mark: which shop a figure counts. Two words, never a sentence. */
 function Scope({ text, tone = "quiet" }: { text: string; tone?: "quiet" | "now" }) {
+  if (tone === "now") {
+    return (
+      <span className="text-[10px] font-bold uppercase tracking-[0.12em] px-2.5 py-[4px] rounded-full whitespace-nowrap"
+        style={{ background: "var(--s-info)", color: "var(--t-info)" }}>
+        {text}
+      </span>
+    );
+  }
+  /*  a quiet scope is a caption, not a badge: four pills in a row of four
+      cards read as buttons and pulled the eye off the figures  */
   return (
-    <span className="text-[10px] font-bold uppercase tracking-[0.1em] px-2 py-[3px] rounded-full whitespace-nowrap"
-      style={tone === "now"
-        ? { background: "var(--s-info)", color: "var(--t-info)" }
-        : { background: "var(--s-sunken)", color: "var(--t-faint)" }}>
-      {text}
-    </span>
+    <span className="text-[12px] whitespace-nowrap" style={{ color: "var(--t-faint)" }}>{text}</span>
   );
 }
 
@@ -183,7 +215,9 @@ function Seg<T extends string>({ value, options, onPick, label }:
         return (
           <button key={o.v} type="button" aria-pressed={on} onClick={() => onPick(o.v)}
             className="text-[12.5px] font-semibold px-[15px] py-[7px] rounded-full transition-colors"
-            style={on ? { background: "var(--t-main)", color: "var(--s-card)" } : { background: "transparent", color: "var(--t-soft)" }}>
+            style={on
+              ? { background: "var(--s-pill-on)", color: "var(--t-pill-on)" }
+              : { background: "transparent", color: "var(--t-soft)" }}>
             {o.label}
           </button>
         );
@@ -523,49 +557,70 @@ function TodayBand({ dash, pos, counter }: {
   const web = dash?.today.ordersToday ?? null;
   const till = pos?.money.takenPaisa ?? null;
 
+  /*  NO COMPARISON ON A LIVE FIGURE. The design this was drawn from put
+      "vs previous 30 days" under today's order count, and that is two
+      populations in one sentence: today against a month. A live number gets a
+      live mark and nothing else - the period figures below are where a
+      comparison belongs.  */
   return (
-    <div className="rounded-[18px] border overflow-hidden mb-[18px]"
-      style={{ background: "var(--s-accent)", borderColor: "var(--l-accent)", boxShadow: "var(--elev-soft)" }}>
+    <div className="biz-panel overflow-hidden mb-[18px]"
+      style={{ background: "var(--s-accent)", borderColor: "var(--l-accent)" }}>
       <div className="flex flex-wrap items-stretch">
 
         {/* the three live figures */}
-        <div className="flex flex-wrap gap-x-10 gap-y-5 px-6 py-5 flex-1" style={{ minWidth: 300 }}>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-[7px] h-[7px] rounded-full" style={{ background: "var(--t-ok)", boxShadow: "0 0 0 3px var(--s-ok)" }} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--t-accent)" }}>Today, live</span>
+        <div className="flex flex-wrap items-start gap-y-6 px-6 py-5 flex-1" style={{ minWidth: 300 }}>
+          <div className="pr-9">
+            <div className="flex items-center gap-3">
+              <Tile icon="sparkle" tone="accent" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[15px] font-semibold" style={{ color: "var(--t-main)" }}>Today, live</span>
+                  <span className="w-[8px] h-[8px] rounded-full" style={{ background: "var(--t-live)", boxShadow: "0 0 0 3px var(--s-ok)" }} />
+                </div>
+                <div className="text-[12.5px] mt-[5px]" style={{ color: "var(--t-soft)" }}>
+                  {new Date(`${bdDay(0)}T00:00:00Z`).toLocaleDateString("en-GB",
+                    { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })}
+                </div>
+              </div>
             </div>
-            <div className="text-[13px] mt-2.5" style={{ color: "var(--t-soft)" }}>
-              {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+            <div className="text-[11.5px] mt-3" style={{ color: "var(--t-faint)" }}>Live from your shop</div>
+          </div>
+
+          <div className="pl-9 pr-9 border-l flex items-start gap-3" style={{ borderColor: "var(--l-accent)" }}>
+            <Tile icon="cart" tone="orchid" />
+            <div>
+              <div className="text-[12.5px] font-semibold" style={{ color: "var(--t-soft)" }}>Orders on the website</div>
+              <div className="text-[30px] font-bold tabular-nums leading-none mt-[9px] tracking-[-0.03em]"
+                style={{ color: (web ?? 0) > 0 ? "var(--t-main)" : "var(--t-faint)" }}>
+                {web === null ? "—" : web}
+              </div>
+              <div className="text-[11.5px] mt-2" style={{ color: "var(--t-faint)" }}>so far today</div>
             </div>
           </div>
 
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--t-faint)" }}>Orders on the website</div>
-            <div className="text-[30px] font-bold tabular-nums leading-none mt-2 tracking-[-0.03em]"
-              style={{ color: (web ?? 0) > 0 ? "var(--t-main)" : "var(--t-faint)" }}>
-              {web === null ? "—" : web}
-            </div>
-          </div>
-
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--t-faint)" }}>Bills at the counter</div>
-            <div className="flex items-baseline gap-2.5 mt-2">
-              <span className="text-[30px] font-bold tabular-nums leading-none tracking-[-0.03em]"
+          <div className="pl-9 pr-9 border-l flex items-start gap-3" style={{ borderColor: "var(--l-accent)" }}>
+            <Tile icon="register" tone="info" />
+            <div>
+              <div className="text-[12.5px] font-semibold" style={{ color: "var(--t-soft)" }}>Bills at the counter</div>
+              <div className="text-[30px] font-bold tabular-nums leading-none mt-[9px] tracking-[-0.03em]"
                 style={{ color: (pos?.bills.count ?? 0) > 0 ? "var(--t-main)" : "var(--t-faint)" }}>
                 {pos === null ? "—" : pos.bills.count}
-              </span>
-              <span className="text-[13px] tabular-nums" style={{ color: "var(--t-soft)" }}>
-                {till === null ? "" : formatTaka(till)}
-              </span>
+              </div>
+              <div className="text-[11.5px] mt-2 tabular-nums" style={{ color: "var(--t-faint)" }}>
+                {till === null ? "so far today" : `${formatTaka(till)} taken`}
+              </div>
             </div>
           </div>
 
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--t-faint)" }}>Out for delivery</div>
-            <div className="text-[30px] font-bold tabular-nums leading-none mt-2 tracking-[-0.03em]"
-              style={{ color: (onRoad ?? 0) > 0 ? "var(--t-main)" : "var(--t-faint)" }}>
-              {onRoad === null ? "—" : onRoad}
+          <div className="pl-9 border-l flex items-start gap-3" style={{ borderColor: "var(--l-accent)" }}>
+            <Tile icon="truck" tone="ok" />
+            <div>
+              <div className="text-[12.5px] font-semibold" style={{ color: "var(--t-soft)" }}>Out for delivery</div>
+              <div className="text-[30px] font-bold tabular-nums leading-none mt-[9px] tracking-[-0.03em]"
+                style={{ color: (onRoad ?? 0) > 0 ? "var(--t-main)" : "var(--t-faint)" }}>
+                {onRoad === null ? "—" : onRoad}
+              </div>
+              <div className="text-[11.5px] mt-2" style={{ color: "var(--t-faint)" }}>on the road right now</div>
             </div>
           </div>
         </div>
@@ -573,10 +628,28 @@ function TodayBand({ dash, pos, counter }: {
         {/* what is waiting */}
         <div className="px-6 py-5 border-t xl:border-t-0 xl:border-l w-full xl:w-auto xl:max-w-[52%]"
           style={{ borderColor: "var(--l-accent)" }}>
-          <div className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--t-faint)" }}>
-            Waiting on someone
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Tile icon="alert" tone={jobs.length > 0 ? "bad" : "ok"} />
+              <div>
+                <div className="text-[15px] font-semibold" style={{ color: "var(--t-main)" }}>Needs your attention</div>
+                <div className="text-[11.5px] mt-[5px]" style={{ color: "var(--t-faint)" }}>
+                  {dash
+                    ? jobs.length === 0
+                      ? "nothing is waiting"
+                      : `${jobs.length} ${jobs.length === 1 ? "thing needs" : "things need"} doing`
+                    : "reading your shop…"}
+                </div>
+              </div>
+            </div>
+            {jobs.length > 0 ? (
+              <Link href="/orders/list" className="text-[12.5px] font-semibold whitespace-nowrap hover:underline"
+                style={{ color: "var(--t-accent)" }}>
+                View all →
+              </Link>
+            ) : null}
           </div>
-          <div className="flex flex-wrap gap-2 mt-3">
+          <div className="flex flex-wrap gap-2 mt-3.5">
             {jobs.length === 0 ? (
               <span className="text-[12.5px]" style={{ color: "var(--t-faint)" }}>
                 {dash ? "Nothing is waiting." : "Loading…"}
@@ -612,6 +685,62 @@ function TodayBand({ dash, pos, counter }: {
 
 /* ─────────────────────────── the date filter ─────────────────────────── */
 
+/** what the chosen period is CALLED, under the dates it resolves to */
+const PERIOD_NAME: Record<RangeKey, string> = {
+  today: "Today",
+  yesterday: "Yesterday",
+  d7: "Last 7 days",
+  d30: "Last 30 days",
+  d90: "Last 90 days",
+  custom: "Dates you chose",
+};
+
+/** dd Mmm yyyy, read as a Dhaka day rather than in the reader's own zone */
+function longDay(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
+  });
+}
+
+/**
+ * THE CLOCK IS SET AFTER MOUNT, NOT DURING RENDER.
+ *
+ * `new Date()` in a render body is a different value on the server than in the
+ * browser, which React reports as a hydration mismatch and then quietly
+ * replaces - so the first paint carries no time at all and the tick fills it
+ * in. It re-reads every fifteen seconds, which is as often as a minute clock
+ * can matter.
+ */
+function useClock(): Date | null {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const t = setInterval(() => setNow(new Date()), 15_000);
+    return () => clearInterval(t);
+  }, []);
+  return now;
+}
+
+function ClockPill() {
+  const now = useClock();
+  return (
+    <div className="biz-panel flex items-center gap-3 px-4 py-[10px]">
+      <Tile icon="clock" tone="accent" />
+      <div>
+        <div className="text-[16px] font-bold tabular-nums leading-none" style={{ color: "var(--t-main)" }}>
+          {now ? now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true }).toUpperCase() : "—"}
+        </div>
+        <div className="text-[11.5px] mt-[5px]" style={{ color: "var(--t-faint)" }}>
+          {now
+            ? new Date(`${bdDay(0)}T00:00:00Z`).toLocaleDateString("en-GB",
+              { weekday: "long", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })
+            : ""}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RangeBar({ range, onPick }: { range: Range; onPick: (r: Range) => void }) {
   const [openCustom, setOpenCustom] = useState(range.key === "custom");
   const presets: { v: RangeKey; label: string }[] = [
@@ -623,7 +752,26 @@ function RangeBar({ range, onPick }: { range: Range; onPick: (r: Range) => void 
     { v: "custom", label: "Pick dates" },
   ];
   return (
-    <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+    <div className="flex items-start justify-end gap-3 flex-wrap">
+      {/*  THE PERIOD, SPELLED OUT. The presets say which button is pressed;
+           this says what that button actually resolved to, which is the thing
+           every figure below is measured over.  */}
+      <button type="button" onClick={() => setOpenCustom((o) => !o)}
+        aria-expanded={openCustom}
+        className="biz-panel flex items-center gap-3 px-4 py-[10px] text-left transition-colors"
+        title="Pick your own dates">
+        <Tile icon="clock" tone="orchid" />
+        <span>
+          <span className="block text-[14px] font-semibold tabular-nums" style={{ color: "var(--t-main)" }}>
+            {range.from === range.to ? longDay(range.from) : `${longDay(range.from)} — ${longDay(range.to)}`}
+          </span>
+          <span className="block text-[11.5px] mt-[3px]" style={{ color: "var(--t-faint)" }}>
+            {PERIOD_NAME[range.key]}
+            {range.from !== range.to ? ` · ${daysBetween(range.from, range.to)} days` : ""}
+          </span>
+        </span>
+      </button>
+
       <div className="flex items-center gap-3 flex-wrap">
         <Seg<RangeKey>
           label="Period"
@@ -663,11 +811,7 @@ function RangeBar({ range, onPick }: { range: Range; onPick: (r: Range) => void 
           </div>
         ) : null}
       </div>
-      <div className="text-[12px]" style={{ color: "var(--t-faint)" }}>
-        {range.from === range.to
-          ? dayLabel(range.from)
-          : `${dayLabel(range.from)} to ${dayLabel(range.to)} · ${daysBetween(range.from, range.to)} days`}
-      </div>
+      <ClockPill />
     </div>
   );
 }
@@ -687,12 +831,14 @@ function Delta({ now, before }: { now: number | null; before: number | null }) {
       text = `${now > before ? "↑" : "↓"} ${Math.abs(pc)}%`;
     }
   }
-  if (now === null) text = "";
+  /*  nothing read yet means NO badge - an empty pill still draws a box the
+      eye stops on  */
+  if (now === null) return null;
   const st = cls === "up" ? { background: "var(--s-ok)", color: "var(--t-ok)" }
     : cls === "down" ? { background: "var(--s-bad)", color: "var(--t-bad)" }
     : { background: "var(--s-sunken)", color: "var(--t-faint)" };
   return (
-    <span className="ml-auto text-[10.5px] font-bold px-2 py-[3px] rounded-full whitespace-nowrap" style={st}>{text}</span>
+    <span className="ml-auto text-[11px] font-bold px-2.5 py-[4px] rounded-full whitespace-nowrap" style={st}>{text}</span>
   );
 }
 
@@ -730,26 +876,25 @@ function SplitLine({ web, counter, fmt }: { web: number | null; counter: number 
   );
 }
 
-function Kpi({ icon, iconBg, iconColor, label, value, negative, scope, delta, children }: {
-  icon: string; iconBg: string; iconColor: string; label: string; value: string;
+function Kpi({ icon, tone = "accent", label, value, negative, scope, delta, children }: {
+  icon: string; tone?: Tone; label: string; value: string;
   negative?: boolean; scope?: React.ReactNode; delta?: React.ReactNode; children?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col rounded-[16px] border overflow-hidden"
-      style={{ background: "var(--s-card)", borderColor: "var(--l-soft)", boxShadow: "var(--elev-soft)" }}>
-      <div className="flex-1 px-[22px] pt-5 pb-4">
-        <div className="flex items-center gap-[11px] min-h-[36px]">
-          <span className="w-9 h-9 rounded-[11px] grid place-items-center shrink-0" style={{ background: iconBg }}>
-            <Icon name={icon} size={18} style={{ color: iconColor }} />
-          </span>
-          <h3 className="m-0 text-[13px] font-bold uppercase tracking-[0.07em]" style={{ color: "var(--t-soft)" }}>{label}</h3>
+    <div className="biz-panel flex flex-col overflow-hidden">
+      <div className="flex-1 px-[22px] pt-[20px] pb-4">
+        <div className="flex items-center gap-3 min-h-[38px]">
+          <Tile icon={icon} tone={tone} />
+          {/*  Title Case, not shouted: the owner reads these as names, and an
+               all-caps row of four competes with the figures under it.  */}
+          <h3 className="m-0 text-[14.5px] font-semibold tracking-[-0.005em]" style={{ color: "var(--t-main)" }}>{label}</h3>
           {delta}
         </div>
-        <div className="flex items-baseline gap-2.5 flex-wrap mt-[18px]">
-          <b className="text-[34px] font-bold tabular-nums leading-none tracking-[-0.035em]"
+        <div className="flex items-baseline gap-2.5 flex-wrap mt-[16px]">
+          <b className="text-[33px] font-bold tabular-nums leading-none tracking-[-0.035em]"
             style={{ color: negative ? "var(--t-bad)" : "var(--t-main)" }}>{value}</b>
-          {scope}
         </div>
+        {scope ? <div className="mt-2.5">{scope}</div> : null}
         {children}
       </div>
     </div>
@@ -974,14 +1119,21 @@ export function BusinessDashboard() {
   const oneDay = range.from === range.to;
 
   return (
-    <div className={WRAP}>
-      <Header
-        eyebrow="Radian"
-        title="Business dashboard"
-        desc="The website and the shop floor on one page - what sold, what is owed, and who is in today."
-      />
-
-      <RangeBar range={range} onPick={setRange} />
+    <div className={`${WRAP} biz-glow`}>
+      {/*  THE NAME AND THE PERIOD ON ONE ROW. The reader's first question is
+           "what am I looking at, and over what dates?", and the answer should
+           not need a scroll.  */}
+      <div className="flex items-start justify-between gap-6 flex-wrap mb-[20px]">
+        <div>
+          <h1 className="text-[30px] font-bold m-0 leading-[1.15] tracking-[-0.025em]" style={{ color: "var(--t-main)" }}>
+            Business dashboard
+          </h1>
+          <p className="text-[13.5px] m-0 mt-2 max-w-[620px] leading-[1.5]" style={{ color: "var(--t-faint)" }}>
+            The website and the shop floor on one page — what sold, what is owed, and who is in today.
+          </p>
+        </div>
+        <RangeBar range={range} onPick={setRange} />
+      </div>
       <TodayBand dash={dash} pos={pos} counter={counterOrders === null ? null : { orders: counterOrders }} />
 
       {/* ── the four figures ── */}
@@ -989,7 +1141,7 @@ export function BusinessDashboard() {
         {/*  headline, split and delta all read from the order list on the same
              delivered-orders basis. The chart below reads the books instead and
              says so - two sources, never presented as one number.  */}
-        <Kpi icon="chart" iconBg="var(--s-accent)" iconColor="var(--t-accent)"
+        <Kpi icon="chart" tone="accent"
           label="Money taken" value={ordsAll ? formatTaka(ordsAll.revenuePaisa) : "—"}
           scope={<Scope text="delivered · both shops" />}
           delta={<Delta now={ordsAll?.revenuePaisa ?? null} before={ordsPrev?.revenuePaisa ?? null} />}>
@@ -997,7 +1149,7 @@ export function BusinessDashboard() {
           <div className="mt-3.5 -mx-[22px] -mb-4"><Spark rows={rows} pick={(r) => r.revenue} mode="area" /></div>
         </Kpi>
 
-        <Kpi icon="bag" iconBg="var(--s-accent)" iconColor="var(--t-accent)"
+        <Kpi icon="bag" tone="orchid"
           label="Orders" value={ordsAll ? String(ordsAll.counts.all) : "—"}
           scope={<Scope text="both shops" />}
           delta={<Delta now={ordsAll?.counts.all ?? null} before={ordsPrev?.counts.all ?? null} />}>
@@ -1005,14 +1157,14 @@ export function BusinessDashboard() {
           <div className="mt-3.5 -mx-[22px] -mb-4"><Spark rows={rows} pick={(r) => r.orders} mode="bars" /></div>
         </Kpi>
 
-        <Kpi icon="cash" iconBg={profit < 0 ? "var(--s-bad)" : "var(--s-ok)"} iconColor={profit < 0 ? "var(--t-bad)" : "var(--t-ok)"}
+        <Kpi icon="cash" tone={profit < 0 ? "bad" : "ok"}
           label="Profit" value={formatTaka(profit)} negative={profit < 0}
           scope={<Scope text="from the books · both shops" />}
           delta={<Delta now={rowsComplete ? profit : null} before={before ? sum(before, (r) => r.profit) : null} />}>
           <div className="mt-3.5 -mx-[22px] -mb-4"><Spark rows={rows} pick={(r) => r.profit} mode="diverge" /></div>
         </Kpi>
 
-        <Kpi icon="clock" iconBg="var(--s-warn)" iconColor="var(--t-warn)"
+        <Kpi icon="clock" tone="warn"
           label="Unpaid" value={dueAll ? formatTaka(dueAll.duePaisa) : "—"}
           scope={<Scope text="now · all time" tone="now" />}
           delta={<span className="ml-auto text-[10.5px] font-bold px-2 py-[3px] rounded-full whitespace-nowrap"
@@ -1047,7 +1199,7 @@ export function BusinessDashboard() {
         </div>
 
         {/* ── who is in today ── */}
-        <Card title="Staff today" right={<Scope text="now" tone="now" />}>
+        <Card title="Staff today" icon="users" tone="info" right={<Scope text="now" tone="now" />}>
           {notMarked ? (
             <div className="rounded-[12px] border px-4 py-3 mt-4 flex items-start gap-3"
               style={{ background: "var(--s-warn)", borderColor: "var(--l-warn)" }}>
@@ -1170,7 +1322,7 @@ export function BusinessDashboard() {
 
       {/* ── shelves and days ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-[18px] mb-[18px]">
-        <Card title="Which shelf sells" right={<Scope text="website" />}>
+        <Card title="Which shelf sells" icon="layers" tone="orchid" right={<Scope text="website" />}>
           <div className="mt-4">
             {categories.length > 0 ? categories.map((c) => (
               <TrackRow key={c.name} label={c.name} value={formatTaka(c.paisa)} width={(c.paisa / catMax) * 100} color="var(--f-chart)" />
@@ -1178,7 +1330,7 @@ export function BusinessDashboard() {
           </div>
         </Card>
 
-        <Card title="Which days sold">
+        <Card title="Which days sold" icon="grid" tone="accent">
           <div className="grid gap-1.5 mt-[18px]"
             style={{ gridTemplateColumns: `repeat(${Math.min(10, Math.max(1, rows.length))}, 1fr)` }}>
             {rows.map((r) => (
@@ -1197,7 +1349,7 @@ export function BusinessDashboard() {
           </div>
         </Card>
 
-        <Card title="Customers">
+        <Card title="Customers" icon="heart" tone="info">
           <div className="grid grid-cols-2 gap-4 mt-[18px]">
             <Stat label="On the books" value={custTotal === null ? "—" : String(custTotal)} />
             <Stat label="First time buyers" value={newCustomers === null ? "—" : String(newCustomers)} sub="this month" />
@@ -1210,7 +1362,7 @@ export function BusinessDashboard() {
 
       {/* ── the money ── */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.1fr] gap-[18px] mb-[18px]">
-        <Card title="Where the money is" right={<Scope text="now" tone="now" />}>
+        <Card title="Where the money is" icon="wallet" tone="ok" right={<Scope text="now" tone="now" />}>
           <div className="mt-[18px]">
             {moneyAccounts.length > 0 ? moneyAccounts.map((a) => (
               <TrackRow key={a.id} label={a.name} value={formatTaka(a.balancePaisa)}
@@ -1227,7 +1379,7 @@ export function BusinessDashboard() {
           </div>
         </Card>
 
-        <Card title="What the shop will get, and must pay" right={<Scope text="now" tone="now" />}>
+        <Card title="What the shop will get, and must pay" icon="cash" tone="warn" right={<Scope text="now" tone="now" />}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5 mt-[18px]">
             <Stat label="Customers owe the shop" tone="warn"
               value={dueAll ? formatTaka(dueAll.duePaisa) : "—"}
@@ -1245,7 +1397,7 @@ export function BusinessDashboard() {
 
       {/* ── delivery ── */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.2fr] gap-[18px]">
-        <Card title="Delivery">
+        <Card title="Delivery" icon="truck" tone="info">
           {/*  `inFlight` carries no date window, so counting it here opened the
                 card on a period with no deliveries and drew "0 of 0" beside a
                 100%-green margin bar over nothing charged  */}
@@ -1288,7 +1440,7 @@ export function BusinessDashboard() {
           ) : <Empty state={st.deliv ?? "loading"} empty="No delivery in this period." error="Could not read the delivery figures." />}
         </Card>
 
-        <Card title="Riders">
+        <Card title="Riders" icon="user" tone="orchid">
           {deliv && deliv.byCarrier.length > 0 ? (
             <Table head={[{ label: "Rider" }, { label: "Delivered", right: true }, { label: "Judged", right: true },
               { label: "On time", right: true }, { label: "Paid", right: true }]} min={520}>
@@ -1312,13 +1464,23 @@ export function BusinessDashboard() {
         </Card>
       </div>
 
-      <p className="text-[11.5px] leading-[1.65] mt-5 m-0" style={{ color: "var(--t-faint)" }}>
-        Money taken, orders and unpaid are counted from the order list on delivered orders, website and counter
-        together. Profit and the day-by-day chart come from the books instead, so their totals differ from the cards.
-        What sold counts orders placed, and the counter table is line value before VAT. Figures marked <b>now</b> are
-        true at this moment and do not follow the date filter.
-        {dash?.meta.generatedAt ? ` Read at ${new Date(dash.meta.generatedAt).toLocaleString("en-GB", { hour12: false })}.` : ""}
-      </p>
+      {/*  THE FOOT OF THE PAGE: when it was read, and which source answered
+           which half of it. Both belong here rather than on a card, because
+           they are true of the whole screen.  */}
+      <div className="flex items-start justify-between gap-6 flex-wrap mt-6 pt-5 border-t"
+        style={{ borderColor: "var(--l-soft)" }}>
+        <p className="text-[11.5px] m-0 tabular-nums whitespace-nowrap" style={{ color: "var(--t-faint)" }}>
+          {dash?.meta.generatedAt
+            ? `Read at ${new Date(dash.meta.generatedAt).toLocaleString("en-GB", { hour12: false })}`
+            : "Not read yet"}
+        </p>
+        <p className="text-[11.5px] leading-[1.65] m-0 max-w-[980px] text-right" style={{ color: "var(--t-faint)" }}>
+          Money taken, orders and unpaid are counted from the order list on delivered orders, website and counter
+          together. Profit and the day-by-day chart come from the books instead, so their totals differ from the cards.
+          What sold counts orders placed, and the counter table is line value before VAT. Figures marked <b>now</b> are
+          true at this moment and do not follow the date filter.
+        </p>
+      </div>
     </div>
   );
 }
