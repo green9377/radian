@@ -124,7 +124,8 @@ type Tone = keyof typeof TONES;
 function Tile({ icon, tone }: { icon: string; tone: Tone }) {
   const t = TONES[tone];
   return (
-    <span className="biz-tile" style={{ background: t.bg }}>
+    <span className="biz-tile"
+      style={{ background: `color-mix(in srgb, ${t.fg} 16%, transparent)` }}>
       <Icon name={icon} size={18} style={{ color: t.fg }} />
     </span>
   );
@@ -759,6 +760,7 @@ function RangeBar({ range, onPick }: { range: Range; onPick: (r: Range) => void 
       <button type="button" onClick={() => setOpenCustom((o) => !o)}
         aria-expanded={openCustom}
         className="biz-panel flex items-center gap-3 px-4 py-[10px] text-left transition-colors"
+        style={{ minWidth: 268 }}
         title="Pick your own dates">
         <Tile icon="grid" tone="orchid" />
         <span>
@@ -1123,16 +1125,18 @@ export function BusinessDashboard() {
       {/*  THE NAME AND THE PERIOD ON ONE ROW. The reader's first question is
            "what am I looking at, and over what dates?", and the answer should
            not need a scroll.  */}
-      <div className="flex items-start justify-between gap-6 flex-wrap mb-[20px]">
-        <div>
+      <div className="flex items-start justify-between gap-6 mb-[20px] flex-wrap xl:flex-nowrap">
+        <div className="min-w-0">
           <h1 className="text-[30px] font-bold m-0 leading-[1.15] tracking-[-0.025em]" style={{ color: "var(--t-main)" }}>
             Business dashboard
           </h1>
-          <p className="text-[13.5px] m-0 mt-2 max-w-[620px] leading-[1.5]" style={{ color: "var(--t-faint)" }}>
+          <p className="text-[13.5px] m-0 mt-2 max-w-[520px] leading-[1.5]" style={{ color: "var(--t-faint)" }}>
             The website and the shop floor on one page — what sold, what is owed, and who is in today.
           </p>
         </div>
-        <RangeBar range={range} onPick={setRange} />
+        <div className="shrink-0">
+          <RangeBar range={range} onPick={setRange} />
+        </div>
       </div>
       <TodayBand dash={dash} pos={pos} counter={counterOrders === null ? null : { orders: counterOrders }} />
 
