@@ -1,5 +1,5 @@
-import { InventoryOverview } from "../_components/InventoryViews";
+import { InventoryOverviewView } from "../_components/InventoryOverviewView";
 
 export default function InventoryPage() {
-  return <InventoryOverview />;
+  return <InventoryOverviewView />;
 }
