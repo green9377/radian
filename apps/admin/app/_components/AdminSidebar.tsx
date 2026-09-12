@@ -107,7 +107,8 @@ const GROUPS: Group[] = [
         subs: [
           /*  Owner, 10 Sep 2026: three pages. Proof photos left — the photo
               is a step on the order and a column on the board.  */
-          { label: "Delivery board", href: "/delivery", match: (p) => p === "/delivery" || p.startsWith("/delivery/board") },
+          { label: "Overview", href: "/delivery", match: exact("/delivery") },
+          { label: "Delivery board", href: "/delivery/board", match: (p) => p.startsWith("/delivery/board") },
           { label: "Delivery money", href: "/delivery/settle" },
           { label: "Reports", href: "/delivery/performance" },
           /*  Owner, 10 Sep 2026: the setup lives with the module, not under
@@ -118,10 +119,14 @@ const GROUPS: Group[] = [
       {
         label: "Returns & Refunds", href: "/returns", icon: "returnArrow",
         subs: [
-          { label: "All returns", href: "/returns", match: exact("/returns") },
+          { label: "Overview", href: "/returns", match: exact("/returns") },
+          /*  the whole book moved to /returns/list on 12 Sep 2026, when the
+              module root became the overview. The two doors are that same list
+              narrowed (DEC-RTN-016), never a second book.  */
+          { label: "All returns", href: "/returns/list", match: exact("/returns/list") },
           { label: "New return", href: "/returns/new" },
-          { label: "Online returns", href: "/returns?channel=online" },
-          { label: "Counter returns", href: "/returns?channel=counter" },
+          { label: "Online returns", href: "/returns/list?channel=online" },
+          { label: "Counter returns", href: "/returns/list?channel=counter" },
         ],
       },
       { label: "Inbox", href: "/inbox", icon: "mail" },
@@ -133,6 +138,7 @@ const GROUPS: Group[] = [
       {
         label: "POS", href: "/pos", icon: "register",
         subs: [
+          { label: "Overview", href: "/pos", match: exact("/pos") },
           { label: "Sell (counter)", href: "/pos/sell" },
           /*  (owner, 11 Sep 2026) "Today / Shift" is gone: one counter, one
               day, one screen. Day close IS the day's picture.  */
@@ -151,6 +157,7 @@ const GROUPS: Group[] = [
       {
         label: "Products", href: "/products", icon: "flower",
         subs: [
+          { label: "Overview", href: "/products", match: exact("/products") },
           { label: "All products", href: "/products/list" },
           { label: "Catalog funnel", href: "/products/funnel" },
           { label: "Add-ons", href: "/products/addons" },
@@ -172,6 +179,7 @@ const GROUPS: Group[] = [
       {
         label: "Website", href: "/storefront", icon: "store",
         subs: [
+          { label: "Overview", href: "/storefront", match: exact("/storefront") },
           { label: "Homepage", href: "/storefront/layout" },
           { label: "Category pages", href: "/storefront/category-page" },
           { label: "Pages & FAQs", href: "/storefront/pages" },
@@ -190,6 +198,7 @@ const GROUPS: Group[] = [
       {
         label: "Inventory", href: "/inventory", icon: "warehouse",
         subs: [
+          { label: "Overview", href: "/inventory", match: exact("/inventory") },
           { label: "Stock board", href: "/inventory/stock" },
           { label: "Opening stock", href: "/inventory/opening" },
           { label: "Transfer", href: "/inventory/transfer" },
@@ -205,6 +214,7 @@ const GROUPS: Group[] = [
         label: "Purchases", href: "/purchases", icon: "cart",
         roles: ["OWNER", "MANAGER"],
         subs: [
+          { label: "Overview", href: "/purchases", match: exact("/purchases") },
           { label: "All purchases", href: "/purchases/list" },
           { label: "New purchase", href: "/purchases/new" },
           { label: "Purchase returns", href: "/purchases/returns" },
@@ -215,6 +225,7 @@ const GROUPS: Group[] = [
         label: "Suppliers", href: "/suppliers", icon: "users",
         roles: ["OWNER", "MANAGER"],
         subs: [
+          { label: "Overview", href: "/suppliers", match: exact("/suppliers") },
           { label: "All suppliers", href: "/suppliers/list" },
           { label: "Vendors", href: "/suppliers/vendors", match: (p) => p.startsWith("/suppliers/vendors") },
           { label: "Settings", href: "/suppliers/settings" },
@@ -223,6 +234,7 @@ const GROUPS: Group[] = [
       {
         label: "Items", href: "/items", icon: "gem",
         subs: [
+          { label: "Overview", href: "/items", match: exact("/items") },
           { label: "All items", href: "/items/list" },
           { label: "New item", href: "/items/new" },
           { label: "Item categories", href: "/items/categories" },
@@ -237,6 +249,7 @@ const GROUPS: Group[] = [
       {
         label: "Assembly", href: "/assembly", icon: "tools",
         subs: [
+          { label: "Overview", href: "/assembly", match: exact("/assembly") },
           { label: "Templates", href: "/assembly/templates" },
           { label: "Production pipeline", href: "/assembly/pipeline" },
           { label: "Finished goods", href: "/assembly/finished" },
@@ -254,6 +267,7 @@ const GROUPS: Group[] = [
         label: "Finance", href: "/finance", icon: "wallet",
         roles: ["OWNER", "MANAGER"],
         subs: [
+          { label: "Overview", href: "/finance", match: exact("/finance") },
           { label: "Money accounts", href: "/finance/accounts" },
           { label: "Money in & moving", href: "/finance/income" },
           { label: "Expenses", href: "/finance/expenses" },
@@ -296,6 +310,7 @@ const GROUPS: Group[] = [
       {
         label: "Customers", href: "/customers", icon: "heart",
         subs: [
+          { label: "Overview", href: "/customers", match: exact("/customers") },
           { label: "All customers", href: "/customers/list" },
           { label: "Segments", href: "/customers/segments" },
           { label: "Occasions", href: "/customers/occasions" },
@@ -310,6 +325,7 @@ const GROUPS: Group[] = [
         label: "Marketing", href: "/marketing", icon: "megaphone",
         roles: ["OWNER", "MANAGER"],
         subs: [
+          { label: "Overview", href: "/marketing", match: exact("/marketing") },
           { label: "Campaigns", href: "/marketing/campaigns" },
           { label: "Order sources", href: "/marketing/campaigns/sources" },
           { label: "Ad numbers", href: "/marketing/ads" },
@@ -321,6 +337,7 @@ const GROUPS: Group[] = [
         label: "Offers & Coupons", href: "/marketing/offers", icon: "tag",
         roles: ["OWNER", "MANAGER"],
         subs: [
+          { label: "Overview", href: "/marketing/offers", match: exact("/marketing/offers") },
           { label: "Offers", href: "/marketing/offers/list", match: (p) => p.startsWith("/marketing/offers/list") || (/^\/marketing\/offers\/[^/]+$/.test(p) && !["/marketing/offers/coupons", "/marketing/offers/templates", "/marketing/offers/settings", "/marketing/offers/approvals"].includes(p)) },
           { label: "Coupons", href: "/marketing/offers/coupons" },
           { label: "Templates", href: "/marketing/offers/templates" },
@@ -352,6 +369,7 @@ const GROUPS: Group[] = [
         label: "Affiliates", href: "/marketing/affiliates", icon: "users",
         roles: ["OWNER", "MANAGER"],
         subs: [
+          { label: "Overview", href: "/marketing/affiliates", match: exact("/marketing/affiliates") },
           { label: "All affiliates", href: "/marketing/affiliates/list" },
           { label: "Commission ledger", href: "/marketing/affiliates/commissions" },
           { label: "Payouts", href: "/marketing/affiliates/payouts" },
@@ -403,6 +421,7 @@ const GROUPS: Group[] = [
       {
         label: "Access & security", href: "/administration", icon: "lock", roles: ["OWNER"],
         subs: [
+          { label: "Overview", href: "/administration", match: exact("/administration") },
           { label: "Access control", href: "/administration/access" },
           { label: "People & accounts", href: "/settings/people" },
           { label: "Activity & sessions", href: "/settings/audit" },

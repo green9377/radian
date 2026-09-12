@@ -673,10 +673,15 @@ export function AreaChart({ pts, id, fmt, noun, best = true }: {
 /** day-by-day counts: gradient bars */
 export function BarChart({ pts, id, noun, unit }: { pts: Point[]; id: string; noun: string; unit: string }) {
   const { box, at, setAt, onMove, step } = useHover(pts.length);
-  const max = Math.max(...pts.map((p) => p.value), 0) || 1;
-  /*  counts are whole things. Four gridlines over a maximum of 1 printed
-      "0 0 1 1 1" - the same number against three different heights.  */
-  const steps = Math.max(1, Math.min(4, max));
+  const peak = Math.max(...pts.map((p) => p.value), 0) || 1;
+  /*  COUNTS ARE WHOLE THINGS, AND EQUAL SPACING MUST MEAN EQUAL STEPS.
+      Four gridlines over a peak of 1 printed "0 0 1 1 1" - one number against
+      three heights. Rounding the labels instead printed "0 2 3 5 6" for a peak
+      of 6 - three different gaps drawn the same height. So the top of the
+      chart is raised to a whole multiple of the step count, and the bars are
+      measured against THAT, which is the line they are drawn under.  */
+  const steps = Math.max(1, Math.min(4, peak));
+  const max = Math.ceil(peak / steps) * steps;
   const bw = Math.max(2.5, Math.min(22, step - 3));
   return (
     <div className="relative mt-[18px]" ref={box} onMouseMove={onMove} onMouseLeave={() => setAt(null)}>
