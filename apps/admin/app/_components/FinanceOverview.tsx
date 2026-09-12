@@ -256,7 +256,7 @@ export function FinanceOverviewLive() {
   /*  a delta against a period the book only half covers is a made-up
       percentage, so it is not drawn at all  */
   const prevCovered = bookStart === null || bookStart <= prev.from;
-  const cmp = (v: number) => (bookSt === "ok" && prevCovered ? v : null);
+  const cmp = (v: number) => (bookSt !== "ok" ? undefined : prevCovered ? v : null);
 
   const leftPaisa = cut.inPaisa - cut.outPaisa;
   const beforeLeft = before.inPaisa - before.outPaisa;
@@ -366,6 +366,7 @@ export function FinanceOverviewLive() {
         ]}
         jobs={jobs}
         loading={sumSt === "loading" || ovSt === "loading"}
+        failed={ovSt === "error"}
         note={[
           sumSt === "error" ? "The balances did not answer, so no figure on this line can be trusted." : "",
           ovSt === "error"

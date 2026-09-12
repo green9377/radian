@@ -82,8 +82,9 @@ export default function OrdersOverviewView() {
   const days = Number(range);
 
   /*  the double window minus the single one IS the window before it  */
-  const prevOrders = o && prev ? prev.daily.reduce((t, x) => t + x.n, 0) - o.daily.reduce((t, x) => t + x.n, 0) : null;
-  const prevRevenue = o && prev ? prev.money.revenueMonth - o.money.revenueMonth : null;
+  /*  `undefined` means the earlier period was not read, so no badge is drawn  */
+  const prevOrders = o && prev ? prev.daily.reduce((t, x) => t + x.n, 0) - o.daily.reduce((t, x) => t + x.n, 0) : undefined;
+  const prevRevenue = o && prev ? prev.money.revenueMonth - o.money.revenueMonth : undefined;
   const ordersNow = o ? o.daily.reduce((t, x) => t + x.n, 0) : null;
 
   const pts: Point[] = (o?.daily ?? []).map((x) => ({ date: x.day, value: x.n }));
@@ -141,6 +142,7 @@ export default function OrdersOverviewView() {
         ]}
         jobs={jobs}
         loading={state === "loading"}
+        failed={state === "error"}
         note="Counter bills are not on this screen - the Business dashboard adds both shops together."
       />
 

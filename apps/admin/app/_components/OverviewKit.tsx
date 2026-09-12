@@ -378,11 +378,19 @@ export function RangeBar({ range, onPick, maxBack = 364, right, only }: {
  * not an infinite percentage.
  */
 export function Delta({ now, before, invert }: {
-  now: number | null; before: number | null;
+  now: number | null;
+  /*  THREE STATES, NOT TWO.
+        a number  - the same figure, one period earlier
+        null      - there IS no earlier period to compare with
+        undefined - the earlier period was not read (a failed call), so nothing
+                    is drawn. Printing "no earlier period" over a call that
+                    simply failed is a claim about the shop, not about the read.  */
+  before: number | null | undefined;
   /*  set on a figure where MORE is worse - a cost, a return, a complaint. The
       arrow still points the way the number moved; only the colour flips.  */
   invert?: boolean;
 }) {
+  if (before === undefined) return null;
   let cls = "flat", text = "no earlier period";
   if (now !== null && before !== null) {
     if (now === before) text = "no change";
@@ -666,6 +674,9 @@ export function AreaChart({ pts, id, fmt, noun, best = true }: {
 export function BarChart({ pts, id, noun, unit }: { pts: Point[]; id: string; noun: string; unit: string }) {
   const { box, at, setAt, onMove, step } = useHover(pts.length);
   const max = Math.max(...pts.map((p) => p.value), 0) || 1;
+  /*  counts are whole things. Four gridlines over a maximum of 1 printed
+      "0 0 1 1 1" - the same number against three different heights.  */
+  const steps = Math.max(1, Math.min(4, max));
   const bw = Math.max(2.5, Math.min(22, step - 3));
   return (
     <div className="relative mt-[18px]" ref={box} onMouseMove={onMove} onMouseLeave={() => setAt(null)}>
@@ -676,7 +687,7 @@ export function BarChart({ pts, id, noun, unit }: { pts: Point[]; id: string; no
             <stop offset="100%" stopColor="var(--f-chart)" stopOpacity="0.45" />
           </linearGradient>
         </defs>
-        <Grid steps={4} label={(g) => String(Math.round((max * g) / 4))} />
+        <Grid steps={steps} label={(g) => String(Math.round((max * g) / steps))} />
         {pts.map((p, i) => {
           const bh = p.value ? Math.max(4, (p.value / max) * PH) : 3;
           return <rect key={i} x={CL + step * (i + 0.5) - bw / 2} y={CT + PH - bh} width={bw} height={bh}
@@ -791,8 +802,12 @@ const JOB_TONE: Record<string, "bad" | "warn" | "mute"> = { danger: "bad", warn:
  * A job reading zero is NOT shown. A bar of zeros teaches the eye to skip the
  * bar, and the one row that mattered gets skipped with it.
  */
-export function NowBand({ title, figures, jobs, note, loading }: {
+export function NowBand({ title, figures, jobs, note, loading, failed }: {
   title?: string; figures: NowFigure[]; jobs: NowJob[]; note?: string; loading?: boolean;
+  /*  the source of the jobs did not answer. Without this the strip printed
+      "Nothing is waiting." over a call that had failed - the worst kind of
+      zero, because it is the one somebody acts on.  */
+  failed?: boolean;
 }) {
   const live = jobs.filter((j) => j.count > 0);
   return (
@@ -832,7 +847,7 @@ export function NowBand({ title, figures, jobs, note, loading }: {
           <div className="flex flex-wrap gap-2 mt-3">
             {live.length === 0 ? (
               <span className="text-[12.5px]" style={{ color: "var(--t-faint)" }}>
-                {loading ? "Loading…" : "Nothing is waiting."}
+                {loading ? "Loading…" : failed ? "This did not answer, so nothing here can be trusted." : "Nothing is waiting."}
               </span>
             ) : live.map((j) => {
               const tone = JOB_TONE[j.tone] ?? "mute";

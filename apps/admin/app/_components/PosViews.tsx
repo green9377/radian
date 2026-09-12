@@ -198,8 +198,11 @@ export function PosOverview() {
       counter and nothing else.  */
   const bills = all && web ? all.counts.all - web.counts.all : null;
   const taken = all && web ? all.revenuePaisa - web.revenuePaisa : null;
-  const prevBills = prevAll && prevWeb ? prevAll.counts.all - prevWeb.counts.all : null;
-  const prevTaken = prevAll && prevWeb ? prevAll.revenuePaisa - prevWeb.revenuePaisa : null;
+  /*  `undefined` means the earlier period was not read, so no badge is drawn.
+      `null` would claim there IS no earlier period, which is a statement about
+      the shop rather than about a failed call.  */
+  const prevBills = prevAll && prevWeb ? prevAll.counts.all - prevWeb.counts.all : undefined;
+  const prevTaken = prevAll && prevWeb ? prevAll.revenuePaisa - prevWeb.revenuePaisa : undefined;
   const avgBill = bills && taken !== null && bills > 0 ? Math.round(taken / bills) : null;
 
   const counterCredit = due ? due.reduce((t, d) => t + d.duePaisa, 0) : null;
@@ -245,6 +248,7 @@ export function PosOverview() {
         ]}
         jobs={jobs}
         loading={at("till") === "loading"}
+        failed={at("till") === "error"}
         note={today
           ? drawerOpen
             ? "The drawer is open. Day-close counts it and books the difference."
