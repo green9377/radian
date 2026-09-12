@@ -8,8 +8,10 @@ import {
   formatTaka,
   getIntelDashboard, getIntelHistory,
   orderStats, financeAccounts, returnStats, posDay,
+  getCatalogFunnel, deliveryPerformance, listCustomers,
   type IntelDashboard, type IntelHistory,
   type ApiOrderStats, type ApiFinanceAccount, type ReturnStats, type ApiPosDay,
+  type ApiCatalogFunnel, type ApiDeliveryAnalytics,
 } from "../_data/api";
 
 /*  BUSINESS DASHBOARD — the whole shop on one page, approved 12 Sep 2026.
@@ -62,6 +64,18 @@ function axisTaka(paisa: number): string {
     return `${Number.isInteger(k) ? k : k.toFixed(1)}k`;
   }
   return String(Math.round(taka));
+}
+
+/** basis points -> "60 %", and null stays "—": no measurement is not 0% */
+function bp(v: number | null): string {
+  return v === null ? "—" : `${(v / 100).toFixed(1).replace(/\.0$/, "")} %`;
+}
+
+/** 554 minutes -> "9 h 14 m" — hours are how a delivery is actually discussed */
+function hoursMins(min: number | null): string {
+  if (min === null) return "—";
+  const h = Math.floor(min / 60), m = Math.round(min % 60);
+  return h ? `${h} h ${m} m` : `${m} m`;
 }
 
 function sum(rows: Row[], pick: (r: Row) => number): number {
@@ -631,6 +645,13 @@ export function BusinessDashboard() {
   const [accs, setAccs] = useState<ApiFinanceAccount[] | null>(null);
   const [rets, setRets] = useState<ReturnStats | null>(null);
   const [pos, setPos] = useState<ApiPosDay | null>(null);
+  const [funnel, setFunnel] = useState<ApiCatalogFunnel | null>(null);
+  const [deliv, setDeliv] = useState<ApiDeliveryAnalytics | null>(null);
+  /*  these two reload on every period change, and `loading` above is only ever
+      true once. Without their own state a period click printed "could not read"
+      across four panels for as long as the fetch took.  */
+  const [sideState, setSideState] = useState<"loading" | "ok" | "error">("loading");
+  const [custTotal, setCustTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState<string[]>([]);
 
@@ -656,6 +677,30 @@ export function BusinessDashboard() {
     })();
     return () => { alive = false; };
   }, []);
+
+  /*  the customer count is a page-1 total, not a list — it never changes with
+      the period, so it is fetched once  */
+  useEffect(() => {
+    let alive = true;
+    listCustomers()
+      .then((r) => { if (alive) setCustTotal(r.total); })
+      .catch(() => { if (alive) setCustTotal(null); });
+    return () => { alive = false; };
+  }, []);
+
+  /*  these two are counted server-side over a window, so they are re-fetched
+      when the period changes rather than sliced from something already held  */
+  useEffect(() => {
+    let alive = true;
+    setFunnel(null); setDeliv(null); setSideState("loading");
+    Promise.allSettled([getCatalogFunnel(days), deliveryPerformance(days)]).then(([f, d]) => {
+      if (!alive) return;
+      if (f.status === "fulfilled") setFunnel(f.value);
+      if (d.status === "fulfilled") setDeliv(d.value);
+      setSideState(f.status === "fulfilled" || d.status === "fulfilled" ? "ok" : "error");
+    });
+    return () => { alive = false; };
+  }, [days]);
 
   const all: Row[] = useMemo(
     () => (hist?.days ?? []).map((d) => ({
@@ -693,6 +738,37 @@ export function BusinessDashboard() {
   const accTotal = moneyAccounts.reduce((t, a) => t + a.balancePaisa, 0);
 
   const firstTrade = all.find((r) => r.revenue > 0 || r.orders > 0);
+
+  /*  `funnel.items` is the WHOLE catalogue, sold or not — an unfiltered list
+      would head the card "400 products" on a week that sold twelve, and would
+      fill the table with rows of zero under the word "best selling".  */
+  const sold = useMemo(
+    () => (funnel?.items ?? []).filter((it) => it.units > 0 || it.revenuePaisa > 0),
+    [funnel],
+  );
+  const products = useMemo(
+    () => [...sold].sort((a, b) => b.revenuePaisa - a.revenuePaisa).slice(0, 8),
+    [sold],
+  );
+  const prodMax = Math.max(1, ...products.map((x) => x.revenuePaisa));
+  const soldRevenue = sold.reduce((t, it) => t + it.revenuePaisa, 0);
+
+  const categories = useMemo(() => {
+    const by = new Map<string, number>();
+    for (const it of sold) {
+      const key = it.categoryName ?? "No category";
+      by.set(key, (by.get(key) ?? 0) + it.revenuePaisa);
+    }
+    return [...by.entries()]
+      .map(([name, paisa]) => ({ name, paisa }))
+      .filter((c) => c.paisa > 0)
+      .sort((a, b) => b.paisa - a.paisa)
+      .slice(0, 6);
+  }, [sold]);
+  const catMax = Math.max(1, ...categories.map((c) => c.paisa));
+
+  const dotMax = Math.max(1, ...rows.map((r) => r.revenue));
+  const soldDays = rows.filter((r) => r.revenue > 0).length;
 
   const newCustFig = dash?.business.supporting.find((sp) => sp.key === "newCustomers")?.value;
   const newCustomers = newCustFig && !newCustFig.unavailable ? newCustFig.value : null;
@@ -888,6 +964,87 @@ export function BusinessDashboard() {
         </div>
       </div>
 
+      {/* what actually sold */}
+      <div className="rounded-[16px] border px-6 py-[22px] mb-[18px]"
+        style={{ background: "var(--s-card)", borderColor: "var(--l-soft)", boxShadow: "var(--elev-soft)" }}>
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="text-[15.5px] font-semibold m-0 tracking-[-0.01em]" style={{ color: "var(--t-main)" }}>
+              Best selling products, last {days} days
+            </h2>
+            <p className="text-[12px] m-0 mt-1 leading-[1.5]" style={{ color: "var(--t-faint)" }}>
+              {funnel
+                ? sold.length === 0
+                  ? "Nothing sold in this period."
+                  : `${sold.length} product${sold.length === 1 ? "" : "s"} sold \u00b7 ${funnel.totals.units} units${sold.length > 8 ? " \u00b7 the top 8 are listed" : ""}`
+                : sideState === "loading" ? "Loading\u2026" : "Could not read the product figures."}
+            </p>
+          </div>
+          {funnel && sold.length > 0 ? (
+            <div className="text-right">
+              <div className="text-[20px] font-bold tabular-nums" style={{ color: "var(--t-main)" }}>
+                {formatTaka(soldRevenue)}
+              </div>
+              {/*  deliberately NOT the same number as Sales above: this counts
+                   lines on orders PLACED in the window and skips counter sales,
+                   while Sales recognises money on the day it was earned.  */}
+              <div className="text-[12px]" style={{ color: "var(--t-faint)" }}>
+                on orders placed in this period
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {products.length > 0 ? (
+          <div className="overflow-x-auto mt-3.5">
+            <table className="w-full border-collapse min-w-[640px]">
+              <thead>
+                <tr>
+                  {["Product", "Units", "Orders", "Revenue", "Margin", "Share"].map((h, i) => (
+                    <th key={h}
+                      className={`text-[10px] uppercase tracking-[0.1em] font-bold py-[9px] px-2.5 border-b ${i === 0 || i === 5 ? "text-left" : "text-right"}`}
+                      style={{ color: "var(--t-faint)", borderColor: "var(--l-soft)" }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((it) => (
+                  <tr key={it.productId}>
+                    <td className="py-[11px] px-2.5 border-b text-[12.5px]" style={{ borderColor: "var(--l-soft)", color: "var(--t-main)" }}>
+                      {it.name}
+                    </td>
+                    <td className="py-[11px] px-2.5 border-b text-[12.5px] text-right tabular-nums" style={{ borderColor: "var(--l-soft)", color: "var(--t-main)" }}>{it.units}</td>
+                    <td className="py-[11px] px-2.5 border-b text-[12.5px] text-right tabular-nums" style={{ borderColor: "var(--l-soft)", color: "var(--t-main)" }}>{it.orders}</td>
+                    <td className="py-[11px] px-2.5 border-b text-[12.5px] text-right tabular-nums" style={{ borderColor: "var(--l-soft)", color: "var(--t-main)" }}>{formatTaka(it.revenuePaisa)}</td>
+                    <td className="py-[11px] px-2.5 border-b text-[12.5px] text-right tabular-nums font-semibold"
+                      style={{ borderColor: "var(--l-soft)", color: it.marginPaisa < 0 ? "var(--t-bad)" : "var(--t-ok)" }}>
+                      {formatTaka(it.marginPaisa)}
+                    </td>
+                    <td className="py-[11px] px-2.5 border-b" style={{ borderColor: "var(--l-soft)" }}>
+                      <span className="block h-[7px] rounded overflow-hidden" style={{ background: "var(--s-sunken)" }}>
+                        <span className="block h-full rounded" style={{ width: `${(it.revenuePaisa / prodMax) * 100}%`, background: "var(--f-chart)" }} />
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-[12.5px] m-0 mt-4" style={{ color: "var(--t-faint)" }}>
+            {sideState === "loading" ? "Loading\u2026" : funnel ? "No product sold in this period." : "Could not read the product figures."}
+          </p>
+        )}
+        {funnel && sold.length > 0 ? (
+          <p className="text-[11.5px] mt-3.5 m-0 leading-[1.6]" style={{ color: "var(--t-faint)" }}>
+            Counted on the day the order was placed, and website orders only \u2014 a counter bill carries no product line,
+            so this total is not meant to match the Sales figure at the top.
+          </p>
+        ) : null}
+      </div>
+
       {/* the whole business, not only the website */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.35fr] gap-[18px]">
         <Card title="Where the money sits" note="Every account the shop keeps money in - counter till, wallets, bank, gateway">
@@ -930,31 +1087,28 @@ export function BusinessDashboard() {
         </Card>
 
         <Card
-          title="The shop away from the website"
-          note="Counter sales, returns and what the shop owes - the parts a website report never shows"
+          title="What the shop owns and is owed"
+          note="The parts a website report never shows - the shelves, the till, and money in both directions"
         >
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-[18px]">
             <Stat
-              label="At the counter today"
-              value={pos ? String(pos.bills.count) : "—"}
-              note={pos
-                ? `bills rung up · ${formatTaka(pos.bills.salesPaisa)} billed, ${formatTaka(pos.money.takenPaisa)} actually taken\n${pos.drawer.isOpen ? "the till is open" : "the till is closed"}`
-                : "could not read the counter"}
+              label="Money still to collect"
+              value={due === null ? "\u2014" : formatTaka(due)}
+              tone={due !== null && due > 0 ? "warn" : undefined}
+              note={ords ? `spread across ${ords.dueOrders} orders \u00b7 right now` : undefined}
             />
             <Stat
-              label="Returns, all time"
-              value={rets ? String(rets.counts.all ?? 0) : "—"}
+              label="Stock value"
+              value={stock && !stock.unavailable ? formatTaka(stock.value) : "\u2014"}
+              tone={stock && stock.value < 0 ? "bad" : undefined}
+              note={stock && stock.value < 0 ? "below zero, so a cost price needs fixing" : "what the shelves are worth at cost"}
+            />
+            <Stat
+              label="Goods that came back"
+              value={rets ? formatTaka(rets.returnValuePaisa) : "\u2014"}
               note={rets
-                ? `${formatTaka(rets.returnValuePaisa)} of goods came back · ${formatTaka(rets.refundPaisa)} refunded`
+                ? `${rets.counts.all ?? 0} returns all time \u00b7 ${formatTaka(rets.refundPaisa)} refunded`
                 : "could not read returns"}
-            />
-            <Stat
-              label="Owed to suppliers"
-              value={payable && !payable.unavailable ? formatTaka(payable.value) : "—"}
-              tone={payable && !payable.unavailable && payable.value > 0 ? "warn" : undefined}
-              note={payable && !payable.unavailable && due !== null
-                ? `customers owe the shop ${formatTaka(due)} the other way`
-                : undefined}
             />
           </div>
 
@@ -962,23 +1116,225 @@ export function BusinessDashboard() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Stat
-              label="New customers"
-              value={newCustomers === null ? "—" : String(newCustomers)}
-              note="bought for the first time this month"
+              label="At the counter today"
+              value={pos ? String(pos.bills.count) : "\u2014"}
+              note={pos
+                ? `bills rung up \u00b7 ${formatTaka(pos.money.takenPaisa)} actually taken\n${pos.drawer.isOpen ? "the till is open" : "the till is closed"}`
+                : "could not read the counter"}
             />
             <Stat
-              label="Money still to collect"
-              value={due === null ? "—" : formatTaka(due)}
-              tone="warn"
-              note={ords ? `spread across ${ords.dueOrders} orders` : undefined}
+              label="Billed at the counter today"
+              value={pos ? formatTaka(pos.bills.salesPaisa) : "\u2014"}
+              note={pos && pos.bills.duePaisa > 0 ? `${formatTaka(pos.bills.duePaisa)} of it not collected` : "all of it collected"}
             />
             <Stat
-              label="Stock value"
-              value={stock && !stock.unavailable ? formatTaka(stock.value) : "—"}
-              tone={stock && stock.value < 0 ? "bad" : undefined}
-              note={stock && stock.value < 0 ? "below zero, so a cost price needs fixing" : "what the shelves are worth at cost"}
+              label="Owed to suppliers"
+              value={payable && !payable.unavailable ? formatTaka(payable.value) : "\u2014"}
+              tone={payable && !payable.unavailable && payable.value > 0 ? "warn" : undefined}
+              note="right now, what the shop owes out"
             />
           </div>
+        </Card>
+      </div>
+
+      {/* money, shelves, people */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-[18px] mt-[18px]">
+        <Card title="Money on orders" note="What was billed, and what has actually moved">
+          <div className="mt-4">
+            {ords ? (() => {
+              /*  the first three count DELIVERED orders only - the books post
+                  revenue at delivery - while "unpaid" counts every order that is
+                  not cancelled. Two populations, so each row names its own.  */
+              const lines: { label: string; paisa: number; color: string }[] = [
+                { label: "Billed on delivered orders", paisa: ords.revenuePaisa, color: "var(--f-chart)" },
+                { label: "Collected on them", paisa: ords.collectedPaisa, color: "var(--t-ok)" },
+                { label: "Refunded back out", paisa: ords.refundedPaisa, color: "var(--t-bad)" },
+                { label: "Unpaid, across every open order", paisa: ords.duePaisa, color: "var(--t-warn)" },
+              ];
+              const mx = Math.max(1, ...lines.map((l) => l.paisa));
+              return lines.map((l) => (
+                <TrackRow key={l.label} label={l.label} value={formatTaka(l.paisa)} width={(l.paisa / mx) * 100} color={l.color} />
+              ));
+            })() : (
+              <p className="text-[12.5px] m-0" style={{ color: "var(--t-faint)" }}>{loading ? "Loading\u2026" : "Could not read the order totals."}</p>
+            )}
+          </div>
+          <p className="text-[11.5px] mt-4 m-0 leading-[1.6]" style={{ color: "var(--t-faint)" }}>
+            The first three count delivered orders only; the last counts every order still open.
+            They are different sets, so they are not meant to add up.
+          </p>
+        </Card>
+
+        <Card title="Which category sells most" note={`Revenue by category, ${days} days`}>
+          <div className="mt-4">
+            {categories.length > 0 ? categories.map((c) => (
+              <TrackRow key={c.name} label={c.name} value={formatTaka(c.paisa)} width={(c.paisa / catMax) * 100} color="var(--f-chart)" />
+            )) : (
+              <p className="text-[12.5px] m-0" style={{ color: "var(--t-faint)" }}>
+                {funnel ? "Nothing sold in this period."
+                  : sideState === "loading" ? "Loading\u2026"
+                  : "Could not read the category figures."}
+              </p>
+            )}
+          </div>
+
+          <div className="h-px my-5" style={{ background: "var(--l-soft)" }} />
+          <div className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--t-faint)" }}>
+            Days the shop took money
+          </div>
+          <div className="grid gap-1.5 mt-3" style={{ gridTemplateColumns: `repeat(${Math.min(10, Math.max(1, rows.length))}, 1fr)` }}>
+            {rows.map((r) => (
+              <i key={r.date} title={`${dayLabel(r.date)} \u00b7 ${r.revenue ? formatTaka(r.revenue) : "nothing"}`}
+                className="block rounded-[5px]"
+                style={{
+                  aspectRatio: "1",
+                  background: r.revenue > 0 ? "var(--f-chart)" : "var(--f-chart-dim)",
+                  opacity: r.revenue > 0 ? 0.3 + (r.revenue / dotMax) * 0.7 : 1,
+                }} />
+            ))}
+          </div>
+          <p className="text-[12px] mt-3 m-0 leading-[1.5]" style={{ color: "var(--t-faint)" }}>
+            {rows.length === 0
+              ? "The day-by-day history has not been read."
+              : `${soldDays} of ${rows.length} days took money - counted on the day it was earned, so it does not match the category bars above.`}
+          </p>
+        </Card>
+
+        <Card title="Customers and the counter" note="Customers, returns, and today at the till">
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <Stat label="On the books" value={custTotal === null ? "\u2014" : String(custTotal)} note="customers in total" />
+            <Stat label="New" value={newCustomers === null ? "\u2014" : String(newCustomers)} note="bought for the first time" />
+            <Stat label="Returns" value={rets ? String(rets.counts.all ?? 0) : "\u2014"} note="all time" />
+            <Stat label="Counter bills" value={pos ? String(pos.bills.count) : "\u2014"} note="rung up today" />
+          </div>
+          <div className="h-px my-5" style={{ background: "var(--l-soft)" }} />
+          <Stat
+            label="Owed to suppliers"
+            value={payable && !payable.unavailable ? formatTaka(payable.value) : "\u2014"}
+            tone={payable && !payable.unavailable && payable.value > 0 ? "warn" : undefined}
+            note={payable && !payable.unavailable && due !== null
+              ? `customers owe the shop ${formatTaka(due)} the other way`
+              : undefined}
+          />
+        </Card>
+      </div>
+
+      {/* delivery */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.35fr] gap-[18px] mt-[18px]">
+        <Card title="How delivery is going" note={`Deliveries in the last ${days} days`}>
+          {deliv && (deliv.delivered + deliv.failed + deliv.inFlight) > 0 ? (
+            <>
+              <div className="grid grid-cols-2 gap-4 mt-[18px]">
+                <Stat
+                  label="Arrived on time"
+                  value={bp(deliv.onTimeBp)}
+                  tone={deliv.onTimeBp !== null && deliv.onTimeBp < 8000 ? "warn" : undefined}
+                  /*  an on-time rate without its denominator is the easiest lie on
+                      the page: 2 of 2 reads as 100% beside 800 deliveries  */
+                  note={deliv.measurable > 0
+                    ? `of the ${deliv.measurable} deliver${deliv.measurable === 1 ? "y" : "ies"} that carried a promised time${
+                        deliv.unmeasurable > 0 ? ` \u00b7 ${deliv.unmeasurable} had none` : ""}`
+                    : "no delivery carried a promised time"}
+                />
+                <Stat label="Failed" value={bp(deliv.failedBp)} tone={deliv.failedBp !== null && deliv.failedBp > 0 ? "bad" : undefined} note={`${deliv.failed} of ${deliv.delivered + deliv.failed} that finished`} />
+                <Stat label="Average door to door" value={hoursMins(deliv.avgMinutesToDeliver)} note="from leaving the shop" />
+                <Stat label="On the road" value={String(deliv.inFlight)} note="right now - not this period" />
+              </div>
+
+              <div className="h-px my-5" style={{ background: "var(--l-soft)" }} />
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--t-faint)" }}>
+                What delivery earned
+              </div>
+              {(() => {
+                /*  the bar is ONE whole: what was charged. The amber part is what
+                    the riders took out of it, the green part is what stayed.
+                    Drawing cost under the word "charged" had it exactly backwards.  */
+                const charged = deliv.chargedPaisa, cost = deliv.costPaisa;
+                const over = cost > charged;
+                const costShare = charged > 0 ? Math.min(100, (cost / charged) * 100) : cost > 0 ? 100 : 0;
+                return (
+                  <>
+                    <div className="flex justify-between text-[12.5px] mt-2.5" style={{ color: "var(--t-main)" }}>
+                      <span>Charged to customers <b className="tabular-nums">{formatTaka(charged)}</b></span>
+                      <span>Paid to riders <b className="tabular-nums">{formatTaka(cost)}</b></span>
+                    </div>
+                    <div className="h-2.5 rounded-md flex overflow-hidden mt-2.5 gap-[2px]" style={{ background: "var(--s-sunken)" }}>
+                      <span style={{ flex: `0 1 ${costShare}%`, background: over ? "var(--t-bad)" : "var(--t-warn)" }} />
+                      <span style={{ flex: `0 1 ${100 - costShare}%`, background: "var(--t-ok)" }} />
+                    </div>
+                    <div className="flex gap-4 flex-wrap mt-2 text-[11px]" style={{ color: "var(--t-faint)" }}>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-[3px]" style={{ background: over ? "var(--t-bad)" : "var(--t-warn)" }} />
+                        paid to riders
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-[3px]" style={{ background: "var(--t-ok)" }} />
+                        left over
+                      </span>
+                    </div>
+                    <p className="text-[12px] mt-2.5 m-0 leading-[1.5]" style={{ color: "var(--t-faint)" }}>
+                      {charged === 0 && cost === 0
+                        ? "No delivery charge was taken or paid in this period."
+                        : over
+                          ? `${formatTaka(Math.abs(deliv.marginPaisa))} short - delivery costs more than it charges.`
+                          : `${formatTaka(deliv.marginPaisa)} left over - delivery pays for itself.`}
+                    </p>
+                  </>
+                );
+              })()}
+            </>
+          ) : (
+            <p className="text-[12.5px] m-0 mt-4" style={{ color: "var(--t-faint)" }}>
+              {sideState === "loading" ? "Loading\u2026"
+                : deliv ? "No delivery in this period."
+                : "Could not read the delivery figures."}
+            </p>
+          )}
+        </Card>
+
+        <Card title="Riders" note="Who delivers, and who delivers on time">
+          {deliv && deliv.byCarrier.length > 0 ? (
+            <div className="overflow-x-auto mt-3.5">
+              <table className="w-full border-collapse min-w-[520px]">
+                <thead>
+                  <tr>
+                    {["Rider", "Delivered", "Measured", "On time", "Paid"].map((h, i) => (
+                      <th key={h}
+                        className={`text-[10px] uppercase tracking-[0.1em] font-bold py-[9px] px-2.5 border-b ${i === 0 ? "text-left" : "text-right"}`}
+                        style={{ color: "var(--t-faint)", borderColor: "var(--l-soft)" }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...deliv.byCarrier].sort((a, b) => b.delivered - a.delivered).map((c) => {
+                    const pct = c.onTimeBp === null || c.measurable === 0 ? null : c.onTimeBp / 100;
+                    const col = pct === null ? "var(--t-faint)" : pct >= 80 ? "var(--t-ok)" : pct >= 50 ? "var(--t-warn)" : "var(--t-bad)";
+                    return (
+                      <tr key={c.name}>
+                        <td className="py-[11px] px-2.5 border-b text-[12.5px]" style={{ borderColor: "var(--l-soft)", color: "var(--t-main)" }}>{c.name}</td>
+                        <td className="py-[11px] px-2.5 border-b text-[12.5px] text-right tabular-nums" style={{ borderColor: "var(--l-soft)", color: "var(--t-main)" }}>{c.delivered}</td>
+                        {/*  how many of those deliveries could be judged at all - a
+                            rate off 1 delivery is not the same claim as off 50  */}
+                        <td className="py-[11px] px-2.5 border-b text-[12.5px] text-right tabular-nums" style={{ borderColor: "var(--l-soft)", color: "var(--t-faint)" }}>{c.measurable}</td>
+                        <td className="py-[11px] px-2.5 border-b text-[12.5px] text-right tabular-nums font-semibold" style={{ borderColor: "var(--l-soft)", color: col }}>
+                          {c.measurable > 0 ? bp(c.onTimeBp) : "not measured"}
+                        </td>
+                        <td className="py-[11px] px-2.5 border-b text-[12.5px] text-right tabular-nums" style={{ borderColor: "var(--l-soft)", color: "var(--t-main)" }}>{formatTaka(c.costPaisa)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-[12.5px] m-0 mt-4" style={{ color: "var(--t-faint)" }}>
+              {sideState === "loading" ? "Loading\u2026"
+                : deliv ? "No rider has carried a delivery in this period."
+                : "Could not read the rider figures."}
+            </p>
+          )}
         </Card>
       </div>
 
