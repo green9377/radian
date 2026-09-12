@@ -169,7 +169,7 @@ export function CatalogFunnel() {
     setLoading(true);
     setError(null);
     try {
-      const res = await getCatalogFunnel(d);
+      const res = await getCatalogFunnel({ days: d });
       setData(res);
       setDemo(false);
     } catch {

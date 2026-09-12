@@ -51,7 +51,7 @@ export function DeliveryPerformance() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      setA(await deliveryPerformance(days));
+      setA(await deliveryPerformance({ days }));
     } catch (e) {
       setA(null);
       setError(e instanceof Error ? e.message : "could not reach the API");
