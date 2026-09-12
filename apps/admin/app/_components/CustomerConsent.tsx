@@ -21,11 +21,11 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 type Key = keyof Pick<Consent, "orderUpdates" | "marketingWhatsapp" | "occasionReminders" | "email" | "sms">;
 
 const CHANNELS: { k: Key; label: string; hint: string; c: string; icon: string }[] = [
-  { k: "orderUpdates", label: "Order updates", hint: "transactional — order confirmed, out for delivery", c: "#12a172", icon: "bag" },
-  { k: "marketingWhatsapp", label: "WhatsApp promos", hint: "campaigns, offers, festival blasts", c: "#c01fd8", icon: "phone" },
-  { k: "occasionReminders", label: "Occasion reminders", hint: "“Meem's birthday is in 3 days”", c: "#d64fa0", icon: "sparkle" },
-  { k: "email", label: "Email", hint: "receipts, newsletters", c: "#3182c9", icon: "mail" },
-  { k: "sms", label: "SMS", hint: "fallback when WhatsApp fails", c: "#b5642f", icon: "phone" },
+  { k: "orderUpdates", label: "Order updates", hint: "transactional — order confirmed, out for delivery", c: "var(--t-ok)", icon: "bag" },
+  { k: "marketingWhatsapp", label: "WhatsApp promos", hint: "campaigns, offers, festival blasts", c: "var(--t-orchid)", icon: "phone" },
+  { k: "occasionReminders", label: "Occasion reminders", hint: "“Meem's birthday is in 3 days”", c: "var(--t-orchid)", icon: "sparkle" },
+  { k: "email", label: "Email", hint: "receipts, newsletters", c: "var(--t-info)", icon: "mail" },
+  { k: "sms", label: "SMS", hint: "fallback when WhatsApp fails", c: "var(--t-warn)", icon: "phone" },
 ];
 
 function Toggle({ on, onClick, c }: { on: boolean; onClick: () => void; c: string }) {
@@ -34,7 +34,7 @@ function Toggle({ on, onClick, c }: { on: boolean; onClick: () => void; c: strin
       type="button"
       onClick={onClick}
       className="w-[40px] h-[22px] rounded-full relative transition-colors shrink-0"
-      style={{ background: on ? c : "#d9cbe6" }}
+      style={{ background: on ? c : "var(--s-accent)" }}
       aria-pressed={on}
     >
       <span className="absolute top-[2px] w-[18px] h-[18px] bg-white rounded-full shadow transition-all" style={{ left: on ? 20 : 2 }} />
@@ -136,7 +136,7 @@ export default function CustomerConsent() {
       </div>
 
       {error && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}. Is the API (:4000) running? <button className="underline" onClick={load}>Retry</button>
         </div>
       )}
@@ -230,7 +230,7 @@ export default function CustomerConsent() {
       </div>
 
       {!isDemo && (
-        <div className="bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-3 mt-4 text-[12.5px]">
+        <div className="bg-[var(--s-warn)] border border-[var(--l-warn)] text-[var(--t-warn)] rounded-[12px] px-4 py-3 mt-4 text-[12.5px]">
           Placeholder values — consent is not stored on the Customer API yet.
         </div>
       )}

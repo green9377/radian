@@ -96,7 +96,7 @@ export function ItemTrashView() {
           {filtered.map((i) => {
             const open = purging?.id === i.id;
             return (
-              <div key={i.id} style={{ borderLeft: `4px solid ${open ? "#c0392b" : "#d8cfe0"}` }}>
+              <div key={i.id} style={{ borderLeft: `4px solid ${open ? "var(--l-bad)" : "var(--l-accent)"}` }}>
                 <div className="grid grid-cols-[44px_88px_minmax(0,1fr)_110px_100px_auto] items-center gap-2 px-4 py-2.5">
                   <ItemThumb item={i} />
                   <TypeChip type={i.itemType} />
@@ -119,8 +119,8 @@ export function ItemTrashView() {
                       title="Remove from the database for good"
                       className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border inline-flex items-center gap-1.5"
                       style={open
-                        ? { background: "#c0392b", borderColor: "#c0392b", color: "#fff" }
-                        : { background: "#fff", borderColor: "#f0d4d0", color: "#c0392b" }}>
+                        ? { background: "var(--s-bad)", borderColor: "var(--l-bad)", color: "#fff" }
+                        : { background: "#fff", borderColor: "var(--l-bad)", color: "var(--t-bad)" }}>
                       <Icon name="trash" size={13} /> {open ? "Cancel" : "Destroy"}
                     </button>
                   </span>
@@ -129,15 +129,15 @@ export function ItemTrashView() {
                 {/* ITM-R14 — the confirm step. Inline rather than a modal: the row you
                     are about to destroy stays visible right above the question. */}
                 {open && (
-                  <div className="px-4 pb-4 pt-1" style={{ background: "#fdf4f3" }}>
-                    <div className="rounded-[12px] border p-4" style={{ borderColor: "#f0c8c2", background: "#fff" }}>
+                  <div className="px-4 pb-4 pt-1" style={{ background: "var(--s-bad)" }}>
+                    <div className="rounded-[12px] border p-4" style={{ borderColor: "var(--l-bad)", background: "#fff" }}>
                       <div className="flex items-start gap-3">
                         <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white shrink-0"
-                          style={{ background: "#c0392b" }}>
+                          style={{ background: "var(--s-bad)" }}>
                           <Icon name="bolt" size={15} />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="text-[13.5px] font-bold" style={{ color: "#c0392b" }}>
+                          <div className="text-[13.5px] font-bold" style={{ color: "var(--t-bad)" }}>
                             This cannot be undone
                           </div>
                           <p className="text-[13px] text-body m-0 mt-1">
@@ -151,7 +151,7 @@ export function ItemTrashView() {
                           <div className="mt-3 flex items-center gap-2 flex-wrap">
                             <button onClick={purge} disabled={busy} autoFocus
                               className="text-white text-[13px] font-semibold px-4 py-2.5 rounded-[10px] disabled:opacity-40"
-                              style={{ background: "#c0392b" }}>
+                              style={{ background: "var(--s-bad)" }}>
                               {busy ? "Destroying…" : "Yes, destroy it"}
                             </button>
                             <button onClick={() => setPurging(null)} disabled={busy}
@@ -170,7 +170,7 @@ export function ItemTrashView() {
 
           {!loading && filtered.length === 0 && (
             <div className="text-center py-14 px-4">
-              <span className="w-[46px] h-[46px] rounded-[13px] grid place-items-center text-white mx-auto mb-3" style={{ background: "#12a172" }}>
+              <span className="w-[46px] h-[46px] rounded-[13px] grid place-items-center text-white mx-auto mb-3" style={{ background: "var(--s-ok)" }}>
                 <Icon name="check" size={22} />
               </span>
               <div className="text-[14px] text-purple font-medium">{query ? "Nothing matches" : "Trash is empty"}</div>

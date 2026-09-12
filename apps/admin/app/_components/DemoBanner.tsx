@@ -21,7 +21,7 @@ export default function DemoBanner({
 
   if (isDemo) {
     return (
-      <div className="flex items-center gap-3 bg-[#2e1a38] border border-[#432a50] text-purple rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
+      <div className="flex items-center gap-3 bg-[var(--s-accent)] border border-[var(--l-accent)] text-purple rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
         <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-purple text-white px-2 py-1 rounded-full shrink-0">
           Demo data
         </span>
@@ -51,7 +51,7 @@ export default function DemoBanner({
 
   return (
     <div className="flex items-center gap-3 bg-lavender/50 border border-lavender-deep text-body-soft rounded-[12px] px-4 py-2 mb-4 text-[12px] flex-wrap">
-      <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[#0e7a3d] text-white px-2 py-0.5 rounded-full shrink-0">
+      <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[var(--s-ok)] text-white px-2 py-0.5 rounded-full shrink-0">
         Live
       </span>
       <span className="flex-1 min-w-[200px]">Real customers from the API (:4000).</span>

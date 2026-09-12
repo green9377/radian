@@ -300,7 +300,7 @@ export default function DeliveryMoney() {
       </div>
 
       {carriersWithCash.length > 0 && (
-        <div className="rounded-[14px] border border-[#3e3447] bg-white px-4 py-3 mb-3 flex flex-wrap items-end gap-2.5">
+        <div className="rounded-[14px] border border-[var(--l-accent)] bg-white px-4 py-3 mb-3 flex flex-wrap items-end gap-2.5">
           <div>
             <span className={LABEL}>Settle a whole round in one go</span>
             <select className="ipt h-[36px] text-[12.5px] min-w-[230px]" value={bulkCarrier} onChange={(e) => { setBulkCarrier(e.target.value); setFeeKept(false); }}>
@@ -340,7 +340,7 @@ export default function DeliveryMoney() {
 
       {err && <ErrorBox error={err} onRetry={() => void load()} />}
       {ok && (
-        <div className="rounded-[12px] border-[1.5px] px-4 py-3 mb-3 text-[13px] font-medium bg-white" style={{ borderColor: "#bfe3cd", color: SOLID.green }}>
+        <div className="rounded-[12px] border-[1.5px] px-4 py-3 mb-3 text-[13px] font-medium bg-white" style={{ borderColor: "var(--l-ok)", color: SOLID.green }}>
           {ok}
         </div>
       )}
@@ -357,7 +357,7 @@ export default function DeliveryMoney() {
               const canReceive = r.stage === "WITH_CARRIER" && !!c && !c.codHandedOver && r.codCollectedPaisa > 0;
               const recordedAttempts = r.attempts.filter((a) => a.costRecorded).length;
               return (
-                <tr key={r.id} className="hover:bg-[#231538]">
+                <tr key={r.id} className="hover:bg-[var(--s-accent)]">
                   <td className={`${CELL} w-[130px]`}>
                     <Link href={`/orders/${r.id}`} className={NO}>{r.orderNo}</Link>
                     <span className={LABEL}>{r.deliveredAt ? `delivered ${fmtStamp(r.deliveredAt)}` : "on the road"}</span>
@@ -436,7 +436,7 @@ export default function DeliveryMoney() {
                           </ActButton>
                         ))}
                         {isOpen && open?.what === "received" && (
-                          <div className="rounded-[12px] border border-[#3e3447] bg-white p-2.5 flex flex-col gap-2">
+                          <div className="rounded-[12px] border border-[var(--l-accent)] bg-white p-2.5 flex flex-col gap-2">
                             <span className={LABEL}>{formatTaka(r.codCollectedPaisa)} taken at the door — landed in</span>
                             <select className="ipt h-[34px] text-[12.5px]" value={account} onChange={(e) => setAccount(e.target.value)}>
                               <option value="">Pick an account…</option>
@@ -460,7 +460,7 @@ export default function DeliveryMoney() {
                           </div>
                         )}
                         {isOpen && open?.what === "paid" && (
-                          <div className="rounded-[12px] border border-[#3e3447] bg-white p-2.5 flex flex-col gap-2">
+                          <div className="rounded-[12px] border border-[var(--l-accent)] bg-white p-2.5 flex flex-col gap-2">
                             <span className={LABEL}>
                               Paid to {attemptLabel(r.attempts.find((a) => a.assignmentId === open.assignmentId) ?? c)} for this parcel
                             </span>

@@ -29,7 +29,7 @@ export function Donut({
   let acc = 0;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-      <circle cx={c} cy={c} r={r} fill="none" stroke="#282032" strokeWidth={thickness} />
+      <circle cx={c} cy={c} r={r} fill="none" stroke="var(--t-accent)" strokeWidth={thickness} />
       {segments.filter((s) => s.value > 0).map((s, i) => {
         const frac = s.value / total;
         const dash = frac * circ;
@@ -44,11 +44,11 @@ export function Donut({
       })}
       {centerTop && (
         <text x={c} y={centerBottom ? c - 2 : c + 1} textAnchor="middle" dominantBaseline="middle"
-          fontSize={size / 4.6} fontWeight={700} fill="#470066">{centerTop}</text>
+          fontSize={size / 4.6} fontWeight={700} fill="var(--t-accent)">{centerTop}</text>
       )}
       {centerBottom && (
         <text x={c} y={c + size / 7.5} textAnchor="middle" dominantBaseline="middle"
-          fontSize={size / 11} fontWeight={600} fill="#3a3641">{centerBottom}</text>
+          fontSize={size / 11} fontWeight={600} fill="var(--t-accent)">{centerBottom}</text>
       )}
     </svg>
   );
@@ -74,11 +74,11 @@ export function Gauge({
         fill="none" stroke={color} strokeWidth={thickness} strokeLinecap="round"
         strokeDasharray={`${(p / 100) * half} ${half}`}
         style={{ transition: "stroke-dasharray .5s ease" }} />
-      <text x={c} y={c - 6} textAnchor="middle" fontSize={size / 5.4} fontWeight={700} fill="#470066">
+      <text x={c} y={c - 6} textAnchor="middle" fontSize={size / 5.4} fontWeight={700} fill="var(--t-accent)">
         {label ?? `${Math.round(p)}%`}
       </text>
       {sub && (
-        <text x={c} y={c + size / 11} textAnchor="middle" fontSize={size / 12.5} fontWeight={600} fill="#3a3641">
+        <text x={c} y={c + size / 11} textAnchor="middle" fontSize={size / 12.5} fontWeight={600} fill="var(--t-accent)">
           {sub}
         </text>
       )}
@@ -96,13 +96,13 @@ export function Ring({
   const circ = TAU * r;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-      <circle cx={c} cy={c} r={r} fill="none" stroke="#282032" strokeWidth={thickness} />
+      <circle cx={c} cy={c} r={r} fill="none" stroke="var(--t-accent)" strokeWidth={thickness} />
       <circle cx={c} cy={c} r={r} fill="none" stroke={color} strokeWidth={thickness}
         strokeLinecap="round" strokeDasharray={`${(p / 100) * circ} ${circ}`}
         strokeDashoffset={circ * 0.25}
         style={{ transition: "stroke-dasharray .5s ease" }} />
       <text x={c} y={c + 1} textAnchor="middle" dominantBaseline="middle"
-        fontSize={size / 4.4} fontWeight={700} fill="#470066">
+        fontSize={size / 4.4} fontWeight={700} fill="var(--t-accent)">
         {label ?? `${Math.round(p)}%`}
       </text>
     </svg>
@@ -141,7 +141,7 @@ export function HBar({
         <span className="font-semibold text-body truncate">{label}</span>
         <span className="font-bold shrink-0 ml-2" style={{ color }}>{right ?? value}</span>
       </div>
-      <div className="h-[7px] rounded-full bg-[#282032] overflow-hidden">
+      <div className="h-[7px] rounded-full bg-[var(--s-accent)] overflow-hidden">
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color, transition: "width .5s ease" }} />
       </div>
     </div>

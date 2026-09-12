@@ -94,26 +94,26 @@ export default function SpecialDateField({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="ipt h-[40px] flex items-center justify-between gap-2 flex-1 min-w-0 text-left"
-        style={open ? { borderColor: "#cf43ea", boxShadow: "0 0 0 3px #f9e9fd" } : undefined}
+        style={open ? { borderColor: "var(--l-orchid)", boxShadow: "0 0 0 3px var(--l-accent)" } : undefined}
       >
         <span className="truncate text-[13px]">
           {readDate(date, year)}
-          {!year && <span style={{ color: "#b76e79" }}> · every year</span>}
+          {!year && <span style={{ color: "var(--t-gold)" }}> · every year</span>}
         </span>
-        <span style={{ color: "#cf43ea" }} className="shrink-0"><Icon name="clock" size={15} /></span>
+        <span style={{ color: "var(--t-orchid)" }} className="shrink-0"><Icon name="clock" size={15} /></span>
       </button>
 
       <button
         type="button"
         onClick={() => onChange({ date, year: year ? null : thisYear })}
         className="text-[11.5px] font-medium shrink-0 hover:underline"
-        style={{ color: year ? "#cf43ea" : "#9b8aa6" }}
+        style={{ color: year ? "var(--t-orchid)" : "var(--t-accent)" }}
       >
         {year ? "no year" : "add year"}
       </button>
 
       {year ? (
-        <span className="text-[11.5px] shrink-0" style={{ color: "#b76e79" }}>
+        <span className="text-[11.5px] shrink-0" style={{ color: "var(--t-gold)" }}>
           {ordinal(thisYear - year)} this year
         </span>
       ) : null}
@@ -138,9 +138,9 @@ export default function SpecialDateField({
                 <button key={d} type="button" onClick={() => { setDay(d); setOpen(false); }}
                   className="h-[30px] rounded-[8px] text-[12.5px] transition-colors"
                   style={on
-                    ? { background: "#470066", color: "#fff", fontWeight: 500 }
-                    : { color: "#3d2b4a" }}
-                  onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = "#f7f1fb"; }}
+                    ? { background: "var(--s-accent)", color: "#fff", fontWeight: 500 }
+                    : { color: "var(--t-accent)" }}
+                  onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = "var(--s-accent)"; }}
                   onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = "transparent"; }}>
                   {d}
                 </button>

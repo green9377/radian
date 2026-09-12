@@ -193,7 +193,7 @@ export function AccountsLive() {
       )}
 
       {sum && !sum.openingPosted && (
-        <Card className="px-5 py-4 mb-5 border-[#f5d9a8] bg-[#fffdf7]">
+        <Card className="px-5 py-4 mb-5 border-[var(--l-warn)] bg-[var(--s-warn)]">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <div className="font-semibold text-[14px] text-purple mb-1">Opening balances are not in the ledger yet</div>
@@ -208,7 +208,7 @@ export function AccountsLive() {
 
       {/* money accounts */}
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-display text-[19px] text-purple mb-3 flex items-center gap-2"><span className="w-1.5 h-5 rounded-full" style={{ background: "linear-gradient(180deg,#a021b8,#d98cb3)" }} />Where the money is</h2>
+        <h2 className="font-display text-[19px] text-purple mb-3 flex items-center gap-2"><span className="w-1.5 h-5 rounded-full" style={{ background: "linear-gradient(180deg,var(--o-solid),var(--o-solid))" }} />Where the money is</h2>
         <button className={btnGhost} onClick={() => setAdding((v) => !v)}>
           <Icon name="plus" size={14} /> Add account
         </button>
@@ -257,7 +257,7 @@ export function AccountsLive() {
 
       <Card className="overflow-hidden mb-7">
         <table className="w-full text-[13.5px]">
-          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "#f3e9fa", color: "#7c1a92" }}>
+          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>
             <tr>
               <th className="text-left px-4 py-2.5 font-semibold">Account</th>
               <th className="text-right px-4 py-2.5 font-semibold">Opening</th>
@@ -273,7 +273,7 @@ export function AccountsLive() {
               </td></tr>
             )}
             {money.map((a) => (
-              <tr key={a.id} className="border-t border-[#f3eef7]">
+              <tr key={a.id} className="border-t border-[var(--l-accent)]">
                 <td className="px-4 py-3">
                   <div className="font-semibold text-purple">{a.name}</div>
                   <div className="text-[11.5px] text-body-soft">{a.code}{a.payMethod ? ` · ${a.payMethod.toLowerCase()}` : ""}</div>
@@ -290,7 +290,7 @@ export function AccountsLive() {
                     <span className="text-body-soft">{taka(a.openingBalancePaisa)}</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right font-bold" style={{ color: a.balancePaisa < 0 ? "#b91c1c" : "#3d2352" }}>
+                <td className="px-4 py-3 text-right font-bold" style={{ color: a.balancePaisa < 0 ? "var(--t-bad)" : "var(--t-accent)" }}>
                   {taka(a.balancePaisa)}
                 </td>
                 <td className="px-4 py-3 text-right whitespace-nowrap">
@@ -317,7 +317,7 @@ export function AccountsLive() {
       </Card>
 
       {counting && (
-        <Card className="px-5 py-4 mb-7 border-[#e7dff0]">
+        <Card className="px-5 py-4 mb-7 border-[var(--l-accent)]">
           <div className="font-semibold text-[14px] text-purple mb-1">Counting — {counting.name}</div>
           <p className="text-[13px] text-body-soft mt-0 mb-3">
             The books say <b>{taka(counting.balancePaisa)}</b>.
@@ -330,7 +330,7 @@ export function AccountsLive() {
             <button className={btnPrimary} style={btnPrimaryStyle} onClick={() => void doCount()}>Record count</button>
             <button className={btnGhost} onClick={() => setCounting(null)}>Cancel</button>
             <span className="text-[13px] text-body-soft">
-              Difference: <b style={{ color: toPaisa(countValue) - counting.balancePaisa === 0 ? "#0f7d55" : "#b45309" }}>
+              Difference: <b style={{ color: toPaisa(countValue) - counting.balancePaisa === 0 ? "var(--t-ok)" : "var(--t-warn)" }}>
                 {taka(toPaisa(countValue) - counting.balancePaisa)}
               </b>
             </span>
@@ -394,7 +394,7 @@ export function LedgerLive() {
           sub="the bookkeeping failed, not the sale">
           <div className="px-5 py-3">
             {fails.map((f) => (
-              <div key={f.id} className="flex items-center justify-between gap-4 py-2.5 border-b border-[#f6f2f9] last:border-0">
+              <div key={f.id} className="flex items-center justify-between gap-4 py-2.5 border-b border-[var(--l-accent)] last:border-0">
                 <div>
                   <div className="font-semibold text-purple text-[13px]">{f.sourceType.toLowerCase().replace(/_/g, " ")}</div>
                   <div className="text-[11.5px] text-body-soft">{f.error}</div>
@@ -420,7 +420,7 @@ export function LedgerLive() {
 
       <Card className="overflow-hidden">
         <table className="w-full text-[13px]">
-          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "#f3e9fa", color: "#7c1a92" }}>
+          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>
             <tr>
               <th className="text-left px-4 py-2.5 font-semibold w-[110px]">No</th>
               <th className="text-left px-4 py-2.5 font-semibold w-[110px]">Date</th>
@@ -439,7 +439,7 @@ export function LedgerLive() {
               const into = e.lines.filter((l) => l.debitPaisa > 0).map((l) => l.account?.name ?? "").join(", ");
               const outOf = e.lines.filter((l) => l.creditPaisa > 0).map((l) => l.account?.name ?? "").join(", ");
               return (
-                <tr key={e.id} className="border-t border-[#f3eef7] align-top">
+                <tr key={e.id} className="border-t border-[var(--l-accent)] align-top">
                   <td className="px-4 py-3 font-semibold text-purple">{e.entryNo}</td>
                   <td className="px-4 py-3 text-body-soft">{e.entryDate.slice(0, 10)}</td>
                   <td className="px-4 py-3">
@@ -449,7 +449,7 @@ export function LedgerLive() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-[12.5px]">
-                    <span className="text-[#0f7d55] font-semibold">→ {into || "—"}</span>
+                    <span className="text-[var(--t-ok)] font-semibold">→ {into || "—"}</span>
                     <br />
                     <span className="text-body-soft">from {outOf || "—"}</span>
                   </td>
@@ -583,7 +583,7 @@ export function FinanceSettingsLive() {
       <h2 className="font-display text-[19px] text-purple mt-8 mb-3">Recent counts</h2>
       <Card className="overflow-hidden">
         <table className="w-full text-[13px]">
-          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "#f3e9fa", color: "#7c1a92" }}>
+          <thead className="text-[10.5px] uppercase tracking-[0.06em] font-bold" style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>
             <tr>
               <th className="text-left px-4 py-2.5 font-semibold">No</th>
               <th className="text-left px-4 py-2.5 font-semibold">Account</th>
@@ -596,13 +596,13 @@ export function FinanceSettingsLive() {
           <tbody>
             {recs.length === 0 && <tr><td colSpan={6} className="px-4 py-5 text-center text-body-soft">No counts yet</td></tr>}
             {recs.map((r) => (
-              <tr key={r.id} className="border-t border-[#f3eef7]">
+              <tr key={r.id} className="border-t border-[var(--l-accent)]">
                 <td className="px-4 py-2.5 font-semibold text-purple">{r.reconNo}</td>
                 <td className="px-4 py-2.5">{r.account?.name ?? "—"}</td>
                 <td className="px-4 py-2.5 text-body-soft">{r.asOfDate.slice(0, 10)}</td>
                 <td className="px-4 py-2.5 text-right">{taka(r.systemBalancePaisa)}</td>
                 <td className="px-4 py-2.5 text-right">{taka(r.countedBalancePaisa)}</td>
-                <td className="px-4 py-2.5 text-right font-bold" style={{ color: r.differencePaisa === 0 ? "#0f7d55" : "#b45309" }}>
+                <td className="px-4 py-2.5 text-right font-bold" style={{ color: r.differencePaisa === 0 ? "var(--t-ok)" : "var(--t-warn)" }}>
                   {taka(r.differencePaisa)}
                 </td>
               </tr>

@@ -42,6 +42,21 @@ export default function RootLayout({
     // onto <html>/<body> before React hydrates (e.g. className="mdl-js"). That is
     // outside our control and harmless, so we tell React to ignore the mismatch.
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/*  THE SKIN, BEFORE THE FIRST PAINT.
+             `data-theme` is what the whole token set keys off. Set from React
+             it would arrive after the browser has already painted, and every
+             page load would flash the other skin — worse than no switch. This
+             is the one place a blocking inline script earns its keep.  */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var s=localStorage.getItem('radian.skin');" +
+              "document.documentElement.setAttribute('data-theme',s==='light'?'light':'dark');}" +
+              "catch(e){document.documentElement.setAttribute('data-theme','dark');}})();",
+          }}
+        />
+      </head>
       <body
         suppressHydrationWarning
         className={`${fraunces.variable} ${jost.variable} ${manrope.variable} font-ui antialiased`}

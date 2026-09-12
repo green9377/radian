@@ -227,9 +227,9 @@ export interface Proof {
   capturedLabel: string;
 }
 export const DEMO_PROOFS: Proof[] = [
-  { orderNo: "RAD-24110", customerName: "Faria Noor", prepBg: "linear-gradient(160deg,#EFE4F8,#DBC3F0)", deliveryBg: "linear-gradient(160deg,#E9F9EF,#C2ECD3)", capturedBy: "Nayeem Islam", capturedLabel: "today 12:40pm" },
-  { orderNo: "RAD-24107", customerName: "Rafiul Islam", prepBg: "linear-gradient(160deg,#FFF7EC,#FADFB4)", deliveryBg: null, capturedBy: "Rakib Hasan", capturedLabel: "prep only" },
-  { orderNo: "RAD-24088", customerName: "Sadia Afrin", prepBg: "linear-gradient(160deg,#EAF5FF,#C7E2FA)", deliveryBg: "linear-gradient(160deg,#FDF2F4,#F0D6DB)", capturedBy: "Steadfast", capturedLabel: "yesterday" },
+  { orderNo: "RAD-24110", customerName: "Faria Noor", prepBg: "linear-gradient(160deg,var(--a-solid),var(--a-solid))", deliveryBg: "linear-gradient(160deg,var(--f-ok),var(--f-ok))", capturedBy: "Nayeem Islam", capturedLabel: "today 12:40pm" },
+  { orderNo: "RAD-24107", customerName: "Rafiul Islam", prepBg: "linear-gradient(160deg,var(--f-warn),var(--f-warn))", deliveryBg: null, capturedBy: "Rakib Hasan", capturedLabel: "prep only" },
+  { orderNo: "RAD-24088", customerName: "Sadia Afrin", prepBg: "linear-gradient(160deg,var(--f-info),var(--f-info))", deliveryBg: "linear-gradient(160deg,var(--f-bad),var(--f-bad))", capturedBy: "Steadfast", capturedLabel: "yesterday" },
 ];
 
 /* ---- failed + RTO queue (own workflow — trust risk) ---- */

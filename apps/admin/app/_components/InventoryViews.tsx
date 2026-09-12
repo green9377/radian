@@ -30,7 +30,7 @@ function StockNum({ r }: { r: InvStockRow }) {
   if (r.assemblyMode === "MAKE_TO_ORDER") {
     return (
       <span className="text-[12px] font-semibold px-2 py-1 rounded-full"
-        style={{ background: "#f5eafb", color: ACCENT }}>
+        style={{ background: "var(--s-accent)", color: ACCENT }}>
         can build {r.canBuild ?? 0}
       </span>
     );
@@ -38,7 +38,7 @@ function StockNum({ r }: { r: InvStockRow }) {
   const neg = r.totalQtyMilli < 0;
   return (
     <span className={"text-[13.5px] font-semibold " + (neg ? "" : "text-body")}
-      style={neg ? { color: "#c0392b" } : undefined}>
+      style={neg ? { color: "var(--t-bad)" } : undefined}>
       {fmtQty(r.totalQtyMilli)} <span className="font-normal text-[12px] text-body-soft">{r.unitShort}</span>
     </span>
   );
@@ -89,20 +89,20 @@ export function InventoryOverview() {
 
       {ov && (
         <Kpi items={[
-          { l: "Stock value (AVCO)", v: formatTaka(ov.kpis.totalValuePaisa), c: "#470066", bg: "#f5eafb", icon: "box" },
-          { l: "Wastage today", v: formatTaka(ov.kpis.wastageTodayPaisa), c: ov.kpis.wastageTodayPaisa > 0 ? "#c0392b" : "#0e7a3d", bg: "#fdecea", icon: "bolt" },
-          { l: "Wastage this month", v: formatTaka(ov.kpis.wastageMonthPaisa), c: "#b45309", bg: "#fff4e6", icon: "cash" },
-          { l: "Given free this month", v: formatTaka(ov.kpis.giftMonthPaisa), c: "#cf43ea", bg: "#fbeafe", icon: "heart" },
-          { l: "Movements today", v: ov.kpis.movementsToday, c: "#2563a8", bg: "#e8f0fa", icon: "clock" },
+          { l: "Stock value (AVCO)", v: formatTaka(ov.kpis.totalValuePaisa), c: "var(--t-accent)", bg: "var(--s-accent)", icon: "box" },
+          { l: "Wastage today", v: formatTaka(ov.kpis.wastageTodayPaisa), c: ov.kpis.wastageTodayPaisa > 0 ? "var(--t-bad)" : "var(--t-ok)", bg: "var(--s-bad)", icon: "bolt" },
+          { l: "Wastage this month", v: formatTaka(ov.kpis.wastageMonthPaisa), c: "var(--t-warn)", bg: "var(--s-warn)", icon: "cash" },
+          { l: "Given free this month", v: formatTaka(ov.kpis.giftMonthPaisa), c: "var(--t-orchid)", bg: "var(--s-orchid)", icon: "heart" },
+          { l: "Movements today", v: ov.kpis.movementsToday, c: "var(--t-info)", bg: "var(--s-info)", icon: "clock" },
         ]} />
       )}
 
       {/* needs attention — the reason this screen exists */}
       {att && attentionCount > 0 && (
-        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft" style={{ background: "#fdecea", borderColor: "#f7cdc7" }}>
+        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft" style={{ background: "var(--s-bad)", borderColor: "var(--l-bad)" }}>
           <div className="flex items-center gap-2 mb-2.5">
-            <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center text-white" style={{ background: "#c0392b" }}><Icon name="bolt" size={13} /></span>
-            <b className="text-[14px]" style={{ color: "#8f2b20" }}>Needs attention ({attentionCount})</b>
+            <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center text-white" style={{ background: "var(--s-bad)" }}><Icon name="bolt" size={13} /></span>
+            <b className="text-[14px]" style={{ color: "var(--t-bad)" }}>Needs attention ({attentionCount})</b>
           </div>
 
           {att.negative.map((r) => (
@@ -110,7 +110,7 @@ export function InventoryOverview() {
               className="flex items-center gap-3 bg-white/70 rounded-[10px] px-3.5 py-2.5 mb-1.5 hover:bg-white">
               <ItemThumb item={r} size={30} />
               <span className="text-[13px] font-medium text-body flex-1 min-w-0 truncate">{r.name}</span>
-              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#fdecea", color: "#c0392b" }}>
+              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--s-bad)", color: "var(--t-bad)" }}>
                 negative {fmtQty(r.totalQtyMilli)} {r.unitShort}
               </span>
               <span className="text-[12.5px] text-body-soft">count it, then adjust</span>
@@ -122,7 +122,7 @@ export function InventoryOverview() {
               className="flex items-center gap-3 bg-white/70 rounded-[10px] px-3.5 py-2.5 mb-1.5 hover:bg-white">
               <ItemThumb item={r} size={30} />
               <span className="text-[13px] font-medium text-body flex-1 min-w-0 truncate">{r.name}</span>
-              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#fff4e6", color: "#b45309" }}>
+              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--s-warn)", color: "var(--t-warn)" }}>
                 low · {fmtQty(r.totalQtyMilli)} {r.unitShort}
               </span>
               <span className="text-[12.5px] text-body-soft">reorder at {r.reorderLevel}</span>
@@ -133,7 +133,7 @@ export function InventoryOverview() {
             <div key={l.id} className="flex items-center gap-3 bg-white/70 rounded-[10px] px-3.5 py-2.5 mb-1.5">
               <ItemThumb item={{ sku: l.item.sku, name: l.item.name, imageUrl: l.item.imageUrl }} size={30} />
               <span className="text-[13px] font-medium text-body flex-1 min-w-0 truncate">{l.item.name}</span>
-              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#fbeafe", color: "#a2189f" }}>
+              <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--s-orchid)", color: "var(--t-orchid)" }}>
                 expires {new Date(l.expiryDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
               </span>
               <span className="text-[12.5px] text-body-soft">{fmtQty(l.qtyMilli)} left</span>
@@ -143,9 +143,9 @@ export function InventoryOverview() {
       )}
 
       {!loading && att && attentionCount === 0 && (
-        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft flex items-center gap-3" style={{ background: "#e8f7ef", borderColor: "#c9ecd8" }}>
-          <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center text-white" style={{ background: "#0e7a3d" }}><Icon name="check" size={13} /></span>
-          <b className="text-[14px]" style={{ color: "#0e7a3d" }}>All clear</b>
+        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft flex items-center gap-3" style={{ background: "var(--s-ok)", borderColor: "var(--l-ok)" }}>
+          <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center text-white" style={{ background: "var(--s-ok)" }}><Icon name="check" size={13} /></span>
+          <b className="text-[14px]" style={{ color: "var(--t-ok)" }}>All clear</b>
         </div>
       )}
 
@@ -238,7 +238,7 @@ export function InvStockBoard() {
               Transfer
             </Link>
             <Link href="/inventory/issue"
-              className="text-white text-[13px] font-medium px-3.5 py-2.5 rounded-[10px]" style={{ background: "#c0392b" }}>
+              className="text-white text-[13px] font-medium px-3.5 py-2.5 rounded-[10px]" style={{ background: "var(--s-bad)" }}>
               Wastage / Gift
             </Link>
             <Link href="/inventory/opening"
@@ -261,7 +261,7 @@ export function InvStockBoard() {
             className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
             style={filter === k
               ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-              : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
+              : { background: "#fff", color: "var(--t-accent)", borderColor: "var(--l-accent)" }}>
             {label}
           </button>
         ))}
@@ -273,7 +273,7 @@ export function InvStockBoard() {
             {(["tiles", "rows"] as const).map((v) => (
               <button key={v} onClick={() => setView(v)} title={v === "tiles" ? "Photo tiles" : "Table rows"}
                 className="px-2.5 py-2"
-                style={view === v ? { background: ACCENT, color: "#fff" } : { background: "#fff", color: "#6b5878" }}>
+                style={view === v ? { background: ACCENT, color: "#fff" } : { background: "#fff", color: "var(--t-accent)" }}>
                 <Icon name={v === "tiles" ? "grid" : "layers"} size={14} />
               </button>
             ))}
@@ -296,7 +296,7 @@ export function InvStockBoard() {
               return (
                 <div key={r.itemId}
                   className="bg-white rounded-[14px] shadow-soft overflow-hidden border-2 flex flex-col"
-                  style={{ borderColor: r.isNegative ? "#f0b4b4" : r.isLow ? "#f0d9a8" : "#efe4f7" }}>
+                  style={{ borderColor: r.isNegative ? "var(--l-bad)" : r.isLow ? "var(--l-warn)" : "var(--l-accent)" }}>
                   <div className="flex items-center gap-2.5 px-3 pt-3">
                     <ItemThumb item={r} size={44} />
                     <span className="min-w-0">
@@ -308,7 +308,7 @@ export function InvStockBoard() {
                     <span>
                       <span className="block text-[10px] uppercase tracking-[0.06em] text-body-soft font-semibold">In stock</span>
                       <b className="block text-[20px] leading-[1.1] font-display"
-                        style={{ color: r.isNegative ? "#c0392b" : r.isLow ? "#b45309" : "#470066", fontVariantNumeric: "tabular-nums" }}>
+                        style={{ color: r.isNegative ? "var(--t-bad)" : r.isLow ? "var(--t-warn)" : "var(--t-accent)", fontVariantNumeric: "tabular-nums" }}>
                         {mto ? "—" : fmtQty(r.totalQtyMilli)}
                       </b>
                       <span className="block text-[10.5px] text-body-soft">{mto ? "made to order" : r.unitName}</span>
@@ -324,7 +324,7 @@ export function InvStockBoard() {
                     <div className="px-3 pb-2 flex flex-wrap gap-1">
                       {cols.map((w) => (
                         <span key={w.id} className="text-[10.5px] px-1.5 py-0.5 rounded-full"
-                          style={{ background: "#f7f1fb", color: "#5c4a6b", fontVariantNumeric: "tabular-nums" }}>
+                          style={{ background: "var(--s-accent)", color: "var(--t-accent)", fontVariantNumeric: "tabular-nums" }}>
                           {w.name.split(" ")[0]} {fmtQty(whQty(r, w.id))}
                         </span>
                       ))}
@@ -333,7 +333,7 @@ export function InvStockBoard() {
                   <div className="mt-auto border-t border-lavender-deep/60 flex">
                     {(r.isNegative || r.isLow) && (
                       <span className="text-[10.5px] font-bold px-2.5 py-2"
-                        style={{ color: r.isNegative ? "#c0392b" : "#b45309" }}>
+                        style={{ color: r.isNegative ? "var(--t-bad)" : "var(--t-warn)" }}>
                         {r.isNegative ? "NEGATIVE" : "LOW"}
                       </span>
                     )}
@@ -372,12 +372,12 @@ export function InvStockBoard() {
         )}
         {shown.map((r) => (
           <div key={r.itemId} style={rowCols(cols.length)}
-            className={ROW + (r.isNegative ? " bg-[#fdecea]/40" : r.isLow ? " bg-[#fff4e6]/40" : "")}>
+            className={ROW + (r.isNegative ? " bg-[var(--s-bad)]/40" : r.isLow ? " bg-[var(--s-warn)]/40" : "")}>
             <ItemThumb item={r} size={38} />
             <span className="min-w-0">
               <span className="block text-[13.5px] font-semibold text-body truncate">
                 {r.name}
-                {r.trackExpiry && <span className="ml-2 text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full align-middle" style={{ background: "#fbeafe", color: "#a2189f" }}>expiry</span>}
+                {r.trackExpiry && <span className="ml-2 text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full align-middle" style={{ background: "var(--s-orchid)", color: "var(--t-orchid)" }}>expiry</span>}
               </span>
               <span className="block text-[12px] text-body-soft">{r.sku} · {r.unitName}</span>
             </span>
@@ -452,7 +452,7 @@ export function InvMovementsView() {
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <button onClick={() => setReason("")}
           className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
-          style={!reason ? { background: ACCENT, color: "#fff", borderColor: ACCENT } : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
+          style={!reason ? { background: ACCENT, color: "#fff", borderColor: ACCENT } : { background: "#fff", color: "var(--t-accent)", borderColor: "var(--l-accent)" }}>
           All
         </button>
         {reasons.map((k) => (
@@ -460,7 +460,7 @@ export function InvMovementsView() {
             className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
             style={reason === k
               ? { background: INV_REASON_META[k].colour, color: "#fff", borderColor: INV_REASON_META[k].colour }
-              : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
+              : { background: "#fff", color: "var(--t-accent)", borderColor: "var(--l-accent)" }}>
             {INV_REASON_META[k].label}
           </button>
         ))}
@@ -485,7 +485,7 @@ export function InvMovementsView() {
             </span>
             <ReasonChip reason={m.reason} />
             <span className="text-[12.5px] text-body-soft min-w-0 truncate">{m.note ?? "—"}</span>
-            <span className="text-right text-[13px] font-semibold" style={{ color: m.qtyMilli < 0 ? "#c0392b" : "#0e7a3d" }}>
+            <span className="text-right text-[13px] font-semibold" style={{ color: m.qtyMilli < 0 ? "var(--t-bad)" : "var(--t-ok)" }}>
               {m.qtyMilli > 0 ? "+" : ""}{fmtQty(m.qtyMilli)}
             </span>
             <span className="text-right text-[13px] text-body">{formatTaka(Math.abs(m.valuePaisa))}</span>

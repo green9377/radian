@@ -29,8 +29,8 @@ import { Info } from "./ItemEditor";
 import { Flash, Table, Td, Th, WRAP, input, taka } from "./FinanceUI";
 
 const BRAND = {
-  purple: { ink: "#7a2ea8", wash: "#f6ecfb", edge: "#a94fd0" },
-  rose: { ink: "#a4566a", wash: "#fbeef0", edge: "#c9788a" },
+  purple: { ink: "var(--t-accent)", wash: "var(--s-accent)", edge: "var(--l-accent)" },
+  rose: { ink: "var(--t-gold)", wash: "var(--s-bad)", edge: "var(--l-gold)" },
 } as const;
 
 /*  The gateway's four words, in the shop's own. `tone` inks the pill; the
@@ -38,13 +38,13 @@ const BRAND = {
 const STATE: Record<string, { label: string; bg: string; fg: string; hint?: string }> = {
   INITIATED: {
     label: "Went to pay",
-    bg: "#fff4e0",
-    fg: "#9a6218",
+    bg: "var(--s-warn)",
+    fg: "var(--t-warn)",
     hint: "May have been charged without us being told — check the transaction id with SSLCommerz.",
   },
-  SUCCESS: { label: "Paid", bg: "#e7f7ee", fg: "#1c7a4a" },
-  FAILED: { label: "Refused", bg: "#fdeaee", fg: "#a42340" },
-  CANCELLED: { label: "Backed out", bg: "#f1eefb", fg: "#5b4a86" },
+  SUCCESS: { label: "Paid", bg: "var(--s-ok)", fg: "var(--t-ok)" },
+  FAILED: { label: "Refused", bg: "var(--s-bad)", fg: "var(--t-bad)" },
+  CANCELLED: { label: "Backed out", bg: "var(--s-info)", fg: "var(--t-accent)" },
 };
 
 const TABS: { key: string; label: string }[] = [
@@ -165,7 +165,7 @@ export function OnlinePaymentsLive() {
         icon="💳"
       >
         {/* the filter row */}
-        <div className="px-5 py-4 flex flex-wrap items-center gap-3 border-b" style={{ borderColor: "#efe9f5" }}>
+        <div className="px-5 py-4 flex flex-wrap items-center gap-3 border-b" style={{ borderColor: "var(--l-accent)" }}>
           <div className="flex flex-wrap gap-1.5">
             {TABS.map((t) => {
               const on = tab === t.key;
@@ -183,7 +183,7 @@ export function OnlinePaymentsLive() {
                           borderColor: BRAND.purple.ink,
                           boxShadow: "0 2px 8px rgba(122,46,168,0.25)",
                         }
-                      : { background: "#fff", color: "#6b6b6b", borderColor: "#e7dff0" }
+                      : { background: "#fff", color: "var(--t-soft)", borderColor: "var(--l-accent)" }
                   }
                 >
                   {t.label}
@@ -303,7 +303,7 @@ function Ref({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
       <div className="text-[11px] font-bold tracking-[0.1em] text-body-soft uppercase mb-1">{label}</div>
-      <div className="text-[12.5px] font-semibold break-all" style={{ color: value ? "#3d2352" : "#9a94a3" }}>
+      <div className="text-[12.5px] font-semibold break-all" style={{ color: value ? "var(--t-accent)" : "var(--t-soft)" }}>
         {value || "—"}
       </div>
     </div>

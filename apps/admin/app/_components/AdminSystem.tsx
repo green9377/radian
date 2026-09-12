@@ -75,10 +75,10 @@ export function SessionsScreen({ embedded = false }: { embedded?: boolean } = {}
       )}
       <Flash ok={ok} err={err} />
 
-      <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
+      <div className="rounded-[16px] bg-white border border-[var(--l-accent)] overflow-hidden"
         style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
         <div className="px-4 py-2.5 flex items-center gap-2.5"
-          style={{ background: "linear-gradient(120deg,#8a2bb0,#cf43ea)" }}>
+          style={{ background: "linear-gradient(120deg,var(--a-solid),var(--o-solid))" }}>
           <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">Live sessions</span>
           <span className="text-[10px] font-bold px-2 py-[1px] rounded-full bg-white/25 text-white">{rows.length}</span>
         </div>
@@ -89,23 +89,23 @@ export function SessionsScreen({ embedded = false }: { embedded?: boolean } = {}
           <div>
             {rows.map((s) => (
               <div key={s.id}
-                className="flex items-center gap-3 px-4 py-3 border-b border-[#f3eff8] last:border-0 flex-wrap">
+                className="flex items-center gap-3 px-4 py-3 border-b border-[var(--l-accent)] last:border-0 flex-wrap">
                 <span className="w-[34px] h-[34px] rounded-full grid place-items-center text-[13px] font-bold text-white shrink-0"
-                  style={{ background: s.isYou ? "linear-gradient(135deg,#b76e79,#e0a8a0)" : "linear-gradient(135deg,#8a2bb0,#cf43ea)" }}>
+                  style={{ background: s.isYou ? "linear-gradient(135deg,var(--t-gold),var(--t-gold))" : "linear-gradient(135deg,var(--a-solid),var(--o-solid))" }}>
                   {s.name.slice(0, 1).toUpperCase()}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[13.5px] font-bold text-[#2d2838] truncate">
+                  <div className="text-[13.5px] font-bold text-[var(--t-accent)] truncate">
                     {s.name}
                     {s.isYou && (
                       <span className="text-[9.5px] font-bold text-white px-1.5 py-[2px] rounded-full ml-1.5 align-middle"
-                        style={{ background: "linear-gradient(135deg,#b76e79,#e0a8a0)" }}>this device</span>
+                        style={{ background: "linear-gradient(135deg,var(--t-gold),var(--t-gold))" }}>this device</span>
                     )}
                   </div>
                   <div className="text-[11px] text-body-soft truncate">{s.email ?? "no email"}</div>
                 </div>
                 <span className="text-[10.5px] font-bold px-2 py-[3px] rounded-full shrink-0"
-                  style={{ background: "#f5eafb", color: "#7a2ea8" }}>{s.position}</span>
+                  style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>{s.position}</span>
                 <div className="text-right shrink-0 hidden sm:block">
                   <div className="text-[11px] font-semibold text-body">since {new Date(s.startedAt).toLocaleString()}</div>
                   <div className="text-[10px] text-body-soft">until {new Date(s.expiresAt).toLocaleDateString()}</div>
@@ -113,10 +113,10 @@ export function SessionsScreen({ embedded = false }: { embedded?: boolean } = {}
                 {!s.isYou && (
                   <div className="flex gap-1 shrink-0">
                     <button className="text-[11px] font-bold px-2.5 py-1.5 rounded-[8px] border bg-white transition-colors disabled:opacity-40"
-                      style={{ borderColor: "#e4ddef", color: "#7a2ea8" }}
+                      style={{ borderColor: "var(--l-accent)", color: "var(--t-accent)" }}
                       disabled={busy === s.id} onClick={() => void drop(s)}>Sign out</button>
                     <button className="text-[11px] font-bold px-2.5 py-1.5 rounded-[8px] border bg-white transition-colors disabled:opacity-40"
-                      style={{ borderColor: "#f2c8c2", color: "#c0392b" }}
+                      style={{ borderColor: "var(--l-bad)", color: "var(--t-bad)" }}
                       disabled={busy === s.id} onClick={() => void dropAll(s)}>All devices</button>
                   </div>
                 )}
@@ -147,15 +147,15 @@ export function BackupScreen() {
   const pill = !b
     ? null
     : b.state === "never"
-      ? { dot: "#ff8a80", text: "Never run" }
+      ? { dot: "var(--t-bad)", text: "Never run" }
       : b.state === "ok"
-        ? { dot: "#4be3a4", text: `Last: ${b.hoursSince === 0 ? "under an hour" : `${b.hoursSince}h`} ago` }
-        : { dot: "#ffd166", text: `Last: ${b.hoursSince}h ago` };
+        ? { dot: "var(--t-ok)", text: `Last: ${b.hoursSince === 0 ? "under an hour" : `${b.hoursSince}h`} ago` }
+        : { dot: "var(--t-warn)", text: `Last: ${b.hoursSince}h ago` };
 
   return (
     <div className={WRAP}>
       <div className="rounded-[20px] px-5 py-4 mb-4 relative overflow-hidden"
-        style={{ background: "linear-gradient(120deg,#470066 0%,#8a2bb0 42%,#cf43ea 74%,#b76e79 100%)" }}>
+        style={{ background: "linear-gradient(120deg,var(--a-solid) 0%,var(--a-solid) 42%,var(--o-solid) 74%,var(--t-gold) 100%)" }}>
         <div className="flex items-center gap-3 relative flex-wrap">
           <span className="w-[38px] h-[38px] rounded-[12px] grid place-items-center text-white shrink-0"
             style={{ background: "rgba(255,255,255,0.16)" }}>
@@ -176,17 +176,17 @@ export function BackupScreen() {
       </div>
       <Flash ok="" err={err} />
 
-      <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
+      <div className="rounded-[16px] bg-white border border-[var(--l-accent)] overflow-hidden"
         style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
         <div className="px-4 py-2.5 flex items-center gap-2.5"
-          style={{ background: "linear-gradient(120deg,#0e9767,#22c08b)" }}>
+          style={{ background: "linear-gradient(120deg,var(--f-ok),var(--f-ok))" }}>
           <span className="text-white"><Icon name="download" size={14} strokeWidth={2.3} /></span>
           <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">Recent backups</span>
           <span className="text-[10px] font-bold px-2 py-[1px] rounded-full bg-white/25 text-white">{b?.history.length ?? 0}</span>
         </div>
         {!b || b.history.length === 0 ? (
           <div className="px-4 py-8 text-center">
-            <p className="text-[13px] font-bold text-[#2d2838] m-0">Nothing recorded yet</p>
+            <p className="text-[13px] font-bold text-[var(--t-accent)] m-0">Nothing recorded yet</p>
             <p className="text-[11.5px] text-body-soft mt-1 mb-0">
               <code>radian_backup.bat</code> once, then <code>radian_backup_schedule.bat</code> for every night
             </p>
@@ -200,7 +200,7 @@ export function BackupScreen() {
                 <Td right>
                   {h.bytes == null ? "\u2014" : (
                     <span className="font-semibold"
-                      style={{ color: h.bytes < 10 * 1024 ? "#c0392b" : "#0e9767" }}>
+                      style={{ color: h.bytes < 10 * 1024 ? "var(--t-bad)" : "var(--t-ok)" }}>
                       {(h.bytes / 1024).toFixed(0)} KB
                     </span>
                   )}
@@ -222,26 +222,26 @@ export function BackupScreen() {
 /*  Owner modules wear the same hues their departments wear in the sidebar,
     so this map and the nav read as one system.  */
 const OWNER_META: Record<string, { label: string; icon: string; grad: string; fg: string }> = {
-  pos: { label: "POS", icon: "register", grad: "linear-gradient(120deg,#d8577e,#f0a8b8)", fg: "#d8577e" },
-  returns: { label: "Returns", icon: "returnArrow", grad: "linear-gradient(120deg,#d8577e,#f0a8b8)", fg: "#d8577e" },
-  offers: { label: "Offers", icon: "tag", grad: "linear-gradient(120deg,#b23bd6,#e07be0)", fg: "#b23bd6" },
-  inventory: { label: "Inventory", icon: "warehouse", grad: "linear-gradient(120deg,#1d9d77,#5ec9a8)", fg: "#1d9d77" },
-  finance: { label: "Finance", icon: "wallet", grad: "linear-gradient(120deg,#b07818,#e9c46a)", fg: "#b07818" },
-  marketing: { label: "Marketing", icon: "megaphone", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", fg: "#3b76c4" },
-  messaging: { label: "Messaging", icon: "mail", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", fg: "#3b76c4" },
-  seo: { label: "SEO", icon: "search", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", fg: "#3b76c4" },
-  tracking: { label: "Tracking", icon: "chart", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", fg: "#3b76c4" },
-  intelligence: { label: "Intelligence", icon: "bolt", grad: "linear-gradient(120deg,#3b76c4,#7fb4f0)", fg: "#3b76c4" },
-  company: { label: "Company", icon: "store", grad: "linear-gradient(120deg,#8879a8,#b9aecf)", fg: "#8879a8" },
+  pos: { label: "POS", icon: "register", grad: "linear-gradient(120deg,var(--o-solid),var(--f-bad))", fg: "var(--t-orchid)" },
+  returns: { label: "Returns", icon: "returnArrow", grad: "linear-gradient(120deg,var(--o-solid),var(--f-bad))", fg: "var(--t-orchid)" },
+  offers: { label: "Offers", icon: "tag", grad: "linear-gradient(120deg,var(--a-solid),var(--o-solid))", fg: "var(--t-accent)" },
+  inventory: { label: "Inventory", icon: "warehouse", grad: "linear-gradient(120deg,var(--f-ok),var(--f-ok))", fg: "var(--t-ok)" },
+  finance: { label: "Finance", icon: "wallet", grad: "linear-gradient(120deg,var(--f-warn),var(--f-warn))", fg: "var(--t-warn)" },
+  marketing: { label: "Marketing", icon: "megaphone", grad: "linear-gradient(120deg,var(--f-info),var(--f-info))", fg: "var(--t-info)" },
+  messaging: { label: "Messaging", icon: "mail", grad: "linear-gradient(120deg,var(--f-info),var(--f-info))", fg: "var(--t-info)" },
+  seo: { label: "SEO", icon: "search", grad: "linear-gradient(120deg,var(--f-info),var(--f-info))", fg: "var(--t-info)" },
+  tracking: { label: "Tracking", icon: "chart", grad: "linear-gradient(120deg,var(--f-info),var(--f-info))", fg: "var(--t-info)" },
+  intelligence: { label: "Intelligence", icon: "bolt", grad: "linear-gradient(120deg,var(--f-info),var(--f-info))", fg: "var(--t-info)" },
+  company: { label: "Company", icon: "store", grad: "linear-gradient(120deg,var(--a-solid),var(--a-solid))", fg: "var(--t-accent)" },
   /*  24 Aug 2026 — the map now carries the screens that set shop rules
       without keeping a singleton table of their own (delivery fees, payment
       methods, badge rules, daily capacity, access). They needed colours.  */
-  products: { label: "Products", icon: "flower", grad: "linear-gradient(120deg,#b23bd6,#e07be0)", fg: "#b23bd6" },
-  delivery: { label: "Delivery", icon: "truck", grad: "linear-gradient(120deg,#d8577e,#f0a8b8)", fg: "#d8577e" },
-  purchases: { label: "Purchases", icon: "box", grad: "linear-gradient(120deg,#1d9d77,#5ec9a8)", fg: "#1d9d77" },
-  assembly: { label: "Assembly", icon: "tools", grad: "linear-gradient(120deg,#1d9d77,#5ec9a8)", fg: "#1d9d77" },
-  storefront: { label: "Storefront", icon: "store", grad: "linear-gradient(120deg,#b23bd6,#e07be0)", fg: "#b23bd6" },
-  administration: { label: "Administration", icon: "gear", grad: "linear-gradient(120deg,#8879a8,#b9aecf)", fg: "#8879a8" },
+  products: { label: "Products", icon: "flower", grad: "linear-gradient(120deg,var(--a-solid),var(--o-solid))", fg: "var(--t-accent)" },
+  delivery: { label: "Delivery", icon: "truck", grad: "linear-gradient(120deg,var(--o-solid),var(--f-bad))", fg: "var(--t-orchid)" },
+  purchases: { label: "Purchases", icon: "box", grad: "linear-gradient(120deg,var(--f-ok),var(--f-ok))", fg: "var(--t-ok)" },
+  assembly: { label: "Assembly", icon: "tools", grad: "linear-gradient(120deg,var(--f-ok),var(--f-ok))", fg: "var(--t-ok)" },
+  storefront: { label: "Storefront", icon: "store", grad: "linear-gradient(120deg,var(--a-solid),var(--o-solid))", fg: "var(--t-accent)" },
+  administration: { label: "Administration", icon: "gear", grad: "linear-gradient(120deg,var(--a-solid),var(--a-solid))", fg: "var(--t-accent)" },
 };
 /* sidebar department order: today's work, sell, stock, money, growth, setup */
 const OWNER_ORDER = [
@@ -277,7 +277,7 @@ export function SettingsMapScreen() {
   return (
     <div className={WRAP}>
       <div className="rounded-[20px] px-5 py-4 mb-4 relative overflow-hidden"
-        style={{ background: "linear-gradient(120deg,#470066 0%,#8a2bb0 42%,#cf43ea 74%,#b76e79 100%)" }}>
+        style={{ background: "linear-gradient(120deg,var(--a-solid) 0%,var(--a-solid) 42%,var(--o-solid) 74%,var(--t-gold) 100%)" }}>
         <div className="flex items-center gap-3 relative flex-wrap">
           <span className="w-[38px] h-[38px] rounded-[12px] grid place-items-center text-white shrink-0"
             style={{ background: "rgba(255,255,255,0.16)" }}>
@@ -301,11 +301,11 @@ export function SettingsMapScreen() {
         {owners.map((owner) => {
           const meta = OWNER_META[ownerKey(owner)] ?? {
             label: owner.replace(/^./, (c) => c.toUpperCase()), icon: "gear",
-            grad: "linear-gradient(120deg,#8a2bb0,#cf43ea)", fg: "#7a2ea8",
+            grad: "linear-gradient(120deg,var(--a-solid),var(--o-solid))", fg: "var(--t-accent)",
           };
           const list = byOwner[owner];
           return (
-            <div key={owner} className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
+            <div key={owner} className="rounded-[16px] bg-white border border-[var(--l-accent)] overflow-hidden"
               style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
               <div className="px-4 py-2.5 flex items-center gap-2.5" style={{ background: meta.grad }}>
                 <span className="text-white"><Icon name={meta.icon} size={14} strokeWidth={2.3} /></span>
@@ -316,18 +316,18 @@ export function SettingsMapScreen() {
                 {list.map((r) => (
                   <Link key={r.key} href={r.href}
                     className="rounded-[13px] border bg-white p-3 transition-all hover:-translate-y-[1px]"
-                    style={{ borderColor: "#eee9f4", boxShadow: "0 1px 4px rgba(70,0,102,0.05)" }}>
+                    style={{ borderColor: "var(--l-accent)", boxShadow: "0 1px 4px rgba(70,0,102,0.05)" }}>
                     <div className="flex items-center gap-2.5">
                       <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white shrink-0"
                         style={{ background: meta.grad }}>
                         <Icon name={meta.icon} size={12} strokeWidth={2.4} />
                       </span>
-                      <span className="text-[13px] font-bold text-[#2d2838] flex-1 min-w-0 truncate">{r.label}</span>
+                      <span className="text-[13px] font-bold text-[var(--t-accent)] flex-1 min-w-0 truncate">{r.label}</span>
                       <span className="w-[8px] h-[8px] rounded-full shrink-0"
                         title={r.exists ? "in use" : "untouched"}
                         style={r.exists
-                          ? { background: "#22c08b" }
-                          : { background: "#fff", border: "2px solid #d8d0e4" }} />
+                          ? { background: "var(--s-ok)" }
+                          : { background: "#fff", border: "2px solid var(--l-accent)" }} />
                     </div>
                     <p className="text-[11px] text-body-soft mt-1.5 mb-0 truncate">{r.what}</p>
                   </Link>

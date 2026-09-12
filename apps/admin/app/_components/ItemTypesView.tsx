@@ -119,7 +119,7 @@ export default function ItemTypesView() {
                 <span className="text-[13.5px] font-semibold text-body truncate">{t.name}</span>
                 {t.isSystem && (
                   <span className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full shrink-0"
-                    style={{ background: "#f1eef4", color: "#7b6b88" }}>built-in</span>
+                    style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>built-in</span>
                 )}
               </span>
               {/* a custom type is its own kind — say what it DOES in plain words,
@@ -137,7 +137,7 @@ export default function ItemTypesView() {
               <span className="text-[13px] text-body-soft">{t._count?.items ?? 0}</span>
               <span>
                 {t.isSystem
-                  ? <span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: "#e7f5f1", color: "#0e8f74" }}>Active</span>
+                  ? <span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: "var(--s-ok)", color: "var(--t-ok)" }}>Active</span>
                   : <StatusPill active={t.isActive ?? true} onClick={() => toggleActive(t)} />}
               </span>
               <span className="flex gap-2 justify-self-end">
@@ -147,8 +147,8 @@ export default function ItemTypesView() {
                 </button>
                 {!t.isSystem && (
                   <button onClick={() => setConfirming(t)} disabled={busy}
-                    className="text-[12px] font-medium px-2.5 py-1.5 rounded-[8px] border text-[#c0392b] disabled:opacity-40"
-                    style={{ borderColor: "#f0d4d0" }}>
+                    className="text-[12px] font-medium px-2.5 py-1.5 rounded-[8px] border text-[var(--t-bad)] disabled:opacity-40"
+                    style={{ borderColor: "var(--l-bad)" }}>
                     Delete
                   </button>
                 )}
@@ -168,7 +168,7 @@ export default function ItemTypesView() {
               value={dlg.name}
               onChange={(e) => { setDlg({ ...dlg, name: e.target.value }); setDlgErr(null); }} />
             {dlg.name.trim() && dupOf(dlg.name, dlg.id) && (
-              <p className="text-[12px] text-[#c0392b] m-0 mt-1">&ldquo;{dlg.name.trim()}&rdquo; already exists.</p>
+              <p className="text-[12px] text-[var(--t-bad)] m-0 mt-1">&ldquo;{dlg.name.trim()}&rdquo; already exists.</p>
             )}
           </Field>
           {dlg.id === null ? (
@@ -194,7 +194,7 @@ export default function ItemTypesView() {
                         className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-2"
                         style={on
                           ? { background: m.colour, borderColor: m.colour, color: "#fff" }
-                          : { background: "#fff", borderColor: "#e8dcf0", color: m.colour }}>
+                          : { background: "#fff", borderColor: "var(--l-accent)", color: m.colour }}>
                         {m.label}
                       </button>
                     );
@@ -208,11 +208,11 @@ export default function ItemTypesView() {
               {SWATCHES.map((c) => (
                 <button key={c} type="button" onClick={() => setDlg({ ...dlg, colour: dlg.colour === c ? null : c })}
                   className="w-[26px] h-[26px] rounded-full border-2"
-                  style={{ background: c, borderColor: dlg.colour === c ? "#2c0f3d" : "#e3d7ec" }} />
+                  style={{ background: c, borderColor: dlg.colour === c ? "var(--l-accent)" : "var(--l-accent)" }} />
               ))}
             </div>
           </Field>
-          {dlgErr && <p className="text-[12.5px] text-[#c0392b] m-0">{dlgErr}</p>}
+          {dlgErr && <p className="text-[12.5px] text-[var(--t-bad)] m-0">{dlgErr}</p>}
         </Modal>
       )}
 

@@ -142,7 +142,7 @@ export function AdsView() {
         right={
           <div className="flex items-center gap-2">
             <select
-              className="rounded-xl px-3 py-2 text-[13px] font-semibold bg-white/90 text-[#075985] border-0"
+              className="rounded-xl px-3 py-2 text-[13px] font-semibold bg-white/90 text-[var(--t-info)] border-0"
               value={days}
               onChange={(e) => { const d = Number(e.target.value); setDays(d); void load(d); }}
             >
@@ -151,7 +151,7 @@ export function AdsView() {
               <option value={90}>Last 90 days</option>
             </select>
             <button
-              className="rounded-xl px-4 py-2 text-[13px] font-semibold bg-white text-[#075985] disabled:opacity-60"
+              className="rounded-xl px-4 py-2 text-[13px] font-semibold bg-white text-[var(--t-info)] disabled:opacity-60"
               disabled={!ready || busy === "pull"}
               onClick={() => void doPull()}
             >
@@ -273,7 +273,7 @@ export function AdsView() {
                 </>
               }>
                 {data.items.map((c) => (
-                  <tr key={c.id} className="border-t border-[#f1ecf6] hover:bg-[#fdfbff]">
+                  <tr key={c.id} className="border-t border-[var(--l-accent)] hover:bg-[var(--s-accent)]">
                     <Td>
                       <div className="font-semibold text-[13px]">{c.name}</div>
                       <div className="text-[11px] text-body-soft">
@@ -294,7 +294,7 @@ export function AdsView() {
                     <Td right>{c.clicks > 0 ? cash(c.cpcMinor, c.currency) : "—"}</Td>
                     <Td>
                       <select
-                        className="text-[12px] rounded-lg border border-[#e7dff0] px-2 py-1 bg-white max-w-[190px]"
+                        className="text-[12px] rounded-lg border border-[var(--l-accent)] px-2 py-1 bg-white max-w-[190px]"
                         value={c.linkedTo?.id ?? ""}
                         onChange={(e) => void relink(c.id, e.target.value)}
                       >

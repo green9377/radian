@@ -122,10 +122,10 @@ export function PosOverview() {
         action={<Link href="/pos/sell" className="bg-purple hover:bg-purple-deep text-white text-[13.5px] px-5 py-2.5 rounded-[11px] font-medium inline-flex items-center gap-2 shadow-soft"><Icon name="cash" size={17} /> Open Sell screen</Link>}
       />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
-        <GradientStat label="Today's sales" value={formatTaka(a?.salesPaisa ?? 0)} sub={`${a?.count ?? 0} transactions`} icon="bag" from="#5a1385" to="#320049" />
-        <GradientStat label="Cash in drawer" value={formatTaka(a?.cashInDrawer ?? 0)} sub={a?.shiftOpen ? "shift open" : "no open shift"} icon="cash" from="#159b63" to="#0e6e46" />
-        <GradientStat label="Avg. bill" value={formatTaka(a?.avgPaisa ?? 0)} sub="today" icon="chart" from="#d857ef" to="#a52fc0" />
-        <GradientStat label="Outstanding due" value={formatTaka(a?.duePaisa ?? 0)} sub="counter credit" icon="clock" from="#c98089" to="#a85a64" />
+        <GradientStat label="Today's sales" value={formatTaka(a?.salesPaisa ?? 0)} sub={`${a?.count ?? 0} transactions`} icon="bag" from="var(--a-solid)" to="var(--a-solid)" />
+        <GradientStat label="Cash in drawer" value={formatTaka(a?.cashInDrawer ?? 0)} sub={a?.shiftOpen ? "shift open" : "no open shift"} icon="cash" from="var(--f-ok)" to="var(--f-ok)" />
+        <GradientStat label="Avg. bill" value={formatTaka(a?.avgPaisa ?? 0)} sub="today" icon="chart" from="var(--o-solid)" to="var(--a-solid)" />
+        <GradientStat label="Outstanding due" value={formatTaka(a?.duePaisa ?? 0)} sub="counter credit" icon="clock" from="var(--f-bad)" to="var(--f-bad)" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 items-start">
@@ -137,14 +137,14 @@ export function PosOverview() {
           <div className="flex flex-col">
             {sales.slice(0, 6).map((s) => (
               <div key={s.id} className="flex items-center gap-3 py-2.5 border-b border-lavender-deep last:border-0">
-                <div className="w-[38px] h-[38px] rounded-[11px] grid place-items-center text-white shrink-0" style={{ background: s.isGift ? "linear-gradient(145deg,#cf43ea,#b76e79)" : "linear-gradient(145deg,#7a2ea8,#470066)" }}><Icon name={s.isGift ? "heart" : "hash"} size={16} /></div>
+                <div className="w-[38px] h-[38px] rounded-[11px] grid place-items-center text-white shrink-0" style={{ background: s.isGift ? "linear-gradient(145deg,var(--o-solid),var(--t-gold))" : "linear-gradient(145deg,var(--a-solid),var(--a-solid))" }}><Icon name={s.isGift ? "heart" : "hash"} size={16} /></div>
                 <div className="min-w-0 flex-1">
                   <div className="text-[13px] font-medium text-purple">{s.orderNo} {s.isGift && <span className="text-orchid">· gift</span>}</div>
                   <div className="text-[12px] text-body-soft">{fmtTime(s.placedAt)} · {s.customer?.name ?? s.senderName} · {s._count?.lines ?? 0} item(s) · {methodLabel(s)}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-[13.5px] font-medium">{formatTaka(s.totalPaisa)}</div>
-                  {s.duePaisa > 0 && <div className="text-[11.5px] text-[#f7a96e]">{formatTaka(s.duePaisa)} due</div>}
+                  {s.duePaisa > 0 && <div className="text-[11.5px] text-[var(--t-warn)]">{formatTaka(s.duePaisa)} due</div>}
                 </div>
               </div>
             ))}
@@ -157,9 +157,9 @@ export function PosOverview() {
             <h3 className="font-display text-[16px] text-purple m-0 mb-3">Quick actions</h3>
             <div className="grid grid-cols-1 gap-2">
               {[
-                { href: "/pos/sell", label: "New sale", icon: "cash", from: "#b97fdc", to: "#ce6ef7" },
-                { href: "/pos/day-close", label: "Day-close", icon: "clock", from: "#78edbc", to: "#77eebc" },
-                { href: "/pos/due", label: "Collect due", icon: "user", from: "#c98089", to: "#c7949b" },
+                { href: "/pos/sell", label: "New sale", icon: "cash", from: "var(--a-solid)", to: "var(--a-solid)" },
+                { href: "/pos/day-close", label: "Day-close", icon: "clock", from: "var(--f-ok)", to: "var(--f-ok)" },
+                { href: "/pos/due", label: "Collect due", icon: "user", from: "var(--f-bad)", to: "var(--f-bad)" },
               ].map((x) => (
                 <Link key={x.href} href={x.href} className="text-[13.5px] font-medium text-white rounded-[12px] px-3.5 py-3 inline-flex items-center gap-2.5 shadow-soft hover:opacity-90" style={{ background: `linear-gradient(145deg, ${x.from}, ${x.to})` }}>
                   <span className="w-[28px] h-[28px] rounded-[9px] bg-white/20 grid place-items-center"><Icon name={x.icon} size={15} /></span>
@@ -302,7 +302,7 @@ function CashOutDialog({
         <label className="text-[12.5px] text-body-soft font-medium mb-1 block">Note (optional)</label>
         <input className="ipt h-[44px]" placeholder="Anything to remember" value={note} onChange={(e) => setNote(e.target.value)} />
 
-        {err && <p className="text-[12px] text-[#e1837a] mt-3 mb-0">{err}</p>}
+        {err && <p className="text-[12px] text-[var(--t-gold)] mt-3 mb-0">{err}</p>}
 
         <div className="flex gap-2 mt-5">
           <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-[11px] border border-lavender-deep text-purple font-bold text-[13px]">Cancel</button>
@@ -340,7 +340,7 @@ export function PosShiftBoard() {
       <Head title="Today / Shift" />
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5 items-start">
         {shift ? (
-          <div className="rounded-[18px] p-5 text-white shadow-soft relative overflow-hidden" style={{ background: "linear-gradient(160deg,#159b63,#0d5f3f)" }}>
+          <div className="rounded-[18px] p-5 text-white shadow-soft relative overflow-hidden" style={{ background: "linear-gradient(160deg,var(--f-ok),var(--f-ok))" }}>
             <div className="absolute -right-6 -top-6 w-[90px] h-[90px] rounded-full bg-white/10" />
             <div className="flex items-center gap-2 mb-3"><span className="w-[9px] h-[9px] rounded-full bg-white" /><h3 className="font-display text-[16px] text-white m-0">Shift open{sum?.shiftNo ? ` · ${sum.shiftNo}` : ""}</h3></div>
             <div className="space-y-2 text-[13px]">
@@ -358,7 +358,7 @@ export function PosShiftBoard() {
             <button type="button" onClick={() => setCashOut(true)} className="w-full mt-4 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-[13px] py-2.5 rounded-[11px] font-bold">
               Take cash out
             </button>
-            <Link href="/pos/day-close" className="block text-center mt-2 bg-white hover:bg-white/90 text-[#78edbf] text-[13.5px] py-2.5 rounded-[11px] font-bold">Start day-close</Link>
+            <Link href="/pos/day-close" className="block text-center mt-2 bg-white hover:bg-white/90 text-[var(--t-ok)] text-[13.5px] py-2.5 rounded-[11px] font-bold">Start day-close</Link>
           </div>
         ) : (
           <div className={card + " p-5"}>
@@ -385,7 +385,7 @@ export function PosShiftBoard() {
                 <span className="text-body-soft">{fmtDateTime(s.placedAt)} · {s.customerName}</span>
                 <span className="font-medium">
                   {formatTaka(s.totalPaisa)}
-                  {s.duePaisa > 0 && <span className="text-[#f7a96e] font-normal"> · {formatTaka(s.duePaisa)} due</span>}
+                  {s.duePaisa > 0 && <span className="text-[var(--t-warn)] font-normal"> · {formatTaka(s.duePaisa)} due</span>}
                 </span>
               </div>
             ))}
@@ -485,12 +485,12 @@ export function PosSalesHistory() {
         </p>
       </div>
 
-      {err && <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px]" style={{ background: "#3a1616", color: "#ff9c92" }}>{err}</div>}
+      {err && <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px]" style={{ background: "var(--s-bad)", color: "var(--t-bad)" }}>{err}</div>}
 
       <div className={card + " overflow-hidden"}>
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="text-left text-white" style={{ background: "linear-gradient(90deg,#5a1385,#7a2ea8)" }}>
+            <tr className="text-left text-white" style={{ background: "linear-gradient(90deg,var(--a-solid),var(--a-solid))" }}>
               <th className="px-4 py-2.5 font-medium">Receipt</th>
               <th className="px-4 py-2.5 font-medium">Time</th>
               <th className="px-4 py-2.5 font-medium">Customer</th>
@@ -514,8 +514,8 @@ export function PosSalesHistory() {
                     {/*  §4 — an advance order is NOT a completed sale; it showed
                          here as one with a due beside it and nothing said the
                          goods were still on the shelf  */}
-                    {advance && <span className="block text-[11px] text-[#f7a96e]">advance — not handed over</span>}
-                    {voided && <span className="block text-[11px] text-[#ff9c92] font-medium">VOIDED</span>}
+                    {advance && <span className="block text-[11px] text-[var(--t-warn)]">advance — not handed over</span>}
+                    {voided && <span className="block text-[11px] text-[var(--t-bad)] font-medium">VOIDED</span>}
                   </td>
                   <td className="px-4 py-2.5 text-body-soft">{fmtDateTime(s.placedAt)}</td>
                   <td className="px-4 py-2.5"><Link href={`/pos/sale/${s.id}`} className="hover:underline">{s.customer?.name ?? s.senderName}</Link></td>
@@ -523,8 +523,8 @@ export function PosSalesHistory() {
                   <td className="px-4 py-2.5 text-body-soft">{methodLabel(s)}</td>
                   <td className="px-4 py-2.5 text-right font-medium">
                     <span className={voided ? "line-through" : ""}>{formatTaka(s.totalPaisa)}</span>
-                    {!voided && s.duePaisa > 0 && <span className="block text-[11px] text-[#f7a96e]">{formatTaka(s.duePaisa)} due</span>}
-                    {(s.refundPaisa ?? 0) > 0 && <span className="block text-[11px] text-[#f7a96e]">{formatTaka(s.refundPaisa ?? 0)} refunded</span>}
+                    {!voided && s.duePaisa > 0 && <span className="block text-[11px] text-[var(--t-warn)]">{formatTaka(s.duePaisa)} due</span>}
+                    {(s.refundPaisa ?? 0) > 0 && <span className="block text-[11px] text-[var(--t-warn)]">{formatTaka(s.refundPaisa ?? 0)} refunded</span>}
                   </td>
                   <td className="px-4 py-2.5 text-right whitespace-nowrap">
                     <button type="button" onClick={() => setRx(s.id)}
@@ -538,7 +538,7 @@ export function PosSalesHistory() {
                         ? <div className="text-[11px] text-body-soft mt-1 max-w-[190px] ml-auto leading-snug">{block}</div>
                         : <button type="button" onClick={() => setVoidRow(s)}
                             className="text-[12px] font-medium rounded-[8px] px-2.5 py-1.5 ml-1.5 border"
-                            style={{ color: "#ff9c92", borderColor: "#6a2a25", background: "#2c1413" }}>
+                            style={{ color: "var(--t-bad)", borderColor: "var(--l-bad)", background: "var(--s-bad)" }}>
                             Void
                           </button>
                     )}
@@ -601,7 +601,7 @@ function VoidSaleDialog({ sale, onClose, onDone }: { sale: ApiPosSale; onClose: 
           {sale.customer?.name ?? sale.senderName} · {fmtDateTime(sale.placedAt)} · {formatTaka(sale.totalPaisa)}
         </p>
 
-        <div className="rounded-[12px] px-4 py-3 mb-4 text-[12.5px]" style={{ background: "#3a2d10", color: "#f5c451" }}>
+        <div className="rounded-[12px] px-4 py-3 mb-4 text-[12.5px]" style={{ background: "var(--s-warn)", color: "var(--t-warn)" }}>
           <b className="block mb-1.5">What happens when you press it</b>
           <ul className="m-0 pl-4 space-y-1">
             {advance
@@ -620,12 +620,12 @@ function VoidSaleDialog({ sale, onClose, onDone }: { sale: ApiPosSale; onClose: 
           onChange={(e) => setReason(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !busy) void go(); }} />
 
-        {err && <p className="text-[12px] text-[#e1837a] m-0 mb-3">{err}</p>}
+        {err && <p className="text-[12px] text-[var(--t-gold)] m-0 mb-3">{err}</p>}
 
         <div className="flex gap-2">
           <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-[11px] border border-lavender-deep text-purple font-bold text-[13px]">Keep the bill</button>
           <button type="button" onClick={go} disabled={busy}
-            className="flex-1 py-2.5 rounded-[11px] text-white font-bold text-[13px] disabled:opacity-50" style={{ background: "#a33a32" }}>
+            className="flex-1 py-2.5 rounded-[11px] text-white font-bold text-[13px] disabled:opacity-50" style={{ background: "var(--s-bad)" }}>
             {busy ? "Voiding…" : "Void it"}
           </button>
         </div>
@@ -723,7 +723,7 @@ export function PosDayClose() {
         }
       />
 
-      {err && <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px] bg-[#fdecea] text-[#c0392b]">{err}</div>}
+      {err && <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px] bg-[var(--s-bad)] text-[var(--t-bad)]">{err}</div>}
       {loading && !day && <div className={card + " p-6 text-[13px] text-body-soft"}>Counting the day…</div>}
 
       {day && (
@@ -753,7 +753,7 @@ export function PosDayClose() {
                         <span className="text-body-soft">{m.count} payment{m.count === 1 ? "" : "s"} · <span className="text-purple font-semibold">{formatTaka(m.paisaTotal)}</span></span>
                       </div>
                       <div className="h-[7px] rounded-full bg-lavender overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${Math.round((m.paisaTotal / biggest) * 100)}%`, background: "linear-gradient(90deg,#7a2ea8,#cf43ea)" }} />
+                        <div className="h-full rounded-full" style={{ width: `${Math.round((m.paisaTotal / biggest) * 100)}%`, background: "linear-gradient(90deg,var(--a-solid),var(--o-solid))" }} />
                       </div>
                     </div>
                   ))}
@@ -764,7 +764,7 @@ export function PosDayClose() {
                   </p>
                 )}
                 {(money?.refundedPaisa ?? 0) > 0 && (
-                  <p className="text-[12px] mt-1 mb-0" style={{ color: "#c0392b" }}>
+                  <p className="text-[12px] mt-1 mb-0" style={{ color: "var(--t-bad)" }}>
                     {formatTaka(money?.refundedPaisa ?? 0)} refunded
                   </p>
                 )}
@@ -800,7 +800,7 @@ export function PosDayClose() {
                       <span className="text-body-soft">{fmtTime(b.placedAt)} · <span className="text-purple font-medium">{b.orderNo}</span> · {b.customerName}</span>
                       <span className="font-medium text-purple">
                         {formatTaka(b.totalPaisa)}
-                        {b.duePaisa > 0 && <span className="text-[#b45309] font-normal"> · {formatTaka(b.duePaisa)} due</span>}
+                        {b.duePaisa > 0 && <span className="text-[var(--t-warn)] font-normal"> · {formatTaka(b.duePaisa)} due</span>}
                       </span>
                     </Link>
                   ))}
@@ -820,7 +820,7 @@ export function PosDayClose() {
                     <div className="flex justify-between"><span className="text-body-soft">Started with</span><span>{formatTaka(open.openingFloatPaisa)}</span></div>
                     <div className="flex justify-between">
                       <span className="text-body-soft">Cash in and out since</span>
-                      <span className={expected - open.openingFloatPaisa < 0 ? "text-[#c0392b]" : "text-[#0e7a3d]"}>{formatTaka(expected - open.openingFloatPaisa)}</span>
+                      <span className={expected - open.openingFloatPaisa < 0 ? "text-[var(--t-bad)]" : "text-[var(--t-ok)]"}>{formatTaka(expected - open.openingFloatPaisa)}</span>
                     </div>
                     <div className="flex justify-between border-t border-lavender-deep pt-2"><span className="text-purple font-medium">Should be in the box</span><span className="font-semibold text-purple">{formatTaka(expected)}</span></div>
                   </div>
@@ -832,7 +832,7 @@ export function PosDayClose() {
                       screen says which, because the alternative is a person
                       staring at a minus sign while counting notes.  */}
                   {expected < 0 && (
-                    <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px] font-medium" style={{ background: "#3a1616", color: "#ff9c92" }}>
+                    <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px] font-medium" style={{ background: "var(--s-bad)", color: "var(--t-bad)" }}>
                       {formatTaka(-expected)} more paid out than came in — see the movements below.
                     </div>
                   )}
@@ -841,7 +841,7 @@ export function PosDayClose() {
                       Saying so is the difference between a count that looks
                       wrong and a count that is understood.  */}
                   {open.openedBeforeToday && (
-                    <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px] font-medium" style={{ background: "#3a2d10", color: "#f5c451" }}>
+                    <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px] font-medium" style={{ background: "var(--s-warn)", color: "var(--t-warn)" }}>
                       Open since {fmtDay(open.openedOn ?? open.openedAt)} — holds those days&apos; cash too.
                     </div>
                   )}
@@ -858,7 +858,7 @@ export function PosDayClose() {
                         onChange={(e) => { const v = e.target.value; if (/^\d*\.?\d{0,2}$/.test(v)) setDraft(v); }}
                       />
                       {counted && (
-                        <div className={"mt-3 rounded-[12px] px-4 py-3 text-[13px] font-medium " + (over === 0 ? "bg-[#e9f9ef] text-[#0e7a3d]" : over > 0 ? "bg-[#eef4ff] text-[#1d4ed8]" : "bg-[#fdecea] text-[#c0392b]")}>
+                        <div className={"mt-3 rounded-[12px] px-4 py-3 text-[13px] font-medium " + (over === 0 ? "bg-[var(--s-ok)] text-[var(--t-ok)]" : over > 0 ? "bg-[var(--s-info)] text-[var(--t-info)]" : "bg-[var(--s-bad)] text-[var(--t-bad)]")}>
                           {over === 0 ? "Matches exactly" : over > 0 ? `Excess: ${formatTaka(over)} more in the box` : `Shortfall: ${formatTaka(-over)} missing`}
                         </div>
                       )}
@@ -866,7 +866,7 @@ export function PosDayClose() {
                         className="w-full mt-4 bg-purple hover:bg-purple-deep text-white text-[14px] py-3 rounded-[12px] font-bold disabled:opacity-50">
                         {closed ? "Day closed" : busy ? "Closing…" : "Close the day"}
                       </button>
-                      {closeErr && <p className="text-[11.5px] text-[#c0392b] mt-2 mb-0">{closeErr}</p>}
+                      {closeErr && <p className="text-[11.5px] text-[var(--t-bad)] mt-2 mb-0">{closeErr}</p>}
                       <button type="button" onClick={() => setCashOut(true)} className="w-full mt-2 border border-lavender-deep text-purple text-[13px] py-2.5 rounded-[11px] font-bold">
                         Take cash out
                       </button>
@@ -893,7 +893,7 @@ export function PosDayClose() {
                     {open.movements.map((m, i) => (
                       <div key={i} className="flex items-center justify-between py-2 border-b border-lavender-deep last:border-0 text-[12.5px]">
                         <span className="text-body-soft">{fmtDateTime(m.at)} · {m.note || m.kind.toLowerCase().replace(/_/g, " ")}</span>
-                        <span className={"font-medium " + (m.amountPaisa < 0 ? "text-[#c0392b]" : "text-[#0e7a3d]")}>
+                        <span className={"font-medium " + (m.amountPaisa < 0 ? "text-[var(--t-bad)]" : "text-[var(--t-ok)]")}>
                           {m.amountPaisa < 0 ? "−" : "+"}{formatTaka(Math.abs(m.amountPaisa))}
                         </span>
                       </div>
@@ -967,7 +967,7 @@ export function PosDueBoard() {
       <div className={card + " overflow-hidden"}>
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="text-left text-white" style={{ background: "linear-gradient(90deg,#5a1385,#7a2ea8)" }}>
+            <tr className="text-left text-white" style={{ background: "linear-gradient(90deg,var(--a-solid),var(--a-solid))" }}>
               <th className="px-4 py-2.5 font-medium">Bill</th>
               <th className="px-4 py-2.5 font-medium">Customer</th>
               <th className="px-4 py-2.5 font-medium">Since</th>
@@ -979,7 +979,7 @@ export function PosDueBoard() {
             {bills.map(({ row, o }) => {
               const age = days(o.placedAt);
               return (
-                <tr key={o.id} className={"border-t border-lavender-deep " + (age >= 7 ? "bg-[#3a2b16]" : "hover:bg-lavender/30")}>
+                <tr key={o.id} className={"border-t border-lavender-deep " + (age >= 7 ? "bg-[var(--s-warn)]" : "hover:bg-lavender/30")}>
                   <td className="px-4 py-2.5">
                     <Link href={`/orders/${o.id}`} className="font-mono font-semibold text-purple text-[12.5px] hover:underline">{o.orderNo}</Link>
                   </td>
@@ -992,9 +992,9 @@ export function PosDueBoard() {
                   </td>
                   <td className="px-4 py-2.5 text-body-soft">
                     {new Date(o.placedAt).toLocaleDateString()}
-                    <span className={age >= 7 ? "text-[#f7a96e] font-medium" : ""}> · {age === 0 ? "today" : `${age} days`}</span>
+                    <span className={age >= 7 ? "text-[var(--t-warn)] font-medium" : ""}> · {age === 0 ? "today" : `${age} days`}</span>
                   </td>
-                  <td className="px-4 py-2.5 text-right font-medium text-[#f7a96e]">{formatTaka(o.duePaisa)}</td>
+                  <td className="px-4 py-2.5 text-right font-medium text-[var(--t-warn)]">{formatTaka(o.duePaisa)}</td>
                   <td className="px-4 py-2.5 text-right whitespace-nowrap">
                     <button type="button" onClick={() => setOpen({ row, only: o.id })}
                       className="text-[12px] text-white bg-purple font-medium rounded-[8px] px-3 py-1.5">Collect</button>
@@ -1135,8 +1135,8 @@ function CollectDue({ row, onlyOrderId, onClose, onDone }: {
       <div className="fixed inset-0 z-50 grid place-items-center px-4" style={{ background: "rgba(40,20,50,.45)" }}
         {...backdropClose(() => { if (finished) onDone(); })}>
         <div className="w-full max-w-[420px] rounded-[16px] text-white shadow-lift p-4"
-          style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }} onClick={(e) => e.stopPropagation()}>
-          <div className="text-[12px] text-[#c9a6e4] font-medium uppercase tracking-[0.06em]">Collecting</div>
+          style={{ background: "linear-gradient(170deg,var(--a-solid),var(--a-solid))" }} onClick={(e) => e.stopPropagation()}>
+          <div className="text-[12px] text-[var(--t-accent)] font-medium uppercase tracking-[0.06em]">Collecting</div>
           <div className="text-[14px] font-medium mb-3">{row.name} · {row.phone}</div>
 
           <div className="rounded-[12px] px-3 py-3 mb-3" style={{ background: "rgba(255,255,255,.07)" }}>
@@ -1144,12 +1144,12 @@ function CollectDue({ row, onlyOrderId, onClose, onDone }: {
               <div key={r.orderId} className="flex items-start justify-between gap-3 py-1.5 border-b border-white/10 last:border-0">
                 <div className="min-w-0">
                   <div className="text-[13px] font-mono">{r.orderNo}</div>
-                  {r.error && <div className="text-[11.5px] text-[#ff9b9b]">{r.error}</div>}
+                  {r.error && <div className="text-[11.5px] text-[var(--t-bad)]">{r.error}</div>}
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-[13px]" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(r.amountPaisa)}</div>
                   <div className="text-[11px]" style={{
-                    color: r.state === "done" ? "#7fe0a8" : r.state === "failed" ? "#ff9b9b" : "#c9a6e4",
+                    color: r.state === "done" ? "var(--t-ok)" : r.state === "failed" ? "var(--t-bad)" : "var(--t-accent)",
                   }}>
                     {r.state === "done" ? "collected" : r.state === "working" ? "sending…" : r.state}
                   </div>
@@ -1159,12 +1159,12 @@ function CollectDue({ row, onlyOrderId, onClose, onDone }: {
           </div>
 
           <div className="rounded-[12px] px-3 py-2.5 mb-3" style={{ background: "rgba(127,224,168,.14)" }}>
-            <div className="text-[10.5px] uppercase tracking-[0.08em] font-medium" style={{ color: "#7fe0a8" }}>Taken</div>
-            <div className="text-[19px] font-semibold font-display" style={{ color: "#7fe0a8", fontVariantNumeric: "tabular-nums" }}>{formatTaka(took)}</div>
+            <div className="text-[10.5px] uppercase tracking-[0.08em] font-medium" style={{ color: "var(--t-ok)" }}>Taken</div>
+            <div className="text-[19px] font-semibold font-display" style={{ color: "var(--t-ok)", fontVariantNumeric: "tabular-nums" }}>{formatTaka(took)}</div>
           </div>
 
           {failed && finished && (
-            <div className="text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2 mb-3">
+            <div className="text-[11.5px] text-[var(--t-bad)] bg-white/10 rounded-[8px] px-3 py-2 mb-3">
               {failed.orderNo} was refused, so nothing after it was sent. The bills marked
               collected above are paid — do not take that money again. Close this and the
               board will show what is really still owed.
@@ -1172,7 +1172,7 @@ function CollectDue({ row, onlyOrderId, onClose, onDone }: {
           )}
 
           <button type="button" disabled={!finished} onClick={onDone}
-            className="w-full bg-white hover:bg-[#f4ecf9] text-purple text-[14px] py-3 rounded-[12px] font-semibold disabled:opacity-40">
+            className="w-full bg-white hover:bg-[var(--s-accent)] text-purple text-[14px] py-3 rounded-[12px] font-semibold disabled:opacity-40">
             {finished ? "Close" : "Working…"}
           </button>
         </div>
@@ -1297,7 +1297,7 @@ export function PosSettings() {
               {registers.map((r) => (
                 <div key={r.id} className="flex items-center justify-between py-2 border-b border-lavender-deep last:border-0 text-[13px]">
                   <span><span className="font-medium text-purple">{r.name}</span> <span className="font-mono text-[11.5px] text-body-soft">{r.code}</span></span>
-                  <span className={"text-[11.5px] font-medium " + (r.isActive ? "text-[#76efab]" : "text-body-soft")}>{r.isActive ? "active" : "off"}</span>
+                  <span className={"text-[11.5px] font-medium " + (r.isActive ? "text-[var(--t-ok)]" : "text-body-soft")}>{r.isActive ? "active" : "off"}</span>
                 </div>
               ))}
               {registers.length === 0 && <p className="text-[12.5px] text-body-soft m-0">No counter exists yet — the first sale creates one.</p>}
@@ -1320,7 +1320,7 @@ export function PosSettings() {
             <h3 className="font-display text-[16px] text-purple m-0 mb-1">Cash &amp; receipt</h3>
             {(!s || saved) && (
               <p className="text-[12.5px] m-0 mb-3">
-                {s ? <span className="text-[#76efab] font-medium">Saved</span> : <span className="text-body-soft">Loading…</span>}
+                {s ? <span className="text-[var(--t-ok)] font-medium">Saved</span> : <span className="text-body-soft">Loading…</span>}
               </p>
             )}
             <div className="space-y-3 text-[13px]">
@@ -1334,7 +1334,7 @@ export function PosSettings() {
                    keep a second rate of its own.  */}
               <div>
                 <label className="lbl">VAT rate</label>
-                <div className="flex items-center justify-between gap-3 border border-lavender-deep rounded-[12px] px-3.5 h-[40px] bg-[#271f30]">
+                <div className="flex items-center justify-between gap-3 border border-lavender-deep rounded-[12px] px-3.5 h-[40px] bg-[var(--s-accent)]">
                   <span className="text-[13.5px] font-medium text-purple">
                     {(s?.defaultTaxRateBps ?? 0) === 0 ? "No VAT" : `${(s?.defaultTaxRateBps ?? 0) / 100}%`}
                   </span>
@@ -1363,7 +1363,7 @@ export function PosSettings() {
                 <input className="ipt mb-3" defaultValue={s?.receiptFooter ?? ""} placeholder="Thank you — come again"
                   onBlur={(e) => save({ receiptFooter: e.target.value || null })} />
                 <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 accent-[#7a2ea8]"
+                  <input type="checkbox" className="w-4 h-4 accent-[var(--t-accent)]"
                     checked={s?.giftReceiptHidePrice ?? true}
                     onChange={(e) => save({ giftReceiptHidePrice: e.target.checked })} />
                   <span>Gift receipt hides the price</span>
@@ -1448,12 +1448,12 @@ export function PosAdvanceOrders() {
         <Stat label="Next one" value={rows[0]?.promisedBy ? new Date(rows[0].promisedBy).toLocaleDateString() : "—"} tone="orchid" />
       </div>
 
-      {flash && <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px]" style={{ background: "#1c3626", color: "#76efab" }}>{flash}</div>}
+      {flash && <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px]" style={{ background: "var(--s-ok)", color: "var(--t-ok)" }}>{flash}</div>}
 
       <div className={card + " overflow-hidden"}>
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="text-left text-white" style={{ background: "linear-gradient(90deg,#5a1385,#7a2ea8)" }}>
+            <tr className="text-left text-white" style={{ background: "linear-gradient(90deg,var(--a-solid),var(--a-solid))" }}>
               <th className="px-4 py-2.5 font-medium">Bill</th>
               <th className="px-4 py-2.5 font-medium">Customer</th>
               <th className="px-4 py-2.5 font-medium">Taking it</th>
@@ -1468,7 +1468,7 @@ export function PosAdvanceOrders() {
               const late = d !== null && d < 0;
               const today = d === 0;
               return (
-                <tr key={r.id} className={"border-t border-lavender-deep " + (late ? "bg-[#3c2e17]" : today ? "bg-[#1c3424]" : "hover:bg-lavender/30")}>
+                <tr key={r.id} className={"border-t border-lavender-deep " + (late ? "bg-[var(--s-warn)]" : today ? "bg-[var(--s-ok)]" : "hover:bg-lavender/30")}>
                   <td className="px-4 py-2.5">
                     <Link href={`/pos/sale/${r.id}`} className="font-mono font-semibold text-purple text-[12.5px] hover:underline">{r.orderNo}</Link>
                     <div className="text-[11px] text-body-soft">ordered {new Date(r.placedAt).toLocaleDateString()}</div>
@@ -1479,7 +1479,7 @@ export function PosAdvanceOrders() {
                   </td>
                   <td className="px-4 py-2.5">
                     {r.promisedBy ? new Date(r.promisedBy).toLocaleDateString() : "—"}
-                    <div className={"text-[11.5px] " + (late ? "text-[#f7a96e] font-medium" : "text-body-soft")}>
+                    <div className={"text-[11.5px] " + (late ? "text-[var(--t-warn)] font-medium" : "text-body-soft")}>
                       {d === null ? "" : late ? `${-d} day${-d === 1 ? "" : "s"} overdue` : today ? "today" : `in ${d} day${d === 1 ? "" : "s"}`}
                     </div>
                   </td>
@@ -1496,8 +1496,8 @@ export function PosAdvanceOrders() {
                   <td className="px-4 py-2.5 text-right">
                     <div>{formatTaka(r.paidPaisa)} of {formatTaka(r.totalPaisa)}</div>
                     {r.duePaisa > 0
-                      ? <div className="text-[12px] text-[#f7a96e] font-medium">{formatTaka(r.duePaisa)} to collect</div>
-                      : <div className="text-[12px] text-[#76efab]">paid in full</div>}
+                      ? <div className="text-[12px] text-[var(--t-warn)] font-medium">{formatTaka(r.duePaisa)} to collect</div>
+                      : <div className="text-[12px] text-[var(--t-ok)]">paid in full</div>}
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <div className="flex flex-col items-end gap-1.5">
@@ -1603,14 +1603,14 @@ export function PosAdvanceOrders() {
           }}
           onClose={() => { if (!busy) setCancelRow(null); }}
         >
-          <label className="text-[12.5px] font-medium text-[#c9a6e4] mb-1.5 block">Why is it being cancelled</label>
+          <label className="text-[12.5px] font-medium text-[var(--t-accent)] mb-1.5 block">Why is it being cancelled</label>
           <input className="ipt h-[40px] text-[13px]" placeholder="The customer changed their mind…"
             value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
-          <label className="text-[12.5px] font-medium text-[#c9a6e4] mt-3 mb-1.5 block">How much goes back ৳</label>
+          <label className="text-[12.5px] font-medium text-[var(--t-accent)] mt-3 mb-1.5 block">How much goes back ৳</label>
           <input type="text" inputMode="decimal" className="ipt h-[40px] text-[13px]"
             value={cancelBack}
             onChange={(e) => { const v = e.target.value; if (/^\d*\.?\d{0,2}$/.test(v)) setCancelBack(v); }} />
-          <div className="text-[11.5px] text-[#a98ac4] mt-1">
+          <div className="text-[11.5px] text-[var(--t-accent)] mt-1">
             They paid {formatTaka(cancelRow.paidPaisa)}. Hand back less only if the shop has decided to keep part of it.
           </div>
         </RefundDialog>
@@ -1641,15 +1641,15 @@ function HandOver({ row, busy, err, onClose, onDone }: {
       also the list the server checks against the shelf a moment from now.  */
   const stock = (
     <div className="rounded-[12px] px-3 py-3 mt-3" style={{ background: "rgba(255,255,255,.07)" }}>
-      <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium mb-1.5">Leaves the shelf now</div>
+      <div className="text-[10.5px] uppercase tracking-[0.08em] text-[var(--t-accent)] font-medium mb-1.5">Leaves the shelf now</div>
       {row.lines.map((l) => (
         <div key={l.id} className="flex items-center justify-between text-[12.5px] py-0.5">
           <span className="truncate pr-2">{l.name}</span>
           <span className="font-medium shrink-0" style={{ fontVariantNumeric: "tabular-nums" }}>x{l.qty}</span>
         </div>
       ))}
-      {row.lines.length === 0 && <div className="text-[12px] text-[#c9a6e4]">Nothing on this order.</div>}
-      <p className="text-[11px] text-[#a98ac4] m-0 mt-2">
+      {row.lines.length === 0 && <div className="text-[12px] text-[var(--t-accent)]">Nothing on this order.</div>}
+      <p className="text-[11px] text-[var(--t-accent)] m-0 mt-2">
         These were promised, not reserved. If any of it has sold in the meantime the
         hand-over is refused and nothing moves.
       </p>
@@ -1660,47 +1660,47 @@ function HandOver({ row, busy, err, onClose, onDone }: {
     <div className="fixed inset-0 z-50 grid place-items-center px-4 py-6 overflow-auto" style={{ background: "rgba(40,20,50,.45)" }}
       {...backdropClose(onClose)}>
       <div className="w-full max-w-[420px] rounded-[16px] text-white shadow-lift p-4"
-        style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }} onClick={(e) => e.stopPropagation()}>
-        <div className="text-[12px] text-[#c9a6e4] font-medium uppercase tracking-[0.06em]">Hand over</div>
+        style={{ background: "linear-gradient(170deg,var(--a-solid),var(--a-solid))" }} onClick={(e) => e.stopPropagation()}>
+        <div className="text-[12px] text-[var(--t-accent)] font-medium uppercase tracking-[0.06em]">Hand over</div>
         <div className="text-[14px] font-medium mb-3">{row.orderNo} · {row.customerName}</div>
 
         {row.duePaisa === 0 ? (
           <div className="rounded-[12px] px-3 py-3 text-center" style={{ background: "rgba(127,224,168,.14)" }}>
-            <div className="text-[10.5px] uppercase tracking-[0.08em] font-medium" style={{ color: "#7fe0a8" }}>Already paid in full</div>
-            <div className="text-[26px] font-semibold font-display" style={{ color: "#bff3d5" }}>{formatTaka(row.totalPaisa)}</div>
+            <div className="text-[10.5px] uppercase tracking-[0.08em] font-medium" style={{ color: "var(--t-ok)" }}>Already paid in full</div>
+            <div className="text-[26px] font-semibold font-display" style={{ color: "var(--t-ok)" }}>{formatTaka(row.totalPaisa)}</div>
           </div>
         ) : (
           <>
             <div className="rounded-[12px] px-3 py-3 text-center" style={{ background: "rgba(255,255,255,.07)" }}>
-              <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Still to collect</div>
+              <div className="text-[10.5px] uppercase tracking-[0.08em] text-[var(--t-accent)] font-medium">Still to collect</div>
               <div className="text-[32px] font-semibold font-display leading-[1.2]" style={{ fontVariantNumeric: "tabular-nums" }}>
                 {formatTaka(row.duePaisa)}
               </div>
-              <div className="text-[11px] text-[#a98ac4]">{formatTaka(row.paidPaisa)} was paid in advance</div>
+              <div className="text-[11px] text-[var(--t-accent)]">{formatTaka(row.paidPaisa)} was paid in advance</div>
             </div>
             <div className="rounded-[12px] px-3 py-3 mt-3" style={{ background: "rgba(255,255,255,.07)" }}>
               <PaymentLines pay={pay} methods={methods} title="Taking now" maxHeight={148} />
             </div>
             <div className="grid grid-cols-2 gap-2 mt-3">
               <div className="rounded-[12px] px-3 py-2.5" style={{ background: "rgba(255,255,255,.07)" }}>
-                <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">Taking now</div>
+                <div className="text-[10.5px] uppercase tracking-[0.08em] text-[var(--t-accent)] font-medium">Taking now</div>
                 <div className="text-[19px] font-semibold font-display" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(taking)}</div>
               </div>
               <div className="rounded-[12px] px-3 py-2.5" style={{ background: left > 0 ? "rgba(240,180,106,.14)" : "rgba(127,224,168,.14)" }}>
-                <div className="text-[10.5px] uppercase tracking-[0.08em] font-medium truncate" style={{ color: left > 0 ? "#f0b46a" : "#7fe0a8" }}>
+                <div className="text-[10.5px] uppercase tracking-[0.08em] font-medium truncate" style={{ color: left > 0 ? "var(--t-warn)" : "var(--t-ok)" }}>
                   {left > 0 ? "Still owed after this" : "Settled"}
                 </div>
-                <div className="text-[19px] font-semibold font-display" style={{ color: left > 0 ? "#f0b46a" : "#7fe0a8", fontVariantNumeric: "tabular-nums" }}>
+                <div className="text-[19px] font-semibold font-display" style={{ color: left > 0 ? "var(--t-warn)" : "var(--t-ok)", fontVariantNumeric: "tabular-nums" }}>
                   {formatTaka(left)}
                 </div>
               </div>
             </div>
-            {tooMuch && <p className="text-[12px] text-[#ff9b9b] mt-2 mb-0">Cannot be more than {formatTaka(row.duePaisa)}.</p>}
+            {tooMuch && <p className="text-[12px] text-[var(--t-bad)] mt-2 mb-0">Cannot be more than {formatTaka(row.duePaisa)}.</p>}
             {/*  a hand-over with money still owed is allowed — the rest stays a
                  due like any other (owner, 21 Aug) — but it should be a choice,
                  not a surprise  */}
             {left > 0 && !tooMuch && (
-              <p className="text-[11.5px] text-[#f0b46a] mt-2 mb-0">
+              <p className="text-[11.5px] text-[var(--t-warn)] mt-2 mb-0">
                 {formatTaka(left)} stays on the due board after this.
               </p>
             )}
@@ -1709,14 +1709,14 @@ function HandOver({ row, busy, err, onClose, onDone }: {
 
         {stock}
 
-        {err && <div className="mt-3 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{err}</div>}
+        {err && <div className="mt-3 text-[11.5px] text-[var(--t-bad)] bg-white/10 rounded-[8px] px-3 py-2">{err}</div>}
 
         <div className="flex gap-2 mt-3">
           <button type="button" onClick={onClose} disabled={busy}
             className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 disabled:opacity-40">Cancel</button>
           <button type="button" disabled={busy || tooMuch}
             onClick={() => onDone(row.duePaisa === 0 ? [] : rest)}
-            className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-40">
+            className="flex-1 bg-white hover:bg-[var(--s-accent)] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-40">
             <Icon name="check" size={17} /> {busy ? "Working…" : row.duePaisa === 0 ? "Hand it over" : `Take & hand over · ${formatTaka(taking)}`}
           </button>
         </div>

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Icon from "./Icon";
 import NotificationsBell from "./NotificationsBell";
+import SkinToggle from "./SkinToggle";
 
 /*
   Admin nav — active link via usePathname.
@@ -77,14 +78,14 @@ const pickActive = (items: Item[], p: string): Item | undefined =>
     ═══════════════════════════════════════════════════════════════════════ */
 const GROUPS: Group[] = [
   {
-    title: "Dashboards", accent: "#cf43ea", emblem: "sparkle",
+    title: "Dashboards", accent: "var(--t-orchid)", emblem: "sparkle",
     items: [
       { label: "Business Dashboard", href: "/intelligence", icon: "sparkle" },
       { label: "Accounts Dashboard", href: "/finance", icon: "wallet", roles: ["OWNER", "MANAGER"] },
     ],
   },
   {
-    title: "Sales", accent: "#451e27", emblem: "bag",
+    title: "Sales", accent: "var(--t-bad)", emblem: "bag",
     items: [
       {
         label: "Orders", href: "/orders", icon: "bag",
@@ -127,7 +128,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Shop", accent: "#e9c46a", emblem: "register",
+    title: "Shop", accent: "var(--t-warn)", emblem: "register",
     items: [
       {
         label: "POS", href: "/pos", icon: "register",
@@ -145,7 +146,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Catalog", accent: "#e07be0", emblem: "flower",
+    title: "Catalog", accent: "var(--t-orchid)", emblem: "flower",
     items: [
       {
         label: "Products", href: "/products", icon: "flower",
@@ -187,7 +188,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Stock", accent: "#5ec9a8", emblem: "box",
+    title: "Stock", accent: "var(--t-ok)", emblem: "box",
     items: [
       {
         label: "Inventory", href: "/inventory", icon: "warehouse",
@@ -250,7 +251,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Accounts", accent: "#e9c46a", emblem: "cash",
+    title: "Accounts", accent: "var(--t-warn)", emblem: "cash",
     items: [
       {
         label: "Finance", href: "/finance", icon: "wallet",
@@ -293,7 +294,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Customers & Marketing", accent: "#7fb4f0", emblem: "heart",
+    title: "Customers & Marketing", accent: "var(--t-info)", emblem: "heart",
     items: [
       {
         label: "Customers", href: "/customers", icon: "heart",
@@ -362,7 +363,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Staff", accent: "#322d3c", emblem: "user",
+    title: "Staff", accent: "var(--t-accent)", emblem: "user",
     items: [
       {
         label: "Staff", href: "/employees", icon: "user",
@@ -379,7 +380,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Settings", accent: "#322d3c", emblem: "gear",
+    title: "Settings", accent: "var(--t-accent)", emblem: "gear",
     items: [
       {
         label: "Shop setup", icon: "gear",
@@ -615,21 +616,22 @@ export default function AdminSidebar() {
 
   return (
     <aside
-      className="w-[262px] shrink-0 text-white px-3 py-4 sticky top-0 h-screen hidden md:flex md:flex-col overflow-y-auto font-nav"
+      className="w-[262px] shrink-0 px-3 py-4 sticky top-0 h-screen hidden md:flex md:flex-col overflow-y-auto font-nav"
       style={{
-        background: "linear-gradient(180deg,#3a0054 0%,#470066 42%,#5b0f83 100%)",
-        /*  Design A (owner, 8 Sep 2026): depth inside the deep purple — a soft
-            inner shadow down the edges and a faint glow at the top, so the
-            panel reads as a lit surface rather than a flat block.  */
-        boxShadow: "inset -18px 0 32px -20px rgba(0,0,0,.55), inset 18px 0 32px -22px rgba(0,0,0,.35), inset 0 40px 60px -40px rgba(207,67,234,.35)",
+        /*  The rail is a token too, so it follows the skin: a lit deep-plum
+            surface at night, a quiet white one by day. (Design A, 8 Sep 2026:
+            depth inside the purple rather than a flat block.)  */
+        background: "var(--rail-bg)",
+        boxShadow: "var(--rail-shadow)",
+        color: "var(--rail-fg)",
       }}
     >
       <div className="flex items-center gap-3 px-2 pb-4">
         <div className="w-[34px] h-[34px] rounded-[50%_50%_50%_0] -rotate-45 shrink-0"
-          style={{ background: "linear-gradient(150deg,#cf43ea,#b76e79)", boxShadow: "0 0 18px rgba(207,67,234,0.5)" }} />
+          style={{ background: "linear-gradient(150deg,var(--o-solid),var(--t-gold))", boxShadow: "var(--rail-mark)" }} />
         <div>
-          <b className="text-[20px] font-extrabold text-white block leading-none tracking-[-0.02em]">RADIAN</b>
-          <small className="text-[#e5b3bc] text-[10px] font-extrabold tracking-[0.18em] uppercase">Admin OS</small>
+          <b className="text-[20px] font-extrabold block leading-none tracking-[-0.02em]" style={{ color: "var(--rail-on-fg)" }}>RADIAN</b>
+          <small className="text-[10px] font-extrabold tracking-[0.18em] uppercase" style={{ color: "var(--rail-dim)" }}>Admin OS</small>
         </div>
       </div>
 
@@ -639,10 +641,14 @@ export default function AdminSidebar() {
         href={WEB_BASE}
         target="_blank"
         rel="noreferrer"
-        className="mx-1 mb-3 flex items-center justify-center gap-2 rounded-[12px] border border-white/[0.14] bg-white/[0.07] hover:bg-white/[0.14] text-white text-[13px] font-bold py-2.5 transition-colors"
+        className="mx-1 mb-3 flex items-center justify-center gap-2 rounded-[12px] text-[13px] font-bold py-2.5 transition-colors"
+        style={{ border: "1px solid var(--rail-line)", background: "var(--rail-hover)", color: "var(--rail-fg)" }}
       >
         ↗ View website
       </a>
+
+      {/*  Day or Night, for the whole panel (owner, 12 Sep 2026).  */}
+      <SkinToggle />
 
       <nav className="text-[14px]">
         {visibleGroups.map((g) => {
@@ -650,7 +656,7 @@ export default function AdminSidebar() {
           return (
             <div key={g.title} className="mb-1">
               {!dashboards && (
-                <div className="text-[10.5px] font-extrabold tracking-[0.18em] uppercase text-[#e5b3bc] px-3 pt-4 pb-1.5">
+                <div className="text-[10.5px] font-extrabold tracking-[0.18em] uppercase px-3 pt-4 pb-1.5" style={{ color: "var(--rail-dim)" }}>
                   {g.title}
                 </div>
               )}
@@ -660,28 +666,23 @@ export default function AdminSidebar() {
                 const rowBase = dashboards
                   ? "w-full flex items-center gap-3 px-3 py-[11px] rounded-[14px] mb-1.5 text-[14px] font-extrabold transition-all text-left "
                   : "w-full flex items-center gap-2.5 px-3 py-[9px] rounded-[12px] mb-0.5 text-[14px] font-bold transition-all text-left ";
-                const rowCls =
-                  rowBase +
-                  (parentActive && !open
-                    ? "text-white bg-white/[0.16]"
-                    : open
-                      ? "text-white bg-white/[0.12]"
-                      : dashboards
-                        ? "text-white bg-white/[0.08] hover:bg-white/[0.14]"
-                        : "text-[#f1e6f8] hover:bg-white/[0.08]");
-                const rowStyle =
+                /*  Every rail colour is a token, so the menu follows the skin
+                    with the rest of the panel. The old rows painted white-on-
+                    purple directly, which on the Day skin was white on white.  */
+                const rowCls = rowBase + " rail-row" + (parentActive || open ? " rail-row-on" : "");
+                const rowStyle: React.CSSProperties =
                   dashboards && parentActive
-                    ? { background: "#fff", color: "#ce6ef7", boxShadow: "0 10px 24px -10px rgba(0,0,0,.6)" }
-                    : open
-                      ? { boxShadow: "0 8px 20px -12px rgba(0,0,0,.7)" }
-                      : undefined;
+                    ? { background: "var(--rail-on-bg)", color: "var(--rail-on-fg)", boxShadow: "var(--elev-soft)" }
+                    : parentActive || open
+                      ? { background: "var(--rail-on-bg)", color: "var(--rail-on-fg)" }
+                      : { color: "var(--rail-fg)" };
                 const label = (
                   <>
                     <span
                       className={(dashboards ? "w-[30px] h-[30px] rounded-[9px]" : "w-[26px] h-[26px] rounded-[8px]") + " grid place-items-center shrink-0"}
                       style={{
-                        background: dashboards && parentActive ? "#32193a" : "rgba(255,255,255,.12)",
-                        color: dashboards && parentActive ? "#bb7fdc" : "#fff",
+                        background: "var(--rail-hover)",
+                        color: dashboards && parentActive ? "var(--rail-on-fg)" : "var(--rail-fg)",
                       }}
                     >
                       <Icon name={it.icon} size={dashboards ? 16 : 15} strokeWidth={2.4} />
@@ -737,9 +738,10 @@ export default function AdminSidebar() {
                               key={s.href}
                               href={s.href}
                               onClick={() => setSearch(s.href.includes("?") ? s.href.slice(s.href.indexOf("?")) : "")}
-                              className={"block px-3 py-[7px] rounded-[9px] mb-0.5 text-[13.5px] font-bold transition-colors " +
-                                (on ? "text-[#ce6ef7] bg-white" : "text-[#e3cff0] hover:text-white hover:bg-white/[0.1]")}
-                              style={on ? { boxShadow: "0 8px 18px -10px rgba(0,0,0,.7)" } : undefined}
+                              className="block px-3 py-[7px] rounded-[9px] mb-0.5 text-[13.5px] font-bold transition-colors rail-row"
+                              style={on
+                                ? { background: "var(--rail-on-bg)", color: "var(--rail-on-fg)" }
+                                : { color: "var(--rail-dim)" }}
                             >
                               {s.label}
                             </Link>
@@ -758,18 +760,18 @@ export default function AdminSidebar() {
       {/* who is at the keyboard — the name the ledger will record (DEC-FIN-028) */}
       <div className="mt-auto px-1 pt-4">
         {me && (
-          <div className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-[14px] mb-2" style={{ background: "rgba(255,255,255,0.08)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.08)" }}>
-            <div className="w-8 h-8 rounded-full grid place-items-center text-[13px] font-extrabold text-white shrink-0"
-              style={{ background: "linear-gradient(135deg,#cf43ea,#b76e79)" }}>
+          <div className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-[14px] mb-2" style={{ background: "var(--rail-hover)", border: "1px solid var(--rail-line)" }}>
+            <div className="w-8 h-8 rounded-full grid place-items-center text-[13px] font-extrabold shrink-0"
+              style={{ background: "linear-gradient(135deg,var(--o-solid),var(--t-gold))", color: "#fff" }}>
               {me.name.slice(0, 1).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-extrabold text-white truncate">{me.name}</div>
-              <div className="text-[10px] font-bold text-[#e5b3bc] uppercase tracking-[0.12em]">{me.role.toLowerCase()}</div>
+              <div className="text-[13px] font-extrabold truncate" style={{ color: "var(--rail-on-fg)" }}>{me.name}</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--rail-dim)" }}>{me.role.toLowerCase()}</div>
             </div>
             <NotificationsBell />
             <button onClick={signOut} title="Sign out"
-              className="text-[11px] font-extrabold text-[#e5b3bc] hover:text-white px-2 py-1 rounded-lg">
+              className="text-[11px] font-extrabold px-2 py-1 rounded-lg rail-row" style={{ color: "var(--rail-dim)" }}>
               exit
             </button>
           </div>

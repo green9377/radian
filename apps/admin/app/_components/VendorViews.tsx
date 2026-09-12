@@ -27,10 +27,10 @@ const NewVendorBtn = () => (
 
 function NotifyBadge({ s }: { s: ApiSupplier }) {
   if (s.notifyChannel === "OFF")
-    return <span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: "#29242e", color: "#aea4b7" }}>Notify off</span>;
+    return <span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>Notify off</span>;
   const label = s.notifyChannel === "WHATSAPP" ? "WhatsApp" : "SMS";
   return (
-    <span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: "#20332e", color: "#74f1d7" }}>
+    <span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: "var(--s-ok)", color: "var(--t-ok)" }}>
       {label} · {s.notifyMode === "AUTO" ? "auto" : "manual"}
     </span>
   );
@@ -84,10 +84,10 @@ export function VendorBoard() {
       {failed && <DemoBar what="the vendor board (API offline?)" onRetry={load} />}
 
       <Kpi items={[
-        { l: "Vendors", v: filtered.length, c: "#dda37d", bg: "#38291c", icon: "truck" },
-        { l: "Their products listed", v: totals.items, c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
-        { l: "Notify ready", v: `${totals.ready} of ${filtered.length}`, c: "#74f1d7", bg: "#20332e", icon: "mail" },
-        { l: "Due to vendors", v: formatTaka(totals.due), c: totals.due > 0 ? "#e1837a" : "#76efab", bg: "#3b1a16", icon: "cash" },
+        { l: "Vendors", v: filtered.length, c: "var(--t-warn)", bg: "var(--s-warn)", icon: "truck" },
+        { l: "Their products listed", v: totals.items, c: "var(--t-accent)", bg: "var(--s-accent)", icon: "box" },
+        { l: "Notify ready", v: `${totals.ready} of ${filtered.length}`, c: "var(--t-ok)", bg: "var(--s-ok)", icon: "mail" },
+        { l: "Due to vendors", v: formatTaka(totals.due), c: totals.due > 0 ? "var(--t-bad)" : "var(--t-ok)", bg: "var(--s-bad)", icon: "cash" },
       ]} />
 
       <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -132,17 +132,17 @@ export function VendorBoard() {
             <div className="flex items-center gap-2 flex-wrap mb-3">
               <NotifyBadge s={s} />
               {s.leadTimeHours != null && (
-                <span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: "#1b2838", color: "#79abe2" }}>
+                <span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: "var(--s-info)", color: "var(--t-info)" }}>
                   lead {s.leadTimeHours}h
                 </span>
               )}
-              <span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: "#2e1a38", color: "#ce6ef7" }}>
+              <span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>
                 {s._count?.items ?? 0} product(s)
               </span>
             </div>
             <div className="flex items-center justify-between text-[12.5px]">
               <span className="text-body-soft">{s.lastPurchaseAt ? `last sourcing ${fmtDate(s.lastPurchaseAt)}` : "no sourcing yet"}</span>
-              <b style={{ color: s.duePaisa > 0 ? "#e1837a" : "#76efab" }}>
+              <b style={{ color: s.duePaisa > 0 ? "var(--t-bad)" : "var(--t-ok)" }}>
                 {s.duePaisa > 0 ? `due ${formatTaka(s.duePaisa)}` : "clear"}
               </b>
             </div>

@@ -249,7 +249,7 @@ export function AttendanceView() {
                 </span>
               </Td>
               <Td>
-                <div className="inline-flex rounded-xl overflow-hidden border border-[#e7dff0]">
+                <div className="inline-flex rounded-xl overflow-hidden border border-[var(--l-accent)]">
                   {OPTIONS.map((o) => {
                     const on = r.status === o.key;
                     return (
@@ -257,7 +257,7 @@ export function AttendanceView() {
                         key={o.key}
                         disabled={locked}
                         onClick={() => setStatus(r, o.key)}
-                        className={`px-3 py-1.5 text-[12px] font-semibold border-r border-[#e7dff0] last:border-r-0 transition-colors disabled:opacity-50 ${on ? "text-white" : "bg-white text-body-soft hover:bg-[#fdfaff]"}`}
+                        className={`px-3 py-1.5 text-[12px] font-semibold border-r border-[var(--l-accent)] last:border-r-0 transition-colors disabled:opacity-50 ${on ? "text-white" : "bg-white text-body-soft hover:bg-[var(--s-accent)]"}`}
                         style={on ? { background: TONE[o.tone].bg } : undefined}
                       >
                         {o.label}
@@ -281,7 +281,7 @@ export function AttendanceView() {
               </Td>
               <Td>
                 {r.status === "ABSENT" || r.status === "LEAVE" ? (
-                  <span className="text-[#c9b8d4] text-[12px]">
+                  <span className="text-[var(--t-accent)] text-[12px]">
                     {r.status === "LEAVE" ? "on leave" : "did not come"}
                   </span>
                 ) : (
@@ -291,7 +291,7 @@ export function AttendanceView() {
                       <input type="time" disabled={locked} value={r.inTime ?? ""}
                         onChange={(e) => setTime(r, "inTime", e.target.value)} />
                     </label>
-                    <span className="text-[#c9b8d4] text-[13px]">→</span>
+                    <span className="text-[var(--t-accent)] text-[13px]">→</span>
                     <label className="time-field">
                       <span>Out</span>
                       <input type="time" disabled={locked} value={r.outTime ?? ""}

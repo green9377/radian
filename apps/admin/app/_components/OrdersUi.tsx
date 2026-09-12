@@ -29,33 +29,33 @@ export const SOLID = {
 
 /** soft tint behind each solid colour */
 const TINT: Record<string, string> = {
-  [SOLID.orchid]: "#38193b",
-  [SOLID.indigo]: "#18173c",
-  [SOLID.green]: "#203529",
-  [SOLID.amber]: "#3c2e17",
-  [SOLID.red]: "#3b1816",
-  [SOLID.blue]: "#192b3b",
-  [SOLID.purple]: "#2c2134",
-  [SOLID.grey]: "#241a2c",
+  [SOLID.orchid]: "var(--t-orchid)",
+  [SOLID.indigo]: "var(--t-info)",
+  [SOLID.green]: "var(--t-ok)",
+  [SOLID.amber]: "var(--t-warn)",
+  [SOLID.red]: "var(--t-bad)",
+  [SOLID.blue]: "var(--t-info)",
+  [SOLID.purple]: "var(--t-accent)",
+  [SOLID.grey]: "var(--t-accent)",
 };
 
-export const CELL = "px-3.5 py-3.5 align-top border-b border-[#3e3347] text-[13px] leading-[1.45]";
-export const TH = "text-left bg-lavender text-purple font-medium text-[11.5px] tracking-[0.05em] uppercase px-3.5 py-3 border-b border-[#3e3447] whitespace-nowrap";
-export const LABEL = "block text-[11px] font-medium text-[#afa4b7] leading-[1.2] mt-px";
+export const CELL = "px-3.5 py-3.5 align-top border-b border-[var(--l-accent)] text-[13px] leading-[1.45]";
+export const TH = "text-left bg-lavender text-purple font-medium text-[11.5px] tracking-[0.05em] uppercase px-3.5 py-3 border-b border-[var(--l-accent)] whitespace-nowrap";
+export const LABEL = "block text-[11px] font-medium text-[var(--t-accent)] leading-[1.2] mt-px";
 export const VALUE = "block font-medium text-body";
-export const SOFT = "text-[#afa4b7]";
+export const SOFT = "text-[var(--t-accent)]";
 export const NO = "font-medium text-purple whitespace-nowrap hover:underline";
 export const NAME = "font-medium text-purple hover:underline";
-export const ICON_BTN = "w-[24px] h-[24px] rounded-[7px] border border-[#3e3447] grid place-items-center text-body-soft hover:text-purple hover:border-purple bg-white";
+export const ICON_BTN = "w-[24px] h-[24px] rounded-[7px] border border-[var(--l-accent)] grid place-items-center text-body-soft hover:text-purple hover:border-purple bg-white";
 export const ACT = "h-[30px] w-full rounded-[9px] px-3 inline-flex items-center justify-center gap-1.5 text-[12.5px] font-medium whitespace-nowrap border";
 export const ACT_PRIMARY = `${ACT} bg-purple border-purple text-white hover:bg-purple-deep`;
-export const ACT_QUIET = `${ACT} bg-white border-[#3e3447] text-purple hover:border-purple`;
-export const ACT_CALL = `${ACT} bg-white border-[#31493b] text-[#74f1aa] hover:border-[#0e8a44]`;
-export const TABLE_WRAP = "bg-white border border-[#3e3447] rounded-[14px] overflow-x-auto";
+export const ACT_QUIET = `${ACT} bg-white border-[var(--l-accent)] text-purple hover:border-purple`;
+export const ACT_CALL = `${ACT} bg-white border-[var(--l-ok)] text-[var(--t-ok)] hover:border-[var(--l-ok)]`;
+export const TABLE_WRAP = "bg-white border border-[var(--l-accent)] rounded-[14px] overflow-x-auto";
 /*  Zebra rows everywhere (owner, 10 Sep 2026): one row white, the next on a
     whisper of lavender, so the eye keeps its line. Applied here once; every
     table built on this file gets it.  */
-export const TABLE = "w-full border-collapse min-w-[1080px] [&_tbody_tr:nth-child(even)]:bg-[#291e31]";
+export const TABLE = "w-full border-collapse min-w-[1080px] [&_tbody_tr:nth-child(even)]:bg-[var(--s-accent)]";
 
 export function Pill({ colour, children }: { colour: string; children: React.ReactNode }) {
   return (
@@ -156,7 +156,7 @@ export function Band({
   const base = "block rounded-[14px] px-4 py-3.5 border text-left w-full";
   const cols = columns === 4 ? "grid-cols-2 xl:grid-cols-4" : columns === 7 ? "grid-cols-2 md:grid-cols-4 xl:grid-cols-7" : columns === 6 ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-6" : "grid-cols-2 md:grid-cols-3 xl:grid-cols-5";
   return (
-    <div className="rounded-[20px] px-6 pt-5 pb-6 mb-4 text-white" style={{ background: "linear-gradient(135deg,#320049 0%,#5a0a80 100%)" }}>
+    <div className="rounded-[20px] px-6 pt-5 pb-6 mb-4 text-white" style={{ background: "linear-gradient(135deg,var(--a-solid) 0%,var(--a-solid) 100%)" }}>
       <div className="flex items-center justify-between gap-4 mb-4">
         <h1 className="font-display font-semibold text-[24px] leading-none m-0 inline-flex items-center gap-2.5 text-white">
           {title}
@@ -173,8 +173,8 @@ export function Band({
           const on = active === t.key;
           const inner = (
             <>
-              <span className={`block text-[11.5px] font-medium ${on ? "text-white" : "text-[#d9c5e6]"}`}>{t.label}</span>
-              <span className="block font-medium text-[22px] leading-none mt-2" style={{ color: t.hot ? "#ffb4ad" : "#fff" }}>
+              <span className={`block text-[11.5px] font-medium ${on ? "text-white" : "text-[var(--t-accent)]"}`}>{t.label}</span>
+              <span className="block font-medium text-[22px] leading-none mt-2" style={{ color: t.hot ? "var(--t-bad)" : "#fff" }}>
                 {t.value}
               </span>
               {t.sub && <span className={`block text-[11.5px] mt-1.5 ${on ? "text-white/85" : "text-white/70"}`}>{t.sub}</span>}
@@ -235,7 +235,7 @@ export function Segs<K extends string>({
   onChange: (k: K) => void;
 }) {
   return (
-    <div className="inline-flex bg-white border border-[#3e3447] rounded-[12px] p-1 gap-0.5">
+    <div className="inline-flex bg-white border border-[var(--l-accent)] rounded-[12px] p-1 gap-0.5">
       {items.map(([k, label]) => {
         const on = value === k;
         const n = counts?.[k];
@@ -247,7 +247,7 @@ export function Segs<K extends string>({
             className={`px-3.5 py-2 rounded-[9px] text-[13px] font-medium inline-flex items-center gap-1.5 ${on ? "bg-purple text-white" : "text-body-soft hover:text-purple"}`}
           >
             {label}
-            {n !== undefined && <span className={on ? "text-white/70" : "text-[#afa4b7]"}>{n}</span>}
+            {n !== undefined && <span className={on ? "text-white/70" : "text-[var(--t-accent)]"}>{n}</span>}
           </button>
         );
       })}

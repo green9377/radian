@@ -23,7 +23,7 @@ import {
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: "ok" | "accent" | "gold" | "info" }) {
   const color =
-    tone === "ok" ? "text-[#2e7d5b]" : tone === "info" ? "text-[#2b5f9e]" : tone === "gold" ? "text-rosegold" : "text-purple";
+    tone === "ok" ? "text-[var(--t-ok)]" : tone === "info" ? "text-[var(--t-info)]" : tone === "gold" ? "text-rosegold" : "text-purple";
   return (
     <div className="bg-white border border-lavender-deep rounded-[14px] px-4 py-3.5 shadow-soft">
       <div className="text-[13px] text-body-soft">{label}</div>
@@ -169,7 +169,7 @@ export default function CustomerListView() {
       <DemoBanner isDemo={isDemo} onReload={load} />
 
       {error && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}. Is the API (:4000) running?{" "}
           <button className="underline" onClick={load}>
             Retry
@@ -212,13 +212,13 @@ export default function CustomerListView() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="leading-snug">{c.phone}</div>
-                    {c.whatsappVerified && <div className="text-[11px] text-[#2e7d5b] font-medium">✓ WhatsApp</div>}
+                    {c.whatsappVerified && <div className="text-[11px] text-[var(--t-ok)] font-medium">✓ WhatsApp</div>}
                   </td>
                   <td className="px-4 py-3">
                     <span
                       className={
                         "text-[12.5px] px-2.5 py-1 rounded-full " +
-                        (c.isAbroad ? "bg-[#eaf1fb] text-[#2b5f9e] font-medium" : "bg-lavender-deep/60 text-body")
+                        (c.isAbroad ? "bg-[var(--s-info)] text-[var(--t-info)] font-medium" : "bg-lavender-deep/60 text-body")
                       }
                     >
                       {c.country}
@@ -232,7 +232,7 @@ export default function CustomerListView() {
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1.5">
                       {c.tier === "new" && (
-                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#eaf1fb] text-[#2b5f9e] font-medium">New</span>
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-[var(--s-info)] text-[var(--t-info)] font-medium">New</span>
                       )}
                       {(c.segments ?? []).map((s) => (
                         <span key={s.id} className="text-[11px] px-2 py-0.5 rounded-full bg-orchid-soft text-purple font-medium">
@@ -246,12 +246,12 @@ export default function CustomerListView() {
                   </td>
                   <td className="px-4 py-3">
                     {blocked ? (
-                      <span className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full bg-[#fdecea] text-[#c0392b] font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#c0392b]" /> Blocked
+                      <span className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full bg-[var(--s-bad)] text-[var(--t-bad)] font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--s-bad)]" /> Blocked
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full bg-[#e6f4ec] text-[#2e7d5b] font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#2e7d5b]" /> Active
+                      <span className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full bg-[var(--s-ok)] text-[var(--t-ok)] font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--s-ok)]" /> Active
                       </span>
                     )}
                   </td>
@@ -268,7 +268,7 @@ export default function CustomerListView() {
                         type="button"
                         title="Delete"
                         onClick={() => onDelete(c)}
-                        className="border border-lavender-deep hover:border-[#e0a1a1] hover:text-[#c0392b] text-body-soft w-[34px] h-[34px] rounded-[10px] grid place-items-center transition-colors"
+                        className="border border-lavender-deep hover:border-[var(--l-bad)] hover:text-[var(--t-bad)] text-body-soft w-[34px] h-[34px] rounded-[10px] grid place-items-center transition-colors"
                       >
                         <Icon name="trash" size={17} />
                       </button>

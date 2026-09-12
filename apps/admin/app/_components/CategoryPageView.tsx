@@ -148,22 +148,22 @@ const SECTION_ICON: Record<string, string> = {
   giftFinder: "search", faq: "book",
 };
 const SECTION_TINT: Record<string, string> = {
-  banner: "linear-gradient(135deg,#7B2D8E,#C155D8)",
-  subCategoryRail: "linear-gradient(135deg,#A32C9B,#DE68C9)",
-  bestsellers: "linear-gradient(135deg,#B26A2F,#E0A25C)",
-  attributeGrid: "linear-gradient(135deg,#5C2A96,#9B6BE0)",
-  occasionGrid: "linear-gradient(135deg,#8E2D6B,#D45BA0)",
-  readyToday: "linear-gradient(135deg,#4A1259,#7B2D8E)",
-  colourGrid: "linear-gradient(135deg,#9B3FC4,#CE86E8)",
-  budgetRail: "linear-gradient(135deg,#6E3AA8,#A87BE0)",
-  productGrid: "linear-gradient(135deg,#7B2D8E,#B76E79)",
-  comboRail: "linear-gradient(135deg,#B76E79,#E0A0A8)",
-  deliveryBand: "linear-gradient(135deg,#4A1259,#6E3AA8)",
-  crossSellRail: "linear-gradient(135deg,#A83A6E,#DD84AC)",
-  giftFinder: "linear-gradient(135deg,#5B3E9E,#9986DD)",
-  faq: "linear-gradient(135deg,#7B2D8E,#C155D8)",
+  banner: "linear-gradient(135deg,var(--a-solid),var(--a-solid))",
+  subCategoryRail: "linear-gradient(135deg,var(--o-solid),var(--o-solid))",
+  bestsellers: "linear-gradient(135deg,var(--f-warn),var(--f-warn))",
+  attributeGrid: "linear-gradient(135deg,var(--a-solid),var(--a-solid))",
+  occasionGrid: "linear-gradient(135deg,var(--o-solid),var(--o-solid))",
+  readyToday: "linear-gradient(135deg,var(--a-solid),var(--a-solid))",
+  colourGrid: "linear-gradient(135deg,var(--a-solid),var(--a-solid))",
+  budgetRail: "linear-gradient(135deg,var(--a-solid),var(--a-solid))",
+  productGrid: "linear-gradient(135deg,var(--a-solid),var(--t-gold))",
+  comboRail: "linear-gradient(135deg,var(--t-gold),var(--f-bad))",
+  deliveryBand: "linear-gradient(135deg,var(--a-solid),var(--a-solid))",
+  crossSellRail: "linear-gradient(135deg,var(--o-solid),var(--o-solid))",
+  giftFinder: "linear-gradient(135deg,var(--a-solid),var(--f-info))",
+  faq: "linear-gradient(135deg,var(--a-solid),var(--a-solid))",
 };
-const tintOf = (k: string) => SECTION_TINT[k] ?? "linear-gradient(135deg,#7B2D8E,#C155D8)";
+const tintOf = (k: string) => SECTION_TINT[k] ?? "linear-gradient(135deg,var(--a-solid),var(--a-solid))";
 
 export default function CategoryPageView() {
   const [cats, setCats] = useState<ApiCategoryNode[]>([]);
@@ -465,17 +465,17 @@ export default function CategoryPageView() {
       {/* the same band the homepage screen wears — one module, two pages */}
       <div
         className="rounded-[18px] px-6 py-5 mb-4 text-white relative overflow-hidden"
-        style={{ background: "linear-gradient(120deg,#4a1259 0%,#7B2D8E 48%,#B44BC9 100%)" }}
+        style={{ background: "linear-gradient(120deg,var(--a-solid) 0%,var(--a-solid) 48%,var(--a-solid) 100%)" }}
       >
         <span
           aria-hidden
           className="absolute -right-8 -top-12 w-[190px] h-[190px] rounded-[50%_50%_50%_0] -rotate-45 opacity-[0.13]"
-          style={{ background: "linear-gradient(150deg,#ffffff,#f0c9ff)" }}
+          style={{ background: "linear-gradient(150deg,#ffffff,var(--a-solid))" }}
         />
         <div className="relative">
-          <div className="text-[11.5px] font-semibold uppercase tracking-[0.18em] text-[#e9c9f5] mb-1">Storefront</div>
+          <div className="text-[11.5px] font-semibold uppercase tracking-[0.18em] text-[var(--t-accent)] mb-1">Storefront</div>
           <h1 className="font-display text-[24px] font-medium m-0 leading-tight">Category pages</h1>
-          <p className="text-[12.5px] text-[#e6d3ee] mt-1.5 mb-0">
+          <p className="text-[12.5px] text-[var(--t-accent)] mt-1.5 mb-0">
             {slug === ""
               ? "Settings every category page follows"
               : `What ${chosen?.name ?? slug} does differently`}
@@ -490,7 +490,7 @@ export default function CategoryPageView() {
             onClick={() => { setSlug(""); setOpen(null); }}
             className={"text-[13px] font-semibold px-4 py-2 rounded-full border transition-all " +
               (slug === "" ? "text-white border-transparent shadow-[0_3px_12px_rgba(80,40,100,0.2)]" : "bg-white text-body border-lavender-deep hover:border-orchid")}
-            style={slug === "" ? { background: "linear-gradient(135deg,#7B2D8E,#C155D8)" } : undefined}
+            style={slug === "" ? { background: "linear-gradient(135deg,var(--a-solid),var(--a-solid))" } : undefined}
           >
             All categories
           </button>
@@ -500,7 +500,7 @@ export default function CategoryPageView() {
               onClick={() => { setSlug(c.slug); setOpen(null); }}
               className={"text-[13px] font-semibold px-4 py-2 rounded-full border transition-all " +
                 (slug === c.slug ? "text-white border-transparent shadow-[0_3px_12px_rgba(80,40,100,0.2)]" : "bg-white text-body border-lavender-deep hover:border-orchid")}
-              style={slug === c.slug ? { background: "linear-gradient(135deg,#7B2D8E,#C155D8)" } : undefined}
+              style={slug === c.slug ? { background: "linear-gradient(135deg,var(--a-solid),var(--a-solid))" } : undefined}
             >
               {c.name}
             </button>
@@ -514,11 +514,11 @@ export default function CategoryPageView() {
       </div>
 
       {err && (
-        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-4">
+        <div className="flex items-start gap-2 bg-[var(--s-bad)] border border-[var(--l-bad)] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[var(--t-bad)] mb-4">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
-      {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
+      {ok && <div className="bg-[var(--s-ok)] border border-[var(--l-ok)] rounded-[11px] px-3.5 py-2 text-[12px] text-[var(--t-ok)] mb-4">{ok}</div>}
 
       {/*  The rail + panel — the same anatomy as Reviews, Journal and Pages
           (owner, 12 Aug), pointed at the fourteen sections of this page.
@@ -537,27 +537,27 @@ export default function CategoryPageView() {
                 className="w-full min-w-0 overflow-hidden flex items-center gap-2.5 px-3 py-2.5 rounded-[13px] text-left transition-all"
                 style={on
                   ? { background: tintOf(r.key), border: "1px solid transparent", boxShadow: "0 5px 16px rgba(80,40,100,.25)" }
-                  : { background: "#fff", border: "1px solid #e6d8f0" }}>
+                  : { background: "#fff", border: "1px solid var(--l-accent)" }}>
                 <span className="w-[18px] shrink-0 text-[11px] tabular-nums"
-                  style={{ color: on ? "rgba(255,255,255,.75)" : "#a394b5" }}>{i + 1}</span>
+                  style={{ color: on ? "rgba(255,255,255,.75)" : "var(--t-accent)" }}>{i + 1}</span>
                 <span className="w-[30px] h-[30px] rounded-[10px] grid place-items-center shrink-0"
                   style={on
                     ? { background: "rgba(255,255,255,.22)", color: "#fff" }
-                    : { background: r.isActive ? tintOf(r.key) : "#cfc4da", color: "#fff" }}>
+                    : { background: r.isActive ? tintOf(r.key) : "var(--s-accent)", color: "#fff" }}>
                   {r.blockType
                     ? <ShopIconPreview name={(r.config.icon as string) ?? null} url={(r.config.iconUrl as string) ?? null} size={15} />
                     : <Icon name={SECTION_ICON[r.key] ?? "grid"} size={15} />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[12.5px] font-medium truncate" style={{ color: on ? "#fff" : "#3b2a4d" }}>{r.label}</span>
-                  <span className="block text-[10.5px] truncate" style={{ color: on ? "rgba(255,255,255,.75)" : "#a394b5" }}>
+                  <span className="block text-[12.5px] font-medium truncate" style={{ color: on ? "#fff" : "var(--t-accent)" }}>{r.label}</span>
+                  <span className="block text-[10.5px] truncate" style={{ color: on ? "rgba(255,255,255,.75)" : "var(--t-accent)" }}>
                     {!r.canSwitchOff ? "always on" : r.isActive ? "live" : "hidden"}
                     {r.blockType ? " · added by you" : r.overridden ? " · just this one" : ""}
                   </span>
                 </span>
                 {r.canSwitchOff && (
                   <span aria-hidden className="w-[8px] h-[8px] rounded-full shrink-0"
-                    style={{ background: on ? "#fff" : r.isActive ? "#2fa06a" : "#d9a441" }} />
+                    style={{ background: on ? "#fff" : r.isActive ? "var(--s-ok)" : "var(--s-warn)" }} />
                 )}
               </button>
             );
@@ -578,9 +578,9 @@ export default function CategoryPageView() {
               <div className="rounded-[18px] border border-lavender-deep overflow-hidden bg-white shadow-[0_2px_14px_rgba(80,40,100,0.06)]">
                 {/* the section's own header: who it is, and Live / Hidden */}
                 <div className="px-4 py-3.5 flex items-center gap-3.5 flex-wrap"
-                  style={{ background: "linear-gradient(120deg,#f7f0fb 0%,#f4e9fa 55%,#fbf2f4 100%)" }}>
+                  style={{ background: "linear-gradient(120deg,var(--a-solid) 0%,var(--a-solid) 55%,var(--f-bad) 100%)" }}>
                   <span className="w-[40px] h-[40px] rounded-[13px] grid place-items-center shrink-0 text-white"
-                    style={{ background: r.isActive ? tintOf(r.key) : "#cfc4da" }}>
+                    style={{ background: r.isActive ? tintOf(r.key) : "var(--s-accent)" }}>
                     {r.blockType
                       ? <ShopIconPreview name={(r.config.icon as string) ?? null} url={(r.config.iconUrl as string) ?? null} size={18} />
                       : <Icon name={SECTION_ICON[r.key] ?? "grid"} size={18} />}
@@ -592,15 +592,15 @@ export default function CategoryPageView() {
                       {r.overridden && !r.blockType && <span className="text-[10.5px] text-orchid bg-orchid-soft rounded-full px-2 py-0.5">just this one</span>}
                     </div>
                     <div className="text-[12px] text-body-soft truncate">
-                      {r.canSwitchOff ? r.hint : <span className="text-[#8a6414]">{r.lockedReason}</span>}
+                      {r.canSwitchOff ? r.hint : <span className="text-[var(--t-warn)]">{r.lockedReason}</span>}
                       {SOURCE[r.key]?.where && <span className="text-body-soft/70"> · from {SOURCE[r.key].where}</span>}
                     </div>
                   </div>
                   {r.canSwitchOff ? (
                     <div className="inline-flex p-[3px] rounded-full bg-lavender/70 shrink-0">
                       {[
-                        { on: true, label: "Live", fill: "linear-gradient(135deg,#12795a,#3ec294)" },
-                        { on: false, label: "Hidden", fill: "linear-gradient(135deg,#8a6414,#d9a441)" },
+                        { on: true, label: "Live", fill: "linear-gradient(135deg,var(--f-ok),var(--f-ok))" },
+                        { on: false, label: "Hidden", fill: "linear-gradient(135deg,var(--f-warn),var(--f-warn))" },
                       ].map((o) => (
                         <button key={o.label}
                           onClick={() => r.isActive !== o.on && patch(r.key, { isActive: o.on })}
@@ -683,7 +683,7 @@ export default function CategoryPageView() {
                           <span className="text-[11.5px] text-body-soft">
                             Sits after <b>{rows.find((x) => x.key === r.after)?.label ?? r.after}</b>
                           </span>
-                          <button onClick={() => dropBlock(r.key)} className="text-[12px] text-[#c0392b] hover:underline inline-flex items-center gap-1.5">
+                          <button onClick={() => dropBlock(r.key)} className="text-[12px] text-[var(--t-bad)] hover:underline inline-flex items-center gap-1.5">
                             <Icon name="trash" size={13} /> Remove this section
                           </button>
                         </div>
@@ -724,7 +724,7 @@ export default function CategoryPageView() {
                                 {([true, false] as const).map((v) => (
                                   <button key={String(v)} type="button" onClick={() => setCutBg(v)}
                                     className={"px-3 py-1 rounded-full text-[12px] font-semibold transition-all " + (cutBg === v ? "text-white shadow-sm" : "text-body-soft hover:text-purple")}
-                                    style={cutBg === v ? { background: v ? "linear-gradient(135deg,#7B2D8E,#C155D8)" : "#8d7d98" } : undefined}>
+                                    style={cutBg === v ? { background: v ? "linear-gradient(135deg,var(--a-solid),var(--a-solid))" : "var(--s-accent)" } : undefined}>
                                     {v ? "Auto" : "Keep"}
                                   </button>
                                 ))}
@@ -735,7 +735,7 @@ export default function CategoryPageView() {
                                 <>
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img src={chosen.bannerUrl} alt="" className="w-[132px] h-[88px] object-cover rounded-[10px] border border-lavender-deep" />
-                                  <button onClick={() => saveCategory({ bannerUrl: null })} className="text-[12px] text-body-soft hover:text-[#c0392b]">Remove</button>
+                                  <button onClick={() => saveCategory({ bannerUrl: null })} className="text-[12px] text-body-soft hover:text-[var(--t-bad)]">Remove</button>
                                 </>
                               ) : (
                                 <label className="text-[12.5px] text-purple border border-dashed border-lavender-deep rounded-[10px] px-4 py-3 cursor-pointer hover:border-orchid">
@@ -826,12 +826,12 @@ export default function CategoryPageView() {
                                     await updateCategoryFaq(f.id, { isActive: !f.isActive }).catch(() => {});
                                   }}
                                   className={"rounded-[9px] w-[32px] h-[32px] grid place-items-center transition-colors " +
-                                    (f.isActive ? "bg-lavender text-purple hover:bg-purple hover:text-white" : "bg-[#f0e8f6] text-body-soft")}>
+                                    (f.isActive ? "bg-lavender text-purple hover:bg-purple hover:text-white" : "bg-[var(--s-accent)] text-body-soft")}>
                                   <Icon name="eye" size={14} />
                                 </button>
                                 <button
                                   onClick={async () => { if (confirm("Remove this question?")) { setFaqs((x) => x.filter((y) => y.id !== f.id)); await removeCategoryFaq(f.id).catch(() => {}); } }}
-                                  className="rounded-[9px] w-[32px] h-[32px] grid place-items-center bg-lavender text-body-soft hover:bg-[#fdecea] hover:text-[#c0392b] transition-colors">
+                                  className="rounded-[9px] w-[32px] h-[32px] grid place-items-center bg-lavender text-body-soft hover:bg-[var(--s-bad)] hover:text-[var(--t-bad)] transition-colors">
                                   <Icon name="trash" size={14} />
                                 </button>
                               </div>
@@ -939,7 +939,7 @@ export default function CategoryPageView() {
                             </F>
                           )}
                           {slug === "" && spec.kind !== "tag" && !spec.anyCategory ? (
-                            <div className="rounded-[12px] bg-[#fdf7ea] border border-[#eddfbc] px-4 py-3 text-[12.5px] text-[#8a6414]">
+                            <div className="rounded-[12px] bg-[var(--s-warn)] border border-[var(--l-warn)] px-4 py-3 text-[12.5px] text-[var(--t-warn)]">
                               <b>Pick a category above to choose these by hand.</b>
                             </div>
                           ) : (
@@ -972,7 +972,7 @@ export default function CategoryPageView() {
                               {manual && (
                                 <div className="mt-3 space-y-3">
                                   {picked.length === 0 ? (
-                                    <p className="text-[11.5px] text-[#8a6414] m-0">
+                                    <p className="text-[11.5px] text-[var(--t-warn)] m-0">
                                       {spec.anyCategory
                                         ? `Nothing picked yet — this row stays off the page until you pick up to ${spec.cap} products.`
                                         : "Nothing picked yet — the row still fills itself automatically."}
@@ -981,7 +981,7 @@ export default function CategoryPageView() {
                                     <div className="rounded-[12px] border border-lavender-deep bg-white overflow-hidden">
                                       {picked.map((s, idx) => (
                                         <div key={s}
-                                          className="flex items-center gap-2.5 px-3 py-2 border-b border-[#efe6f5] last:border-b-0">
+                                          className="flex items-center gap-2.5 px-3 py-2 border-b border-[var(--l-accent)] last:border-b-0">
                                           <span className="w-[20px] text-[12px] text-body-soft tabular-nums">{idx + 1}</span>
                                           <span className="flex-1 min-w-0 text-[13px] text-purple truncate">{nameFor(s)}</span>
                                           <button onClick={() => movePick(r, idx, -1)} disabled={idx === 0}
@@ -991,7 +991,7 @@ export default function CategoryPageView() {
                                             title="Move down"
                                             className="w-[28px] h-[28px] rounded-[8px] grid place-items-center bg-lavender text-purple hover:bg-purple hover:text-white disabled:opacity-30 disabled:hover:bg-lavender disabled:hover:text-purple transition-colors text-[13px]">↓</button>
                                           <button onClick={() => togglePick(r, s)} title="Take it out"
-                                            className="w-[28px] h-[28px] rounded-[8px] grid place-items-center bg-lavender text-body-soft hover:bg-[#fdecea] hover:text-[#c0392b] transition-colors text-[13px]">✕</button>
+                                            className="w-[28px] h-[28px] rounded-[8px] grid place-items-center bg-lavender text-body-soft hover:bg-[var(--s-bad)] hover:text-[var(--t-bad)] transition-colors text-[13px]">✕</button>
                                         </div>
                                       ))}
                                     </div>
@@ -1074,7 +1074,7 @@ export default function CategoryPageView() {
                               <img src={String(r.config.bgImageUrl)} alt="" className="w-[92px] h-[40px] object-cover rounded-[8px] border border-lavender-deep" />
                               <button
                                 onClick={() => (r.blockType ? patchBlock(r.key, { config: { ...r.config, bgImageUrl: null } }) : patch(r.key, { config: { ...r.config, bgImageUrl: null } }))}
-                                className="text-[12px] text-body-soft hover:text-[#c0392b]">Remove</button>
+                                className="text-[12px] text-body-soft hover:text-[var(--t-bad)]">Remove</button>
                             </>
                           ) : (
                             <label className="text-[12px] text-purple border border-dashed border-lavender-deep rounded-[9px] px-3 py-2 cursor-pointer hover:border-orchid">
@@ -1113,7 +1113,7 @@ export default function CategoryPageView() {
         {!adding ? (
           <button onClick={() => setAdding(true)}
             className="text-white text-[13px] font-semibold px-4 py-2.5 rounded-[11px] inline-flex items-center gap-1.5 shadow-[0_3px_12px_rgba(80,40,100,0.22)] hover:opacity-95 transition-opacity"
-            style={{ background: "linear-gradient(135deg,#7B2D8E,#C155D8)" }}>
+            style={{ background: "linear-gradient(135deg,var(--a-solid),var(--a-solid))" }}>
             <Icon name="plus" size={15} /> Add a section
             <span className="text-[12px] font-normal opacity-80 ml-1">
               {slug ? `to ${chosen?.name}` : "to every category page"}
@@ -1127,7 +1127,7 @@ export default function CategoryPageView() {
                 <button key={b.v} onClick={() => setNewBlock(b.v)} title={b.hint}
                   className={"text-[12.5px] font-semibold px-3.5 py-2 rounded-full border transition-all " +
                     (newBlock === b.v ? "text-white border-transparent shadow-[0_3px_12px_rgba(80,40,100,0.2)]" : "bg-white text-body border-lavender-deep hover:border-orchid")}
-                  style={newBlock === b.v ? { background: "linear-gradient(135deg,#7B2D8E,#C155D8)" } : undefined}>
+                  style={newBlock === b.v ? { background: "linear-gradient(135deg,var(--a-solid),var(--a-solid))" } : undefined}>
                   {b.label}
                 </button>
               ))}

@@ -42,10 +42,10 @@ import {
 type Tone = "brand" | "sky" | "emerald" | "amber";
 
 const TONE: Record<Tone, { grad: string; ring: string; text: string; soft: string }> = {
-  brand: { grad: "linear-gradient(135deg,#7B2D8E,#C155D8)", ring: "#e6d3ee", text: "#6b2480", soft: "#f7f0fb" },
-  sky: { grad: "linear-gradient(135deg,#1f5fa8,#57a8e0)", ring: "#cfe0f2", text: "#1d5a96", soft: "#eef5fc" },
-  emerald: { grad: "linear-gradient(135deg,#12795a,#3ec294)", ring: "#cfe9df", text: "#136b4a", soft: "#edf8f3" },
-  amber: { grad: "linear-gradient(135deg,#a2650f,#e5a733)", ring: "#f0e0c2", text: "#8a5610", soft: "#fdf5e7" },
+  brand: { grad: "linear-gradient(135deg,var(--a-solid),var(--a-solid))", ring: "var(--t-accent)", text: "var(--t-accent)", soft: "var(--s-accent)" },
+  sky: { grad: "linear-gradient(135deg,var(--f-info),var(--f-info))", ring: "var(--l-info)", text: "var(--t-info)", soft: "var(--s-info)" },
+  emerald: { grad: "linear-gradient(135deg,var(--f-ok),var(--f-ok))", ring: "var(--l-ok)", text: "var(--t-ok)", soft: "var(--s-ok)" },
+  amber: { grad: "linear-gradient(135deg,var(--f-warn),var(--f-warn))", ring: "var(--l-warn)", text: "var(--t-warn)", soft: "var(--s-warn)" },
 };
 
 const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
@@ -171,18 +171,18 @@ export default function StorefrontOverview() {
       {/* ── the band ─────────────────────────────────────────────────────── */}
       <div
         className="rounded-[20px] px-6 py-6 md:px-8 md:py-7 mb-4 text-white relative overflow-hidden"
-        style={{ background: "linear-gradient(120deg,#4a1259 0%,#7B2D8E 45%,#B44BC9 100%)" }}
+        style={{ background: "linear-gradient(120deg,var(--a-solid) 0%,var(--a-solid) 45%,var(--a-solid) 100%)" }}
       >
         {/* the petal, brand-side — the same shape the storefront uses for its
             bullet, at a size where it reads as texture rather than an icon */}
         <span
           aria-hidden
           className="absolute -right-10 -top-14 w-[230px] h-[230px] rounded-[50%_50%_50%_0] -rotate-45 opacity-[0.13]"
-          style={{ background: "linear-gradient(150deg,#ffffff,#f0c9ff)" }}
+          style={{ background: "linear-gradient(150deg,#ffffff,var(--a-solid))" }}
         />
         <div className="relative flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
-            <div className="text-[11.5px] font-semibold uppercase tracking-[0.18em] text-[#e9c9f5] mb-1.5">Storefront</div>
+            <div className="text-[11.5px] font-semibold uppercase tracking-[0.18em] text-[var(--t-accent)] mb-1.5">Storefront</div>
             <h1 className="font-display text-[26px] md:text-[30px] font-medium m-0 leading-tight">The shop, as a customer sees it</h1>
           </div>
           <a
@@ -242,7 +242,7 @@ export default function StorefrontOverview() {
                     <div className="text-[13.5px] font-medium text-purple group-hover:text-orchid flex items-center gap-2">
                       {r.label}
                       {r.alert && (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#fdf0e2] text-[#8a5610]">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--s-warn)] text-[var(--t-warn)]">
                           needs you
                         </span>
                       )}

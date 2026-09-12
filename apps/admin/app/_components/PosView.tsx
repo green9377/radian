@@ -846,7 +846,7 @@ export default function PosSellView() {
         <div className="flex-1 min-w-0">
           <h1 className="font-display text-[22px] text-purple m-0 leading-tight">POS — Counter</h1>
         </div>
-        <Link href="/pos/day-close" className={"flex items-center gap-2 rounded-[11px] px-3.5 py-2 text-[12.5px] font-medium border " + (shiftOpen ? "bg-[#1c3626] border-[#2d4d3a] text-[#76efab]" : "bg-lavender border-lavender-deep text-body-soft")}>
+        <Link href="/pos/day-close" className={"flex items-center gap-2 rounded-[11px] px-3.5 py-2 text-[12.5px] font-medium border " + (shiftOpen ? "bg-[var(--s-ok)] border-[var(--l-ok)] text-[var(--t-ok)]" : "bg-lavender border-lavender-deep text-body-soft")}>
           <Icon name="clock" size={15} />
           {shift ? <>Cash box open · {formatTaka(openingFloatPaisa)} to start</> : shiftKnown ? <>Cash box closed · the next sale opens it</> : <>Checking the counter…</>}
         </Link>
@@ -867,7 +867,7 @@ export default function PosSellView() {
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
             <div>
               <label className={labelCls}>Bill no</label>
-              <div className="ipt flex items-center text-body-soft" style={{ background: "#281e32" }}>Auto — on save</div>
+              <div className="ipt flex items-center text-body-soft" style={{ background: "var(--s-accent)" }}>Auto — on save</div>
             </div>
             <div>
               <label className={labelCls}>Date</label>
@@ -889,7 +889,7 @@ export default function PosSellView() {
                   {staff.map((u) => (<option key={u.id} value={u.name}>{u.name}</option>))}
                 </select>
               ) : (
-                <div className="ipt flex items-center text-body-soft" style={{ background: "#281e32" }}>{soldBy || "—"}</div>
+                <div className="ipt flex items-center text-body-soft" style={{ background: "var(--s-accent)" }}>{soldBy || "—"}</div>
               )}
             </div>
           </div>
@@ -900,35 +900,35 @@ export default function PosSellView() {
             <div>
               <label className={labelCls}>Customer</label>
               {selectedCust ? (
-                <div className="flex items-center gap-2 flex-wrap bg-[#213329] border border-[#31493b] rounded-[10px] px-3 py-2.5">
+                <div className="flex items-center gap-2 flex-wrap bg-[var(--s-ok)] border border-[var(--l-ok)] rounded-[10px] px-3 py-2.5">
                   <Icon name="user" size={15} />
                   {/*  §3 #14 — what this person already owes is the fact that
                        decides whether they may take another bill on credit, so it
                        sits beside their name and not three screens away.  */}
-                  <span className="text-[12.5px] text-[#8fd6b7] min-w-0">
+                  <span className="text-[12.5px] text-[var(--t-ok)] min-w-0">
                     <b className="font-medium">{selectedCust.name}</b> · {selectedCust.phone}
                     {selectedCust.outstandingPaisa > 0 && (
-                      <span className="text-[#f0b46a]"> · owes {formatTaka(selectedCust.outstandingPaisa)}</span>
+                      <span className="text-[var(--t-warn)]"> · owes {formatTaka(selectedCust.outstandingPaisa)}</span>
                     )}
                   </span>
                   <div className="flex items-center gap-2 ml-auto">
                     {/*  §4 contrast — pale green on white read at about 1.9:1 and
                          was unreadable; the chip takes the panel's own dark ground.  */}
-                    <a href={`tel:${selectedCust.phone}`} className="inline-flex items-center gap-1.5 bg-[#1b2a21] border border-[#31493b] text-[#8fd6b7] text-[12px] px-3 py-1.5 rounded-[9px] font-medium hover:bg-[#23342a]"><Icon name="phone" size={13} /> Call</a>
-                    <button type="button" onClick={clearCustomer} className="text-[12.5px] text-[#8fd6b7] underline">Change</button>
+                    <a href={`tel:${selectedCust.phone}`} className="inline-flex items-center gap-1.5 bg-[var(--s-ok)] border border-[var(--l-ok)] text-[var(--t-ok)] text-[12px] px-3 py-1.5 rounded-[9px] font-medium hover:bg-[var(--s-ok)]"><Icon name="phone" size={13} /> Call</a>
+                    <button type="button" onClick={clearCustomer} className="text-[12.5px] text-[var(--t-ok)] underline">Change</button>
                   </div>
                 </div>
               ) : custNew ? (
                 <>
                   <div className="grid grid-cols-2 gap-2">
-                    <input className={"ipt h-[40px] " + (needsCustomer ? "border-[#4d2e2e] bg-[#371919]" : "")} placeholder={needsCustomer ? "Name required for due" : "New customer name"} value={custName} onChange={(e) => setCustName(e.target.value)} />
-                    <input className={"ipt h-[40px] " + (needsCustomer ? "border-[#4d2e2e] bg-[#371919]" : "")} placeholder="Phone" value={custPhone} onChange={(e) => setCustPhone(e.target.value)} />
+                    <input className={"ipt h-[40px] " + (needsCustomer ? "border-[var(--l-bad)] bg-[var(--s-bad)]" : "")} placeholder={needsCustomer ? "Name required for due" : "New customer name"} value={custName} onChange={(e) => setCustName(e.target.value)} />
+                    <input className={"ipt h-[40px] " + (needsCustomer ? "border-[var(--l-bad)] bg-[var(--s-bad)]" : "")} placeholder="Phone" value={custPhone} onChange={(e) => setCustPhone(e.target.value)} />
                   </div>
                   <button type="button" onClick={() => { setCustNew(false); setCustName(""); setCustPhone(""); }} className="text-[12px] text-purple font-medium mt-1.5 inline-flex items-center gap-1"><Icon name="chevronLeft" size={12} /> Pick an existing customer instead</button>
                 </>
               ) : (
                 <div className="relative">
-                  <button type="button" onClick={() => setCustOpen((o) => !o)} className={"h-[42px] w-full flex items-center justify-between text-left rounded-[10px] px-3 border " + (needsCustomer ? "bg-[#371919] border-[#4d2e2e] text-[#f7a96e]" : "bg-white border-lavender-deep text-body")}>
+                  <button type="button" onClick={() => setCustOpen((o) => !o)} className={"h-[42px] w-full flex items-center justify-between text-left rounded-[10px] px-3 border " + (needsCustomer ? "bg-[var(--s-bad)] border-[var(--l-bad)] text-[var(--t-warn)]" : "bg-white border-lavender-deep text-body")}>
                     <span className="inline-flex items-center gap-1.5 text-[12.5px]"><Icon name="user" size={15} /> {needsCustomer ? "Choose customer (required for due)" : "Walk-in — search customer (optional)"}</span>
                     <Icon name="chevronDown" size={16} />
                   </button>
@@ -946,7 +946,7 @@ export default function PosSellView() {
                                 <div className="text-[13px] text-purple font-medium truncate">{c.name} <span className="text-body-soft font-normal">({c.phone})</span></div>
                                 {/*  §3 #14 — a counter person has to see what this
                                      person owes BEFORE selling to them on credit  */}
-                                <div className={"text-[12px] " + (c.outstandingPaisa > 0 ? "text-[#f0b46a] font-medium" : "text-body-soft")}>
+                                <div className={"text-[12px] " + (c.outstandingPaisa > 0 ? "text-[var(--t-warn)] font-medium" : "text-body-soft")}>
                                   {c.outstandingPaisa > 0 ? `owes ${formatTaka(c.outstandingPaisa)}` : "nothing outstanding"}
                                 </div>
                               </button>
@@ -978,7 +978,7 @@ export default function PosSellView() {
             </div>
             <div className="xl:col-span-2">
               <label className="flex items-center gap-2.5 text-[13px] font-medium text-body cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 accent-[#b45309]"
+                <input type="checkbox" className="w-4 h-4 accent-[var(--t-warn)]"
                   checked={!!advanceFor}
                   onChange={(e) => setAdvanceFor(e.target.checked ? new Date(Date.now() + 86_400_000).toISOString().slice(0, 10) : "")} />
                 Advance order — the customer takes it later
@@ -999,7 +999,7 @@ export default function PosSellView() {
         {/*  THIS BILL — the page itself, exactly like a purchase bill: an empty
              table with one door, "Add items". The purple panel carries money only.  */}
         <div className={cardCls + " overflow-hidden"}>
-          <div className="grid grid-cols-[minmax(0,1fr)_110px_104px_128px_100px_40px] gap-3 items-center px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "#470066" }}>
+          <div className="grid grid-cols-[minmax(0,1fr)_110px_104px_128px_100px_40px] gap-3 items-center px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "var(--s-accent)" }}>
             <span>Item</span><span>Price ৳/unit</span><span className="text-center">Unit</span><span className="text-center">Qty</span><span className="text-right">Total</span><span />
           </div>
           {lines.length === 0 ? (
@@ -1038,7 +1038,7 @@ export default function PosSellView() {
                     placeholder={String(Math.round((l.product.pricePaisa ?? 0) / f) / 100)}
                     onPaisa={(pz) => setUnit(l.key, pz)} />
                   {floorLine != null && l.unitPaisa < floorLine && (
-                    <div className="text-[11px] text-[#e1837a] mt-0.5">min {formatTaka(floorLine)}</div>
+                    <div className="text-[11px] text-[var(--t-gold)] mt-0.5">min {formatTaka(floorLine)}</div>
                   )}
                   {/*  POS-R16 (owner, 21 Aug) — selling under what it cost is
                        allowed, but it must never happen quietly. The floor is
@@ -1046,7 +1046,7 @@ export default function PosSellView() {
                   {costLine !== undefined && costLine > 0 && l.unitPaisa > 0
                     && l.unitPaisa < costLine
                     && !(floorLine != null && l.unitPaisa < floorLine) && (
-                    <div className="text-[11px] text-[#f7a96e] mt-0.5">
+                    <div className="text-[11px] text-[var(--t-warn)] mt-0.5">
                       under cost by {formatTaka(costLine - l.unitPaisa)}
                     </div>
                   )}
@@ -1079,7 +1079,7 @@ export default function PosSellView() {
                 </div>
 
                 <button type="button" onClick={() => remove(l.key)} title="Remove"
-                  className="text-body-soft hover:text-[#e1837a] justify-self-center">
+                  className="text-body-soft hover:text-[var(--t-gold)] justify-self-center">
                   <Icon name="trash" size={15} />
                 </button>
               </div>
@@ -1101,16 +1101,16 @@ export default function PosSellView() {
                na jay").  */}
           <div className="rounded-[16px] text-white shadow-lift flex flex-col overflow-hidden" /*  the page header sits above the panel, so the cap has to leave room for
                  it — "100vh − 24" put the button 50px below the fold (owner, 21 Aug)  */
-            style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)", height: "calc(100vh - 100px)" }}>
+            style={{ background: "linear-gradient(170deg,var(--a-solid),var(--a-solid))", height: "calc(100vh - 100px)" }}>
             <div className="p-4 pb-2 shrink-0">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="text-[12px] text-[#c9a6e4] font-medium uppercase tracking-[0.06em]">Current sale</div>
+                <div className="text-[12px] text-[var(--t-accent)] font-medium uppercase tracking-[0.06em]">Current sale</div>
                 {lines.length > 0 && (
-                  <button type="button" onClick={resetSale} className="text-[11px] text-[#e7d8f2] bg-white/10 border border-white/20 rounded-full px-2.5 py-1 inline-flex items-center gap-1 hover:bg-white/20" title="Clear this sale"><Icon name="trash" size={11} /> Clear</button>
+                  <button type="button" onClick={resetSale} className="text-[11px] text-[var(--t-accent)] bg-white/10 border border-white/20 rounded-full px-2.5 py-1 inline-flex items-center gap-1 hover:bg-white/20" title="Clear this sale"><Icon name="trash" size={11} /> Clear</button>
                 )}
               </div>
-              <button type="button" onClick={() => setIsGift((g) => !g)} className={"text-[12px] px-3 py-1.5 rounded-full font-medium border inline-flex items-center gap-1.5 " + (isGift ? "bg-orchid text-white border-orchid" : "bg-white/10 text-[#e7d8f2] border-white/25")}>
+              <button type="button" onClick={() => setIsGift((g) => !g)} className={"text-[12px] px-3 py-1.5 rounded-full font-medium border inline-flex items-center gap-1.5 " + (isGift ? "bg-orchid text-white border-orchid" : "bg-white/10 text-[var(--t-accent)] border-white/25")}>
                 <Icon name="heart" size={13} /> {isGift ? "Gift" : "Mark gift"}
               </button>
             </div>
@@ -1122,21 +1122,21 @@ export default function PosSellView() {
                  how much of the bill is under cost before it is completed.  */}
             {underCostPaisa > 0 && errors.length === 0 && (
               <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px]"
-                style={{ background: "rgba(240,180,106,.16)", color: "#f0b46a" }}>
+                style={{ background: "rgba(240,180,106,.16)", color: "var(--t-warn)" }}>
                 {formatTaka(underCostPaisa)} under cost on this bill — selling at a loss.
               </div>
             )}
 
             {creditWarning && lines.length > 0 && (
               <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px] font-medium"
-                style={{ background: "rgba(224,162,58,.18)", color: "#ffd79a" }}>
+                style={{ background: "rgba(224,162,58,.18)", color: "var(--t-warn)" }}>
                 {creditWarning}
               </div>
             )}
 
             {errors.length > 0 && lines.length > 0 && (
               <div className="rounded-[11px] px-3 py-2 mb-3 text-[12px]"
-                style={{ background: "rgba(255,155,123,.14)", color: "#ffc9a8" }}>
+                style={{ background: "rgba(255,155,123,.14)", color: "var(--t-warn)" }}>
                 {errors[0]}
                 {errors.length > 1 && <span className="opacity-70"> · +{errors.length - 1} more</span>}
               </div>
@@ -1164,7 +1164,7 @@ export default function PosSellView() {
 
               {/*  the shop's rate, said out loud and not editable — the cashier
                    should still SEE what the bill is being taxed at (DEC-GBL-002)  */}
-              <div className="mt-2 flex items-center justify-between text-[11.5px] text-[#c9a6e4]">
+              <div className="mt-2 flex items-center justify-between text-[11.5px] text-[var(--t-accent)]">
                 <span className="inline-flex items-center gap-1.5">
                   <Icon name="lock" size={12} />
                   {taxRateBps > 0 ? `VAT ${taxRateBps / 100}% — set in POS settings` : "No VAT — set in POS settings"}
@@ -1177,12 +1177,12 @@ export default function PosSellView() {
                    the cap is the shop's and the approval is the server's.  */}
               {needsApproval && (
                 <button type="button" onClick={() => { setShowPin(true); setPinErr(null); setPinInput(""); }}
-                  className="mt-2 w-full text-[12px] py-2 rounded-[10px] font-medium bg-[#3c2c17] border border-[#f0c27a] text-[#f7a96e] inline-flex items-center justify-center gap-1.5">
+                  className="mt-2 w-full text-[12px] py-2 rounded-[10px] font-medium bg-[var(--s-warn)] border border-[var(--l-warn)] text-[var(--t-warn)] inline-flex items-center justify-center gap-1.5">
                   <Icon name="shield" size={13} /> {givePct.toFixed(0)}% off — over the {cap}% limit, ask a manager
                 </button>
               )}
               {approval && (
-                <div className="mt-2 text-[12px] text-[#7fe0a8] font-medium inline-flex items-center gap-1">
+                <div className="mt-2 text-[12px] text-[var(--t-ok)] font-medium inline-flex items-center gap-1">
                   <Icon name="check" size={13} /> Approved by {approval.approvedBy}
                 </div>
               )}
@@ -1208,7 +1208,7 @@ export default function PosSellView() {
                   <div className="rounded-[12px] px-3 py-2.5 mb-2.5"
                     style={{ background: "rgba(216,87,239,.16)", border: "1px solid rgba(216,87,239,.35)" }}>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[12.5px] text-[#f0d5fa] font-medium">
+                      <span className="text-[12.5px] text-[var(--t-accent)] font-medium">
                         Store credit · {formatTaka(quote.balancePaisa)} saved
                       </span>
                       <button type="button"
@@ -1219,7 +1219,7 @@ export default function PosSellView() {
                       </button>
                     </div>
                     {quote.usablePaisa < quote.balancePaisa && (
-                      <div className="text-[11.5px] text-[#d9b3ea] mt-1">
+                      <div className="text-[11.5px] text-[var(--t-accent)] mt-1">
                         Credit can pay {quote.capBps / 100}% of a bill — {formatTaka(quote.capPaisa)} on this one.
                       </div>
                     )}
@@ -1245,17 +1245,17 @@ export default function PosSellView() {
               {changePaisa > 0 && !nonCashOver && (
                 <div className="mt-2 rounded-[10px] px-3 py-2 flex items-center justify-between"
                   style={{ background: "rgba(127,224,168,.16)", border: "1px solid rgba(127,224,168,.4)" }}>
-                  <span className="text-[12px] font-medium text-[#7fe0a8] inline-flex items-center gap-1.5">
+                  <span className="text-[12px] font-medium text-[var(--t-ok)] inline-flex items-center gap-1.5">
                     <Icon name="cash" size={14} /> Change to hand back
                   </span>
-                  <span className="text-[15px] font-semibold text-[#7fe0a8]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  <span className="text-[15px] font-semibold text-[var(--t-ok)]" style={{ fontVariantNumeric: "tabular-nums" }}>
                     {formatTaka(changePaisa)}
                   </span>
                 </div>
               )}
 
               {needsCustomer && (
-                <div className="mt-2 rounded-[10px] bg-[#3c2c17] border border-[#f0c27a] text-[#f7a96e] text-[12px] px-3 py-2 flex items-start gap-1.5">
+                <div className="mt-2 rounded-[10px] bg-[var(--s-warn)] border border-[var(--l-warn)] text-[var(--t-warn)] text-[12px] px-3 py-2 flex items-start gap-1.5">
                   <Icon name="user" size={14} />
                   <span>{formatTaka(duePaisa)} stays unpaid — add a <b className="font-semibold">customer name or phone</b> above.</span>
                 </div>
@@ -1266,7 +1266,7 @@ export default function PosSellView() {
                 {/*  §1 #1 — `disabled={errors.length > 0}` was the whole guard and
                      the handler is async: the second click posted a second bill.  */}
                 <button type="button" onClick={completeSale} disabled={errors.length > 0 || saleBusy}
-                  className="flex-1 min-w-0 bg-white hover:bg-[#efe7f5] text-purple text-[15px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
+                  className="flex-1 min-w-0 bg-white hover:bg-[var(--s-accent)] text-purple text-[15px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
                   <Icon name={saleBusy ? "clock" : "check"} size={17} />
                   <span className="truncate">
                     {saleBusy
@@ -1279,9 +1279,9 @@ export default function PosSellView() {
                   </span>
                 </button>
               </div>
-              {saleErr && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{saleErr}</div>}
-              {heldErr && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{heldErr}</div>}
-              <div className="mt-2 text-[11px] text-[#a98ac4]">Enter adds · F2 tender · Enter completes</div>
+              {saleErr && <div className="mt-2 text-[11.5px] text-[var(--t-bad)] bg-white/10 rounded-[8px] px-3 py-2">{saleErr}</div>}
+              {heldErr && <div className="mt-2 text-[11.5px] text-[var(--t-bad)] bg-white/10 rounded-[8px] px-3 py-2">{heldErr}</div>}
+              <div className="mt-2 text-[11px] text-[var(--t-accent)]">Enter adds · F2 tender · Enter completes</div>
             </div>
           </div>
         </aside>
@@ -1303,7 +1303,7 @@ export default function PosSellView() {
               <button type="button" onClick={() => setPickerOpen(false)}
                 className="ml-auto text-[13px] font-medium text-white bg-purple rounded-[10px] px-4 py-2">Done</button>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-4" style={{ background: "#271a34" }}>
+            <div className="flex-1 min-h-0 overflow-y-auto p-4" style={{ background: "var(--s-accent)" }}>
         <div className="min-w-0">
           <div className={cardCls + " p-4 mb-4"}>
             {/*  §3 #13 + §5 #2 — the words go to the server, and the focus stays
@@ -1334,14 +1334,14 @@ export default function PosSellView() {
               {/*  Tiles are fine for twenty things and useless for four hundred; rows
                    fit more on the screen and put stock, price and cost in columns you
                    can read down (owner, 20 Aug). The choice is remembered.  */}
-              <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#e3d7ec" }}>
+              <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "var(--l-accent)" }}>
                 {([["grid", "Tiles"], ["rows", "Rows"]] as const).map(([k, label], i) => (
                   <button key={k} type="button" onClick={() => setView(k)}
                     className="text-[12px] font-semibold px-3 py-1.5"
                     style={{
-                      background: view === k ? "#470066" : "#fff",
-                      color: view === k ? "#fff" : "#b0a1ba",
-                      borderLeft: i ? "1px solid #3f3248" : undefined,
+                      background: view === k ? "var(--s-accent)" : "#fff",
+                      color: view === k ? "#fff" : "var(--t-accent)",
+                      borderLeft: i ? "1px solid var(--l-accent)" : undefined,
                     }}>
                     {label}
                   </button>
@@ -1352,7 +1352,7 @@ export default function PosSellView() {
 
           {view === "rows" ? (
             <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft overflow-hidden">
-              <div className="grid grid-cols-[44px_minmax(0,1fr)_96px_96px_112px_112px] gap-3 items-center px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "#470066" }}>
+              <div className="grid grid-cols-[44px_minmax(0,1fr)_96px_96px_112px_112px] gap-3 items-center px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "var(--s-accent)" }}>
                 <span /><span>Item</span><span>Category</span><span className="text-right">Stock</span><span className="text-right">Price</span><span />
               </div>
               <div className="divide-y divide-lavender-deep max-h-[62vh] overflow-y-auto">
@@ -1366,7 +1366,7 @@ export default function PosSellView() {
                     </span>
                     <span className="text-[12.5px] text-body-soft truncate">{p.categoryName ?? "—"}</span>
                     <span className="text-right text-[12.5px]"
-                      style={{ color: p.stockQty === null ? "#b0a4b7" : p.stockQty > 0 ? "#76efab" : "#e1837a" }}>
+                      style={{ color: p.stockQty === null ? "var(--t-accent)" : p.stockQty > 0 ? "var(--t-ok)" : "var(--t-gold)" }}>
                       {p.stockQty === null ? "service" : p.stockQty > 0 ? `${p.stockQty} ${p.unitName ?? ""}`.trim() : "out of stock"}
                     </span>
                     <span className="text-right">
@@ -1428,7 +1428,7 @@ export default function PosSellView() {
                   {/*  what is actually on the shelf — a till that hides a shortage makes
                        the cashier promise something the shop cannot hand over  */}
                   <div className="text-[11.5px] mt-0.5"
-                    style={{ color: p.stockQty === null ? "#b0a4b7" : p.stockQty > 0 ? "#76efab" : "#e1837a" }}>
+                    style={{ color: p.stockQty === null ? "var(--t-accent)" : p.stockQty > 0 ? "var(--t-ok)" : "var(--t-gold)" }}>
                     {p.stockQty === null ? "service" : p.stockQty > 0 ? `${p.stockQty} ${p.unitName ?? ""} in stock`.replace("  ", " ") : "out of stock"}
                   </div>
                   <div className="flex items-center justify-between mt-auto pt-1.5">
@@ -1477,11 +1477,11 @@ export default function PosSellView() {
             <p className="text-[12.5px] text-body-soft mb-3">
               {formatTaka(giveawayPaisa)} off this cart is {givePct.toFixed(0)}% — above the {cap}% limit. A manager signs it off with their own PIN.
             </p>
-            <input type="password" className={"ipt h-[44px] text-center tracking-[0.3em] " + (pinErr ? "border-[#c0392b]" : "")}
+            <input type="password" className={"ipt h-[44px] text-center tracking-[0.3em] " + (pinErr ? "border-[var(--l-bad)]" : "")}
               placeholder={"••••"} value={pinInput} disabled={pinBusy}
               onChange={(e) => { setPinInput(e.target.value); setPinErr(null); }}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); tryApprove(); } }} autoFocus />
-            {pinErr && <p className="text-[12px] text-[#e1837a] mt-1.5 mb-0">{pinErr}</p>}
+            {pinErr && <p className="text-[12px] text-[var(--t-gold)] mt-1.5 mb-0">{pinErr}</p>}
             <div className="flex gap-2 mt-4">
               <button type="button" onClick={() => setShowPin(false)} className="flex-1 py-2.5 rounded-[11px] border border-lavender-deep text-body-soft font-medium text-[13px]">Cancel</button>
               <button type="button" onClick={tryApprove} disabled={pinBusy || !pinInput.trim()} className="flex-1 py-2.5 rounded-[11px] bg-purple text-white font-medium text-[13px] disabled:opacity-40">{pinBusy ? "Checking…" : "Approve"}</button>
@@ -1498,7 +1498,7 @@ export default function PosSellView() {
               <h3 className="font-display text-[18px] text-purple m-0">Held bills ({held.length})</h3>
               <button type="button" onClick={() => setShowHeld(false)} className="text-body-soft text-[20px] leading-none">{"×"}</button>
             </div>
-            {heldErr && <div className="text-[12px] text-[#e1837a] mb-3">{heldErr}</div>}
+            {heldErr && <div className="text-[12px] text-[var(--t-gold)] mb-3">{heldErr}</div>}
             {held.length === 0 ? (
               <p className="text-[13px] text-body-soft">No held bills.</p>
             ) : (
@@ -1541,17 +1541,17 @@ export default function PosSellView() {
       {change && (
         <div className="fixed inset-0 z-50 bg-black/40 grid place-items-center px-4">
           <div className="bg-white rounded-[18px] shadow-lift p-6 w-full max-w-[340px] text-center">
-            <div className="w-[46px] h-[46px] rounded-full bg-[#1c3626] grid place-items-center mx-auto mb-3 text-[#76efab]"><Icon name="check" size={24} /></div>
+            <div className="w-[46px] h-[46px] rounded-full bg-[var(--s-ok)] grid place-items-center mx-auto mb-3 text-[var(--t-ok)]"><Icon name="check" size={24} /></div>
             <h3 className="font-display text-[19px] text-purple m-0">Sale complete</h3>
             <p className="text-[12.5px] text-body-soft mt-1 mb-3">Bill {change.no}</p>
-            <div className="rounded-[14px] px-4 py-4 mb-2" style={{ background: "#1c3626" }}>
-              <div className="text-[11px] uppercase tracking-[0.08em] text-[#76efab]">Hand back</div>
-              <div className="font-display text-[34px] font-semibold text-[#76efab] leading-[1.2]" style={{ fontVariantNumeric: "tabular-nums" }}>
+            <div className="rounded-[14px] px-4 py-4 mb-2" style={{ background: "var(--s-ok)" }}>
+              <div className="text-[11px] uppercase tracking-[0.08em] text-[var(--t-ok)]">Hand back</div>
+              <div className="font-display text-[34px] font-semibold text-[var(--t-ok)] leading-[1.2]" style={{ fontVariantNumeric: "tabular-nums" }}>
                 {formatTaka(change.changePaisa)}
               </div>
             </div>
             {change.duePaisa > 0 && (
-              <p className="text-[12.5px] text-[#b45309] mb-2">{formatTaka(change.duePaisa)} still owed on this bill.</p>
+              <p className="text-[12.5px] text-[var(--t-warn)] mb-2">{formatTaka(change.duePaisa)} still owed on this bill.</p>
             )}
             <div className="flex gap-2 mt-3">
               <button type="button" onClick={() => { const id = change.saleId; setChange(null); router.push(`/pos/sale/${id}`); }}

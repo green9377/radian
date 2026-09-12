@@ -20,43 +20,43 @@ import Icon from "./Icon";
 
 export const MODULE_TONES = {
   purple: {
-    fill: "linear-gradient(102deg,#470066,#7a1e86 68%,#b76e79)",
-    soft: "#401c46",
+    fill: "linear-gradient(102deg,var(--a-solid),var(--o-solid) 68%,var(--t-gold))",
+    soft: "var(--t-orchid)",
     tiles: [
-      { bg: "#34163b", label: "#bd9cbf", value: "#de87db" },
-      { bg: "#381a24", label: "#bf9ba7", value: "#db8aa3" },
-      { bg: "#322023", label: "#bf9ca3", value: "#ca9ba3" },
-      { bg: "#282032", label: "#ada2b9", value: "#dfd2e4" },
+      { bg: "var(--t-accent)", label: "var(--t-orchid)", value: "var(--t-orchid)" },
+      { bg: "var(--t-orchid)", label: "var(--t-gold)", value: "var(--t-orchid)" },
+      { bg: "var(--s-bad)", label: "var(--s-gold)", value: "var(--t-bad)" },
+      { bg: "var(--s-accent)", label: "var(--s-accent)", value: "var(--t-accent)" },
     ],
   },
   orchid: {
-    fill: "linear-gradient(102deg,#8c2d84,#b444ad)",
-    soft: "#3e1f3b",
+    fill: "linear-gradient(102deg,var(--o-solid),var(--o-solid))",
+    soft: "var(--t-orchid)",
     tiles: [
-      { bg: "#34163b", label: "#bd9cbf", value: "#de87db" },
-      { bg: "#282032", label: "#ada2b9", value: "#dfd2e4" },
-      { bg: "#381a24", label: "#bf9ba7", value: "#db8aa3" },
-      { bg: "#322023", label: "#bf9ca3", value: "#ca9ba3" },
+      { bg: "var(--a-solid)", label: "var(--o-solid)", value: "var(--o-solid)" },
+      { bg: "var(--a-solid)", label: "var(--a-solid)", value: "var(--t-accent)" },
+      { bg: "var(--s-orchid)", label: "var(--s-gold)", value: "var(--t-orchid)" },
+      { bg: "var(--s-bad)", label: "var(--s-gold)", value: "var(--t-bad)" },
     ],
   },
   rose: {
-    fill: "linear-gradient(102deg,#993556,#c25476)",
-    soft: "#401c28",
+    fill: "linear-gradient(102deg,var(--t-gold),var(--t-gold))",
+    soft: "var(--t-orchid)",
     tiles: [
-      { bg: "#381a24", label: "#bf9ba7", value: "#db8aa3" },
-      { bg: "#322023", label: "#bf9ca3", value: "#ca9ba3" },
-      { bg: "#34163b", label: "#bd9cbf", value: "#de87db" },
-      { bg: "#282032", label: "#ada2b9", value: "#dfd2e4" },
+      { bg: "var(--t-orchid)", label: "var(--t-gold)", value: "var(--t-orchid)" },
+      { bg: "var(--t-bad)", label: "var(--t-gold)", value: "var(--t-bad)" },
+      { bg: "var(--s-accent)", label: "var(--s-orchid)", value: "var(--t-orchid)" },
+      { bg: "var(--s-accent)", label: "var(--s-accent)", value: "var(--t-accent)" },
     ],
   },
   rosegold: {
-    fill: "linear-gradient(102deg,#98545f,#c07f8a)",
-    soft: "#392326",
+    fill: "linear-gradient(102deg,var(--f-bad),var(--f-bad))",
+    soft: "var(--t-bad)",
     tiles: [
-      { bg: "#322023", label: "#bf9ca3", value: "#ca9ba3" },
-      { bg: "#381a24", label: "#bf9ba7", value: "#db8aa3" },
-      { bg: "#282032", label: "#ada2b9", value: "#dfd2e4" },
-      { bg: "#34163b", label: "#bd9cbf", value: "#de87db" },
+      { bg: "var(--f-bad)", label: "var(--t-gold)", value: "var(--f-bad)" },
+      { bg: "var(--o-solid)", label: "var(--t-gold)", value: "var(--o-solid)" },
+      { bg: "var(--s-accent)", label: "var(--s-accent)", value: "var(--t-accent)" },
+      { bg: "var(--s-accent)", label: "var(--s-orchid)", value: "var(--t-orchid)" },
     ],
   },
 } as const;
@@ -101,7 +101,7 @@ export function ModuleHeader({
       {action && (
         <button type="button" onClick={action.onClick}
           className="text-[12.5px] font-semibold px-4 py-2 rounded-full text-white shrink-0 hover:opacity-90 transition-opacity inline-flex items-center gap-1.5"
-          style={{ background: "#cf43ea" }}>
+          style={{ background: "var(--s-orchid)" }}>
           <Icon name="plus" size={13} /> {action.label}
         </button>
       )}
@@ -156,10 +156,10 @@ export function FilterChips<T extends string>({ value, onChange, options }: {
           <button key={o.v} type="button" onClick={() => onChange(o.v)}
             className="text-[12.5px] font-medium px-3.5 py-1.5 rounded-full border transition-colors inline-flex items-center gap-1.5"
             style={on
-              ? { background: "#470066", color: "#fff", borderColor: "#ce6ef7" }
+              ? { background: "var(--s-accent)", color: "#fff", borderColor: "var(--l-accent)" }
               : o.tint
                 ? { background: o.tint.bg, color: o.tint.color, borderColor: "transparent" }
-                : { background: "#fff", color: "#dfd2e4", borderColor: "#efe4f7" }}>
+                : { background: "#fff", color: "var(--t-accent)", borderColor: "var(--l-accent)" }}>
             {o.label}
             {o.count !== undefined && o.count > 0 && (
               <span className="text-[11px] rounded-full px-1.5"

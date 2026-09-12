@@ -112,7 +112,7 @@ export function DeliveryPerformance() {
       />
 
       {error && (
-        <div className="flex items-center gap-2 bg-[#fff4e2] text-[#b45309] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">
+        <div className="flex items-center gap-2 bg-[var(--s-warn)] text-[var(--t-warn)] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">
           <Icon name="bolt" size={15} /> API offline — nothing on this screen is live. ({error})
         </div>
       )}

@@ -150,7 +150,7 @@ export default function ItemCategoriesView() {
               {c.name}
               {(c._count?.items ?? 0) > 0 && (
                 <span className="text-[12px] font-semibold ml-2 px-2 py-0.5 rounded-full align-middle"
-                  style={{ background: "#2d1d36", color: ACCENT }}>
+                  style={{ background: "var(--s-accent)", color: ACCENT }}>
                   {c._count!.items} item{c._count!.items === 1 ? "" : "s"}
                 </span>
               )}
@@ -161,7 +161,7 @@ export default function ItemCategoriesView() {
               <button onClick={() => setDlg({ id: c.id, name: c.name, parentId: c.parentId ?? "" })}
                 className="text-body-soft hover:text-purple px-1.5 py-1" title="Edit"><Icon name="edit" size={15} /></button>
               <button onClick={() => remove(c)}
-                className="text-body-soft hover:text-[#e1837a] px-1.5 py-1" title="Delete"><Icon name="trash" size={15} /></button>
+                className="text-body-soft hover:text-[var(--t-bad)] px-1.5 py-1" title="Delete"><Icon name="trash" size={15} /></button>
             </span>
           </div>
         ))}

@@ -237,7 +237,7 @@ export default function CraftEditor({
 
       {inheritedFrom && rows.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap mb-3.5 text-[12.5px]">
-          <span className="inline-flex items-center gap-1.5 bg-[#fff4e5] text-[#8a5a00] font-bold rounded-full px-2.5 py-1">
+          <span className="inline-flex items-center gap-1.5 bg-[var(--s-warn)] text-[var(--t-warn)] font-bold rounded-full px-2.5 py-1">
             This product&rsquo;s own
           </span>
           <span className="text-body-soft">&mdash; it replaces {inheritedFrom}&rsquo;s.</span>
@@ -272,7 +272,7 @@ export default function CraftEditor({
                 type="button"
                 title="Remove this card"
                 onClick={() => remove(c.id)}
-                className="ml-auto w-[30px] h-[30px] rounded-[8px] grid place-items-center border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#c0392b] transition-colors shrink-0"
+                className="ml-auto w-[30px] h-[30px] rounded-[8px] grid place-items-center border border-lavender-deep bg-white text-body-soft hover:text-[var(--t-bad)] hover:border-[var(--l-bad)] transition-colors shrink-0"
               >
                 <Icon name="trash" size={15} />
               </button>
@@ -294,7 +294,7 @@ export default function CraftEditor({
             {/*  An empty card is worse than a missing one: it renders as a
                 bordered box with an icon and no words.  */}
             {(!c.title.trim() || !c.text.trim()) && (
-              <div className="mt-2 text-[12.5px] text-[#b45309] flex items-center gap-1.5">
+              <div className="mt-2 text-[12.5px] text-[var(--t-warn)] flex items-center gap-1.5">
                 <Icon name="alert" size={14} />
                 Not showing on the site until both lines are filled in.
               </div>
@@ -303,7 +303,7 @@ export default function CraftEditor({
         ))}
       </div>
 
-      {err && <div className="text-[13px] text-[#c0392b] mb-2.5">{err}</div>}
+      {err && <div className="text-[13px] text-[var(--t-bad)] mb-2.5">{err}</div>}
 
       {/*  Three, because the storefront lays them out in a row of three. A
           fourth wraps onto its own line and looks like a mistake.  */}

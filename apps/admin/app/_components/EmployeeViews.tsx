@@ -78,7 +78,7 @@ function Avatar({ name, url, size = 40 }: { name: string; url?: string | null; s
     return <img src={url} alt={name} className="rounded-xl object-cover shrink-0" style={{ width: size, height: size }} />;
   return (
     <div
-      className="rounded-xl grid place-items-center shrink-0 font-display text-purple bg-[#f7ecfa]"
+      className="rounded-xl grid place-items-center shrink-0 font-display text-purple bg-[var(--s-accent)]"
       style={{ width: size, height: size, fontSize: size * 0.38 }}
     >
       {initials(name)}
@@ -214,7 +214,7 @@ export function EmployeeListView() {
               <Td>{new Date(e.joinedOn).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</Td>
               <Td right>
                 {e.advanceOutstandingPaisa > 0
-                  ? <b style={{ color: "#b45309" }}>{taka(e.advanceOutstandingPaisa)}</b>
+                  ? <b style={{ color: "var(--t-warn)" }}>{taka(e.advanceOutstandingPaisa)}</b>
                   : <span className="text-body-soft">—</span>}
               </Td>
               <Td right>
@@ -561,7 +561,7 @@ export function EmployeeEditor({ id }: { id?: string }) {
               = <b className="text-purple">{formatTaka(toPaisa(f.rate))}</b> {PAY_LABEL[f.payType]}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-[#f3eef7]">
+            <div className="mt-4 pt-4 border-t border-[var(--l-accent)]">
               <Lbl>Usual shift</Lbl>
               <div className="flex items-center gap-2">
                 <input type="time" className={`${input} px-2`} value={f.shiftStart}
@@ -578,7 +578,7 @@ export function EmployeeEditor({ id }: { id?: string }) {
               )}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-[#f3eef7]">
+            <div className="mt-4 pt-4 border-t border-[var(--l-accent)]">
               <Lbl>A full day for this person is…</Lbl>
               <div className="flex items-center gap-2">
                 <input className={`${input} w-[90px]`} value={f.dutyHours} inputMode="decimal"
@@ -763,7 +763,7 @@ export function EmployeeDetailView({ id }: { id: string }) {
 
       {tab === "attendance" && (
         <Card className="overflow-hidden">
-          <div className="px-5 py-4 flex items-center justify-between gap-3 flex-wrap border-b border-[#f3eef7]">
+          <div className="px-5 py-4 flex items-center justify-between gap-3 flex-wrap border-b border-[var(--l-accent)]">
             <div>
               <b className="text-purple">{month}</b>
               {monthData && (
@@ -846,7 +846,7 @@ export function EmployeeDetailView({ id }: { id: string }) {
         <Card className="px-5 py-5">
           {timeline.length === 0 && <p className="text-body-soft m-0">Nothing recorded yet</p>}
           {timeline.map((t) => (
-            <div key={t.id} className="flex gap-3 py-2.5 border-b border-[#f5f1f8] last:border-0">
+            <div key={t.id} className="flex gap-3 py-2.5 border-b border-[var(--l-accent)] last:border-0">
               <div className="text-[12px] text-body-soft w-[120px] shrink-0">{ago(t.createdAt)}</div>
               <div>
                 <b className="text-[13px]">{t.label}</b>
@@ -1023,9 +1023,9 @@ function Rows({ rows }: { rows: [string, string | null | undefined][] }) {
   return (
     <div className="text-[13px]">
       {rows.map(([k, v]) => (
-        <div key={k} className="flex justify-between gap-4 py-2 border-b border-[#f5f1f8] last:border-0">
+        <div key={k} className="flex justify-between gap-4 py-2 border-b border-[var(--l-accent)] last:border-0">
           <span className="text-body-soft">{k}</span>
-          <span className="text-right font-semibold">{v || <span className="text-[#c9b8d4] font-normal">—</span>}</span>
+          <span className="text-right font-semibold">{v || <span className="text-[var(--t-accent)] font-normal">—</span>}</span>
         </div>
       ))}
     </div>

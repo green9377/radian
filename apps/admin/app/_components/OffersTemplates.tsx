@@ -101,10 +101,10 @@ type Preset = {
   body: Record<string, unknown>;
 };
 
-const PURPLE = { c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8" };
-const ORCHID = { c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc" };
-const ROSE = { c: "#a4566a", edge: "#c9788a", bg: "#fbeef0" };
-const SOFT = { c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9" };
+const PURPLE = { c: "var(--t-accent)", edge: "var(--l-accent)", bg: "var(--s-accent)" };
+const ORCHID = { c: "var(--t-accent)", edge: "var(--l-orchid)", bg: "var(--s-accent)" };
+const ROSE = { c: "var(--t-gold)", edge: "var(--l-gold)", bg: "var(--s-bad)" };
+const SOFT = { c: "var(--t-accent)", edge: "var(--l-accent)", bg: "var(--s-accent)" };
 
 /*  Two lines every flower shop repeats, kept in one place so twenty presets
     cannot drift into twenty slightly different promises. Both are the OWNER's
@@ -858,7 +858,7 @@ export default function OffersTemplates() {
       </div>
 
       {err && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
+        <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
           <span className="font-semibold">{err}</span>
           <button className="underline shrink-0 font-semibold" onClick={() => setErr(null)}>Dismiss</button>
         </div>

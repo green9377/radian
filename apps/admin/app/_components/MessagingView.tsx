@@ -219,7 +219,7 @@ export function MessagingView() {
                 </p>
               )}
 
-              <p className="text-[12px] text-body-soft border-t border-[#f3eef7] pt-3 mb-0">
+              <p className="text-[12px] text-body-soft border-t border-[var(--l-accent)] pt-3 mb-0">
                 The from-address must be verified with the service, or the mail goes to spam.
               </p>
             </div>
@@ -286,7 +286,7 @@ export function MessagingView() {
                 Send a test SMS
               </button>
 
-              <p className="text-[12px] text-body-soft border-t border-[#f3eef7] pt-3 mb-0">
+              <p className="text-[12px] text-body-soft border-t border-[var(--l-accent)] pt-3 mb-0">
                 Some gateways answer 200 and put the failure in the body — check the handset.
               </p>
             </div>

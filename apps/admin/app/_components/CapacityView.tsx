@@ -129,7 +129,7 @@ export default function CapacityView() {
       </h1>
 
       {err && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-5 text-[13.5px]">
+        <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-5 text-[13.5px]">
           {err}
         </div>
       )}
@@ -188,7 +188,7 @@ export default function CapacityView() {
                 <div
                   className={
                     "font-display text-[30px] font-medium mt-3 leading-none " +
-                    (over ? "text-[#c0392b]" : tight ? "text-[#b45309]" : "text-[#12693f]")
+                    (over ? "text-[var(--t-bad)]" : tight ? "text-[var(--t-warn)]" : "text-[var(--t-ok)]")
                   }
                 >
                   {r.freeLabel}
@@ -202,7 +202,7 @@ export default function CapacityView() {
                   <div
                     className={
                       "h-full rounded-full " +
-                      (over ? "bg-[#c0392b]" : tight ? "bg-[#e29a34]" : "bg-[#37a97c]")
+                      (over ? "bg-[var(--s-bad)]" : tight ? "bg-[var(--s-warn)]" : "bg-[var(--s-ok)]")
                     }
                     style={{ width: `${over ? 100 : pct}%` }}
                   />
@@ -210,7 +210,7 @@ export default function CapacityView() {
 
                 <div className="text-[12.5px] text-body-soft mt-3">
                   {r.categories.length === 0 ? (
-                    <span className="text-[#b45309]">
+                    <span className="text-[var(--t-warn)]">
                       No categories — nothing draws on this team yet
                     </span>
                   ) : (
@@ -283,7 +283,7 @@ export default function CapacityView() {
                 type="button"
                 title="Remove this team"
                 onClick={() => void deleteCapacityGroup(g.id).then(reload)}
-                className="ml-auto w-[38px] h-[38px] rounded-[10px] grid place-items-center border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#c0392b] transition-colors"
+                className="ml-auto w-[38px] h-[38px] rounded-[10px] grid place-items-center border border-lavender-deep bg-white text-body-soft hover:text-[var(--t-bad)] hover:border-[var(--l-bad)] transition-colors"
               >
                 <Icon name="trash" size={16} />
               </button>

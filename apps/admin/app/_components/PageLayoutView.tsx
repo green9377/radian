@@ -81,20 +81,20 @@ const SECTION_ICON: Record<string, string> = {
   admin louder than the shop it manages.
 */
 const SECTION_TINT: Record<string, string> = {
-  hero: "linear-gradient(135deg,#7B2D8E,#C155D8)",
-  trust: "linear-gradient(135deg,#5C2A96,#9B6BE0)",
-  categories: "linear-gradient(135deg,#A32C9B,#DE68C9)",
-  occasions: "linear-gradient(135deg,#8E2D6B,#D45BA0)",
-  bestsellers: "linear-gradient(135deg,#B26A2F,#E0A25C)",
-  promo: "linear-gradient(135deg,#B76E79,#E0A0A8)",
-  delivery: "linear-gradient(135deg,#4A1259,#7B2D8E)",
-  budget: "linear-gradient(135deg,#6E3AA8,#A87BE0)",
-  giftfinder: "linear-gradient(135deg,#9B3FC4,#CE86E8)",
-  reviews: "linear-gradient(135deg,#A83A6E,#DD84AC)",
-  blog: "linear-gradient(135deg,#5B3E9E,#9986DD)",
-  store: "linear-gradient(135deg,#7B2D8E,#B76E79)",
+  hero: "linear-gradient(135deg,var(--a-solid),var(--a-solid))",
+  trust: "linear-gradient(135deg,var(--a-solid),var(--a-solid))",
+  categories: "linear-gradient(135deg,var(--o-solid),var(--o-solid))",
+  occasions: "linear-gradient(135deg,var(--o-solid),var(--o-solid))",
+  bestsellers: "linear-gradient(135deg,var(--f-warn),var(--f-warn))",
+  promo: "linear-gradient(135deg,var(--t-gold),var(--f-bad))",
+  delivery: "linear-gradient(135deg,var(--a-solid),var(--a-solid))",
+  budget: "linear-gradient(135deg,var(--a-solid),var(--a-solid))",
+  giftfinder: "linear-gradient(135deg,var(--a-solid),var(--a-solid))",
+  reviews: "linear-gradient(135deg,var(--o-solid),var(--o-solid))",
+  blog: "linear-gradient(135deg,var(--a-solid),var(--f-info))",
+  store: "linear-gradient(135deg,var(--a-solid),var(--t-gold))",
 };
-const tintOf = (key: string) => SECTION_TINT[key] ?? "linear-gradient(135deg,#7B2D8E,#C155D8)";
+const tintOf = (key: string) => SECTION_TINT[key] ?? "linear-gradient(135deg,var(--a-solid),var(--a-solid))";
 
 export default function PageLayoutView({ embedded, onEditSection }: { embedded?: boolean; onEditSection?: (key: string) => void } = {}) {
   const [rows, setRows] = useState<ApiPageSection[]>([]);
@@ -205,7 +205,7 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
       {!embedded && <h1 className="font-display text-[22px] text-purple mb-4">Homepage layout</h1>}
 
       {err && (
-        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-3">
+        <div className="flex items-start gap-2 bg-[var(--s-bad)] border border-[var(--l-bad)] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[var(--t-bad)] mb-3">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
@@ -232,10 +232,10 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
         both were white the only thing separating eleven sections was a hairline,
         which is why the list read as a wall of paper.
       */}
-      <div className="rounded-[18px] border border-lavender-deep overflow-hidden bg-[#f6f0fa] shadow-[0_2px_14px_rgba(80,40,100,0.06)]">
+      <div className="rounded-[18px] border border-lavender-deep overflow-hidden bg-[var(--s-accent)] shadow-[0_2px_14px_rgba(80,40,100,0.06)]">
         <div
           className="px-5 py-3.5 flex items-center justify-between gap-4 flex-wrap"
-          style={{ background: "linear-gradient(120deg,#f7f0fb 0%,#f4e9fa 55%,#fbf2f4 100%)" }}
+          style={{ background: "linear-gradient(120deg,var(--a-solid) 0%,var(--a-solid) 55%,var(--f-bad) 100%)" }}
         >
           <div className="min-w-0">
             <div className="font-display text-[16px] text-purple flex items-center gap-2.5">
@@ -244,7 +244,7 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
                 {rows.length}
               </span>
               {ok ? (
-                <span className="text-[11.5px] font-semibold text-[#12693f] inline-flex items-center gap-1">
+                <span className="text-[11.5px] font-semibold text-[var(--t-ok)] inline-flex items-center gap-1">
                   <Icon name="check" size={12} /> {ok}
                 </span>
               ) : saveState === "saving" ? (
@@ -268,7 +268,7 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
         */}
         <div
           className="sticky top-0 z-10 px-5 py-2.5 flex items-center gap-3.5 text-white text-[11px] font-semibold uppercase tracking-[0.12em]"
-          style={{ background: "linear-gradient(120deg,#4a1259 0%,#7B2D8E 55%,#A73BBE 100%)" }}
+          style={{ background: "linear-gradient(120deg,var(--a-solid) 0%,var(--a-solid) 55%,var(--a-solid) 100%)" }}
         >
           <span className="w-[15px] shrink-0" />
           <span className="w-[40px] shrink-0" />
@@ -279,7 +279,7 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
         </div>
 
       {loading ? <p className="text-[13px] text-body-soft px-5 py-4">Loading…</p> : (
-        <div className="divide-y divide-[#e5d8ef]">
+        <div className="divide-y divide-[var(--l-accent)]">
           {rows.map((r, i) => {
             const isOver = overKey === r.key && dragKey !== r.key;
             return (
@@ -293,14 +293,14 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
                 className={"relative transition-colors " +
                   (dragKey === r.key ? "opacity-40 " : "") +
                   (isOver ? "bg-orchid-soft " : "") +
-                  (r.isActive ? "bg-white hover:bg-[#fdfaff]" : "bg-[#efe7f5] hover:bg-[#ece2f3]")}
+                  (r.isActive ? "bg-white hover:bg-[var(--s-accent)]" : "bg-[var(--s-accent)] hover:bg-[var(--s-accent)]")}
               >
                 {/* the section's colour, down the left edge — the row's identity
                     at a glance, and it greys out the moment it is hidden */}
                 <span
                   aria-hidden
                   className="absolute left-0 top-0 bottom-0 w-[4px]"
-                  style={{ background: r.isActive ? tintOf(r.key) : "#ddd3e6" }}
+                  style={{ background: r.isActive ? tintOf(r.key) : "var(--s-accent)" }}
                 />
                 <div className="px-4 py-3 pl-5 flex items-center gap-3.5">
                   {/* the handle is the affordance — without it nobody discovers
@@ -310,7 +310,7 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
                   <span
                     className="w-[40px] h-[40px] rounded-[13px] grid place-items-center shrink-0 text-white transition-all"
                     style={{
-                      background: r.isActive ? tintOf(r.key) : "#cfc4da",
+                      background: r.isActive ? tintOf(r.key) : "var(--s-accent)",
                       boxShadow: r.isActive ? "0 3px 10px rgba(80,40,100,0.18)" : "none",
                     }}
                   >
@@ -324,7 +324,7 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
                       {r.blockType && <span className="text-[10.5px] text-orchid bg-orchid-soft rounded-full px-2 py-0.5">added by you</span>}
                     </div>
                     <div className="text-[12px] text-body-soft truncate">
-                      {r.movable ? r.hint : <span className="text-[#8a6414]">{r.lockedReason}</span>}
+                      {r.movable ? r.hint : <span className="text-[var(--t-warn)]">{r.lockedReason}</span>}
                     </div>
                   </div>
 
@@ -359,8 +359,8 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
                     {r.movable ? (
                       <div className="inline-flex p-[3px] rounded-full bg-lavender/70">
                         {[
-                          { on: true, label: "Live", fill: "linear-gradient(135deg,#12795a,#3ec294)" },
-                          { on: false, label: "Hidden", fill: "linear-gradient(135deg,#8a6414,#d9a441)" },
+                          { on: true, label: "Live", fill: "linear-gradient(135deg,var(--f-ok),var(--f-ok))" },
+                          { on: false, label: "Hidden", fill: "linear-gradient(135deg,var(--f-warn),var(--f-warn))" },
                         ].map((o) => (
                           <button
                             key={o.label}
@@ -471,7 +471,7 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
                     )}
 
                     {r.blockType && (
-                      <button onClick={() => removeBlock(r.key)} className="text-[12.5px] text-body-soft hover:text-[#c0392b] inline-flex items-center gap-1.5">
+                      <button onClick={() => removeBlock(r.key)} className="text-[12.5px] text-body-soft hover:text-[var(--t-bad)] inline-flex items-center gap-1.5">
                         <Icon name="trash" size={13} /> Remove this section
                       </button>
                     )}
@@ -510,7 +510,7 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
         do with, and the panel it opened had to appear somewhere else again.
         Button and consequence, in the same place, at the point the list runs out.
       */}
-      <div className="border-t border-[#e5d8ef]">
+      <div className="border-t border-[var(--l-accent)]">
         {adding ? (
           <div className="bg-lavender/30 p-4">
             <div className="flex flex-wrap gap-2">
@@ -532,7 +532,7 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
           <div className="px-5 py-4">
             <button onClick={() => setAdding(true)}
               className="text-white text-[13px] font-semibold px-4 py-2.5 rounded-[11px] inline-flex items-center gap-1.5 shadow-[0_3px_12px_rgba(80,40,100,0.22)] hover:opacity-95 transition-opacity"
-              style={{ background: "linear-gradient(135deg,#7B2D8E,#C155D8)" }}>
+              style={{ background: "linear-gradient(135deg,var(--a-solid),var(--a-solid))" }}>
               <Icon name="plus" size={15} /> Add section
             </button>
           </div>
@@ -549,9 +549,9 @@ export default function PageLayoutView({ embedded, onEditSection }: { embedded?:
       {!loading && (
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-[640px]">
           {[
-            { n: rows.length, l: "sections on this page", icon: "layers", grad: "linear-gradient(135deg,#4A1259,#7B2D8E)" },
-            { n: rows.filter((r) => r.isActive).length, l: "showing to customers", icon: "eye", grad: "linear-gradient(135deg,#7B2D8E,#C155D8)" },
-            { n: rows.filter((r) => !r.isActive).length, l: "hidden for now", icon: "moon", grad: "linear-gradient(135deg,#B76E79,#E0A0A8)" },
+            { n: rows.length, l: "sections on this page", icon: "layers", grad: "linear-gradient(135deg,var(--a-solid),var(--a-solid))" },
+            { n: rows.filter((r) => r.isActive).length, l: "showing to customers", icon: "eye", grad: "linear-gradient(135deg,var(--a-solid),var(--a-solid))" },
+            { n: rows.filter((r) => !r.isActive).length, l: "hidden for now", icon: "moon", grad: "linear-gradient(135deg,var(--t-gold),var(--f-bad))" },
           ].map((x) => (
             <div key={x.l} className="rounded-[16px] px-4 py-3.5 text-white flex items-center gap-3.5" style={{ background: x.grad }}>
               <span className="w-[38px] h-[38px] rounded-[12px] grid place-items-center bg-white/20 shrink-0">
@@ -602,7 +602,7 @@ function ImageBannerFields({ config, onChange }: { config: Record<string, unknow
               : <span className="text-body-soft text-[11.5px]">{uploading ? "Uploading…" : "Drag & drop or click"}</span>}
             <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => pick(e.target.files?.[0] ?? null)} />
           </label>
-          {image && !uploading && <button onClick={() => onChange({ imageUrl: "" })} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove</button>}
+          {image && !uploading && <button onClick={() => onChange({ imageUrl: "" })} className="text-[13px] text-body-soft hover:text-[var(--t-bad)]">Remove</button>}
         </div>
       </F>
       <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_160px] gap-3">

@@ -48,10 +48,10 @@ export function AssemblyOverview() {
 
       {/* decision-first: what needs the owner's hand NOW */}
       {ov && ov.finishedAwaiting.length > 0 && (
-        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft" style={{ background: "#fff4e6", borderColor: "#f5ddba" }}>
+        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft" style={{ background: "var(--s-warn)", borderColor: "var(--l-warn)" }}>
           <div className="flex items-center gap-2 mb-2.5">
-            <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center text-white" style={{ background: "#b45309" }}><Icon name="bolt" size={13} /></span>
-            <b className="text-[14px]" style={{ color: "#8a5a10" }}>
+            <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center text-white" style={{ background: "var(--s-warn)" }}><Icon name="bolt" size={13} /></span>
+            <b className="text-[14px]" style={{ color: "var(--t-warn)" }}>
               Finished — waiting to become stock ({ov.finishedAwaiting.length} · {formatTaka(ov.kpis.awaitingTransferValuePaisa)})
             </b>
           </div>
@@ -63,18 +63,18 @@ export function AssemblyOverview() {
                 {p.templateName} × {fmtQty(p.finishedQtyMilli)}
               </span>
               <span className="text-[12.5px] text-body-soft">{formatTaka(p.totalUsedValuePaisa)}</span>
-              <span className="text-[12px] font-semibold" style={{ color: "#b45309" }}>Transfer →</span>
+              <span className="text-[12px] font-semibold" style={{ color: "var(--t-warn)" }}>Transfer →</span>
             </Link>
           ))}
         </div>
       )}
 
       {ov?.noEntryToday && (
-        <div className="rounded-[12px] border px-4 py-2.5 mb-4 flex items-center gap-3" style={{ background: "#e8f0fa", borderColor: "#c7dcf5" }}>
-          <span className="text-[13px]" style={{ color: "#2563a8" }}>
+        <div className="rounded-[12px] border px-4 py-2.5 mb-4 flex items-center gap-3" style={{ background: "var(--s-info)", borderColor: "var(--l-info)" }}>
+          <span className="text-[13px]" style={{ color: "var(--t-info)" }}>
             <b>No production entry today.</b>
           </span>
-          <Link href="/assembly/pipeline" className="ml-auto text-[12.5px] font-semibold underline" style={{ color: "#2563a8" }}>
+          <Link href="/assembly/pipeline" className="ml-auto text-[12.5px] font-semibold underline" style={{ color: "var(--t-info)" }}>
             Enter now
           </Link>
         </div>
@@ -82,11 +82,11 @@ export function AssemblyOverview() {
 
       {k && (
         <Kpi items={[
-          { l: "Running now", v: k.runningCount, c: "#2563a8", bg: "#e8f0fa", icon: "clock", href: "/assembly/pipeline" },
-          { l: "Awaiting transfer", v: `${k.awaitingTransferCount} · ${formatTaka(k.awaitingTransferValuePaisa)}`, c: "#b45309", bg: "#fff4e6", icon: "box", href: "/assembly/finished" },
-          { l: "Produced (month)", v: `${k.runsMonth} runs · ${formatTaka(k.producedMonthPaisa)}`, c: "#0e7a3d", bg: "#e8f7ef", icon: "cash" },
-          { l: "Wasted (month)", v: formatTaka(k.wastedMonthPaisa), c: k.wastedMonthPaisa > 0 ? "#c0392b" : "#8d7a97", bg: "#fdecea", icon: "bolt", href: "/assembly/wastage" },
-          { l: "Templates", v: k.templateCount, c: "#470066", bg: "#f5eafb", icon: "book", href: "/assembly/templates" },
+          { l: "Running now", v: k.runningCount, c: "var(--t-info)", bg: "var(--s-info)", icon: "clock", href: "/assembly/pipeline" },
+          { l: "Awaiting transfer", v: `${k.awaitingTransferCount} · ${formatTaka(k.awaitingTransferValuePaisa)}`, c: "var(--t-warn)", bg: "var(--s-warn)", icon: "box", href: "/assembly/finished" },
+          { l: "Produced (month)", v: `${k.runsMonth} runs · ${formatTaka(k.producedMonthPaisa)}`, c: "var(--t-ok)", bg: "var(--s-ok)", icon: "cash" },
+          { l: "Wasted (month)", v: formatTaka(k.wastedMonthPaisa), c: k.wastedMonthPaisa > 0 ? "var(--t-bad)" : "var(--t-accent)", bg: "var(--s-bad)", icon: "bolt", href: "/assembly/wastage" },
+          { l: "Templates", v: k.templateCount, c: "var(--t-accent)", bg: "var(--s-accent)", icon: "book", href: "/assembly/templates" },
         ]} />
       )}
 
@@ -123,7 +123,7 @@ export function AssemblyOverview() {
             {ov.byActor.map((a) => (
               <div key={a.who} className="bg-white border border-lavender-deep rounded-[14px] shadow-soft px-4 py-3 flex items-center gap-3">
                 <span className="w-[38px] h-[38px] rounded-full grid place-items-center text-white text-[14px] font-bold shrink-0"
-                  style={{ background: "linear-gradient(135deg,#470066,#cf43ea)" }}>
+                  style={{ background: "linear-gradient(135deg,var(--a-solid),var(--o-solid))" }}>
                   {a.who.slice(0, 1).toUpperCase()}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -188,12 +188,12 @@ export function AsmWastageView() {
             className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
             style={days === d
               ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-              : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
+              : { background: "#fff", color: "var(--t-accent)", borderColor: "var(--l-accent)" }}>
             {d} days
           </button>
         ))}
         <span className="ml-auto text-[13.5px] text-body">
-          Total wasted: <b style={{ color: (report?.totalWastedPaisa ?? 0) > 0 ? "#c0392b" : "#5c4a6b" }}>{formatTaka(report?.totalWastedPaisa ?? 0)}</b>
+          Total wasted: <b style={{ color: (report?.totalWastedPaisa ?? 0) > 0 ? "var(--t-bad)" : "var(--t-accent)" }}>{formatTaka(report?.totalWastedPaisa ?? 0)}</b>
         </span>
       </div>
 
@@ -215,7 +215,7 @@ export function AsmWastageView() {
             </span>
             <span />
             <span className="text-right text-[13px] text-body">{fmtQty(c.qtyMilli)} {c.unitShort}</span>
-            <span className="text-right text-[13.5px] font-semibold" style={{ color: "#c0392b" }}>{formatTaka(c.valuePaisa)}</span>
+            <span className="text-right text-[13.5px] font-semibold" style={{ color: "var(--t-bad)" }}>{formatTaka(c.valuePaisa)}</span>
           </div>
         ))}
       </DataTable>
@@ -235,7 +235,7 @@ export function AsmWastageView() {
               {p.lines.filter((l) => l.wastedQtyMilli > 0).map((l) => `${l.componentItem.name} ×${fmtQty(l.wastedQtyMilli)}`).join(", ") || "—"}
             </span>
             <span className="text-right text-[12.5px] text-body-soft">{p.assignedTo ?? p.actor ?? "—"}</span>
-            <span className="text-right text-[13.5px] font-semibold" style={{ color: "#c0392b" }}>{formatTaka(p.totalWastedValuePaisa)}</span>
+            <span className="text-right text-[13.5px] font-semibold" style={{ color: "var(--t-bad)" }}>{formatTaka(p.totalWastedValuePaisa)}</span>
           </div>
         ))}
       </DataTable>
@@ -278,7 +278,7 @@ export function AsmSettingsView() {
           className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors disabled:opacity-50"
           style={value === w.id
             ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-            : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
+            : { background: "#fff", color: "var(--t-accent)", borderColor: "var(--l-accent)" }}>
           {w.name}
         </button>
       ))}

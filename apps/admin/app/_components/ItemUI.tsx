@@ -47,7 +47,7 @@ export function ItemPageHead({
     <div className="flex items-end justify-between gap-4 mb-4 flex-wrap">
       <div>
         <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.08em] uppercase" style={{ color: ACCENT }}>
-          <span className="w-[9px] h-[9px] -rotate-45" style={{ borderRadius: "50% 50% 50% 0", background: `linear-gradient(150deg,${ACCENT},#cf43ea)` }} />
+          <span className="w-[9px] h-[9px] -rotate-45" style={{ borderRadius: "50% 50% 50% 0", background: `linear-gradient(150deg,${ACCENT},var(--o-solid))` }} />
           {eyebrow}
         </div>
         <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">{title}</h1>
@@ -62,22 +62,22 @@ export function ItemPageHead({
 
 export function ErrBar({ text, onClose }: { text: string; onClose: () => void }) {
   return (
-    <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-start justify-between gap-3">
+    <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-start justify-between gap-3">
       <span>{text}</span><button className="underline shrink-0" onClick={onClose}>Dismiss</button>
     </div>
   );
 }
 export function OkBar({ text, onClose }: { text: string; onClose: () => void }) {
   return (
-    <div className="bg-[#e8f7ef] border border-[#a9dcc0] text-[#0e7a3d] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-start justify-between gap-3">
+    <div className="bg-[var(--s-ok)] border border-[var(--l-ok)] text-[var(--t-ok)] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-start justify-between gap-3">
       <span>{text}</span><button className="underline shrink-0" onClick={onClose}>Dismiss</button>
     </div>
   );
 }
 export function DemoBar({ onRetry, what }: { onRetry: () => void; what: string }) {
   return (
-    <div className="flex items-center gap-3 bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
-      <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[#b45309] text-white px-2 py-1 rounded-full shrink-0">Offline</span>
+    <div className="flex items-center gap-3 bg-[var(--s-warn)] border border-[var(--l-warn)] text-[var(--t-warn)] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
+      <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[var(--s-warn)] text-white px-2 py-1 rounded-full shrink-0">Offline</span>
       <span className="flex-1 min-w-[240px]">
         The API is not reachable, so nothing can be shown. Start it and
         <button className="underline font-medium mx-1" onClick={onRetry}>retry</button>
@@ -160,7 +160,7 @@ export function ItemPhotoBox({
       {item.imageUrl && (
         <button type="button" onClick={() => onImage(null)} className="text-[13px] text-body-soft underline mt-1.5">remove photo</button>
       )}
-      {warn && <div className="text-[11px] text-[#c0392b] mt-1" style={{ maxWidth: size }}>{warn}</div>}
+      {warn && <div className="text-[11px] text-[var(--t-bad)] mt-1" style={{ maxWidth: size }}>{warn}</div>}
       {hint && !warn && !item.imageUrl && (
         <p className="text-[13px] text-body-soft m-0 mt-1.5 leading-snug" style={{ maxWidth: size + 30 }}>
           Until you add one, the tile colour is fixed per SKU — so the list is still scannable.
@@ -402,8 +402,8 @@ export function Field({ label, required, children, hint }: { label: string; requ
 /** the green Active / grey Hidden pill from the table */
 export function StatusPill({ active, onClick }: { active: boolean; onClick?: () => void }) {
   const style = active
-    ? { background: "#12a172", color: "#fff" }
-    : { background: "#e5dced", color: "#6b5878" };
+    ? { background: "var(--s-ok)", color: "#fff" }
+    : { background: "var(--s-accent)", color: "var(--t-accent)" };
   const cls = "text-[11px] font-semibold px-2.5 py-1 rounded-full";
   return onClick
     ? <button onClick={onClick} className={cls} style={style}>{active ? "Active" : "Hidden"}</button>
@@ -413,19 +413,19 @@ export function StatusPill({ active, onClick }: { active: boolean; onClick?: () 
 /** the red "the API is not answering" box — every Item screen shows the same one */
 export function OfflineBox({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="bg-[#fdecea] border-2 border-[#e0a1a1] rounded-[14px] px-5 py-4 mb-5">
+    <div className="bg-[var(--s-bad)] border-2 border-[var(--l-bad)] rounded-[14px] px-5 py-4 mb-5">
       <div className="flex items-center gap-2 mb-1.5">
-        <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white" style={{ background: "#c0392b" }}>
+        <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white" style={{ background: "var(--s-bad)" }}>
           <Icon name="bolt" size={14} />
         </span>
-        <b className="text-[14px] text-[#c0392b]">Nothing can be saved yet</b>
+        <b className="text-[14px] text-[var(--t-bad)]">Nothing can be saved yet</b>
       </div>
       <p className="text-[13px] text-body m-0 leading-relaxed">
         This page is fine — but the part of Radian that stores your data is not answering, so anything typed here
         would vanish. Nothing you did caused this.
       </p>
       <p className="text-[13px] text-body m-0 mt-2">
-        <b>One fix:</b> double-click <code className="bg-white px-1.5 py-0.5 rounded border border-[#e0a1a1]">D:\radian\FIX_ME.bat</code>,
+        <b>One fix:</b> double-click <code className="bg-white px-1.5 py-0.5 rounded border border-[var(--l-bad)]">D:\radian\FIX_ME.bat</code>,
         let it finish, then <button className="underline font-medium" onClick={onRetry}>press here to retry</button>.
       </p>
     </div>
@@ -452,7 +452,7 @@ export function Flag({
   return (
     <button type="button" onClick={onClick} title={hint}
       className="text-[12px] px-2.5 py-1.5 rounded-[9px] border inline-flex items-center gap-1.5"
-      style={on ? { background: colour, borderColor: colour, color: "#fff" } : { background: "#fff", borderColor: "#e3d7ec", color: "#8d7a97" }}>
+      style={on ? { background: colour, borderColor: colour, color: "#fff" } : { background: "#fff", borderColor: "var(--l-accent)", color: "var(--t-accent)" }}>
       <Icon name={on ? "check" : "plus"} size={11} /> {label}
     </button>
   );

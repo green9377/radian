@@ -120,7 +120,7 @@ export default function RichText({
         </div>
       )}
       {err && (
-        <div className="flex items-start gap-2 px-3 py-2 border-b text-[12.5px]" style={{ background: "#3a171b", borderColor: "#f3c9cf", color: "#d98c95" }}>
+        <div className="flex items-start gap-2 px-3 py-2 border-b text-[12.5px]" style={{ background: "var(--s-bad)", borderColor: "var(--l-bad)", color: "var(--t-bad)" }}>
           <span className="flex-1">{err}</span>
           <button type="button" onClick={() => setErr("")} className="font-bold opacity-60 hover:opacity-100">✕</button>
         </div>

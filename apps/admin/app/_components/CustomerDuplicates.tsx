@@ -107,7 +107,7 @@ export default function CustomerDuplicates() {
       </div>
 
       {error && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}. Is the API (:4000) running? <button className="underline" onClick={load}>Retry</button>
         </div>
       )}
@@ -116,10 +116,10 @@ export default function CustomerDuplicates() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
         {[
-          { l: "Possible duplicate sets", v: String(groups.length), c: groups.length ? "#d98a0f" : "#12a172", bg: groups.length ? "#fff8ec" : "#e6f7ef", icon: "copy" },
-          { l: "Profiles involved", v: String(dupCount), c: "#8b3fb0", bg: "#f5eafb", icon: "user" },
-          { l: "Merged this session", v: String(merged.length), c: "#12a172", bg: "#e6f7ef", icon: "check" },
-          { l: "Total customers", v: String(all.length), c: "#3182c9", bg: "#e9f1fb", icon: "grid" },
+          { l: "Possible duplicate sets", v: String(groups.length), c: groups.length ? "var(--t-warn)" : "var(--t-ok)", bg: groups.length ? "var(--s-warn)" : "var(--s-ok)", icon: "copy" },
+          { l: "Profiles involved", v: String(dupCount), c: "var(--t-accent)", bg: "var(--s-accent)", icon: "user" },
+          { l: "Merged this session", v: String(merged.length), c: "var(--t-ok)", bg: "var(--s-ok)", icon: "check" },
+          { l: "Total customers", v: String(all.length), c: "var(--t-info)", bg: "var(--s-info)", icon: "grid" },
         ].map((k, i) => (
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}>
@@ -133,7 +133,7 @@ export default function CustomerDuplicates() {
 
       {groups.length === 0 && !loading ? (
         <div className="bg-white border border-lavender-deep rounded-[18px] p-10 shadow-soft text-center">
-          <div className="w-12 h-12 rounded-full bg-[#e6f7ef] text-[#12a172] grid place-items-center mx-auto mb-3">
+          <div className="w-12 h-12 rounded-full bg-[var(--s-ok)] text-[var(--t-ok)] grid place-items-center mx-auto mb-3">
             <Icon name="check" size={24} />
           </div>
           <div className="font-display text-[18px] text-purple">No duplicates found</div>
@@ -157,9 +157,9 @@ export default function CustomerDuplicates() {
             const keepId = primaryOf(g.key, g.members);
             return (
               <div key={g.reason + g.key} className="bg-white border border-lavender-deep rounded-[18px] shadow-soft overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-lavender-deep bg-[#fff8ec] flex-wrap gap-2">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-lavender-deep bg-[var(--s-warn)] flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
-                    <span className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-white" style={{ background: "#d98a0f" }}>
+                    <span className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-white" style={{ background: "var(--s-warn)" }}>
                       <Icon name="copy" size={16} />
                     </span>
                     <div>
@@ -195,7 +195,7 @@ export default function CustomerDuplicates() {
                           name={"dup-" + g.reason + g.key}
                           checked={isKeep}
                           onChange={() => setPrimary((p) => ({ ...p, [g.key]: m.id }))}
-                          className="mt-1 accent-[#cf43ea]"
+                          className="mt-1 accent-[var(--t-orchid)]"
                         />
                         <span
                           className="w-[38px] h-[38px] rounded-full grid place-items-center text-white text-[12px] font-medium font-display shrink-0"

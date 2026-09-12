@@ -79,7 +79,7 @@ function PageEditor({ row, onSaved }: { row: ApiSeoPage; onSaved: () => void }) 
   });
 
   return (
-    <div className="px-5 py-4 border-t border-[#f3eef7]" style={{ background: "#fdfbfe" }}>
+    <div className="px-5 py-4 border-t border-[var(--l-accent)]" style={{ background: "var(--s-accent)" }}>
       <div className="grid lg:grid-cols-[1.3fr_1fr] gap-5">
         <div>
           <Lbl>Title — the blue line in a Google result</Lbl>
@@ -128,13 +128,13 @@ function PageEditor({ row, onSaved }: { row: ApiSeoPage; onSaved: () => void }) 
           <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-body-soft mb-2">
             How it will look in Google
           </div>
-          <div className="rounded-xl border border-[#e7dff0] bg-white p-4">
-            <div className="text-[12px] text-[#4d5156] truncate">{WEB_HOST} › {row.slug}</div>
-            <div className="text-[17px] leading-snug mt-0.5" style={{ color: "#1a0dab" }}>
+          <div className="rounded-xl border border-[var(--l-accent)] bg-white p-4">
+            <div className="text-[12px] text-[var(--t-soft)] truncate">{WEB_HOST} › {row.slug}</div>
+            <div className="text-[17px] leading-snug mt-0.5" style={{ color: "var(--t-info)" }}>
               {(f.metaTitle || row.name).slice(0, TITLE_MAX)}
               {(f.metaTitle || row.name).length > TITLE_MAX && "…"}
             </div>
-            <div className="text-[13px] leading-snug mt-1 text-[#4d5156]">
+            <div className="text-[13px] leading-snug mt-1 text-[var(--t-soft)]">
               {(f.metaDescription || row.description || "Google will pick a line from the page itself.").slice(0, DESC_MAX)}
               {(f.metaDescription || row.description || "").length > DESC_MAX && "…"}
             </div>

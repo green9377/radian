@@ -69,30 +69,30 @@ import {
   completely as a wrong Store ID breaks checkout.
 */
 const HERO_BRAND: Record<string, { grad: string; badge: string; ring: string; glow: string; solid: string }> = {
-  SSLCOMMERZ: { grad: "linear-gradient(135deg,#062c47,#0a3d62 45%,#3c8dbc)", badge: "SC", ring: "#3c8dbc", glow: "rgba(10,61,98,0.35)", solid: "#0a3d62" },
-  BKASH:      { grad: "linear-gradient(135deg,#8f0c47,#d6136c 45%,#ff5da2)", badge: "bK", ring: "#d6136c", glow: "rgba(214,19,108,0.35)", solid: "#d6136c" },
-  NAGAD:      { grad: "linear-gradient(135deg,#9a3c0a,#e2691a 45%,#f7a339)", badge: "N", ring: "#e2691a", glow: "rgba(226,105,26,0.35)", solid: "#e2691a" },
-  WHATSAPP:   { grad: "linear-gradient(135deg,#04463f,#0b7a68 45%,#25d366)", badge: "✆", ring: "#0b7a68", glow: "rgba(11,122,104,0.35)", solid: "#0b7a68" },
-  EMAIL:      { grad: "linear-gradient(135deg,#1e2a5a,#2f4bab 45%,#6f8ff0)", badge: "✉", ring: "#2f4bab", glow: "rgba(47,75,171,0.32)", solid: "#2f4bab" },
-  SMS:        { grad: "linear-gradient(135deg,#3f3a52,#5b5468 45%,#9f97b3)", badge: "▤", ring: "#5b5468", glow: "rgba(91,84,104,0.30)", solid: "#5b5468" },
+  SSLCOMMERZ: { grad: "linear-gradient(135deg,var(--f-info),var(--f-info) 45%,var(--f-info))", badge: "SC", ring: "var(--l-info)", glow: "rgba(10,61,98,0.35)", solid: "var(--f-info)" },
+  BKASH:      { grad: "linear-gradient(135deg,var(--o-solid),var(--o-solid) 45%,var(--o-solid))", badge: "bK", ring: "var(--l-orchid)", glow: "rgba(214,19,108,0.35)", solid: "var(--o-solid)" },
+  NAGAD:      { grad: "linear-gradient(135deg,var(--f-warn),var(--f-warn) 45%,var(--f-warn))", badge: "N", ring: "var(--l-warn)", glow: "rgba(226,105,26,0.35)", solid: "var(--f-warn)" },
+  WHATSAPP:   { grad: "linear-gradient(135deg,var(--f-ok),var(--f-ok) 45%,var(--f-ok))", badge: "✆", ring: "var(--l-ok)", glow: "rgba(11,122,104,0.35)", solid: "var(--f-ok)" },
+  EMAIL:      { grad: "linear-gradient(135deg,var(--f-info),var(--f-info) 45%,var(--f-info))", badge: "✉", ring: "var(--l-info)", glow: "rgba(47,75,171,0.32)", solid: "var(--f-info)" },
+  SMS:        { grad: "linear-gradient(135deg,var(--f-info),var(--a-solid) 45%,var(--a-solid))", badge: "▤", ring: "var(--l-accent)", glow: "rgba(91,84,104,0.30)", solid: "var(--a-solid)" },
 
-  PATHAO:     { grad: "linear-gradient(135deg,#7a1020,#c81e3c 45%,#ff6b83)", badge: "P", ring: "#c81e3c", glow: "rgba(200,30,60,0.32)", solid: "#c81e3c" },
-  STEADFAST:  { grad: "linear-gradient(135deg,#0d3b2e,#137a5c 45%,#4fd1a5)", badge: "S", ring: "#137a5c", glow: "rgba(19,122,92,0.32)", solid: "#137a5c" },
-  REDX:       { grad: "linear-gradient(135deg,#5c0f14,#a51c22 45%,#f0666c)", badge: "R", ring: "#a51c22", glow: "rgba(165,28,34,0.32)", solid: "#a51c22" },
+  PATHAO:     { grad: "linear-gradient(135deg,var(--f-bad),var(--f-bad) 45%,var(--f-bad))", badge: "P", ring: "var(--l-bad)", glow: "rgba(200,30,60,0.32)", solid: "var(--f-bad)" },
+  STEADFAST:  { grad: "linear-gradient(135deg,var(--f-ok),var(--f-ok) 45%,var(--f-ok))", badge: "S", ring: "var(--l-ok)", glow: "rgba(19,122,92,0.32)", solid: "var(--f-ok)" },
+  REDX:       { grad: "linear-gradient(135deg,var(--f-bad),var(--f-bad) 45%,var(--f-bad))", badge: "R", ring: "var(--l-bad)", glow: "rgba(165,28,34,0.32)", solid: "var(--f-bad)" },
 
-  META_ADS:       { grad: "linear-gradient(135deg,#0b2a63,#1877f2 45%,#63a4ff)", badge: "f", ring: "#1877f2", glow: "rgba(24,119,242,0.32)", solid: "#1877f2" },
-  FACEBOOK_PAGE:  { grad: "linear-gradient(135deg,#062a5a,#0084ff 45%,#5fb6ff)", badge: "M", ring: "#0084ff", glow: "rgba(0,132,255,0.32)", solid: "#0084ff" },
-  INSTAGRAM:      { grad: "linear-gradient(135deg,#7b2bbf,#dc2743 45%,#f9a825)", badge: "IG", ring: "#dc2743", glow: "rgba(220,39,67,0.32)", solid: "#c1275c" },
-  GOOGLE_ADS_API: { grad: "linear-gradient(135deg,#1a4d2e,#2f9e44 45%,#8ce99a)", badge: "G", ring: "#2f9e44", glow: "rgba(47,158,68,0.30)", solid: "#2f9e44" },
+  META_ADS:       { grad: "linear-gradient(135deg,var(--f-info),var(--f-info) 45%,var(--f-info))", badge: "f", ring: "var(--l-info)", glow: "rgba(24,119,242,0.32)", solid: "var(--f-info)" },
+  FACEBOOK_PAGE:  { grad: "linear-gradient(135deg,var(--f-info),var(--f-info) 45%,var(--f-info))", badge: "M", ring: "var(--l-info)", glow: "rgba(0,132,255,0.32)", solid: "var(--f-info)" },
+  INSTAGRAM:      { grad: "linear-gradient(135deg,var(--a-solid),var(--f-bad) 45%,var(--f-warn))", badge: "IG", ring: "var(--l-bad)", glow: "rgba(220,39,67,0.32)", solid: "var(--o-solid)" },
+  GOOGLE_ADS_API: { grad: "linear-gradient(135deg,var(--f-ok),var(--f-ok) 45%,var(--f-ok))", badge: "G", ring: "var(--l-ok)", glow: "rgba(47,158,68,0.30)", solid: "var(--f-ok)" },
 
-  META_PIXEL:     { grad: "linear-gradient(135deg,#0b2a63,#1877f2 45%,#63a4ff)", badge: "◉", ring: "#1877f2", glow: "rgba(24,119,242,0.30)", solid: "#1877f2" },
-  GA4:            { grad: "linear-gradient(135deg,#7a4a06,#e8912a 45%,#ffc879)", badge: "GA", ring: "#e8912a", glow: "rgba(232,145,42,0.30)", solid: "#e8912a" },
-  GOOGLE_ADS_TAG: { grad: "linear-gradient(135deg,#1a4d2e,#2f9e44 45%,#8ce99a)", badge: "Ad", ring: "#2f9e44", glow: "rgba(47,158,68,0.30)", solid: "#2f9e44" },
-  GTM:            { grad: "linear-gradient(135deg,#123a63,#2f7fd1 45%,#8ec6ff)", badge: "▣", ring: "#2f7fd1", glow: "rgba(47,127,209,0.30)", solid: "#2f7fd1" },
-  TIKTOK_PIXEL:   { grad: "linear-gradient(135deg,#101013,#2b2b32 45%,#69c9d0)", badge: "♪", ring: "#69c9d0", glow: "rgba(40,40,50,0.32)", solid: "#1f1f26" },
-  CLARITY:        { grad: "linear-gradient(135deg,#0f3d5c,#1e7fa8 45%,#7fd3ef)", badge: "◔", ring: "#1e7fa8", glow: "rgba(30,127,168,0.30)", solid: "#1e7fa8" },
-  SNAP_PIXEL:     { grad: "linear-gradient(135deg,#7a6a05,#e0cf12 45%,#fff59d)", badge: "◠", ring: "#c9ba10", glow: "rgba(201,186,16,0.30)", solid: "#a89a0d" },
-  PINTEREST_TAG:  { grad: "linear-gradient(135deg,#6b0a17,#bd081c 45%,#ff6b7d)", badge: "P", ring: "#bd081c", glow: "rgba(189,8,28,0.30)", solid: "#bd081c" },
+  META_PIXEL:     { grad: "linear-gradient(135deg,var(--f-info),var(--f-info) 45%,var(--f-info))", badge: "◉", ring: "var(--l-info)", glow: "rgba(24,119,242,0.30)", solid: "var(--f-info)" },
+  GA4:            { grad: "linear-gradient(135deg,var(--f-warn),var(--f-warn) 45%,var(--f-warn))", badge: "GA", ring: "var(--l-warn)", glow: "rgba(232,145,42,0.30)", solid: "var(--f-warn)" },
+  GOOGLE_ADS_TAG: { grad: "linear-gradient(135deg,var(--f-ok),var(--f-ok) 45%,var(--f-ok))", badge: "Ad", ring: "var(--l-ok)", glow: "rgba(47,158,68,0.30)", solid: "var(--f-ok)" },
+  GTM:            { grad: "linear-gradient(135deg,var(--f-info),var(--f-info) 45%,var(--f-info))", badge: "▣", ring: "var(--l-info)", glow: "rgba(47,127,209,0.30)", solid: "var(--f-info)" },
+  TIKTOK_PIXEL:   { grad: "linear-gradient(135deg,var(--t-main),var(--t-main) 45%,var(--f-ok))", badge: "♪", ring: "var(--l-ok)", glow: "rgba(40,40,50,0.32)", solid: "var(--f-info)" },
+  CLARITY:        { grad: "linear-gradient(135deg,var(--f-info),var(--f-ok) 45%,var(--f-ok))", badge: "◔", ring: "var(--l-ok)", glow: "rgba(30,127,168,0.30)", solid: "var(--f-ok)" },
+  SNAP_PIXEL:     { grad: "linear-gradient(135deg,var(--f-warn),var(--f-warn) 45%,var(--f-warn))", badge: "◠", ring: "var(--l-warn)", glow: "rgba(201,186,16,0.30)", solid: "var(--f-warn)" },
+  PINTEREST_TAG:  { grad: "linear-gradient(135deg,var(--f-bad),var(--f-bad) 45%,var(--f-bad))", badge: "P", ring: "var(--l-bad)", glow: "rgba(189,8,28,0.30)", solid: "var(--f-bad)" },
 };
 const brandFor = (provider: string) =>
   HERO_BRAND[provider] ??
@@ -104,7 +104,7 @@ function BigSwitch({ on, onClick }: { on: boolean; glow?: string; onClick: () =>
     <button
       type="button" onClick={onClick}
       className="relative rounded-full shrink-0 transition-all"
-      style={{ width: 48, height: 27, background: on ? "#16a34a" : "#d8d2e2" }}
+      style={{ width: 48, height: 27, background: on ? "var(--s-ok)" : "var(--s-accent)" }}
     >
       <span
         className="absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow transition-all"
@@ -348,7 +348,7 @@ function CourierSection({
       </div>
 
       {couriers.length === 0 && (
-        <div className="bg-white rounded-2xl border border-[#e7dff0] p-10 text-center text-[13.5px] text-body-soft">
+        <div className="bg-white rounded-2xl border border-[var(--l-accent)] p-10 text-center text-[13.5px] text-body-soft">
           No couriers yet.
         </div>
       )}
@@ -375,7 +375,7 @@ function CourierSection({
           onClick={() => setEditing(null)}
         >
           <div
-            className="bg-white rounded-2xl border border-[#e7dff0] p-5 w-full max-w-[440px]"
+            className="bg-white rounded-2xl border border-[var(--l-accent)] p-5 w-full max-w-[440px]"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="font-display text-[18px] text-purple m-0 mb-4">
@@ -461,7 +461,7 @@ function CourierCard({
   return (
     <div
       className="bg-white rounded-2xl border p-4 flex flex-col"
-      style={{ borderColor: c.isActive ? brand.ring : "#e7dff0" }}
+      style={{ borderColor: c.isActive ? brand.ring : "var(--l-accent)" }}
     >
       <div className="flex items-center gap-3">
         <div
@@ -483,26 +483,26 @@ function CourierCard({
 
       <div className="flex items-center gap-2 mt-3 flex-wrap">
         {canAutoBook ? (
-          <span className="text-[11px] font-semibold bg-[#e8f6ef] text-[#0f7d55] px-2.5 py-1 rounded-full">
+          <span className="text-[11px] font-semibold bg-[var(--s-ok)] text-[var(--t-ok)] px-2.5 py-1 rounded-full">
             Books by itself
           </span>
         ) : (
-          <span className="text-[11px] font-semibold bg-[#fff4e2] text-[#b45309] px-2.5 py-1 rounded-full">
+          <span className="text-[11px] font-semibold bg-[var(--s-warn)] text-[var(--t-warn)] px-2.5 py-1 rounded-full">
             Typed by hand
           </span>
         )}
         {!c.isActive && (
-          <span className="text-[11px] font-semibold bg-[#f0edf4] text-body-soft px-2.5 py-1 rounded-full">
+          <span className="text-[11px] font-semibold bg-[var(--s-accent)] text-body-soft px-2.5 py-1 rounded-full">
             Not offered on the board
           </span>
         )}
         <span className="flex-1" />
         <button onClick={onEdit} className="text-[12.5px] font-semibold text-orchid hover:text-purple">Edit</button>
-        <button onClick={onRemove} className="text-[12.5px] font-semibold text-body-soft hover:text-[#b91c1c]">Remove</button>
+        <button onClick={onRemove} className="text-[12.5px] font-semibold text-body-soft hover:text-[var(--t-bad)]">Remove</button>
       </div>
 
       {s ? (
-        <div className="mt-3 pt-3 border-t border-[#f2e9fa]">
+        <div className="mt-3 pt-3 border-t border-[var(--l-accent)]">
           <div className="grid gap-3 sm:grid-cols-2">
             {s.fields.map((f) => (
               <div key={f.key}>
@@ -534,7 +534,7 @@ function CourierCard({
           </p>
         </div>
       ) : (
-        <div className="mt-3 pt-3 border-t border-[#f2e9fa] text-[12.5px] text-body-soft">
+        <div className="mt-3 pt-3 border-t border-[var(--l-accent)] text-[12.5px] text-body-soft">
           No API — the consignment number is typed in.
         </div>
       )}
@@ -615,9 +615,9 @@ function ServiceCard({
           <div className="min-w-0">
             <div className="font-display font-bold text-[15.5px] leading-tight truncate">{s.label}</div>
             <div className="text-[10.5px] font-bold tracking-[0.1em] uppercase mt-0.5"
-                 style={{ color: s.isEnabled ? (s.hasSandbox && !s.isLive ? TONE.rose.text : "#16a34a") : "#a79fb5" }}>
+                 style={{ color: s.isEnabled ? (s.hasSandbox && !s.isLive ? TONE.rose.text : "var(--t-ok)") : "var(--t-accent)" }}>
               {s.isEnabled ? (s.hasSandbox && !s.isLive ? "Sandbox" : "Live") : "Off"}
-              <span className="ml-2 font-extrabold" style={{ color: complete ? "#a79fb5" : TONE.amber.text }}>
+              <span className="ml-2 font-extrabold" style={{ color: complete ? "var(--t-accent)" : TONE.amber.text }}>
                 {s.fieldsFilled}/{s.fieldsTotal}
               </span>
             </div>
@@ -637,8 +637,8 @@ function ServiceCard({
                 onClick={() => s.isLive && void save({ isLive: false })}
                 className="text-[11px] font-extrabold px-3 py-1 transition-colors"
                 style={!s.isLive
-                  ? { background: "#dc2626", color: "#fff" }
-                  : { background: "#fff", color: "#94a3b8" }}
+                  ? { background: "var(--s-bad)", color: "#fff" }
+                  : { background: "#fff", color: "var(--t-info)" }}
               >
                 SANDBOX
               </button>
@@ -653,8 +653,8 @@ function ServiceCard({
                 }}
                 className="text-[11px] font-extrabold px-3 py-1 transition-colors"
                 style={s.isLive
-                  ? { background: "#16a34a", color: "#fff" }
-                  : { background: "#fff", color: "#94a3b8" }}
+                  ? { background: "var(--s-ok)", color: "#fff" }
+                  : { background: "#fff", color: "var(--t-info)" }}
               >
                 LIVE
               </button>
@@ -693,7 +693,7 @@ function ServiceCard({
                 <div className="flex gap-1.5 min-w-0">
                   <input
                     className="w-full min-w-0 rounded-xl px-3 py-2.5 text-[13px] outline-none bg-white transition-all"
-                    style={{ border: "1.5px solid #e6dfee" }}
+                    style={{ border: "1.5px solid var(--l-accent)" }}
                     onFocus={(e) => {
                       e.currentTarget.style.borderColor = brand.solid;
                       e.currentTarget.style.boxShadow = `0 0 0 3px ${brand.glow}`;
@@ -701,7 +701,7 @@ function ServiceCard({
                       e.currentTarget.select();
                     }}
                     onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "#e6dfee";
+                      e.currentTarget.style.borderColor = "var(--l-accent)";
                       e.currentTarget.style.boxShadow = "none";
                     }}
                     type={f.secret && !isRevealed ? "password" : "text"}
@@ -718,7 +718,7 @@ function ServiceCard({
                     <button
                       type="button"
                       className="shrink-0 w-10 rounded-xl grid place-items-center text-[14px] transition-colors"
-                      style={{ border: "1.5px solid #e6dfee" }}
+                      style={{ border: "1.5px solid var(--l-accent)" }}
                       title={isRevealed ? "Hide again" : "Show the full key — every reveal is written to the audit trail"}
                       onClick={() => void toggleReveal(f.key)}
                     >
@@ -735,7 +735,7 @@ function ServiceCard({
               <Lbl>Linked courier</Lbl>
               <select
                 className="w-full min-w-0 rounded-xl px-3 py-2.5 text-[13px] outline-none bg-white"
-                style={{ border: "1.5px solid #e6dfee" }}
+                style={{ border: "1.5px solid var(--l-accent)" }}
                 value={courierId}
                 onChange={(e) => setCourierId(e.target.value)}
               >
@@ -836,14 +836,14 @@ function MessagingTestRow({
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-[#f0edf5]">
+    <div className="mt-4 pt-4 border-t border-[var(--l-accent)]">
       <Lbl>Check the keys actually work</Lbl>
       <div className="flex flex-wrap gap-1.5 items-center">
         <input
-          className="flex-1 min-w-[180px] border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#faf8fc] transition-all focus:bg-white"
-          style={{ borderColor: "#ece5f2" }}
+          className="flex-1 min-w-[180px] border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[var(--s-accent)] transition-all focus:bg-white"
+          style={{ borderColor: "var(--l-accent)" }}
           onFocus={(e) => { e.currentTarget.style.borderColor = brand.solid; e.currentTarget.style.boxShadow = `0 0 0 4px ${brand.glow}`; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = "#ece5f2"; e.currentTarget.style.boxShadow = "none"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "var(--l-accent)"; e.currentTarget.style.boxShadow = "none"; }}
           placeholder={sms ? "01712345678" : "you@example.com"}
           value={to}
           inputMode={sms ? "tel" : "email"}
@@ -997,7 +997,7 @@ function WhatsAppCoexistenceRow({ brand }: { brand: { grad: string; glow: string
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-[#f0edf5]">
+    <div className="mt-4 pt-4 border-t border-[var(--l-accent)]">
       <Lbl>Same number on the phone and here</Lbl>
 
       {live?.connected ? (
@@ -1161,7 +1161,7 @@ function FacebookPageConnectRow({ brand }: { brand: { grad: string; glow: string
   const missing = live?.missing ?? [];
 
   return (
-    <div className="mt-4 pt-4 border-t border-[#f0edf5]">
+    <div className="mt-4 pt-4 border-t border-[var(--l-accent)]">
       <Lbl>Connect the Page</Lbl>
 
       {live?.connected && live.scopes && (
@@ -1238,14 +1238,14 @@ function WhatsAppTestRow({
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-[#f0edf5]">
+    <div className="mt-4 pt-4 border-t border-[var(--l-accent)]">
       <Lbl>Check the keys actually work</Lbl>
       <div className="flex flex-wrap gap-1.5 items-center">
         <input
-          className="flex-1 min-w-[180px] border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[#faf8fc] transition-all focus:bg-white"
-          style={{ borderColor: "#ece5f2" }}
+          className="flex-1 min-w-[180px] border-2 rounded-2xl px-3.5 py-3 text-[13.5px] outline-none bg-[var(--s-accent)] transition-all focus:bg-white"
+          style={{ borderColor: "var(--l-accent)" }}
           onFocus={(e) => { e.currentTarget.style.borderColor = brand.solid; e.currentTarget.style.boxShadow = `0 0 0 4px ${brand.glow}`; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = "#ece5f2"; e.currentTarget.style.boxShadow = "none"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "var(--l-accent)"; e.currentTarget.style.boxShadow = "none"; }}
           placeholder="01712345678"
           value={to}
           inputMode="tel"
@@ -1356,7 +1356,7 @@ function WhatsAppTemplateRow({
   const attention = failed.length > 0 || (rows ?? []).some((t) => t.status === "REJECTED");
 
   return (
-    <div className="mt-4 pt-3 border-t border-[#f0edf5]">
+    <div className="mt-4 pt-3 border-t border-[var(--l-accent)]">
       <button
         type="button"
         className="w-full flex items-center justify-between gap-2 py-1"

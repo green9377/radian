@@ -116,11 +116,11 @@ export default function SectionTextView({ embedded, only }: { embedded?: boolean
       {!embedded && <SaveBar state={saveState} onSave={() => flash("Saved")} />}
 
       {err && (
-        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-4">
+        <div className="flex items-start gap-2 bg-[var(--s-bad)] border border-[var(--l-bad)] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[var(--t-bad)] mb-4">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
-      {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
+      {ok && <div className="bg-[var(--s-ok)] border border-[var(--l-ok)] rounded-[11px] px-3.5 py-2 text-[12px] text-[var(--t-ok)] mb-4">{ok}</div>}
 
       {loading ? <p className="text-[13px] text-body-soft">Loading…</p> : groups.map(([page, items]) => (
         <div key={page} className="mb-7">
@@ -183,7 +183,7 @@ export default function SectionTextView({ embedded, only }: { embedded?: boolean
                             <div className="flex items-center justify-between mb-1.5">
                               <span className="text-[12px] font-medium text-body">{z.label}</span>
                               {ov && (
-                                <button onClick={() => dropOverride(r.key, z.v)} className="text-[11.5px] text-body-soft hover:text-[#c0392b]">
+                                <button onClick={() => dropOverride(r.key, z.v)} className="text-[11.5px] text-body-soft hover:text-[var(--t-bad)]">
                                   Use the default instead
                                 </button>
                               )}

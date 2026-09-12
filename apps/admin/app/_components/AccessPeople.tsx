@@ -100,7 +100,7 @@ export default function AccessPeople({
       <div className="rounded-[18px] bg-white overflow-hidden border"
         style={{ borderColor: "#a021b81f", boxShadow: "0 2px 10px #a021b810" }}>
         <div className="flex items-center gap-2.5 px-4 py-2.5"
-          style={{ background: "linear-gradient(120deg,#8a2bb0,#cf43ea)" }}>
+          style={{ background: "linear-gradient(120deg,var(--a-solid),var(--o-solid))" }}>
           <span className="text-white text-[14px]">👥</span>
           <span className="text-[12px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">
             {position ? `People in ${position.name}` : "People"}
@@ -116,7 +116,7 @@ export default function AccessPeople({
         <div className="p-3.5">
 
         {adding && position && (
-          <div className="mb-3 space-y-2 rounded-[13px] p-3" style={{ background: "#f5eafb" }}>
+          <div className="mb-3 space-y-2 rounded-[13px] p-3" style={{ background: "var(--s-accent)" }}>
             <div>
               <Lbl>Email address</Lbl>
               <input
@@ -231,10 +231,10 @@ function PersonRow({
   onLink: (p: ApiPerson) => void | Promise<void>;
 }) {
   return (
-    <div className="rounded-[13px] border border-[#eee8f5] px-3 py-2.5 bg-white">
+    <div className="rounded-[13px] border border-[var(--l-accent)] px-3 py-2.5 bg-white">
       <div className="flex items-start gap-2.5">
         <span className="w-[30px] h-[30px] rounded-full grid place-items-center text-[12px] font-bold text-white shrink-0 mt-0.5"
-          style={{ background: p.isActive ? "linear-gradient(135deg,#8a2bb0,#cf43ea)" : "#c9c2d6" }}>
+          style={{ background: p.isActive ? "linear-gradient(135deg,var(--a-solid),var(--o-solid))" : "var(--s-accent)" }}>
           {p.name.slice(0, 1).toUpperCase()}
         </span>
         <div className="min-w-0 flex-1">

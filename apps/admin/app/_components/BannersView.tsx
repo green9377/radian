@@ -154,12 +154,12 @@ export default function BannersView({ embedded, only }: { embedded?: boolean; on
       )}
 
       {err && (
-        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-4">
+        <div className="flex items-start gap-2 bg-[var(--s-bad)] border border-[var(--l-bad)] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[var(--t-bad)] mb-4">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
       {ok && (
-        <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#12693f] mb-4">{ok}</div>
+        <div className="bg-[var(--s-ok)] border border-[var(--l-ok)] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[var(--t-ok)] mb-4">{ok}</div>
       )}
 
       <div className={"flex gap-2 mb-5 flex-wrap " + (only ? "hidden" : "")}>
@@ -171,7 +171,7 @@ export default function BannersView({ embedded, only }: { embedded?: boolean; on
               (tab === p.key
                 ? "text-white border-transparent shadow-[0_3px_12px_rgba(80,40,100,0.2)]"
                 : "bg-white text-body border-lavender-deep hover:border-orchid")}
-            style={tab === p.key ? { background: "linear-gradient(135deg,#7B2D8E,#C155D8)" } : undefined}
+            style={tab === p.key ? { background: "linear-gradient(135deg,var(--a-solid),var(--a-solid))" } : undefined}
           >
             {p.label}
           </button>
@@ -207,8 +207,8 @@ export default function BannersView({ embedded, only }: { embedded?: boolean; on
           <span>When no announcement is live</span>
           <div className="inline-flex p-[3px] rounded-full bg-lavender/70">
             {[
-              { on: true, label: "Describe the delivery service", fill: "linear-gradient(135deg,#12795a,#3ec294)" },
-              { on: false, label: "Show nothing", fill: "linear-gradient(135deg,#8a6414,#d9a441)" },
+              { on: true, label: "Describe the delivery service", fill: "linear-gradient(135deg,var(--f-ok),var(--f-ok))" },
+              { on: false, label: "Show nothing", fill: "linear-gradient(135deg,var(--f-warn),var(--f-warn))" },
             ].map((o) => (
               <button
                 key={o.label}
@@ -239,11 +239,11 @@ export default function BannersView({ embedded, only }: { embedded?: boolean; on
             <div key={b.id} className={"relative rounded-[14px] p-3 pl-4 flex items-center gap-3.5 border transition-all " +
               (b.isActive
                 ? "bg-white border-lavender-deep shadow-[0_1px_6px_rgba(80,40,100,0.05)]"
-                : "bg-[#efe7f5] border-lavender-deep/50")}>
+                : "bg-[var(--s-accent)] border-lavender-deep/50")}>
               {/* the same left edge the layout rows wear — colour when it is
                   showing, grey when it is not */}
               <span aria-hidden className="absolute left-0 top-3 bottom-3 w-[4px] rounded-full"
-                style={{ background: b.isActive ? "linear-gradient(135deg,#7B2D8E,#C155D8)" : "#ddd3e6" }} />
+                style={{ background: b.isActive ? "linear-gradient(135deg,var(--a-solid),var(--a-solid))" : "var(--s-accent)" }} />
 
               <div className="w-[86px] h-[56px] rounded-[11px] bg-lavender shrink-0 overflow-hidden grid place-items-center">
                 {b.imageUrl
@@ -267,7 +267,7 @@ export default function BannersView({ embedded, only }: { embedded?: boolean; on
                     </span>
                   )}
                   {b.isActive && !isLiveNow(b) && (
-                    <span className="text-[11px] font-semibold px-2 py-[3px] rounded-full bg-[#fdf0e2] text-[#8a5610]">
+                    <span className="text-[11px] font-semibold px-2 py-[3px] rounded-full bg-[var(--s-warn)] text-[var(--t-warn)]">
                       scheduled — not showing yet
                     </span>
                   )}
@@ -282,8 +282,8 @@ export default function BannersView({ embedded, only }: { embedded?: boolean; on
               {/* Live / Hidden, the same two-button control as the layout tab */}
               <div className="inline-flex p-[3px] rounded-full bg-lavender/70 shrink-0">
                 {[
-                  { on: true, label: "Live", fill: "linear-gradient(135deg,#12795a,#3ec294)" },
-                  { on: false, label: "Hidden", fill: "linear-gradient(135deg,#8a6414,#d9a441)" },
+                  { on: true, label: "Live", fill: "linear-gradient(135deg,var(--f-ok),var(--f-ok))" },
+                  { on: false, label: "Hidden", fill: "linear-gradient(135deg,var(--f-warn),var(--f-warn))" },
                 ].map((o) => (
                   <button key={o.label}
                     onClick={() => b.isActive !== o.on && patch(b.id, { isActive: o.on })}
@@ -306,7 +306,7 @@ export default function BannersView({ embedded, only }: { embedded?: boolean; on
 
       <button onClick={addNew}
         className="text-white text-[13px] font-semibold px-4 py-2.5 rounded-[11px] inline-flex items-center gap-1.5 shadow-[0_3px_12px_rgba(80,40,100,0.22)] hover:opacity-95 transition-opacity"
-        style={{ background: "linear-gradient(135deg,#7B2D8E,#C155D8)" }}>
+        style={{ background: "linear-gradient(135deg,var(--a-solid),var(--a-solid))" }}>
         <Icon name="plus" size={15} /> Add a banner
       </button>
 
@@ -457,7 +457,7 @@ function Editor({
                           type="button"
                           onClick={() => setCutBg(v)}
                           className={"px-3 py-1 rounded-full text-[12px] font-semibold transition-all " + (cutBg === v ? "text-white shadow-sm" : "text-body-soft hover:text-purple")}
-                          style={cutBg === v ? { background: v ? "linear-gradient(135deg,#7B2D8E,#C155D8)" : "#8d7d98" } : undefined}
+                          style={cutBg === v ? { background: v ? "linear-gradient(135deg,var(--a-solid),var(--a-solid))" : "var(--s-accent)" } : undefined}
                         >
                           {v ? "Auto" : "Keep"}
                         </button>
@@ -499,7 +499,7 @@ function Editor({
             >
               <Icon name="check" size={15} /> {saving ? "Saving…" : "Save"}
             </button>
-            <button onClick={onDelete} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove this banner</button>
+            <button onClick={onDelete} className="text-[13px] text-body-soft hover:text-[var(--t-bad)]">Remove this banner</button>
           </div>
         </div>
       </div>
@@ -523,7 +523,7 @@ function PictureDrop({ url, uploading, shape, onPick, onClear, busyText = "Uploa
         {uploading && <span className="absolute inset-x-0 bottom-0 bg-purple/85 text-white text-[11px] py-1 text-center">{busyText}</span>}
         <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
       </label>
-      {url && !uploading && <button onClick={onClear} className="text-[13px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove</button>}
+      {url && !uploading && <button onClick={onClear} className="text-[13px] text-body-soft hover:text-[var(--t-bad)] mt-1.5">Remove</button>}
     </>
   );
 }
@@ -543,7 +543,7 @@ function FloatCard({ n, f, set }: { n: 1 | 2; f: ApiBanner; set: <K extends keyo
               type="button"
               onClick={() => set(vk, v)}
               className={"px-3 py-1 rounded-full text-[12px] font-semibold transition-all " + (on === v ? "text-white shadow-sm" : "text-body-soft hover:text-purple")}
-              style={on === v ? { background: v ? "linear-gradient(135deg,#7B2D8E,#C155D8)" : "#8d7d98" } : undefined}
+              style={on === v ? { background: v ? "linear-gradient(135deg,var(--a-solid),var(--a-solid))" : "var(--s-accent)" } : undefined}
             >
               {v ? "Shown" : "Hidden"}
             </button>

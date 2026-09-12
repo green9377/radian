@@ -344,7 +344,7 @@ export default function ReceiptDialog({ orderId, onClose }: { orderId: string; o
             <button type="button" onClick={onClose} className="text-[12px] text-body-soft underline shrink-0">Close</button>
           </div>
 
-          {err && <p className="text-[12.5px] text-[#e1837a] m-0 mb-3">{err}</p>}
+          {err && <p className="text-[12.5px] text-[var(--t-gold)] m-0 mb-3">{err}</p>}
           {!r && !err && <p className="text-[12.5px] text-body-soft m-0">Reading the bill…</p>}
 
           {r && (
@@ -372,7 +372,7 @@ export default function ReceiptDialog({ orderId, onClose }: { orderId: string; o
 
               {/*  The preview is the same component that prints, on a white
                    sheet, so nobody is surprised by the paper.  */}
-              <div className="rounded-[10px] p-3 mb-3 max-h-[46vh] overflow-auto" style={{ background: "#d8d3dd" }}>
+              <div className="rounded-[10px] p-3 mb-3 max-h-[46vh] overflow-auto" style={{ background: "var(--s-accent)" }}>
                 <div className="mx-auto shadow-lift" style={{ width: "72mm" }}>
                   <ReceiptSlip r={r} gift={gift} />
                 </div>
@@ -450,7 +450,7 @@ export function sampleReceipt(shop: {
 export function ReceiptPreview({ r, gift }: ReceiptSlipProps) {
   const slip = useMemo(() => <ReceiptSlip r={r} gift={gift} />, [r, gift]);
   return (
-    <div className="rounded-[12px] p-3 overflow-auto" style={{ background: "#d8d3dd" }}>
+    <div className="rounded-[12px] p-3 overflow-auto" style={{ background: "var(--s-accent)" }}>
       <div className="mx-auto shadow-lift" style={{ width: "72mm" }}>{slip}</div>
     </div>
   );

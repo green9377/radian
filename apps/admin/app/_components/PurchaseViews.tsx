@@ -32,9 +32,9 @@ export function StatusChip({ status }: { status: PurchaseStatus }) {
 export function PayBadge({ p }: { p: ApiPurchase }) {
   if (p.status === "CANCELLED") return <span className="text-[12px] text-body-soft">—</span>;
   const map = {
-    PAID: { label: "Paid", bg: "#12a172", color: "#fff" },
-    PARTIAL: { label: "Part paid", bg: "#f59e0b", color: "#fff" },
-    UNPAID: { label: "Unpaid", bg: "#e74c3c", color: "#fff" },
+    PAID: { label: "Paid", bg: "var(--s-ok)", color: "#fff" },
+    PARTIAL: { label: "Part paid", bg: "var(--s-warn)", color: "#fff" },
+    UNPAID: { label: "Unpaid", bg: "var(--s-bad)", color: "#fff" },
   } as const;
   const m = map[p.paymentState];
   return (
@@ -92,27 +92,27 @@ export function PurchasesOverview() {
 
       {stats && (
         <Kpi items={[
-          { l: "Bought this month", v: formatTaka(stats.monthBoughtPaisa), c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
-          { l: "Total due to suppliers", v: formatTaka(stats.totalDuePaisa), c: stats.totalDuePaisa > 0 ? "#e1837a" : "#76efab", bg: "#3b1a16", icon: "cash" },
-          { l: "Purchases with due", v: stats.dueCount, c: "#f7a96e", bg: "#3b2b17", icon: "bolt" },
-          { l: "Advance paid, waiting", v: stats.advanceWaiting.length, c: "#79abe2", bg: "#1b2838", icon: "clock" },
-          { l: "Credit with suppliers", v: formatTaka(stats.openCreditPaisa), c: "#74f1d7", bg: "#20332e", icon: "check" },
+          { l: "Bought this month", v: formatTaka(stats.monthBoughtPaisa), c: "var(--t-accent)", bg: "var(--s-accent)", icon: "box" },
+          { l: "Total due to suppliers", v: formatTaka(stats.totalDuePaisa), c: stats.totalDuePaisa > 0 ? "var(--t-bad)" : "var(--t-ok)", bg: "var(--s-bad)", icon: "cash" },
+          { l: "Purchases with due", v: stats.dueCount, c: "var(--t-warn)", bg: "var(--s-warn)", icon: "bolt" },
+          { l: "Advance paid, waiting", v: stats.advanceWaiting.length, c: "var(--t-info)", bg: "var(--s-info)", icon: "clock" },
+          { l: "Credit with suppliers", v: formatTaka(stats.openCreditPaisa), c: "var(--t-ok)", bg: "var(--s-ok)", icon: "check" },
         ]} />
       )}
 
       {/* advance-paid — money is out, goods are not in. The one list that must never hide. */}
       {stats && stats.advanceWaiting.length > 0 && (
-        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft" style={{ background: "#3b2b17", borderColor: "#fce4c4" }}>
+        <div className="rounded-[16px] border px-5 py-4 mb-5 shadow-soft" style={{ background: "var(--s-warn)", borderColor: "var(--l-warn)" }}>
           <div className="flex items-center gap-2 mb-2.5">
-            <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center text-white" style={{ background: "#b45309" }}><Icon name="clock" size={13} /></span>
-            <b className="text-[14px]" style={{ color: "#f6bb6f" }}>Advance paid — goods on the way</b>
+            <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center text-white" style={{ background: "var(--s-warn)" }}><Icon name="clock" size={13} /></span>
+            <b className="text-[14px]" style={{ color: "var(--t-warn)" }}>Advance paid — goods on the way</b>
           </div>
           {stats.advanceWaiting.map((a) => (
             <Link key={a.id} href={`/purchases/${a.id}`}
               className="flex items-center justify-between gap-3 bg-white/70 rounded-[10px] px-3.5 py-2.5 mb-1.5 hover:bg-white">
               <span className="text-[13px] font-medium text-body">{a.purchaseNo} · {a.supplierName}</span>
               <span className="text-[12.5px] text-body-soft">{fmtDate(a.purchaseDate)}</span>
-              <span className="text-[13px] font-semibold" style={{ color: "#f7a96e" }}>
+              <span className="text-[13px] font-semibold" style={{ color: "var(--t-warn)" }}>
                 {formatTaka(a.paidPaisa)} <span className="font-normal text-body-soft">of {formatTaka(a.grandTotalPaisa)}</span>
               </span>
             </Link>
@@ -131,7 +131,7 @@ export function PurchasesOverview() {
           {dues.map((p) => (
             <Link key={p.id} href={`/purchases/${p.id}`} className="flex items-center justify-between gap-3 py-2 border-b border-lavender-deep/60 last:border-0 hover:bg-lavender/20 rounded-[8px] px-2 -mx-2">
               <span className="text-[13px] text-body min-w-0 truncate">{p.supplierName} <span className="text-body-soft">· {p.purchaseNo}</span></span>
-              <span className="text-[13px] font-semibold shrink-0" style={{ color: "#e1837a" }}>{formatTaka(p.duePaisa)}</span>
+              <span className="text-[13px] font-semibold shrink-0" style={{ color: "var(--t-bad)" }}>{formatTaka(p.duePaisa)}</span>
             </Link>
           ))}
         </div>
@@ -236,11 +236,11 @@ export function PurchaseListView() {
       {isDemo && <DemoBar what="sample purchases" onRetry={load} />}
 
       <Kpi items={[
-        { l: "Total (filtered)", v: formatTaka(totals.bought), c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
-        { l: "Paid", v: formatTaka(totals.paid), c: "#76efab", bg: "#1f3529", icon: "check" },
-        { l: "Due", v: formatTaka(totals.due), c: totals.due > 0 ? "#e1837a" : "#76efab", bg: "#3b1a16", icon: "cash" },
-        { l: "Purchases", v: filtered.length, c: "#79abe2", bg: "#1b2838", icon: "grid" },
-        { l: "Suppliers", v: new Set(filtered.map((p) => p.supplierName)).size, c: "#dda37d", bg: "#38291c", icon: "user" },
+        { l: "Total (filtered)", v: formatTaka(totals.bought), c: "var(--t-accent)", bg: "var(--s-accent)", icon: "box" },
+        { l: "Paid", v: formatTaka(totals.paid), c: "var(--t-ok)", bg: "var(--s-ok)", icon: "check" },
+        { l: "Due", v: formatTaka(totals.due), c: totals.due > 0 ? "var(--t-bad)" : "var(--t-ok)", bg: "var(--s-bad)", icon: "cash" },
+        { l: "Purchases", v: filtered.length, c: "var(--t-info)", bg: "var(--s-info)", icon: "grid" },
+        { l: "Suppliers", v: new Set(filtered.map((p) => p.supplierName)).size, c: "var(--t-warn)", bg: "var(--s-warn)", icon: "user" },
       ]} />
 
       <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -249,7 +249,7 @@ export function PurchaseListView() {
             className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
             style={tab === t.id
               ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-              : { background: "#fff", borderColor: "#e3d7ec", color: "#b0a1ba" }}>
+              : { background: "#fff", borderColor: "var(--l-accent)", color: "var(--t-accent)" }}>
             {t.label}
           </button>
         ))}
@@ -291,7 +291,7 @@ export function PurchaseListView() {
                 {/* DEC-PUR-010 — received but no stock movement; open it to repair */}
                 {p.stockMissing && (
                   <span className="ml-1.5 align-middle text-[10.5px] font-semibold px-1.5 py-0.5 rounded-[6px]"
-                    style={{ background: "#3f3018", color: "#f7c76e" }}>
+                    style={{ background: "var(--s-warn)", color: "var(--t-warn)" }}>
                     stock not posted
                   </span>
                 )}
@@ -310,8 +310,8 @@ export function PurchaseListView() {
                 <span className="block text-[11px] text-body-soft">− {formatTaka(p.returnedPaisa)} returned</span>
               )}
             </span>
-            <span className="text-[13px] text-right" style={{ color: "#76efab" }}>{formatTaka(p.paidPaisa)}</span>
-            <span className="text-[13px] font-semibold text-right" style={{ color: p.duePaisa > 0 ? "#e1837a" : "#b0a2b8" }}>
+            <span className="text-[13px] text-right" style={{ color: "var(--t-ok)" }}>{formatTaka(p.paidPaisa)}</span>
+            <span className="text-[13px] font-semibold text-right" style={{ color: p.duePaisa > 0 ? "var(--t-bad)" : "var(--t-accent)" }}>
               {p.duePaisa > 0 ? formatTaka(p.duePaisa) : "—"}
             </span>
             <StatusChip status={p.status} />

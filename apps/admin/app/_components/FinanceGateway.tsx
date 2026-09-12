@@ -37,10 +37,10 @@ import { Flash, Lbl, Table, Td, Th, WRAP, btnPrimary, btnPrimaryStyle, input, ta
     the number and the icon, `wash` is the tint the panel sits on, `edge` is the
     spine down its left side.  */
 const BRAND = {
-  purple: { ink: "#7a2ea8", wash: "#f6ecfb", edge: "#a94fd0" },
-  orchid: { ink: "#a4468f", wash: "#fbeef7", edge: "#c86bb0" },
-  rose: { ink: "#a4566a", wash: "#fbeef0", edge: "#c9788a" },
-  lavender: { ink: "#5b4a86", wash: "#f0edfa", edge: "#8f7fc4" },
+  purple: { ink: "var(--t-accent)", wash: "var(--s-accent)", edge: "var(--l-accent)" },
+  orchid: { ink: "var(--t-orchid)", wash: "var(--s-orchid)", edge: "var(--l-orchid)" },
+  rose: { ink: "var(--t-gold)", wash: "var(--s-bad)", edge: "var(--l-gold)" },
+  lavender: { ink: "var(--t-accent)", wash: "var(--s-info)", edge: "var(--l-info)" },
 } as const;
 
 interface Destination { id: string; code: string; name: string; balancePaisa: number }
@@ -138,7 +138,7 @@ function Step({ label, value, sign, info }: { label: string; value: string; sign
         {label}
         {info ? <Info text={info} /> : null}
       </span>
-      <span className="text-[13.5px] font-semibold tabular-nums" style={{ color: "#3d2352" }}>
+      <span className="text-[13.5px] font-semibold tabular-nums" style={{ color: "var(--t-accent)" }}>
         {sign ? <span className="text-body-soft mr-1">{sign}</span> : null}
         {value}
       </span>
@@ -195,7 +195,7 @@ export function GatewaySettlementLive() {
           {/* left: the number */}
           <div
             className="relative px-8 py-9"
-            style={{ background: `linear-gradient(135deg,${BRAND.purple.ink} 0%, #b558d6 100%)` }}
+            style={{ background: `linear-gradient(135deg,${BRAND.purple.ink} 0%, var(--a-solid) 100%)` }}
           >
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[11.5px] font-bold tracking-[0.14em] text-white/70 uppercase">

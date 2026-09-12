@@ -29,10 +29,10 @@ export type SaveState = "idle" | "saving" | "saved" | "error";
 export default function SaveBar({ state, onSave }: { state: SaveState; onSave?: () => void }) {
   const look =
     state === "error"
-      ? { bg: "bg-[#3b1a16]", border: "border-[#532b28]", text: "text-[#e7847e]", icon: "alert", label: "Not saved — see the message above" }
+      ? { bg: "bg-[var(--s-bad)]", border: "border-[var(--l-bad)]", text: "text-[var(--t-bad)]", icon: "alert", label: "Not saved — see the message above" }
       : state === "saving"
-        ? { bg: "bg-[#3b3117]", border: "border-[#534528]", text: "text-[#ecc779]", icon: "clock", label: "Saving…" }
-        : { bg: "bg-[#213124]", border: "border-[#324838]", text: "text-[#7ce9b4]", icon: "check", label: "All changes saved" };
+        ? { bg: "bg-[var(--s-warn)]", border: "border-[var(--l-warn)]", text: "text-[var(--t-warn)]", icon: "clock", label: "Saving…" }
+        : { bg: "bg-[var(--s-ok)]", border: "border-[var(--l-ok)]", text: "text-[var(--t-ok)]", icon: "check", label: "All changes saved" };
 
   return (
     <div className={`sticky top-0 z-20 -mx-6 px-6 py-2.5 mb-5 flex items-center justify-between gap-3 border-b ${look.bg} ${look.border}`}>

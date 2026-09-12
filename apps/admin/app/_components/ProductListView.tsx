@@ -30,10 +30,10 @@ const statusOf = (p: ApiProduct) =>
 
 function Kpi({ n, l, hue, icon }: { n: string; l: string; hue: string; icon: string }) {
   const HUE: Record<string, string> = {
-    purple: "from-[#470066] to-[#7d2ea8]",
-    green: "from-[#0f7d55] to-[#37a97c]",
-    red: "from-[#c0392b] to-[#e0705f]",
-    blue: "from-[#3b5bdb] to-[#7793f7]",
+    purple: "from-[var(--a-solid)] to-[var(--a-solid)]",
+    green: "from-[var(--f-ok)] to-[var(--f-ok)]",
+    red: "from-[var(--f-bad)] to-[var(--f-bad)]",
+    blue: "from-[var(--f-info)] to-[var(--f-info)]",
   };
   return (
     <div className={`rounded-[16px] px-4 py-4 text-white bg-gradient-to-br ${HUE[hue]} shadow-lift relative overflow-hidden`}>
@@ -268,7 +268,7 @@ export default function ProductListView() {
               Product Management · catalog
             </div>
             {apiDown && (
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.05em] bg-[#fdecea] text-[#c0392b] border border-[#e0a1a1] px-2.5 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.05em] bg-[var(--s-bad)] text-[var(--t-bad)] border border-[var(--l-bad)] px-2.5 py-1 rounded-full">
                 <Icon name="bolt" size={12} /> API unreachable
               </span>
             )}
@@ -327,7 +327,7 @@ export default function ProductListView() {
           <b className="text-[13px] text-purple">{sel.size} selected</b>
           <button onClick={() => bulkPublish(true)} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-purple text-white">Publish</button>
           <button onClick={() => bulkPublish(false)} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white border border-lavender-deep text-purple">Unpublish</button>
-          <button onClick={() => bulkDelete()} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white border border-[#e0a1a1] text-[#c0392b] hover:bg-[#fdecea]">Delete</button>
+          <button onClick={() => bulkDelete()} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white border border-[var(--l-bad)] text-[var(--t-bad)] hover:bg-[var(--s-bad)]">Delete</button>
           <button onClick={() => setSel(new Set())} className="text-[12.5px] font-medium text-orchid ml-auto">Clear</button>
         </div>
       )}
@@ -407,13 +407,13 @@ export default function ProductListView() {
                       <div className="min-w-0">
                         <div className="font-medium text-purple leading-snug flex items-center gap-1.5 flex-wrap">
                           {p.name}
-                          {p.productType === "CRAFTED" && <span className="text-[10px] bg-orchid-soft text-[#a021b8] px-2 py-0.5 rounded-full font-semibold">Crafted</span>}
-                          {st === "Draft" && <span className="text-[10px] bg-[#f0edf4] text-body-soft px-2 py-0.5 rounded-full font-semibold">Draft</span>}
-                          {p.isBestSeller && <span className="text-[10px] bg-[#fff8ec] text-[#b45309] px-2 py-0.5 rounded-full font-semibold">Bestseller</span>}
+                          {p.productType === "CRAFTED" && <span className="text-[10px] bg-orchid-soft text-[var(--t-orchid)] px-2 py-0.5 rounded-full font-semibold">Crafted</span>}
+                          {st === "Draft" && <span className="text-[10px] bg-[var(--s-accent)] text-body-soft px-2 py-0.5 rounded-full font-semibold">Draft</span>}
+                          {p.isBestSeller && <span className="text-[10px] bg-[var(--s-warn)] text-[var(--t-warn)] px-2 py-0.5 rounded-full font-semibold">Bestseller</span>}
                           {p.item?.supplier && (
                             <span
                               title={`Supplied by ${p.item.supplier.name}`}
-                              className="text-[10px] bg-[#fff6e5] text-[#8a5a00] border border-[#f0d9a8] px-2 py-0.5 rounded-full font-semibold"
+                              className="text-[10px] bg-[var(--s-warn)] text-[var(--t-warn)] border border-[var(--l-warn)] px-2 py-0.5 rounded-full font-semibold"
                             >
                               {p.item.supplier.nickname || p.item.supplier.name}
                             </span>
@@ -433,9 +433,9 @@ export default function ProductListView() {
                     )}
                   </td>
 
-                  <td className={`px-3 py-3 font-semibold ${noCost ? "text-[#b45309]" : m < 0 ? "text-[#c0392b]" : pct < 20 ? "text-[#b45309]" : "text-[#0f7d55]"}`}>
+                  <td className={`px-3 py-3 font-semibold ${noCost ? "text-[var(--t-warn)]" : m < 0 ? "text-[var(--t-bad)]" : pct < 20 ? "text-[var(--t-warn)]" : "text-[var(--t-ok)]"}`}>
                     {noCost ? (
-                      <span className="text-[11.5px] bg-[#fff8ec] px-2 py-1 rounded-full">no cost</span>
+                      <span className="text-[11.5px] bg-[var(--s-warn)] px-2 py-1 rounded-full">no cost</span>
                     ) : (
                       <>
                         {formatTaka(m)}
@@ -445,9 +445,9 @@ export default function ProductListView() {
                   </td>
 
                   <td className="px-3 py-3">
-                    <span className={p.stockQty <= 0 ? "text-[#c0392b] font-semibold" : ""}>{p.stockQty}</span>
-                    {p.stockQty <= 0 && <span className="ml-1.5 text-[10px] bg-[#fdecea] text-[#c0392b] px-1.5 py-0.5 rounded-full font-bold">OUT</span>}
-                    {p.stockQty > 0 && p.stockQty <= 5 && <span className="ml-1.5 text-[10px] bg-[#fff8ec] text-[#b45309] px-1.5 py-0.5 rounded-full font-bold">LOW</span>}
+                    <span className={p.stockQty <= 0 ? "text-[var(--t-bad)] font-semibold" : ""}>{p.stockQty}</span>
+                    {p.stockQty <= 0 && <span className="ml-1.5 text-[10px] bg-[var(--s-bad)] text-[var(--t-bad)] px-1.5 py-0.5 rounded-full font-bold">OUT</span>}
+                    {p.stockQty > 0 && p.stockQty <= 5 && <span className="ml-1.5 text-[10px] bg-[var(--s-warn)] text-[var(--t-warn)] px-1.5 py-0.5 rounded-full font-bold">LOW</span>}
                   </td>
 
                   <td className="px-3 py-3 text-body-soft">{p.salesCount}</td>
@@ -457,7 +457,7 @@ export default function ProductListView() {
                     <button
                       onClick={() => patch(p, { isPublished: !p.isPublished })}
                       title={p.isPublished ? "Published — click to hide" : "Draft — click to publish"}
-                      className={`w-[38px] h-[22px] rounded-full relative transition-colors ${p.isPublished ? "bg-[#0f7d55]" : "bg-[#cdbfda]"}`}
+                      className={`w-[38px] h-[22px] rounded-full relative transition-colors ${p.isPublished ? "bg-[var(--s-ok)]" : "bg-[var(--s-accent)]"}`}
                     >
                       <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white transition-all ${p.isPublished ? "left-[18px]" : "left-[2px]"}`} />
                     </button>
@@ -489,7 +489,7 @@ export default function ProductListView() {
                       <button
                         onClick={() => remove(p)}
                         title="Delete"
-                        className="border border-lavender-deep hover:border-[#c0392b] hover:text-[#c0392b] text-body-soft w-[32px] h-[32px] rounded-[9px] grid place-items-center"
+                        className="border border-lavender-deep hover:border-[var(--l-bad)] hover:text-[var(--t-bad)] text-body-soft w-[32px] h-[32px] rounded-[9px] grid place-items-center"
                       >
                         <Icon name="trash" size={15} />
                       </button>
@@ -517,7 +517,7 @@ export default function ProductListView() {
                           <a href={storefrontUrl(p.slug)} target="_blank" rel="noreferrer" className="w-full text-left px-3.5 py-2 text-[13px] hover:bg-lavender text-body flex items-center gap-2">
                             <Icon name="eye" size={15} /> Open on site
                           </a>
-                          <button onClick={() => remove(p)} className="w-full text-left px-3.5 py-2 text-[13px] hover:bg-[#fdecea] text-[#c0392b] flex items-center gap-2">
+                          <button onClick={() => remove(p)} className="w-full text-left px-3.5 py-2 text-[13px] hover:bg-[var(--s-bad)] text-[var(--t-bad)] flex items-center gap-2">
                             <Icon name="trash" size={15} /> Delete
                           </button>
                         </div>

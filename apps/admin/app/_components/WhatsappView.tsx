@@ -374,7 +374,7 @@ function BroadcastQueue({
       </div>
 
       {next ? (
-        <Card className="p-5 mb-5" tone="emerald" style={{ background: "#f6fdfa" }}>
+        <Card className="p-5 mb-5" tone="emerald" style={{ background: "var(--s-ok)" }}>
           <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-body-soft mb-2">
             Next — {b.counts.pending} left
           </div>
@@ -405,7 +405,7 @@ function BroadcastQueue({
                 What they will get
               </div>
               <div className="rounded-2xl px-4 py-3 text-[13.5px] leading-relaxed whitespace-pre-wrap"
-                style={{ background: "#dcf8c6", color: "#111" }}>
+                style={{ background: "var(--s-ok)", color: "#111" }}>
                 {next.message}
               </div>
             </div>

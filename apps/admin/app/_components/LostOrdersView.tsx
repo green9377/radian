@@ -143,7 +143,7 @@ function Row({ r, onChanged }: { r: ApiLostRow; onChanged: () => void }) {
   }
 
   return (
-    <tr className="hover:bg-[#231538]">
+    <tr className="hover:bg-[var(--s-accent)]">
       {/* ref */}
       <td className={`${CELL} w-[140px]`}>
         <Said say={say} />
@@ -186,17 +186,17 @@ function Row({ r, onChanged }: { r: ApiLostRow; onChanged: () => void }) {
           )}
           {r.email && <span className={SOFT}>· {r.email}</span>}
         </div>
-        <div className="mt-2 grid grid-cols-[70px_1fr] gap-x-2 gap-y-[2px] rounded-[10px] border border-[#3e3447] bg-[#291e31] px-2.5 py-2 text-[12.5px] leading-[1.45]">
+        <div className="mt-2 grid grid-cols-[70px_1fr] gap-x-2 gap-y-[2px] rounded-[10px] border border-[var(--l-accent)] bg-[var(--s-accent)] px-2.5 py-2 text-[12.5px] leading-[1.45]">
           {lines.map((l) => (
             <span key={l.k} className="contents">
-              <span className="font-medium text-[#afa4b7]">{l.k}</span>
-              <span className={l.v ? "text-body" : "text-[#b8a9c5]"}>{l.v ?? "—"}</span>
+              <span className="font-medium text-[var(--t-accent)]">{l.k}</span>
+              <span className={l.v ? "text-body" : "text-[var(--t-accent)]"}>{l.v ?? "—"}</span>
             </span>
           ))}
         </div>
         <div className="flex gap-[3px] mt-2">
           {[1, 2, 3, 4].map((i) => (
-            <span key={i} className="w-[18px] h-[6px] rounded-[3px]" style={{ background: i <= STAGE_INDEX[r.stage] ? SOLID.purple : "#2b2334" }} />
+            <span key={i} className="w-[18px] h-[6px] rounded-[3px]" style={{ background: i <= STAGE_INDEX[r.stage] ? SOLID.purple : "var(--s-accent)" }} />
           ))}
         </div>
         <span className={LABEL}>{STAGE_LABEL[r.stage]}</span>
@@ -213,7 +213,7 @@ function Row({ r, onChanged }: { r: ApiLostRow; onChanged: () => void }) {
       <td className={`${CELL} w-[200px]`}>
         <div className="flex flex-col items-start gap-1.5">
           {openRow ? <Pill colour={kind.colour}>{kind.label}</Pill> : <Pill colour={r.bucket === "RECOVERED" ? SOLID.green : SOLID.grey}>{r.bucket === "RECOVERED" ? "Recovered" : "Closed"}</Pill>}
-          <span className="font-medium leading-snug" style={{ color: openRow ? SOLID.red : "#afa4b7" }}>{r.reason}</span>
+          <span className="font-medium leading-snug" style={{ color: openRow ? SOLID.red : "var(--t-accent)" }}>{r.reason}</span>
           {r.lastOutcome ? (
             <span className={`text-[12px] ${SOFT} leading-snug`}>
               <span className="font-medium" style={{ color: OUTCOME[r.lastOutcome.outcome].colour }}>{OUTCOME[r.lastOutcome.outcome].label}</span>
@@ -234,7 +234,7 @@ function Row({ r, onChanged }: { r: ApiLostRow; onChanged: () => void }) {
           {r.orderId && <ActButton href={`/orders/${r.orderId}`}>Open order</ActButton>}
           {openRow && <ActButton onClick={() => setOpen((v) => !v)}>Handled</ActButton>}
           {open && (
-            <div className="mt-1 rounded-[12px] border border-[#3e3447] bg-white p-2.5 w-[240px]">
+            <div className="mt-1 rounded-[12px] border border-[var(--l-accent)] bg-white p-2.5 w-[240px]">
               <input className="ipt h-[36px] text-[12.5px] mb-2" placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
               <div className="flex flex-wrap gap-1.5">
                 {(Object.keys(OUTCOME) as ApiRecoveryOutcome[]).map((k) => (
@@ -314,7 +314,7 @@ export default function LostOrdersView() {
         help={HELP}
         columns={4}
         right={
-          <Link href="/marketing/recovery" className="text-[12.5px] font-medium text-[#d9c5e6] hover:text-white inline-flex items-center gap-1">
+          <Link href="/marketing/recovery" className="text-[12.5px] font-medium text-[var(--t-accent)] hover:text-white inline-flex items-center gap-1">
             Rules · Recovery settings <Icon name="chevronRight" size={14} />
           </Link>
         }

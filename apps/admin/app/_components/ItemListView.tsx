@@ -426,7 +426,7 @@ export default function ItemListView() {
             <div className="px-5 py-4">
               {confirming.linked > 0 ? (
                 <>
-                  <div className="rounded-[12px] px-4 py-3 text-[13px] mb-3" style={{ background: "#fbf1e2", color: "#8a5209" }}>
+                  <div className="rounded-[12px] px-4 py-3 text-[13px] mb-3" style={{ background: "var(--s-warn)", color: "var(--t-warn)" }}>
                     <b>{confirming.linked} product{confirming.linked === 1 ? "" : "s"}</b> {confirming.linked === 1 ? "is" : "are"} linked to this item.
                   </div>
                   {/* one sentence, written twice, because stitching "it/them" and
@@ -471,7 +471,7 @@ export default function ItemListView() {
           {items.filter((i) => i.familyKey === photosFam.fkey).map((v) => (
             <div key={v.id} className="flex items-center gap-3 py-2.5 border-b border-lavender-deep/60 last:border-0">
               <label className="relative w-[46px] h-[46px] rounded-[11px] overflow-hidden cursor-pointer grid place-items-center shrink-0"
-                style={{ background: v.imageUrl ? "#fff" : "#f0e8f6", boxShadow: "inset 0 0 0 1px #e2d2ec" }}
+                style={{ background: v.imageUrl ? "#fff" : "var(--s-accent)", boxShadow: "inset 0 0 0 1px var(--s-accent)" }}
                 title={v.imageUrl ? "Click to replace" : "Click to add a photo"}>
                 {photoBusyId === v.id
                   ? <span className="text-[11px] text-body-soft">…</span>
@@ -492,7 +492,7 @@ export default function ItemListView() {
               </div>
               {v.imageUrl ? (
                 <button onClick={() => setMemberPhoto(v, null, true)} disabled={photoBusyId !== null}
-                  className="text-[12px] font-medium underline text-body-soft hover:text-[#c0392b] shrink-0">
+                  className="text-[12px] font-medium underline text-body-soft hover:text-[var(--t-bad)] shrink-0">
                   remove
                 </button>
               ) : (
@@ -521,7 +521,7 @@ export default function ItemListView() {
                   className="rounded-[13px] border-2 px-3 py-2.5 text-left transition-colors"
                   style={on
                     ? { background: tone, borderColor: tone, color: "#fff" }
-                    : { background: m?.bg ?? "#f7f1fb", borderColor: "transparent", color: tone }}>
+                    : { background: m?.bg ?? "var(--s-accent)", borderColor: "transparent", color: tone }}>
                   <div className="font-display text-[22px] leading-none">{counts[t] ?? 0}</div>
                   <div className="text-[12.5px] font-semibold mt-1 truncate">{t === "ALL" ? "All items" : m!.short}</div>
                 </button>
@@ -552,7 +552,7 @@ export default function ItemListView() {
                     }}>
                     {o.label}
                     <span className="text-[11.5px] font-bold px-1.5 py-[1px] rounded-full"
-                      style={on ? { background: "rgba(255,255,255,.22)", color: "#fff" } : { background: "#f2e8f8", color: ACCENT }}>
+                      style={on ? { background: "rgba(255,255,255,.22)", color: "#fff" } : { background: "var(--s-accent)", color: ACCENT }}>
                       {kindCounts[o.k]}
                     </span>
                   </button>
@@ -615,12 +615,12 @@ export default function ItemListView() {
                 <input type="checkbox" checked={on} onChange={() => toggleFlag(f.k)}
                   className="w-[16px] h-[16px] rounded-[4px] cursor-pointer"
                   style={{ accentColor: ACCENT }} />
-                <span className="text-[13px] font-semibold" style={{ color: on ? ACCENT : "#5b4166" }}>{f.label}</span>
+                <span className="text-[13px] font-semibold" style={{ color: on ? ACCENT : "var(--t-accent)" }}>{f.label}</span>
               </label>
             );
           })}
           {anyFilter && (
-            <button onClick={clearAll} className="text-[12.5px] font-semibold text-[#c0392b] underline ml-1">
+            <button onClick={clearAll} className="text-[12.5px] font-semibold text-[var(--t-bad)] underline ml-1">
               Clear all
             </button>
           )}
@@ -685,7 +685,7 @@ export default function ItemListView() {
                       <span className="text-[14px] font-semibold text-purple block truncate">
                         {row.base}
                         <span className="text-[10.5px] font-bold ml-2 px-1.5 py-0.5 rounded-full align-middle"
-                          style={{ background: "#f9e9fd", color: "#8b21c9" }}>
+                          style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>
                           {row.members.length} VARIANTS
                         </span>
                       </span>
@@ -716,8 +716,8 @@ export default function ItemListView() {
                         title={activeN === row.members.length ? "Hide every variant" : "Show every variant"}
                         className="text-[12px] font-semibold px-2 py-1 rounded-full"
                         style={activeN > 0
-                          ? { background: "#e7f5f1", color: "#0e8f74" }
-                          : { background: "#f1eef4", color: "#7b6b88" }}>
+                          ? { background: "var(--s-ok)", color: "var(--t-ok)" }
+                          : { background: "var(--s-accent)", color: "var(--t-accent)" }}>
                         {activeN}/{row.members.length} active
                       </button>
                     </span>
@@ -738,7 +738,7 @@ export default function ItemListView() {
                     </span>
                   </div>
                   {open && (
-                    <div className="divide-y divide-lavender-deep" style={{ background: "#faf7fd" }}>
+                    <div className="divide-y divide-lavender-deep" style={{ background: "var(--s-accent)" }}>
                       {row.members.map((v) => renderItem(v))}
                     </div>
                   )}
@@ -794,7 +794,7 @@ export default function ItemListView() {
                       className="text-[13px] font-semibold min-w-[32px] h-[32px] rounded-[8px] border"
                       style={n === current
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#efe4f7", color: "#470066" }}>
+                        : { background: "#fff", borderColor: "var(--l-accent)", color: "var(--t-accent)" }}>
                       {n}
                     </button>
                   </span>
@@ -814,7 +814,7 @@ export default function ItemListView() {
             const { colour: col, size } = labelsOf(i);
             const recipeCount = i._count?.components ?? i.components?.length ?? 0;
             return (
-              <div key={i.id} style={{ borderLeft: `4px solid ${i.isActive ? m.colour : "#e5dced"}` }}>
+              <div key={i.id} style={{ borderLeft: `4px solid ${i.isActive ? m.colour : "var(--l-accent)"}` }}>
                 {/* the WHOLE row opens the item (sobuj, 21 Jul). The two action buttons
                     stop the click from bubbling so they still do their own job. */}
                 <div
@@ -828,7 +828,7 @@ export default function ItemListView() {
                       {i.name}
                       {isVariant(i) && (
                         <span className="text-[10.5px] font-bold ml-2 px-1.5 py-0.5 rounded-full align-middle"
-                          style={{ background: "#f9e9fd", color: "#8b21c9" }}
+                          style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}
                           title="Made together with the other members of its family">
                           1 OF {familySize.get(i.familyKey!) ?? 1}
                         </span>
@@ -838,7 +838,7 @@ export default function ItemListView() {
                       <span className="font-mono tracking-tight">{i.sku}</span>
                       {recipeCount > 0 && (
                         <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"
-                          style={{ background: "#f9e9fd", color: "#8b21c9" }}>
+                          style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>
                           <Icon name="layers" size={9} /> {recipeCount}
                         </span>
                       )}
@@ -848,18 +848,18 @@ export default function ItemListView() {
                            (owner, 20 Aug).  */}
                       {i.isSaleable ? (
                         <>
-                          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "#e7f5f1", color: "#0e8f74" }}>counter</span>
+                          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "var(--s-ok)", color: "var(--t-ok)" }}>counter</span>
                           {(i.isOnline ?? true) && (
-                            <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "#f9e9fd", color: "#8b21c9" }}>online</span>
+                            <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>online</span>
                           )}
                         </>
                       ) : (
-                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "#f1eef4", color: "#7b6b88" }}>not sold</span>
+                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>not sold</span>
                       )}
                       {i.isSaleable && i.effectiveSellPricePaisa == null && (
-                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fdecea] text-[#c0392b]">no price</span>
+                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--s-bad)] text-[var(--t-bad)]">no price</span>
                       )}
-                      {(i.effectiveCostPaisa ?? 0) <= 0 && !i.isSaleable && <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[#fbf1e2] text-[#8a6d1f]">no cost</span>}
+                      {(i.effectiveCostPaisa ?? 0) <= 0 && !i.isSaleable && <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--s-warn)] text-[var(--t-warn)]">no cost</span>}
                     </div>
                   </div>
 
@@ -876,7 +876,7 @@ export default function ItemListView() {
                     {col ? (
                       <span className="inline-flex items-center gap-1.5 min-w-0">
                         <span className="w-[15px] h-[15px] rounded-full border border-lavender-deep shrink-0"
-                          style={{ background: col.swatch ?? "repeating-linear-gradient(45deg,#f3eef7,#f3eef7 4px,#e6dcee 4px,#e6dcee 8px)" }} />
+                          style={{ background: col.swatch ?? "repeating-linear-gradient(45deg,var(--a-solid),var(--a-solid) 4px,var(--a-solid) 4px,var(--a-solid) 8px)" }} />
                         <span className="text-body truncate">{col.label}</span>
                       </span>
                     ) : <span className="text-body-soft">—</span>}
@@ -900,7 +900,7 @@ export default function ItemListView() {
                         : <span className="text-body-soft font-normal">—</span>}
                     <span className="block text-[11px] font-normal">
                       {i.isSaleable && i.effectiveSellPricePaisa != null ? (
-                        <span style={{ color: "#0e7a3d" }}>
+                        <span style={{ color: "var(--t-ok)" }}>
                           sells {formatTaka(i.effectiveSellPricePaisa)}
                           {i.sellPriceIsManual ? " · fixed" : ""}
                         </span>
@@ -922,7 +922,7 @@ export default function ItemListView() {
 
                   <span className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
                     <Link href={`/items/${i.id}`} className="text-body-soft hover:text-purple px-1 py-1" title="Edit"><Icon name="edit" size={15} /></Link>
-                    <button onClick={() => remove(i)} className="text-body-soft hover:text-[#c0392b] px-1 py-1" title="Delete"><Icon name="trash" size={15} /></button>
+                    <button onClick={() => remove(i)} className="text-body-soft hover:text-[var(--t-bad)] px-1 py-1" title="Delete"><Icon name="trash" size={15} /></button>
                   </span>
                 </div>
               </div>

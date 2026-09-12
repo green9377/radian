@@ -193,14 +193,14 @@ export default function CategoriesView() {
       </div>
 
       {err && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
+        <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-4 text-[13px] flex items-center justify-between gap-3">
           <span>{err}</span>
           <button className="underline shrink-0" onClick={() => setErr(null)}>Dismiss</button>
         </div>
       )}
       {isDemo && (
-        <div className="flex items-center gap-3 bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
-          <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[#b45309] text-white px-2 py-1 rounded-full shrink-0">Offline</span>
+        <div className="flex items-center gap-3 bg-[var(--s-warn)] border border-[var(--l-warn)] text-[var(--t-warn)] rounded-[12px] px-4 py-2.5 mb-4 text-[12.5px] flex-wrap">
+          <span className="text-[10px] font-bold tracking-[0.06em] uppercase bg-[var(--s-warn)] text-white px-2 py-1 rounded-full shrink-0">Offline</span>
           <span className="flex-1 min-w-[220px]">
             The API is not reachable.
             <button className="underline font-medium mx-1" onClick={load}>retry</button>
@@ -216,12 +216,12 @@ export default function CategoriesView() {
           this screen wore was the old off-brand palette.  */}
       <div className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-3.5 mb-6">
         {[
-          { l: "Categories", v: String(stats.total), c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8", icon: "grid" },
-          { l: "Top-level", v: String(stats.tops), c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "layers" },
-          { l: "Sub-categories", v: String(stats.subs), c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc", icon: "hash" },
-          { l: "Products classified", v: String(stats.classified), c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "box" },
-          { l: "Empty categories", v: String(stats.empty), c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "bolt" },
-          { l: "Hidden", v: String(stats.inactive), c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "eye" },
+          { l: "Categories", v: String(stats.total), c: "var(--t-accent)", edge: "var(--l-accent)", bg: "var(--s-accent)", icon: "grid" },
+          { l: "Top-level", v: String(stats.tops), c: "var(--t-accent)", edge: "var(--l-accent)", bg: "var(--s-accent)", icon: "layers" },
+          { l: "Sub-categories", v: String(stats.subs), c: "var(--t-accent)", edge: "var(--l-orchid)", bg: "var(--s-accent)", icon: "hash" },
+          { l: "Products classified", v: String(stats.classified), c: "var(--t-gold)", edge: "var(--l-gold)", bg: "var(--s-bad)", icon: "box" },
+          { l: "Empty categories", v: String(stats.empty), c: "var(--t-gold)", edge: "var(--l-gold)", bg: "var(--s-bad)", icon: "bolt" },
+          { l: "Hidden", v: String(stats.inactive), c: "var(--t-accent)", edge: "var(--l-accent)", bg: "var(--s-accent)", icon: "eye" },
         ].map((k, i) => (
           <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
             style={{ background: `linear-gradient(150deg,${k.bg},#ffffff 130%)` }}>
@@ -256,18 +256,18 @@ export default function CategoriesView() {
               scrolls off at the bottom of the page. Card reserves 4rem, the
               right zone reserves only 1rem (below), so the right is always the
               taller of the two and the card pins through the whole scroll.  */}
-          <div className="rounded-2xl overflow-hidden xl:max-h-[calc(100vh-4rem)] flex flex-col shadow-[0_10px_30px_rgba(30,15,45,0.35)] ring-1 ring-white/5" style={{ background: "#211c33" }}>
+          <div className="rounded-2xl overflow-hidden xl:max-h-[calc(100vh-4rem)] flex flex-col shadow-[0_10px_30px_rgba(30,15,45,0.35)] ring-1 ring-white/5" style={{ background: "var(--s-info)" }}>
             {/* rose-gold + purple header */}
             <div className="relative px-5 py-4 shrink-0 overflow-hidden border-b" style={{ background: "linear-gradient(120deg,rgba(183,110,121,0.30),rgba(138,43,176,0.16))", borderColor: "rgba(199,144,152,0.35)" }}>
               <div className="relative flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="w-10 h-10 rounded-xl grid place-items-center shrink-0" style={{ background: "rgba(255,255,255,0.10)", color: "#F0D9DD" }}><Icon name="layers" size={18} /></span>
+                  <span className="w-10 h-10 rounded-xl grid place-items-center shrink-0" style={{ background: "rgba(255,255,255,0.10)", color: "var(--t-bad)" }}><Icon name="layers" size={18} /></span>
                   <div className="min-w-0">
                     <div className="font-display font-bold text-[18px] text-white leading-tight">Category tree</div>
                     <div className="text-[12px]" style={{ color: "rgba(240,217,221,0.75)" }}>{stats.tops} top-level · {stats.subs} sub</div>
                   </div>
                 </div>
-                <button onClick={() => startNew(null)} className="text-[12.5px] font-bold px-3 py-2 rounded-xl inline-flex items-center gap-1.5 shrink-0 transition-colors hover:bg-white/10" style={{ border: "1px solid #C79098", color: "#F0D9DD" }}>
+                <button onClick={() => startNew(null)} className="text-[12.5px] font-bold px-3 py-2 rounded-xl inline-flex items-center gap-1.5 shrink-0 transition-colors hover:bg-white/10" style={{ border: "1px solid var(--l-bad)", color: "var(--t-bad)" }}>
                   <Icon name="plus" size={15} /> Add
                 </button>
               </div>
@@ -300,7 +300,7 @@ export default function CategoriesView() {
                       });
                     }}
                     className="w-[28px] h-[28px] rounded-[9px] grid place-items-center shrink-0 transition-colors text-white"
-                    style={{ background: open ? "#A93FC9" : "rgba(255,255,255,0.10)" }}
+                    style={{ background: open ? "var(--s-accent)" : "rgba(255,255,255,0.10)" }}
                     title={open ? "Collapse" : "Expand"}
                   >
                     <span className={"transition-transform " + (open ? "rotate-0" : "-rotate-90")}><Icon name="chevronDown" size={15} /></span>
@@ -308,8 +308,8 @@ export default function CategoriesView() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[15px] font-semibold truncate" style={{ color: p.isActive ? "#ffffff" : "rgba(237,233,245,0.55)" }}>{p.name}</span>
-                      {total > 0 && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(169,63,201,0.25)", color: "#E6C7F0" }}>{total}</span>}
-                      {!p.isActive && <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full" style={{ background: "rgba(226,150,66,0.22)", color: "#F0C48A" }}>Hidden</span>}
+                      {total > 0 && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(169,63,201,0.25)", color: "var(--t-accent)" }}>{total}</span>}
+                      {!p.isActive && <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full" style={{ background: "rgba(226,150,66,0.22)", color: "var(--t-warn)" }}>Hidden</span>}
                     </div>
                     <div className="text-[12px] mt-0.5" style={{ color: "rgba(237,233,245,0.5)" }}>{p.kids.length} sub{p.kids.length === 1 ? "" : "s"}</div>
                   </div>
@@ -331,10 +331,10 @@ export default function CategoriesView() {
                              style={{ background: onC ? "rgba(169,63,201,0.18)" : "rgba(255,255,255,0.04)", border: onC ? "1px solid rgba(169,63,201,0.55)" : "0.5px solid rgba(255,255,255,0.07)" }}
                              onClick={() => setSelected(c.id)}>
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: c.isActive ? "#A93FC9" : "rgba(255,255,255,0.25)" }} />
-                            <span className="text-[13.5px] truncate font-medium" style={{ color: c.isActive ? "#EDE9F5" : "rgba(237,233,245,0.5)" }}>{c.name}</span>
-                            {pc(c) > 0 && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(169,63,201,0.25)", color: "#E6C7F0" }}>{pc(c)}</span>}
-                            {!c.isActive && <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full" style={{ background: "rgba(226,150,66,0.22)", color: "#F0C48A" }}>Hidden</span>}
+                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: c.isActive ? "var(--s-accent)" : "rgba(255,255,255,0.25)" }} />
+                            <span className="text-[13.5px] truncate font-medium" style={{ color: c.isActive ? "var(--t-accent)" : "rgba(237,233,245,0.5)" }}>{c.name}</span>
+                            {pc(c) > 0 && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(169,63,201,0.25)", color: "var(--t-accent)" }}>{pc(c)}</span>}
+                            {!c.isActive && <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full" style={{ background: "rgba(226,150,66,0.22)", color: "var(--t-warn)" }}>Hidden</span>}
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                             <div className="flex flex-col" style={{ color: "rgba(237,233,245,0.5)" }}>
@@ -346,7 +346,7 @@ export default function CategoriesView() {
                         </div>
                       );
                     })}
-                    <button onClick={() => startNew(p.id)} className="inline-flex items-center gap-1.5 text-[12px] font-bold px-2 py-1.5 hover:brightness-125" style={{ color: "#C79098" }}>
+                    <button onClick={() => startNew(p.id)} className="inline-flex items-center gap-1.5 text-[12px] font-bold px-2 py-1.5 hover:brightness-125" style={{ color: "var(--t-bad)" }}>
                       <Icon name="plus" size={13} /> Add sub-category
                     </button>
                   </div>
@@ -366,7 +366,7 @@ export default function CategoriesView() {
              min-height keeps this column at least a full screen tall even when
              nothing is selected, so the left sticky card ALWAYS has room to
              travel and never scrolls away. (6 Aug 2026.)  */}
-        <div className="xl:rounded-[22px] xl:p-3.5 xl:min-h-[calc(100vh-1rem)]" style={{ background: "#f5eefb" }}>
+        <div className="xl:rounded-[22px] xl:p-3.5 xl:min-h-[calc(100vh-1rem)]" style={{ background: "var(--s-accent)" }}>
           {selected === "new" || selNode ? (
             <CategoryEditor
               key={selected}
@@ -413,7 +413,7 @@ function Switch({ on, onClick, small, dark }: { on: boolean; onClick: () => void
     <button
       onClick={onClick}
       className="relative rounded-full transition-colors shrink-0"
-      style={{ width: w, height: h, background: on ? "#A93FC9" : dark ? "rgba(255,255,255,0.16)" : "#d8c6ee" }}
+      style={{ width: w, height: h, background: on ? "var(--s-accent)" : dark ? "rgba(255,255,255,0.16)" : "var(--s-accent)" }}
       title={on ? "Active — visible to customers" : "Hidden from customers"}
     >
       <span className="absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow-sm transition-all" style={{ width: k, height: k, left: on ? w - k - 3 : 3 }} />
@@ -429,7 +429,7 @@ function StorePreview({ tree }: { tree: TreeParent[] }) {
   return (
     <div className="rounded-[16px] overflow-hidden mt-1" style={{ background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.10)" }}>
       <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-        <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center" style={{ background: "rgba(169,63,201,0.30)", color: "#E6C7F0" }}><Icon name="eye" size={13} /></span>
+        <span className="w-[24px] h-[24px] rounded-[7px] grid place-items-center" style={{ background: "rgba(169,63,201,0.30)", color: "var(--t-accent)" }}><Icon name="eye" size={13} /></span>
         <div>
           <div className="font-display text-[14px] text-white leading-tight">Storefront preview</div>
           <div className="text-[12px]" style={{ color: "rgba(237,233,245,0.55)" }}>Hidden categories are excluded</div>
@@ -455,7 +455,7 @@ function StorePreview({ tree }: { tree: TreeParent[] }) {
                 {kids.length ? (
                   <div className="flex flex-wrap gap-1.5">
                     {kids.map((k) => (
-                      <span key={k.id} className="text-[12px] px-2.5 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.08)", color: "#EDE9F5", border: "0.5px solid rgba(255,255,255,0.12)" }}>{k.name}</span>
+                      <span key={k.id} className="text-[12px] px-2.5 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.08)", color: "var(--t-accent)", border: "0.5px solid rgba(255,255,255,0.12)" }}>{k.name}</span>
                     ))}
                   </div>
                 ) : (

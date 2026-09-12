@@ -32,10 +32,10 @@ import {
 */
 
 const TAB_DEFS = [
-  { key: "MONEY", label: "Money actions", icon: "cash", fg: "#b07818", bg: "#fdf3e2", grad: "linear-gradient(135deg,#b07818,#d9a53a)" },
-  { key: "ALL", label: "Everything", icon: "layers", fg: "#7a2ea8", bg: "#f5eafb", grad: "linear-gradient(135deg,#8a2bb0,#cf43ea)" },
-  { key: "ACTIVITY", label: "In plain words", icon: "mail", fg: "#3b76c4", bg: "#eef5fd", grad: "linear-gradient(135deg,#3b76c4,#6ba3e8)" },
-  { key: "BACKUPS", label: "Backups", icon: "download", fg: "#0e9767", bg: "#e7f7f0", grad: "linear-gradient(135deg,#0e9767,#22c08b)" },
+  { key: "MONEY", label: "Money actions", icon: "cash", fg: "var(--t-warn)", bg: "var(--s-warn)", grad: "linear-gradient(135deg,var(--f-warn),var(--f-warn))" },
+  { key: "ALL", label: "Everything", icon: "layers", fg: "var(--t-accent)", bg: "var(--s-accent)", grad: "linear-gradient(135deg,var(--a-solid),var(--o-solid))" },
+  { key: "ACTIVITY", label: "In plain words", icon: "mail", fg: "var(--t-info)", bg: "var(--s-info)", grad: "linear-gradient(135deg,var(--f-info),var(--f-info))" },
+  { key: "BACKUPS", label: "Backups", icon: "download", fg: "var(--t-ok)", bg: "var(--s-ok)", grad: "linear-gradient(135deg,var(--f-ok),var(--f-ok))" },
 ] as const;
 
 const ACTION_LABEL: Record<AuditAction, string> = {
@@ -205,15 +205,15 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
           18 Aug 2026: system notices collect in one place, never on top of a
           working page). The KPI tile below still shows the state in colour.  */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <StatTile icon="clock" grad="linear-gradient(135deg,#8a2bb0,#cf43ea)" fg="#7a2ea8"
+        <StatTile icon="clock" grad="linear-gradient(135deg,var(--a-solid),var(--o-solid))" fg="var(--t-accent)"
           label="Recorded today" value={String(stats?.today ?? 0)} />
-        <StatTile icon="chart" grad="linear-gradient(135deg,#3b76c4,#7fb4f0)" fg="#3b76c4"
+        <StatTile icon="chart" grad="linear-gradient(135deg,var(--f-info),var(--f-info))" fg="var(--t-info)"
           label="This week" value={String(stats?.week ?? 0)} />
-        <StatTile icon="cash" grad="linear-gradient(135deg,#b07818,#e9c46a)" fg="#b07818"
+        <StatTile icon="cash" grad="linear-gradient(135deg,var(--f-warn),var(--f-warn))" fg="var(--t-warn)"
           label="Money actions · 7d" value={String(stats?.money7 ?? 0)} />
         <StatTile icon="download"
-          grad={stats?.backupStale ? "linear-gradient(135deg,#c62f20,#e8604f)" : "linear-gradient(135deg,#0e9767,#22c08b)"}
-          fg={stats?.backupStale ? "#c0392b" : "#0e9767"}
+          grad={stats?.backupStale ? "linear-gradient(135deg,var(--f-bad),var(--f-bad))" : "linear-gradient(135deg,var(--f-ok),var(--f-ok))"}
+          fg={stats?.backupStale ? "var(--t-bad)" : "var(--t-ok)"}
           label="Last backup" value={stats?.lastBackupAt ? ago(stats.lastBackupAt) : "never"} />
       </div>
 
@@ -227,7 +227,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
               className="flex items-center gap-2 px-4 py-2.5 rounded-[13px] text-[12.5px] font-bold border transition-all"
               style={on
                 ? { background: t.grad, color: "#fff", borderColor: "transparent", boxShadow: `0 4px 14px ${t.fg}55` }
-                : { background: "#fff", color: "#2d2838", borderColor: "#e9e2f2" }}>
+                : { background: "#fff", color: "var(--t-accent)", borderColor: "var(--l-accent)" }}>
               <span className="w-[22px] h-[22px] rounded-[7px] grid place-items-center"
                 style={on ? { background: "rgba(255,255,255,0.22)", color: "#fff" } : { background: t.bg, color: t.fg }}>
                 <Icon name={t.icon} size={12} strokeWidth={2.4} />
@@ -251,7 +251,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
           <div className="w-full max-w-[880px] max-h-[86vh] rounded-[20px] bg-white overflow-hidden flex flex-col"
             style={{ boxShadow: "0 24px 80px rgba(20,5,35,0.5)" }}>
             <div className="px-5 py-3.5 flex items-center gap-3 shrink-0"
-              style={{ background: "linear-gradient(120deg,#470066,#8a2bb0 55%,#cf43ea)" }}>
+              style={{ background: "linear-gradient(120deg,var(--a-solid),var(--a-solid) 55%,var(--o-solid))" }}>
               <span className="w-[34px] h-[34px] rounded-[11px] grid place-items-center text-white shrink-0"
                 style={{ background: "rgba(255,255,255,0.16)" }}>
                 <Icon name="clock" size={16} strokeWidth={2.2} />
@@ -282,7 +282,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[12px] font-extrabold tracking-[0.08em] uppercase text-purple">Field by field</span>
-                        <span className="text-[10px] font-bold px-2 py-[1px] rounded-full" style={{ background: "#f5eafb", color: "#7a2ea8" }}>{trace.audit.length}</span>
+                        <span className="text-[10px] font-bold px-2 py-[1px] rounded-full" style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>{trace.audit.length}</span>
                       </div>
                       <Table head={<><Th>When</Th><Th>Who</Th><Th>What</Th><Th>Changed</Th></>}>
                         {trace.audit.map((r) => (
@@ -305,7 +305,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
                     <div>
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[12px] font-extrabold tracking-[0.08em] uppercase text-purple">In plain words</span>
-                        <span className="text-[10px] font-bold px-2 py-[1px] rounded-full" style={{ background: "#eef5fd", color: "#3b76c4" }}>{trace.activity.length}</span>
+                        <span className="text-[10px] font-bold px-2 py-[1px] rounded-full" style={{ background: "var(--s-info)", color: "var(--t-info)" }}>{trace.activity.length}</span>
                       </div>
                       <Table head={<><Th>When</Th><Th>What</Th><Th>Who</Th></>}>
                         {trace.activity.map((e) => (
@@ -339,7 +339,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
             {/*  Just the field — no label, no helper prose (owner, 19 Aug:
                 "search barer niche jen kon text na thake").  */}
             <div className="relative mb-3">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a08fb8] pointer-events-none">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--t-accent)] pointer-events-none">
                 <Icon name="search" size={15} strokeWidth={2.2} />
               </span>
               <input
@@ -397,7 +397,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
               <>
                 <Table head={<><Th>When</Th><Th>Who</Th><Th>What</Th><Th>Changed</Th><Th /></>}>
                   {rows.map((r) => (
-                    <tr key={r.id} className="cursor-pointer hover:bg-[#faf7fd] transition-colors"
+                    <tr key={r.id} className="cursor-pointer hover:bg-[var(--s-accent)] transition-colors"
                       onClick={() => void openTrace(r.entityType, r.entityId)}>
                       <Td>
                         <div className="text-[12.5px]">{ago(r.createdAt)}</div>
@@ -419,7 +419,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
                              this one.  */}
                         <button
                           className="text-[11px] font-bold px-2.5 py-1.5 rounded-[8px] border bg-white whitespace-nowrap"
-                          style={{ borderColor: "#e4ddef", color: "#7a2ea8" }}
+                          style={{ borderColor: "var(--l-accent)", color: "var(--t-accent)" }}
                           onClick={(e) => { e.stopPropagation(); void openTrace(r.entityType, r.entityId); }}
                         >
                           Full history
@@ -428,7 +428,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
                     </tr>
                   ))}
                 </Table>
-                <div className="px-4 py-3 border-t border-[#f3eef7] flex items-center justify-between gap-3">
+                <div className="px-4 py-3 border-t border-[var(--l-accent)] flex items-center justify-between gap-3">
                   <span className="text-[12px] text-body-soft">
                     {total.toLocaleString()} records · page {page} of {totalPages}
                   </span>
@@ -446,10 +446,10 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
       )}
 
       {tab === "ACTIVITY" && (
-        <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
+        <div className="rounded-[16px] bg-white border border-[var(--l-accent)] overflow-hidden"
           style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
           <div className="px-4 py-2.5 flex items-center gap-2.5"
-            style={{ background: "linear-gradient(120deg,#3b76c4,#6ba3e8)" }}>
+            style={{ background: "linear-gradient(120deg,var(--f-info),var(--f-info))" }}>
             <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">What happened, in plain words</span>
             <span className="text-[10px] font-bold px-2 py-[1px] rounded-full bg-white/25 text-white">last 14 days</span>
           </div>
@@ -474,10 +474,10 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
       )}
 
       {tab === "BACKUPS" && (
-        <div className="rounded-[16px] bg-white border border-[#e9e2f2] overflow-hidden"
+        <div className="rounded-[16px] bg-white border border-[var(--l-accent)] overflow-hidden"
           style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
           <div className="px-4 py-2.5 flex items-center gap-2.5"
-            style={{ background: "linear-gradient(120deg,#0e9767,#22c08b)" }}>
+            style={{ background: "linear-gradient(120deg,var(--f-ok),var(--f-ok))" }}>
             <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">Nightly copies of the database</span>
             <span className="text-[10px] font-bold px-2 py-[1px] rounded-full bg-white/25 text-white">{backups.length}</span>
           </div>
@@ -502,7 +502,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean } = {}) {
               })}
             </Table>
           )}
-          <div className="px-5 py-4 border-t border-[#f3eef7] text-[12px] text-body-soft">
+          <div className="px-5 py-4 border-t border-[var(--l-accent)] text-[12px] text-body-soft">
             A copy on the same disk as the database survives a mistake, not a dead drive. Copy
             <code className="mx-1">D:\radian\backups\</code> somewhere else now and then.
           </div>

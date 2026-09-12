@@ -24,12 +24,12 @@ export const WRAP = "px-6 md:px-8 pt-6 pb-16 max-w-[1600px] mx-auto w-full";
 export type Tone = "brand" | "emerald" | "amber" | "rose" | "sky" | "slate";
 
 export const TONE: Record<Tone, { bg: string; soft: string; text: string; ring: string; grad: string }> = {
-  brand:   { bg: "#a021b8", soft: "#301c36", text: "#d47de8", ring: "#452e4d", grad: "linear-gradient(135deg,#a021b8,#d98cb3)" },
-  emerald: { bg: "#0f7d55", soft: "#20342a", text: "#75f0c5", ring: "#314a3f", grad: "linear-gradient(135deg,#0f7d55,#4fbf8b)" },
-  amber:   { bg: "#b45309", soft: "#3c2e17", text: "#f2a373", ring: "#534228", grad: "linear-gradient(135deg,#d97706,#f0b76a)" },
-  rose:    { bg: "#b91c1c", soft: "#3b1717", text: "#e87d7d", ring: "#522828", grad: "linear-gradient(135deg,#b91c1c,#ef7c7c)" },
-  sky:     { bg: "#0369a1", soft: "#172e3d", text: "#6ec7f7", ring: "#284453", grad: "linear-gradient(135deg,#0369a1,#5eb7e8)" },
-  slate:   { bg: "#5b5468", soft: "#27232e", text: "#dfd2e4", ring: "#3b3645", grad: "linear-gradient(135deg,#5b5468,#38353e)" },
+  brand:   { bg: "var(--s-orchid)", soft: "var(--s-accent)", text: "var(--t-accent)", ring: "var(--l-accent)", grad: "linear-gradient(135deg,var(--o-solid),var(--o-solid))" },
+  emerald: { bg: "var(--s-ok)", soft: "var(--s-ok)", text: "var(--t-ok)", ring: "var(--l-ok)", grad: "linear-gradient(135deg,var(--f-ok),var(--f-ok))" },
+  amber:   { bg: "var(--s-warn)", soft: "var(--s-warn)", text: "var(--t-warn)", ring: "var(--l-warn)", grad: "linear-gradient(135deg,var(--f-warn),var(--f-warn))" },
+  rose:    { bg: "var(--s-bad)", soft: "var(--s-bad)", text: "var(--t-bad)", ring: "var(--l-bad)", grad: "linear-gradient(135deg,var(--f-bad),var(--f-bad))" },
+  sky:     { bg: "var(--s-info)", soft: "var(--s-info)", text: "var(--t-info)", ring: "var(--l-info)", grad: "linear-gradient(135deg,var(--f-info),var(--f-info))" },
+  slate:   { bg: "var(--s-accent)", soft: "var(--s-accent)", text: "var(--t-accent)", ring: "var(--l-accent)", grad: "linear-gradient(135deg,var(--a-solid),var(--t-main))" },
 };
 
 export const taka = (p: number) => formatTaka(p);
@@ -39,7 +39,7 @@ export const todayStr = () => new Date().toISOString().slice(0, 10);
 /* ---------------- form + button styles ---------------- */
 
 export const input =
-  "w-full border border-[#3d3248] rounded-xl px-3 py-2.5 text-[13.5px] outline-none bg-white transition-shadow focus:border-orchid focus:shadow-[0_0_0_3px_rgba(160,33,184,0.10)]";
+  "w-full border border-[var(--l-accent)] rounded-xl px-3 py-2.5 text-[13.5px] outline-none bg-white transition-shadow focus:border-orchid focus:shadow-[0_0_0_3px_rgba(160,33,184,0.10)]";
 export const label = "text-[11.5px] font-semibold text-body-soft mb-1 block";
 /** field label — the one every Finance form uses */
 export function Lbl({ children }: { children: React.ReactNode }) {
@@ -49,7 +49,7 @@ const btnBase =
   "inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold border transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]";
 export const btnPrimary = `${btnBase} text-white border-transparent shadow-[0_2px_8px_rgba(160,33,184,0.25)] hover:shadow-[0_4px_14px_rgba(160,33,184,0.32)]`;
 export const btnPrimaryStyle = { background: TONE.brand.grad };
-export const btnGhost = `${btnBase} bg-white text-purple border-[#3d3248] hover:border-orchid hover:bg-[#2a1538]`;
+export const btnGhost = `${btnBase} bg-white text-purple border-[var(--l-accent)] hover:border-orchid hover:bg-[var(--s-accent)]`;
 export const btnSoft = `${btnBase} border-transparent`;
 
 /* ---------------- page header ---------------- */
@@ -99,7 +99,7 @@ export function Card({ children, className = "", tone, style }: { children: Reac
   return (
     <div
       className={`bg-white border rounded-2xl shadow-[0_1px_3px_rgba(80,40,100,0.05)] ${className}`}
-      style={{ borderColor: tone ? TONE[tone].ring : "#3f3446", ...style }}
+      style={{ borderColor: tone ? TONE[tone].ring : "var(--l-accent)", ...style }}
     >
       {children}
     </div>
@@ -203,7 +203,7 @@ export function Chip({ tone = "slate", children }: { tone?: Tone; children: Reac
 export function Bar({ pct, tone = "brand", height = 8 }: { pct: number; tone?: Tone; height?: number }) {
   const t = TONE[tone];
   return (
-    <div className="w-full rounded-full bg-[#282131] overflow-hidden" style={{ height }}>
+    <div className="w-full rounded-full bg-[var(--s-accent)] overflow-hidden" style={{ height }}>
       <div
         className="h-full rounded-full transition-all duration-500"
         style={{ width: `${Math.max(0, Math.min(100, pct))}%`, background: t.grad }}
@@ -278,7 +278,7 @@ export function Tabs<T extends string>({
           <button
             key={it.key}
             onClick={() => onChange(it.key)}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold border transition-all ${on ? "text-white border-transparent shadow-[0_2px_10px_rgba(80,40,100,0.18)]" : "bg-white border-[#3d3248] text-purple hover:border-orchid"}`}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold border transition-all ${on ? "text-white border-transparent shadow-[0_2px_10px_rgba(80,40,100,0.18)]" : "bg-white border-[var(--l-accent)] text-purple hover:border-orchid"}`}
             style={on ? { background: t.grad } : undefined}
           >
             {it.emoji && <span>{it.emoji}</span>}
@@ -311,10 +311,10 @@ export function Td({ children, right = false, className = "" }: { children?: Rea
 export function Table({ head, children, tone }: { head: React.ReactNode; children: React.ReactNode; tone?: Tone }) {
   return (
     <table className="w-full text-[13px]">
-      <thead style={{ background: tone ? TONE[tone].soft : "#291f31" }}>
+      <thead style={{ background: tone ? TONE[tone].soft : "var(--s-accent)" }}>
         <tr>{head}</tr>
       </thead>
-      <tbody className="[&>tr]:border-t [&>tr]:border-[#3e3248] [&>tr:hover]:bg-[#2b1a34]">{children}</tbody>
+      <tbody className="[&>tr]:border-t [&>tr]:border-[var(--l-accent)] [&>tr:hover]:bg-[var(--s-accent)]">{children}</tbody>
     </table>
   );
 }

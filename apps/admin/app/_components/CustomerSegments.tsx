@@ -126,7 +126,7 @@ export default function CustomerSegments() {
       </div>
 
       {error && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}. Is the API (:4000) running? <button className="underline" onClick={load}>Retry</button>
         </div>
       )}
@@ -136,10 +136,10 @@ export default function CustomerSegments() {
       {/* summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
         {[
-          { l: "Segments", v: String(segs.length), c: "#7a2ea8", bg: "#f5eafb", icon: "hash" },
-          { l: "Tagged customers", v: String(customers.length - untagged), c: "#12a172", bg: "#e6f7ef", icon: "user" },
-          { l: "Untagged", v: String(untagged), c: untagged ? "#d98a0f" : "#12a172", bg: "#fbf1e2", icon: "bolt" },
-          { l: "Value in segments", v: formatTaka(enriched.reduce((s, e) => s + e.ltv, 0)), c: "#c01fd8", bg: "#fbe8fe", icon: "cash" },
+          { l: "Segments", v: String(segs.length), c: "var(--t-accent)", bg: "var(--s-accent)", icon: "hash" },
+          { l: "Tagged customers", v: String(customers.length - untagged), c: "var(--t-ok)", bg: "var(--s-ok)", icon: "user" },
+          { l: "Untagged", v: String(untagged), c: untagged ? "var(--t-warn)" : "var(--t-ok)", bg: "var(--s-warn)", icon: "bolt" },
+          { l: "Value in segments", v: formatTaka(enriched.reduce((s, e) => s + e.ltv, 0)), c: "var(--t-orchid)", bg: "var(--s-orchid)", icon: "cash" },
         ].map((k, i) => (
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}>
@@ -154,7 +154,7 @@ export default function CustomerSegments() {
       {/* create */}
       <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft p-5 mb-4">
         <div className="flex items-center gap-2.5 mb-3">
-          <span className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-white" style={{ background: "#cf43ea" }}>
+          <span className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-white" style={{ background: "var(--s-orchid)" }}>
             <Icon name="plus" size={16} />
           </span>
           <div className="font-display text-[16px] text-purple leading-tight">Create a segment</div>
@@ -228,7 +228,7 @@ export default function CustomerSegments() {
                     </button>
                     <button
                       onClick={() => remove(e.seg.id, e.count)}
-                      className="border border-lavender-deep hover:border-[#e0a1a1] hover:text-[#c0392b] text-body-soft w-[32px] h-[32px] rounded-[9px] grid place-items-center"
+                      className="border border-lavender-deep hover:border-[var(--l-bad)] hover:text-[var(--t-bad)] text-body-soft w-[32px] h-[32px] rounded-[9px] grid place-items-center"
                       title="Remove"
                     >
                       <Icon name="trash" size={16} />

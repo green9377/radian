@@ -42,12 +42,12 @@ export const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 /* ---------------- colour system ---------------- */
 export type Tone = "purple" | "green" | "amber" | "rose" | "blue" | "gold";
 export const TONE: Record<Tone, { bg: string; border: string; text: string; solid: string; soft: string }> = {
-  purple: { bg: "#2b1c35", border: "#3f2d4e", text: "#ce6ef7", solid: "#7d2ea8", soft: "#2c1e37" },
-  green: { bg: "#1c3626", border: "#2d4d3a", text: "#76efab", solid: "#149a52", soft: "#20382a" },
-  amber: { bg: "#3a2b16", border: "#534228", text: "#f7a96e", solid: "#e08a1e", soft: "#3e2e18" },
-  rose: { bg: "#391719", border: "#52282b", text: "#ed8078", solid: "#d64550", soft: "#3c181b" },
-  blue: { bg: "#16293b", border: "#283e53", text: "#70bcf5", solid: "#2b7fd4", soft: "#172a3e" },
-  gold: { bg: "#38181e", border: "#4b2f34", text: "#c7949b", solid: "#b76e79", soft: "#381c22" },
+  purple: { bg: "var(--s-accent)", border: "var(--l-accent)", text: "var(--l-accent)", solid: "var(--l-accent)", soft: "var(--l-accent)" },
+  green: { bg: "var(--l-ok)", border: "var(--l-ok)", text: "var(--l-ok)", solid: "var(--l-ok)", soft: "var(--l-ok)" },
+  amber: { bg: "var(--l-warn)", border: "var(--l-warn)", text: "var(--l-warn)", solid: "var(--l-warn)", soft: "var(--l-warn)" },
+  rose: { bg: "var(--l-bad)", border: "var(--l-bad)", text: "var(--l-bad)", solid: "var(--l-bad)", soft: "var(--l-bad)" },
+  blue: { bg: "var(--l-info)", border: "var(--l-info)", text: "var(--l-info)", solid: "var(--l-info)", soft: "var(--l-info)" },
+  gold: { bg: "var(--l-bad)", border: "var(--l-bad)", text: "var(--l-bad)", solid: "var(--l-gold)", soft: "var(--l-bad)" },
 };
 
 /* ---------------- atoms ---------------- */
@@ -276,7 +276,7 @@ export function OrdersOverview() {
       {error && <ErrorBox error={error} onRetry={reload} />}
 
       {/* hero — the one thing to do next */}
-      <div className="rounded-[18px] p-5 mb-5 text-white shadow-lift flex items-center gap-5 flex-wrap" style={{ background: "linear-gradient(120deg,#470066 0%,#8a2bb0 42%,#cf43ea 74%,#b76e79 100%)" }}>
+      <div className="rounded-[18px] p-5 mb-5 text-white shadow-lift flex items-center gap-5 flex-wrap" style={{ background: "linear-gradient(120deg,var(--a-solid) 0%,var(--a-solid) 42%,var(--o-solid) 74%,var(--t-gold) 100%)" }}>
         <div className="min-w-0 flex-1">
           <div className="text-[12px] uppercase tracking-[0.08em] opacity-80">Waiting on you</div>
           <div className="font-display text-[34px] leading-none mt-1">

@@ -39,33 +39,33 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 const SECTIONS = [
   {
     id: "footer", label: "Footer columns", blurb: "Link columns at the bottom", icon: "grid",
-    tint: "#f3e8f9", edge: "#e6d3f2", chip: "#e6d3f2",
-    ink: "#3b0b52", sub: "#816894", strong: "#470066",
-    fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#e9a8f5",
+    tint: "var(--t-accent)", edge: "var(--l-accent)", chip: "var(--s-accent)",
+    ink: "var(--t-accent)", sub: "var(--t-accent)", strong: "var(--t-accent)",
+    fill: "linear-gradient(100deg,var(--a-solid),var(--o-solid))", glow: "rgba(71,0,102,.30)", soft: "var(--o-solid)",
   },
   {
     id: "menu", label: "The ☰ menu", blurb: "The slide-out panel", icon: "hash",
-    tint: "#e9f2fb", edge: "#c8ddf1", chip: "#c8ddf1",
-    ink: "#123f68", sub: "#5b82a8", strong: "#185FA5",
-    fill: "linear-gradient(100deg,#185FA5,#3f83c4)", glow: "rgba(24,95,165,.25)", soft: "#a9cdec",
+    tint: "var(--t-info)", edge: "var(--l-info)", chip: "var(--s-info)",
+    ink: "var(--t-info)", sub: "var(--t-info)", strong: "var(--t-info)",
+    fill: "linear-gradient(100deg,var(--f-info),var(--f-info))", glow: "rgba(24,95,165,.25)", soft: "var(--f-info)",
   },
   {
     id: "social", label: "Social profiles", blurb: "Only filled ones show", icon: "heart",
-    tint: "#fbeaf0", edge: "#f2cddb", chip: "#f2cddb",
-    ink: "#6b2138", sub: "#a06a7c", strong: "#993556",
-    fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#f4c0d1",
+    tint: "var(--t-orchid)", edge: "var(--l-orchid)", chip: "var(--s-orchid)",
+    ink: "var(--t-orchid)", sub: "var(--t-gold)", strong: "var(--t-gold)",
+    fill: "linear-gradient(100deg,var(--t-gold),var(--t-gold))", glow: "rgba(153,53,86,.28)", soft: "var(--t-orchid)",
   },
   {
     id: "badges", label: "We accept", blurb: "Payment method badges", icon: "bag",
-    tint: "#e9f7ee", edge: "#c9e8d4", chip: "#c9e8d4",
-    ink: "#124f2e", sub: "#5c8f74", strong: "#0E7A3D",
-    fill: "linear-gradient(100deg,#0E7A3D,#2f9c5c)", glow: "rgba(14,122,61,.25)", soft: "#a9e3c1",
+    tint: "var(--t-ok)", edge: "var(--l-ok)", chip: "var(--s-ok)",
+    ink: "var(--t-ok)", sub: "var(--t-ok)", strong: "var(--t-ok)",
+    fill: "linear-gradient(100deg,var(--f-ok),var(--f-ok))", glow: "rgba(14,122,61,.25)", soft: "var(--t-ok)",
   },
   {
     id: "wording", label: "Wording", blurb: "Tagline and the legal line", icon: "tag",
-    tint: "#f3eff8", edge: "#e4dcee", chip: "#e4dcee",
-    ink: "#453556", sub: "#8b7c9c", strong: "#5f4b73",
-    fill: "linear-gradient(100deg,#5f4b73,#7f6b93)", glow: "rgba(95,75,115,.24)", soft: "#ded4ec",
+    tint: "var(--t-accent)", edge: "var(--l-accent)", chip: "var(--s-accent)",
+    ink: "var(--t-accent)", sub: "var(--t-accent)", strong: "var(--t-accent)",
+    fill: "linear-gradient(100deg,var(--a-solid),var(--a-solid))", glow: "rgba(95,75,115,.24)", soft: "var(--a-solid)",
   },
 ] as const;
 type SecId = (typeof SECTIONS)[number]["id"];
@@ -117,11 +117,11 @@ export default function FooterView() {
       <SaveBar state={saveState} onSave={() => flash("Saved")} />
 
       {err && (
-        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-4">
+        <div className="flex items-start gap-2 bg-[var(--s-bad)] border border-[var(--l-bad)] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[var(--t-bad)] mb-4">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
-      {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
+      {ok && <div className="bg-[var(--s-ok)] border border-[var(--l-ok)] rounded-[11px] px-3.5 py-2 text-[12px] text-[var(--t-ok)] mb-4">{ok}</div>}
 
       <ModuleCard>
         <ModuleHeader
@@ -217,7 +217,7 @@ export default function FooterView() {
                               <button disabled={gi === shownGroups.length - 1} onClick={() => moveGroup(g.id, 1)} className="text-body-soft disabled:opacity-25 hover:text-purple text-[10px] leading-none py-0.5">▼</button>
                             </div>
                             <div className="flex-1" />
-                            <button onClick={() => removeGroup(g.id)} className="text-[12.5px] text-body-soft hover:text-[#c0392b]">Remove column</button>
+                            <button onClick={() => removeGroup(g.id)} className="text-[12.5px] text-body-soft hover:text-[var(--t-bad)]">Remove column</button>
                           </div>
 
                           <div className="space-y-1.5">
@@ -232,7 +232,7 @@ export default function FooterView() {
                                     <button disabled={li === 0} onClick={() => moveLink(g.id, l.id, -1)} className="text-body-soft disabled:opacity-25 hover:text-purple text-[10px] leading-none py-0.5">▲</button>
                                     <button disabled={li === g.links.length - 1} onClick={() => moveLink(g.id, l.id, 1)} className="text-body-soft disabled:opacity-25 hover:text-purple text-[10px] leading-none py-0.5">▼</button>
                                   </div>
-                                  <button onClick={() => removeLink(l.id, g.id)} className="text-body-soft hover:text-[#c0392b] p-1"><Icon name="trash" size={14} /></button>
+                                  <button onClick={() => removeLink(l.id, g.id)} className="text-body-soft hover:text-[var(--t-bad)] p-1"><Icon name="trash" size={14} /></button>
                                 </div>
                               </div>
                             ))}
@@ -271,7 +271,7 @@ export default function FooterView() {
                               <button disabled={i === 0} onClick={() => moveSocial(so.id, -1)} className="text-body-soft disabled:opacity-25 hover:text-purple text-[10px] leading-none py-0.5">▲</button>
                               <button disabled={i === socials.length - 1} onClick={() => moveSocial(so.id, 1)} className="text-body-soft disabled:opacity-25 hover:text-purple text-[10px] leading-none py-0.5">▼</button>
                             </div>
-                            <button onClick={() => removeSocial(so.id)} className="text-body-soft hover:text-[#c0392b] p-1"><Icon name="trash" size={14} /></button>
+                            <button onClick={() => removeSocial(so.id)} className="text-body-soft hover:text-[var(--t-bad)] p-1"><Icon name="trash" size={14} /></button>
                           </div>
                         </div>
                       ))}
@@ -284,7 +284,7 @@ export default function FooterView() {
 
                 {sec === "badges" && (
                   <>
-                    <p className="text-[12px] text-[#8a6414] bg-[#fff8e6] border border-[#f5e2b8] rounded-[10px] px-3.5 py-2.5 mb-3">
+                    <p className="text-[12px] text-[var(--t-warn)] bg-[var(--s-warn)] border border-[var(--l-warn)] rounded-[10px] px-3.5 py-2.5 mb-3">
                       Only show a method you can actually take.
                       <br />Logos: <b>height 48 · transparent · max 50 KB</b>, on-dark version.
                     </p>
@@ -312,8 +312,8 @@ export default function FooterView() {
                               <button disabled={i === 0} onClick={() => moveBadge(b.id, -1)} className="text-body-soft disabled:opacity-25 hover:text-purple text-[11px]">◀</button>
                               <button disabled={i === badges.length - 1} onClick={() => moveBadge(b.id, 1)} className="text-body-soft disabled:opacity-25 hover:text-purple text-[11px]">▶</button>
                             </div>
-                            {b.imageUrl && <button onClick={() => patchBadge(b.id, { imageUrl: null })} className="text-[11.5px] text-body-soft hover:text-[#c0392b]">clear</button>}
-                            <button onClick={() => removeBadge(b.id)} className="text-body-soft hover:text-[#c0392b]"><Icon name="trash" size={13} /></button>
+                            {b.imageUrl && <button onClick={() => patchBadge(b.id, { imageUrl: null })} className="text-[11.5px] text-body-soft hover:text-[var(--t-bad)]">clear</button>}
+                            <button onClick={() => removeBadge(b.id)} className="text-body-soft hover:text-[var(--t-bad)]"><Icon name="trash" size={13} /></button>
                           </div>
                         </div>
                       ))}

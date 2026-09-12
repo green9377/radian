@@ -1,58 +1,200 @@
 @import "tailwindcss";
 
-@theme {
-  /* ---- Radian brand colors (Constitution locked) ---- */
-  --color-purple: #470066;
-  --color-purple-deep: #320049;
-  --color-ink: #f1eaf6;
-  --color-orchid: #cf43ea;
-  --color-orchid-soft: #34163b;
-  --color-orchid-mid: #e9a8f5;
-  --color-lavender: #241a2c;
-  --color-lavender-deep: #33263d;
-  --color-rosegold: #b76e79;
-  --color-rosegold-light: #3a262a;
-  /* ---- Text — the DARK skin (owner, 11 Sep 2026: the whole admin in the
-     Orders overview's dark look). Change them HERE and the whole admin panel
-     follows — every screen uses these tokens. ---- */
-  --color-body: #f1eaf6;
-  --color-body-soft: #b9acc4;
+/* ===========================================================================
+   RADIAN ADMIN — ONE TOKEN SET, TWO SKINS.
 
-  /* sidebar — the dark purple rail. */
-  --color-nav-text: #e7d8f2;
-  --color-nav-dim: #b394cc;
-  --color-amber: #f7a96e;
+   Porcelain (light) and Midnight (dark). Every colour the panel uses is a
+   variable below. `:root` carries Porcelain; `:root[data-theme="dark"]`
+   redefines the SAME names for Midnight. Nothing else in the app is allowed
+   to name a colour — a hex typed into a screen is a colour that cannot be
+   switched, and that is what made the old panel half-dark and half-light at
+   the same time.
 
-  /* ---- Surfaces of the dark skin ---- */
-  --color-purple-text: #d9a6ec;
-  --color-canvas: #16101c;
-  --color-card: #1f1727;
-  --color-line: #3a2d45;
+   Roles, not shades. A token says what the colour is FOR:
+     --t-*   text        --s-*  surface (a background)      --l-*  line
+   so the same class reads correctly on either ground, and a light value used
+   as text in one skin becomes a dark value in the other automatically.
+   =========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- ground ---- */
+  --s-canvas:   #f7f3fa;
+  --s-card:     #ffffff;
+  --s-raised:   #fbf8fd;
+  --s-sunken:   #f3edf8;
+
+  /* ---- lines ---- */
+  --l-soft:     #ebe0f2;
+  --l-strong:   #dccbe8;
+
+  /* ---- text ---- */
+  --t-main:     #1c1026;
+  --t-soft:     #6a5b78;
+  --t-faint:    #9a8ca7;
+  --t-on-solid: #ffffff;   /* text ON a filled accent button */
+
+  /* ---- brand ---- */
+  --t-accent:   #6b0d93;
+  --t-accent-2: #8b3fb0;
+  --a-solid:    #6b0d93;   /* a filled purple surface */
+  --a-deep:     #470066;
+  --s-accent:   #f5eafb;
+  --s-accent-2: #ede0f6;
+  --l-accent:   #e0cbee;
+
+  --t-orchid:   #a021b8;
+  --o-solid:    #cf43ea;
+  --s-orchid:   #fbeafe;
+  --l-orchid:   #edc8f6;
+
+  /* rose gold — money, and only money */
+  --t-gold:     #a85a66;
+  --s-gold:     #fbeef0;
+  --l-gold:     #e8c9ce;
+
+  /* ---- status ---- */
+  --t-ok:       #0c6e45;  --s-ok:   #e6f4ed;  --l-ok:   #bfe0cd;  --f-ok:   #12a172;
+  --t-warn:     #97540b;  --s-warn: #fbf0e2;  --l-warn: #f0d9a8;  --f-warn: #d98a0f;
+  --t-bad:      #a8221c;  --s-bad:  #fbe9e8;  --l-bad:  #e8b3b0;  --f-bad:  #c0392b;
+  --t-info:     #1f5da8;  --s-info: #e8f0fa;  --l-info: #c0d6ee;  --f-info: #3b76c4;
+
+  /* ---- the rail ---- */
+  --rail-bg:     linear-gradient(180deg, #ffffff 0%, #fdfbfe 60%, #f8f2fb 100%);
+  --rail-shadow: inset -1px 0 0 #ebe0f2;
+  --rail-fg:     #3f2b4d;
+  --rail-dim:    #9a8ca7;
+  --rail-on-bg:  #f3e9fa;
+  --rail-on-fg:  #6b0d93;
+  --rail-hover:  #f8f1fc;
+  --rail-line:   #ece2f3;
+  --rail-mark:   0 0 14px rgba(207, 67, 234, 0.28);
+
+  --elev-soft: 0 1px 2px rgba(28, 16, 38, 0.05), 0 8px 24px rgba(28, 16, 38, 0.05);
+  --elev-lift: 0 2px 6px rgba(28, 16, 38, 0.07), 0 18px 44px rgba(28, 16, 38, 0.09);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --s-canvas:   #131019;
+  --s-card:     #1c1725;
+  --s-raised:   #221c2d;
+  --s-sunken:   #17121e;
+
+  --l-soft:     #2e2639;
+  --l-strong:   #40364e;
+
+  --t-main:     #f0eaf5;
+  --t-soft:     #a99bb7;
+  --t-faint:    #7e7189;
+  --t-on-solid: #1a1122;
+
+  --t-accent:   #c77de0;
+  --t-accent-2: #d9a6ec;
+  --a-solid:    #7a2ea8;
+  --a-deep:     #2d1140;
+  --s-accent:   #2a1e36;
+  --s-accent-2: #33253f;
+  --l-accent:   #43304f;
+
+  --t-orchid:   #e07bf5;
+  --o-solid:    #cf43ea;
+  --s-orchid:   #33193a;
+  --l-orchid:   #4a2453;
+
+  --t-gold:     #d79aa3;
+  --s-gold:     #332024;
+  --l-gold:     #4a2f34;
+
+  --t-ok:       #57d3a0;  --s-ok:   #14302a;  --l-ok:   #235444;  --f-ok:   #12a172;
+  --t-warn:     #f0b46e;  --s-warn: #332413;  --l-warn: #573f1d;  --f-warn: #d98a0f;
+  --t-bad:      #ff8e86;  --s-bad:  #3a1b1b;  --l-bad:  #5e2b2b;  --f-bad:  #c0392b;
+  --t-info:     #7fb4f0;  --s-info: #16243a;  --l-info: #2b4260; --f-info: #3b76c4;
+
+  --rail-bg:     linear-gradient(180deg, #241033 0%, #2d0f43 45%, #3a1257 100%);
+  --rail-shadow: inset -18px 0 32px -20px rgba(0, 0, 0, 0.55), inset 0 40px 60px -40px rgba(207, 67, 234, 0.3);
+  --rail-fg:     #f0e4f8;
+  --rail-dim:    #c69ad4;
+  --rail-on-bg:  rgba(255, 255, 255, 0.13);
+  --rail-on-fg:  #ffffff;
+  --rail-hover:  rgba(255, 255, 255, 0.07);
+  --rail-line:   rgba(255, 255, 255, 0.12);
+  --rail-mark:   0 0 18px rgba(207, 67, 234, 0.5);
+
+  --elev-soft: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --elev-lift: 0 2px 8px rgba(0, 0, 0, 0.5), 0 18px 44px rgba(0, 0, 0, 0.4);
+}
+
+/*  `inline` so a utility resolves the variable at USE time rather than copying
+    its value — that is what lets one class follow the skin.  */
+@theme inline {
+  /* surfaces */
+  --color-canvas: var(--s-canvas);
+  --color-card: var(--s-card);
+  --color-raised: var(--s-raised);
+  --color-sunken: var(--s-sunken);
+  /* lines */
+  --color-line: var(--l-soft);
+  --color-line-strong: var(--l-strong);
+  /* text */
+  --color-body: var(--t-main);
+  --color-body-soft: var(--t-soft);
+  --color-body-faint: var(--t-faint);
+  --color-on-solid: var(--t-on-solid);
+  /* brand */
+  --color-purple-text: var(--t-accent);
+  --color-purple: var(--a-solid);
+  --color-purple-deep: var(--a-deep);
+  --color-orchid: var(--o-solid);
+  --color-orchid-text: var(--t-orchid);
+  --color-orchid-soft: var(--s-orchid);
+  --color-rosegold: var(--t-gold);
+  --color-rosegold-light: var(--s-gold);
+  --color-lavender: var(--s-accent);
+  --color-lavender-deep: var(--l-accent);
+  --color-ink: var(--t-main);
+  --color-amber: var(--t-warn);
+  /* status */
+  --color-ok: var(--t-ok);
+  --color-ok-bg: var(--s-ok);
+  --color-ok-line: var(--l-ok);
+  --color-warn: var(--t-warn);
+  --color-warn-bg: var(--s-warn);
+  --color-warn-line: var(--l-warn);
+  --color-bad: var(--t-bad);
+  --color-bad-bg: var(--s-bad);
+  --color-bad-line: var(--l-bad);
+  --color-info: var(--t-info);
+  --color-info-bg: var(--s-info);
+  --color-info-line: var(--l-info);
+  /* rail */
+  --color-nav-text: var(--rail-fg);
+  --color-nav-dim: var(--rail-dim);
 
   /* ---- Typography ---- */
   --font-display: var(--font-display), Georgia, serif;
   --font-ui: var(--font-ui), "Century Gothic", sans-serif;
-  /* the sidebar (8 Sep 2026) — Manrope, bold and clean */
   --font-nav: var(--font-nav), "Manrope", system-ui, sans-serif;
 
   /* ---- Shape & elevation ---- */
-  --radius-lg: 28px;
-  --radius-md: 18px;
-  --radius-sm: 12px;
-  --shadow-soft: 0 10px 40px rgba(0, 0, 0, 0.35);
-  --shadow-lift: 0 18px 50px rgba(0, 0, 0, 0.45);
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 11px;
+  --shadow-soft: var(--elev-soft);
+  --shadow-lift: var(--elev-lift);
 }
 
 body {
-  background: #16101c;
-  color-scheme: dark;
-  color: var(--color-body);
+  background: var(--s-canvas);
+  color: var(--t-main);
   /* The UI face (Jost / Century Gothic) is a geometric sans — at weight 400 its thin
-     even strokes disappear on a bright screen. The audited ERP looks "bold" mostly
-     because its face is heavier by default. 500 is our normal. (21 Jul, sobuj) */
+     even strokes disappear on a bright screen. 500 is our normal. (21 Jul, sobuj) */
   font-weight: 500;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* headings and anything already asking for emphasis go one step further */
@@ -162,8 +304,8 @@ h1, h2, h3, h4, th, label, b, strong {
 /* ---- Admin form input (bold, clearly-visible boxes) ---- */
 .ipt {
   width: 100%;
-  border: 1.5px solid #3c2d4e;
-  background: #1f1727;
+  border: 1.5px solid var(--l-strong);
+  background: var(--s-raised);
   border-radius: 12px;
   padding: 8px 14px;
   font-size: 14px;
@@ -182,7 +324,7 @@ select.ipt {
   min-height: 40px;
 }
 .ipt:hover {
-  border-color: #c6a9e8;
+  border-color: var(--l-accent);
 }
 .ipt:focus {
   border-color: var(--color-orchid);
@@ -251,7 +393,7 @@ textarea.ipt {
   font-family: var(--font-ui);
 }
 .lbl .req {
-  color: #e1837a;
+  color: var(--t-gold);
   margin-left: 2px;
 }
 
@@ -333,7 +475,7 @@ textarea.ipt {
   position: relative;
   display: inline-flex;
   align-items: center;
-  border: 1px solid #3d3248;
+  border: 1px solid var(--l-strong);
   border-radius: 10px;
   background: #fff;
   padding: 0 8px;
@@ -341,7 +483,7 @@ textarea.ipt {
 }
 .time-field:focus-within {
   border-color: var(--color-orchid);
-  box-shadow: 0 0 0 3px rgba(160, 33, 184, 0.1);
+  box-shadow: 0 0 0 3px var(--s-orchid);
 }
 .time-field > span {
   font-size: 9.5px;
@@ -371,28 +513,43 @@ textarea.ipt {
   cursor: pointer;
 }
 .time-field input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 0.7; }
-.time-field:has(input:disabled) { background: #271f30; opacity: 0.6; }
+.time-field:has(input:disabled) { background: var(--s-sunken); opacity: 0.6; }
 
 
-/* ═══ DARK SKIN — utility overrides (owner, 11 Sep 2026) ═════════════════════
-   Tailwind's own colour names that the screens use as if they were light:
-   white cards, purple links, black text. Plain (unlayered) rules win over
-   Tailwind's utilities layer, so no !important is needed.                  */
-.bg-white, .hover\:bg-white:hover, .focus\:bg-white:focus { background-color: var(--color-card); }
-.bg-white\/90, .bg-white\/80, .bg-white\/70, .bg-white\/60 { background-color: rgba(31, 23, 39, 0.9); }
-.bg-white\/10, .bg-white\/15, .bg-white\/20 { background-color: rgba(255, 255, 255, 0.10); }
-.text-purple, .hover\:text-purple:hover, .focus\:text-purple:focus, .group-hover\:text-purple { color: var(--color-purple-text); }
-.text-purple-deep { color: #e7cdf5; }
-.border-purple, .hover\:border-purple:hover, .focus\:border-purple:focus { border-color: #8a4fb0; }
-.border-purple\/20, .border-purple\/10, .border-purple\/30 { border-color: rgba(207, 67, 234, 0.25); }
-.bg-purple\/5, .bg-purple\/10 { background-color: rgba(207, 67, 234, 0.10); }
-.text-black { color: var(--color-body); }
-.hover\:bg-gray-50:hover, .hover\:bg-gray-100:hover, .hover\:bg-slate-50:hover, .hover\:bg-neutral-50:hover, .bg-gray-50, .bg-gray-100, .bg-slate-50, .bg-slate-100, .bg-neutral-50, .bg-neutral-100, .bg-zinc-50, .bg-zinc-100 { background-color: var(--color-lavender); }
-.text-gray-900, .text-gray-800, .text-gray-700, .text-slate-900, .text-slate-800, .text-slate-700, .text-neutral-900, .text-neutral-800 { color: var(--color-body); }
-.text-gray-600, .text-gray-500, .text-slate-600, .text-slate-500, .text-neutral-600, .text-neutral-500 { color: var(--color-body-soft); }
-.border-gray-100, .border-gray-200, .border-gray-300, .border-slate-100, .border-slate-200, .border-neutral-200 { border-color: var(--color-line); }
-.divide-gray-100 > :not([hidden]) ~ :not([hidden]), .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--color-line); }
-.shadow-soft, .shadow-lift, .shadow-sm, .shadow, .shadow-md, .shadow-lg, .shadow-xl { --tw-shadow-color: rgba(0, 0, 0, 0.45); }
-input, select, textarea { color-scheme: dark; }
-::placeholder { color: #8f8399; }
-img { filter: none; }
+/* ═══ TAILWIND'S OWN COLOUR NAMES, ROUTED THROUGH THE TOKENS ════════════════
+   The screens were written against a white panel and use `bg-white`,
+   `text-gray-600`, `border-gray-200` literally. Those names cannot follow a
+   skin on their own, so they are re-pointed at the tokens here — one place,
+   both skins. Plain (unlayered) rules win over Tailwind's utilities layer,
+   so no !important is needed.                                              */
+.bg-white, .hover\:bg-white:hover, .focus\:bg-white:focus { background-color: var(--s-card); }
+.bg-white\/90, .bg-white\/80, .bg-white\/70, .bg-white\/60 { background-color: color-mix(in srgb, var(--s-card) 90%, transparent); }
+.bg-white\/10, .bg-white\/15, .bg-white\/20 { background-color: color-mix(in srgb, var(--t-main) 8%, transparent); }
+.text-white { color: var(--t-on-solid); }
+.text-purple, .hover\:text-purple:hover, .focus\:text-purple:focus, .group-hover\:text-purple { color: var(--t-accent); }
+.text-purple-deep { color: var(--t-accent-2); }
+.border-purple, .hover\:border-purple:hover, .focus\:border-purple:focus { border-color: var(--l-accent); }
+.border-purple\/20, .border-purple\/10, .border-purple\/30 { border-color: color-mix(in srgb, var(--o-solid) 25%, transparent); }
+.bg-purple\/5, .bg-purple\/10 { background-color: color-mix(in srgb, var(--o-solid) 10%, transparent); }
+.text-black { color: var(--t-main); }
+.hover\:bg-gray-50:hover, .hover\:bg-gray-100:hover, .hover\:bg-slate-50:hover, .hover\:bg-neutral-50:hover, .bg-gray-50, .bg-gray-100, .bg-slate-50, .bg-slate-100, .bg-neutral-50, .bg-neutral-100, .bg-zinc-50, .bg-zinc-100 { background-color: var(--s-accent); }
+.text-gray-900, .text-gray-800, .text-gray-700, .text-slate-900, .text-slate-800, .text-slate-700, .text-neutral-900, .text-neutral-800 { color: var(--t-main); }
+.text-gray-600, .text-gray-500, .text-gray-400, .text-slate-600, .text-slate-500, .text-neutral-600, .text-neutral-500 { color: var(--t-soft); }
+.border-gray-100, .border-gray-200, .border-gray-300, .border-slate-100, .border-slate-200, .border-neutral-200 { border-color: var(--l-soft); }
+.divide-gray-100 > :not([hidden]) ~ :not([hidden]), .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--l-soft); }
+.shadow-soft { box-shadow: var(--elev-soft); }
+.shadow-lift { box-shadow: var(--elev-lift); }
+::placeholder { color: var(--t-faint); }
+
+/*  The skin swaps in one paint rather than a stagger of a hundred
+    transitions — anything that animates its own colour keeps doing so.  */
+.skin-swap *, .skin-swap *::before, .skin-swap *::after {
+  transition: background-color 0.28s ease, border-color 0.28s ease, color 0.28s ease !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  body, .skin-swap *, .skin-swap *::before, .skin-swap *::after { transition: none !important; }
+}
+
+/* ---- the rail's rows (AdminSidebar) ---- */
+.rail-row { transition: background-color 0.18s, color 0.18s; }
+.rail-row:hover { background: var(--rail-hover); color: var(--rail-on-fg); }

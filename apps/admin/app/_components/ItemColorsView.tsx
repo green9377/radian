@@ -34,15 +34,15 @@ const ROW = "grid grid-cols-[120px_minmax(0,1fr)_100px_90px_80px] items-center g
 
 /** the shop's usual stock colours — clicking one fills both the swatch and the code */
 const PRESET: { label: string; hex: string }[] = [
-  { label: "Red", hex: "#eb7082" }, { label: "Maroon", hex: "#f17485" },
+  { label: "Red", hex: "#e0203c" }, { label: "Maroon", hex: "#7d0d1c" },
   { label: "Pink", hex: "#f472b6" }, { label: "Baby Pink", hex: "#f9c2d4" },
-  { label: "Orange", hex: "#f8b163" }, { label: "Yellow", hex: "#f8d863" },
-  { label: "Gold", hex: "#e4ca76" }, { label: "Green", hex: "#74e79e" },
-  { label: "Olive", hex: "#d8e580" }, { label: "Sky Blue", hex: "#74bce7" },
-  { label: "Blue", hex: "#79abe2" }, { label: "Navy Blue", hex: "#818ce4" },
-  { label: "Purple", hex: "#bd73e8" }, { label: "White", hex: "#ffffff" },
-  { label: "Silver", hex: "#c7c7c7" }, { label: "Grey", hex: "#adadad" },
-  { label: "Brown", hex: "#e9ac7c" }, { label: "Black", hex: "#f1eaf6" },
+  { label: "Orange", hex: "#f59022" }, { label: "Yellow", hex: "#f5c518" },
+  { label: "Gold", hex: "#c9a227" }, { label: "Green", hex: "#22c55e" },
+  { label: "Olive", hex: "#7c8b1c" }, { label: "Sky Blue", hex: "#4aa8e0" },
+  { label: "Blue", hex: "#2563a8" }, { label: "Navy Blue", hex: "#141c5c" },
+  { label: "Purple", hex: "#8b21c9" }, { label: "White", hex: "#ffffff" },
+  { label: "Silver", hex: "#c7c7c7" }, { label: "Grey", hex: "#8a8a8a" },
+  { label: "Brown", hex: "#8b4a17" }, { label: "Black", hex: "#111111" },
 ];
 
 const COLOUR_ATTR = "Colour";
@@ -150,7 +150,7 @@ export default function ItemColorsView() {
         </div>
         <div className="flex items-center gap-2">
           <Link href="/items/sizes" className="border border-lavender-deep bg-white text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px] hover:border-orchid">Sizes</Link>
-          <button onClick={() => setDlg({ id: null, label: "", hex: "#eb7082" })} disabled={offline}
+          <button onClick={() => setDlg({ id: null, label: "", hex: "#e0203c" })} disabled={offline}
             className="text-white text-[13.5px] font-medium px-5 py-2.5 rounded-[11px] shadow-soft inline-flex items-center gap-2 disabled:opacity-40"
             style={{ background: ACCENT }}>
             <Icon name="plus" size={15} /> Add New
@@ -178,15 +178,15 @@ export default function ItemColorsView() {
         {colours.map((v) => (
           <div key={v.id} className={ROW + " py-2.5 hover:bg-lavender/15"}>
             <span className="h-[22px] w-[86px] rounded-full border border-lavender-deep"
-              style={{ background: v.swatch ?? "repeating-linear-gradient(45deg,#2a2131,#2a2131 5px,#2d2434 5px,#2d2434 10px)" }} />
+              style={{ background: v.swatch ?? "repeating-linear-gradient(45deg,var(--a-solid),var(--a-solid) 5px,var(--a-solid) 5px,var(--a-solid) 10px)" }} />
             <span className="text-[13.5px] text-purple font-medium truncate">{v.label}</span>
             <span className="text-[13px] text-body-soft font-mono">{v.swatch ?? "—"}</span>
             <StatusPill active={v.isActive ?? true} onClick={() => toggle(v)} />
             <span className="flex items-center justify-end gap-1">
-              <button onClick={() => setDlg({ id: v.id, label: v.label, hex: v.swatch ?? "#eb7082" })}
+              <button onClick={() => setDlg({ id: v.id, label: v.label, hex: v.swatch ?? "#e0203c" })}
                 className="text-body-soft hover:text-purple px-1.5 py-1" title="Edit"><Icon name="edit" size={15} /></button>
               <button onClick={() => remove(v)}
-                className="text-body-soft hover:text-[#e1837a] px-1.5 py-1" title="Delete"><Icon name="trash" size={15} /></button>
+                className="text-body-soft hover:text-[var(--t-bad)] px-1.5 py-1" title="Delete"><Icon name="trash" size={15} /></button>
             </span>
           </div>
         ))}
@@ -209,8 +209,8 @@ export default function ItemColorsView() {
           wide
         >
           {dlgErr && (
-            <p className="text-[12.5px] text-[#e1837a] rounded-[10px] px-3 py-2 m-0"
-              style={{ background: "#3b1a16" }}>{dlgErr}</p>
+            <p className="text-[12.5px] text-[var(--t-bad)] rounded-[10px] px-3 py-2 m-0"
+              style={{ background: "var(--s-bad)" }}>{dlgErr}</p>
           )}
           <div className="grid grid-cols-[minmax(0,1fr)_120px] gap-4 items-start">
             <div>
@@ -221,7 +221,7 @@ export default function ItemColorsView() {
                   onKeyDown={(e) => { if (e.key === "Enter" && dlg.label.trim() && !dupLabel) save(); }} />
                 {/* caught while typing, like every other master (Phase 2) */}
                 {dupLabel && (
-                  <p className="text-[11.5px] text-[#e1837a] m-0 mt-1">
+                  <p className="text-[11.5px] text-[var(--t-bad)] m-0 mt-1">
                     &ldquo;{dlg.label.trim()}&rdquo; is already in the list.
                   </p>
                 )}
@@ -230,14 +230,14 @@ export default function ItemColorsView() {
               <Field label="Colour code">
                 <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 items-center">
                   <input type="color" className="w-[42px] h-[38px] rounded-[9px] border border-lavender-deep bg-white p-1 cursor-pointer"
-                    value={isHex(dlg.hex) ? dlg.hex : "#1f1727"}
+                    value={isHex(dlg.hex) ? dlg.hex : "#ffffff"}
                     onChange={(e) => setDlg({ ...dlg, hex: e.target.value })} />
                   <input className="ipt w-full font-mono" placeholder="#e0203c"
                     value={dlg.hex} onChange={(e) => setDlg({ ...dlg, hex: e.target.value })} />
                 </div>
                 {dlg.hex.trim() !== "" && !isHex(dlg.hex) && (
-                  <p className="text-[11.5px] text-[#e1837a] m-0 mt-1">
-                    That is not a colour code. It should look like <b>#eb7082</b> — a # and six letters/numbers.
+                  <p className="text-[11.5px] text-[var(--t-bad)] m-0 mt-1">
+                    That is not a colour code. It should look like <b>#e0203c</b> — a # and six letters/numbers.
                   </p>
                 )}
               </Field>
@@ -246,7 +246,7 @@ export default function ItemColorsView() {
             <div>
               <div className="text-[12px] font-semibold text-purple mb-1">Preview</div>
               <div className="h-[74px] rounded-[12px] border border-lavender-deep"
-                style={{ background: isHex(dlg.hex) ? dlg.hex : "repeating-linear-gradient(45deg,#2a2131,#2a2131 5px,#2d2434 5px,#2d2434 10px)" }} />
+                style={{ background: isHex(dlg.hex) ? dlg.hex : "repeating-linear-gradient(45deg,var(--a-solid),var(--a-solid) 5px,var(--a-solid) 5px,var(--a-solid) 10px)" }} />
             </div>
           </div>
 
@@ -267,7 +267,7 @@ export default function ItemColorsView() {
                   }}
                   title={`${c.label} · ${c.hex}`}
                   className="w-[30px] h-[30px] rounded-full border-2"
-                  style={{ background: c.hex, borderColor: dlg.hex.toLowerCase() === c.hex ? ACCENT : "#efe4f7" }} />
+                  style={{ background: c.hex, borderColor: dlg.hex.toLowerCase() === c.hex ? ACCENT : "var(--l-accent)" }} />
               ))}
             </div>
           </div>

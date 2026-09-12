@@ -120,11 +120,11 @@ export default function PurchaseReportsView() {
       {isDemo && <DemoBar what="sample purchases" onRetry={load} />}
 
       <Kpi items={[
-        { l: "Total bought (book)", v: formatTaka(totals.bought), c: "#470066", bg: "#f5eafb", icon: "box" },
-        { l: "Paid", v: formatTaka(totals.paid), c: "#0e7a3d", bg: "#e8f7ef", icon: "check" },
-        { l: "Still due", v: formatTaka(totals.due), c: totals.due > 0 ? "#c0392b" : "#0e7a3d", bg: "#fdecea", icon: "cash" },
-        { l: "Purchases", v: live.length, c: "#2563a8", bg: "#e8f0fa", icon: "grid" },
-        { l: "Suppliers", v: supplierBoard.length, c: "#b5642f", bg: "#f9efe6", icon: "user" },
+        { l: "Total bought (book)", v: formatTaka(totals.bought), c: "var(--t-accent)", bg: "var(--s-accent)", icon: "box" },
+        { l: "Paid", v: formatTaka(totals.paid), c: "var(--t-ok)", bg: "var(--s-ok)", icon: "check" },
+        { l: "Still due", v: formatTaka(totals.due), c: totals.due > 0 ? "var(--t-bad)" : "var(--t-ok)", bg: "var(--s-bad)", icon: "cash" },
+        { l: "Purchases", v: live.length, c: "var(--t-info)", bg: "var(--s-info)", icon: "grid" },
+        { l: "Suppliers", v: supplierBoard.length, c: "var(--t-warn)", bg: "var(--s-warn)", icon: "user" },
       ]} />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5">
@@ -138,10 +138,10 @@ export default function PurchaseReportsView() {
                 <span className="text-body font-medium">{monthLabel(m.k)} <span className="text-body-soft">· {m.count} buys</span></span>
                 <span className="font-semibold text-purple">{formatTaka(m.bought)}</span>
               </div>
-              <div className="h-[10px] rounded-full overflow-hidden" style={{ background: "#f1eaf7" }}>
-                <div className="h-full rounded-full" style={{ width: `${Math.round((m.bought / maxMonth) * 100)}%`, background: `linear-gradient(90deg, ${ACCENT}, #cf43ea)` }} />
+              <div className="h-[10px] rounded-full overflow-hidden" style={{ background: "var(--s-accent)" }}>
+                <div className="h-full rounded-full" style={{ width: `${Math.round((m.bought / maxMonth) * 100)}%`, background: `linear-gradient(90deg, ${ACCENT}, var(--o-solid))` }} />
               </div>
-              {m.due > 0 && <div className="text-[13px] mt-0.5" style={{ color: "#c0392b" }}>due {formatTaka(m.due)}</div>}
+              {m.due > 0 && <div className="text-[13px] mt-0.5" style={{ color: "var(--t-bad)" }}>due {formatTaka(m.due)}</div>}
             </div>
           ))}
         </div>
@@ -159,7 +159,7 @@ export default function PurchaseReportsView() {
                 <span className="text-[13px] font-medium text-body truncate">{s.name}</span>
                 <span className="text-[12.5px] text-body-soft text-right">×{s.count}</span>
                 <span className="text-[13px] text-right">{formatTaka(s.bought)}</span>
-                <span className="text-[13px] font-semibold text-right" style={{ color: s.due > 0 ? "#c0392b" : "#9b8aa6" }}>
+                <span className="text-[13px] font-semibold text-right" style={{ color: s.due > 0 ? "var(--t-bad)" : "var(--t-accent)" }}>
                   {s.due > 0 ? formatTaka(s.due) : "—"}
                 </span>
               </Link>

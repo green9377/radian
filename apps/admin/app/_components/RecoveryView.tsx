@@ -115,7 +115,7 @@ export default function RecoveryView() {
                 sub="With this off, nothing below happens at all"
               />
 
-              <div className="border-t border-[#f0edf5] pt-4 space-y-3">
+              <div className="border-t border-[var(--l-accent)] pt-4 space-y-3">
                 <Toggle
                   on={s.paymentFailedEnabled}
                   onChange={(v) => set("paymentFailedEnabled", v)}
@@ -142,7 +142,7 @@ export default function RecoveryView() {
                 </div>
               </div>
 
-              <div className="border-t border-[#f0edf5] pt-4 space-y-3">
+              <div className="border-t border-[var(--l-accent)] pt-4 space-y-3">
                 <Toggle
                   on={s.abandonedEnabled}
                   onChange={(v) => set("abandonedEnabled", v)}
@@ -160,7 +160,7 @@ export default function RecoveryView() {
                 </div>
               </div>
 
-              <div className="border-t border-[#f0edf5] pt-4 grid gap-3 sm:grid-cols-2">
+              <div className="border-t border-[var(--l-accent)] pt-4 grid gap-3 sm:grid-cols-2">
                 <div>
                   <Lbl>Keep unfinished checkouts for (days)</Lbl>
                   <input
@@ -180,7 +180,7 @@ export default function RecoveryView() {
                 </div>
               </div>
 
-              <div className="border-t border-[#f0edf5] pt-4 space-y-3">
+              <div className="border-t border-[var(--l-accent)] pt-4 space-y-3">
                 <Toggle
                   on={s.sweeperEnabled}
                   onChange={(v) => set("sweeperEnabled", v)}
@@ -253,7 +253,7 @@ export default function RecoveryView() {
                   </thead>
                   <tbody>
                     {leads.map((l) => (
-                      <tr key={l.id} className="border-t border-[#f4f1f8] align-top">
+                      <tr key={l.id} className="border-t border-[var(--l-accent)] align-top">
                         <Td>
                           <div className="font-semibold text-purple">{l.name || "No name given"}</div>
                           {l.phone && (
@@ -333,7 +333,7 @@ function Toggle({
         className="relative rounded-full shrink-0 transition-all mt-0.5"
         style={{
           width: 48, height: 28,
-          background: on ? TONE.emerald.bg : "#ded7e8",
+          background: on ? TONE.emerald.bg : "var(--s-accent)",
         }}
       >
         <span

@@ -75,10 +75,10 @@ const SECTIONS = [
 ] as const;
 type SecId = (typeof SECTIONS)[number][0];
 
-const KIND_COLOUR: Record<TimelineKind, string> = { sales: "#470066", delivery: "#1d7fd6", payment: "#0e8a44", system: "#b76e79" };
+const KIND_COLOUR: Record<TimelineKind, string> = { sales: "var(--t-accent)", delivery: "var(--t-info)", payment: "var(--t-ok)", system: "var(--t-gold)" };
 
 /* ---------------- solid colours: one per state, read across the room ---------------- */
-const SOLID = { orchid: "#cf43ea", indigo: "#4f46e5", green: "#0e8a44", amber: "#d97706", red: "#d92d20", blue: "#1d7fd6", purple: "#470066", grey: "#8d7f98" };
+const SOLID = { orchid: "var(--t-orchid)", indigo: "var(--t-info)", green: "#0e8a44", amber: "#d97706", red: "#d92d20", blue: "#1d7fd6", purple: "#470066", grey: "#8d7f98" };
 function salesColour(st: Order["salesStatus"]): string {
   return st === "placed" ? SOLID.orchid : st === "confirmed" ? SOLID.indigo : st === "completed" ? SOLID.green : SOLID.red;
 }
@@ -98,7 +98,7 @@ function paymentColour(o: Order): string {
 function Stepper({ steps, current, dead, deadLabel }: { steps: string[]; current: number; dead?: boolean; deadLabel?: string }) {
   if (dead) {
     return (
-      <div className="rounded-[12px] px-4 py-3 text-[13px] font-semibold inline-flex items-center gap-2 bg-white/10 border border-white/20 text-[#ffb4ad]">
+      <div className="rounded-[12px] px-4 py-3 text-[13px] font-semibold inline-flex items-center gap-2 bg-white/10 border border-white/20 text-[var(--t-bad)]">
         <Icon name="shield" size={16} /> {deadLabel}
       </div>
     );
@@ -115,15 +115,15 @@ function Stepper({ steps, current, dead, deadLabel }: { steps: string[]; current
               className="relative z-10 w-[30px] h-[30px] rounded-full grid place-items-center text-[12px] font-bold"
               style={
                 done
-                  ? { background: "#fff", color: "#ce6ef7" }
+                  ? { background: "#fff", color: "var(--t-accent)" }
                   : now
-                    ? { background: "#fff", color: "#ce6ef7", boxShadow: "0 0 0 4px rgba(255,255,255,.22)" }
-                    : { background: "#320049", color: "#e7d8f2", border: "3px solid rgba(255,255,255,.3)" }
+                    ? { background: "#fff", color: "var(--t-accent)", boxShadow: "0 0 0 4px rgba(255,255,255,.22)" }
+                    : { background: "var(--s-accent)", color: "var(--t-accent)", border: "3px solid rgba(255,255,255,.3)" }
               }
             >
               {done ? <Icon name="check" size={14} /> : i + 1}
             </span>
-            <span className="mt-2 text-[12.5px] font-semibold text-center leading-tight px-1" style={{ color: now || done ? "#fff" : "#d9c5e6" }}>
+            <span className="mt-2 text-[12.5px] font-semibold text-center leading-tight px-1" style={{ color: now || done ? "#fff" : "var(--t-accent)" }}>
               {st}
             </span>
           </div>
@@ -138,9 +138,9 @@ function Fact({ label, value, sub, colour, hot }: { label: string; value: string
   return (
     <div className="relative overflow-hidden rounded-[14px] px-4 py-3 pl-[18px] border border-white/15 bg-white/[0.08]">
       <span className="absolute left-0 top-[9px] bottom-[9px] w-[5px] rounded-r-[6px]" style={{ background: colour }} />
-      <div className="text-[11px] font-medium text-[#d9c5e6]">{label}</div>
-      <div className="font-semibold text-[17px] leading-tight mt-1" style={{ color: hot ? "#ffb4ad" : "#fff" }}>{value}</div>
-      {sub && <div className="text-[12px] font-semibold text-[#d9c5e6] mt-1">{sub}</div>}
+      <div className="text-[11px] font-medium text-[var(--t-accent)]">{label}</div>
+      <div className="font-semibold text-[17px] leading-tight mt-1" style={{ color: hot ? "var(--t-bad)" : "#fff" }}>{value}</div>
+      {sub && <div className="text-[12px] font-semibold text-[var(--t-accent)] mt-1">{sub}</div>}
     </div>
   );
 }
@@ -148,7 +148,7 @@ function Fact({ label, value, sub, colour, hot }: { label: string; value: string
 /* the white card every section is drawn in — the explanation lives behind ⓘ */
 function Card({ title, count, hint, right, children }: { title: string; icon?: string; tone?: Tone; count?: number; hint?: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-[16px] border-[1.5px] border-[#3e3248] mb-3">
+    <div className="bg-white rounded-[16px] border-[1.5px] border-[var(--l-accent)] mb-3">
       <div className="flex items-center gap-2 px-5 pt-4 pb-1">
         <h3 className="font-semibold text-[17px] text-purple m-0 leading-tight">{title}</h3>
         {count !== undefined && <span className="text-[11px] font-bold px-2 py-[2px] rounded-full bg-lavender text-purple">{count}</span>}
@@ -166,7 +166,7 @@ function Card({ title, count, hint, right, children }: { title: string; icon?: s
 
 function Row({ k, v }: { k: React.ReactNode; v: React.ReactNode }) {
   return (
-    <div className="flex justify-between gap-4 py-2 border-b border-[#3e3248] last:border-0 text-[13.5px]">
+    <div className="flex justify-between gap-4 py-2 border-b border-[var(--l-accent)] last:border-0 text-[13.5px]">
       <span className="font-medium text-body-soft">{k}</span>
       <span className="font-semibold text-body text-right">{v}</span>
     </div>
@@ -528,7 +528,7 @@ export default function OrderEditor({ id }: { id: string }) {
   return (
     <div className="px-6 md:px-8 pt-6 pb-24 max-w-[1650px]">
       {/* THE BAND — order, share, one stepper, four facts */}
-      <div className="rounded-[20px] px-6 pt-5 pb-5 mb-4 text-white" style={{ background: "linear-gradient(135deg,#320049 0%,#5a0a80 100%)" }}>
+      <div className="rounded-[20px] px-6 pt-5 pb-5 mb-4 text-white" style={{ background: "linear-gradient(135deg,var(--a-solid) 0%,var(--a-solid) 100%)" }}>
         <div className="flex items-center gap-3 flex-wrap">
           <Link href="/orders/list" className="w-[38px] h-[38px] rounded-[11px] grid place-items-center shrink-0 bg-white/10 border border-white/25 text-white hover:bg-white/20" title="Back">
             <Icon name="chevronLeft" size={19} />
@@ -542,7 +542,7 @@ export default function OrderEditor({ id }: { id: string }) {
             </div>
             {/* REV-M6: the channel name comes from the API, so a new/admin-created
                 channel (Shop, TikTok…) shows properly instead of blank */}
-            <p className="text-[13px] font-medium text-[#d9c5e6] m-0 mt-1.5">
+            <p className="text-[13px] font-medium text-[var(--t-accent)] m-0 mt-1.5">
               {shortDate(o.placedAt)}, {clockTime(o.placedAt)} · {channelName} · {o.methodLabel} · {custName}
             </p>
           </div>
@@ -593,12 +593,12 @@ export default function OrderEditor({ id }: { id: string }) {
           </button>
         )}
         {nextStep?.locked && !terminal && (
-          <span className="h-[40px] px-4 rounded-[11px] text-[13px] font-medium inline-flex items-center gap-2 bg-[#2a2131] text-[#aea5b6] border-[1.5px] border-[#3e3447]" title="Locked until the step on the left is done">
+          <span className="h-[40px] px-4 rounded-[11px] text-[13px] font-medium inline-flex items-center gap-2 bg-[var(--s-accent)] text-[var(--t-accent)] border-[1.5px] border-[var(--l-accent)]" title="Locked until the step on the left is done">
             {nextStep.locked}
           </span>
         )}
         {canFail && (
-          <button type="button" disabled={busy} onClick={() => setFailOpen((v) => !v)} className={`${actBtn} bg-white border-[1.5px]`} style={{ borderColor: "#f3c4c0", color: SOLID.red }}>
+          <button type="button" disabled={busy} onClick={() => setFailOpen((v) => !v)} className={`${actBtn} bg-white border-[1.5px]`} style={{ borderColor: "var(--l-bad)", color: SOLID.red }}>
             <Icon name="alert" size={15} /> Delivery failed
           </button>
         )}
@@ -611,12 +611,12 @@ export default function OrderEditor({ id }: { id: string }) {
           <Icon name="phone" size={15} /> Call {o.isGift ? "recipient" : "customer"}
         </a>
         {!cancelled && due > 0 && (
-          <button type="button" onClick={() => setSec("payment")} className={`${actBtn} bg-white border-[1.5px] border-[#3e3248] text-purple`}>
+          <button type="button" onClick={() => setSec("payment")} className={`${actBtn} bg-white border-[1.5px] border-[var(--l-accent)] text-purple`}>
             <Icon name="cash" size={15} /> Record payment
           </button>
         )}
         {!terminal && (
-          <button type="button" disabled={busy} onClick={() => { if (confirm(cancelConfirm)) act(() => cancelOrder(id, "staff cancelled")); }} className={`${actBtn} ml-auto bg-white border-[1.5px]`} style={{ borderColor: "#f3c4c0", color: SOLID.red }}>
+          <button type="button" disabled={busy} onClick={() => { if (confirm(cancelConfirm)) act(() => cancelOrder(id, "staff cancelled")); }} className={`${actBtn} ml-auto bg-white border-[1.5px]`} style={{ borderColor: "var(--l-bad)", color: SOLID.red }}>
             Cancel order
           </button>
         )}
@@ -626,7 +626,7 @@ export default function OrderEditor({ id }: { id: string }) {
            was pressed. This is usually a RULE, not a fault: "record the payment
            first", "items are locked once preparing starts". It reads as one.  */}
       {actErr && (
-        <div className="flex items-start gap-2.5 rounded-[12px] border-[1.5px] px-4 py-3 mb-4 text-[13px] font-medium bg-white" style={{ borderColor: SOLID.amber, color: "#f7b86e" }}>
+        <div className="flex items-start gap-2.5 rounded-[12px] border-[1.5px] px-4 py-3 mb-4 text-[13px] font-medium bg-white" style={{ borderColor: SOLID.amber, color: "var(--t-warn)" }}>
           <Icon name="alert" size={16} />
           <span className="flex-1 min-w-0">{actErr}</span>
           <button type="button" onClick={() => setActErr("")} className="font-semibold shrink-0 opacity-70 hover:opacity-100">
@@ -641,7 +641,7 @@ export default function OrderEditor({ id }: { id: string }) {
            refund rules. Who pays a retry's fare is chosen when the retry is
            assigned, on the carrier card.  */}
       {failOpen && !terminal && (
-        <div className="rounded-[14px] border-[1.5px] bg-white px-5 py-4 mb-4" style={{ borderColor: "#f3c4c0" }}>
+        <div className="rounded-[14px] border-[1.5px] bg-white px-5 py-4 mb-4" style={{ borderColor: "var(--l-bad)" }}>
           <div className="text-[13.5px] font-semibold mb-3" style={{ color: SOLID.red }}>Delivery failed — what happened, and what next?</div>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
             <div>
@@ -664,8 +664,8 @@ export default function OrderEditor({ id }: { id: string }) {
             ] as const).map(([k, t, sub]) => {
               const on = failDecision === k;
               return (
-                <button key={k} type="button" onClick={() => setFailDecision(k)} className="text-left rounded-[12px] border-[1.5px] px-4 py-3 bg-white" style={{ borderColor: on ? SOLID.red : "#dfd3ea", background: on ? "#391616" : "#fff" }}>
-                  <span className="block text-[13.5px] font-semibold" style={{ color: on ? SOLID.red : "#f1eaf6" }}>{t}</span>
+                <button key={k} type="button" onClick={() => setFailDecision(k)} className="text-left rounded-[12px] border-[1.5px] px-4 py-3 bg-white" style={{ borderColor: on ? SOLID.red : "var(--l-accent)", background: on ? "var(--s-bad)" : "#fff" }}>
+                  <span className="block text-[13.5px] font-semibold" style={{ color: on ? SOLID.red : "var(--t-accent)" }}>{t}</span>
                   <span className="block text-[12px] text-body-soft">{sub}</span>
                 </button>
               );
@@ -693,20 +693,20 @@ export default function OrderEditor({ id }: { id: string }) {
             >
               {busy ? "Working…" : failDecision === "CANCEL" ? "Mark failed and cancel the order" : failDecision === "RETRY" ? "Mark failed — I will retry" : "Mark failed"}
             </button>
-            <button type="button" onClick={() => setFailOpen(false)} className={`${actBtn} bg-white border-[1.5px] border-[#3e3248] text-purple`}>Close</button>
+            <button type="button" onClick={() => setFailOpen(false)} className={`${actBtn} bg-white border-[1.5px] border-[var(--l-accent)] text-purple`}>Close</button>
           </div>
         </div>
       )}
 
       <div className="flex gap-4 items-start">
         {/* section nav — the deep purple panel */}
-        <nav className="w-[220px] shrink-0 sticky top-4 hidden md:block rounded-[16px] p-2" style={{ background: "#320049" }}>
+        <nav className="w-[220px] shrink-0 sticky top-4 hidden md:block rounded-[16px] p-2" style={{ background: "var(--s-accent)" }}>
           {SECTIONS.filter(([sid]) => sid !== "card" || o.isGift).map(([sid, label]) => {
             const b = badge(sid);
             const on = sec === sid;
             return (
               <button key={sid} type="button" onClick={() => setSec(sid)}
-                className={"w-full flex items-center justify-between gap-2 px-3 py-[10px] rounded-[11px] text-[13.5px] font-bold text-left " + (on ? "bg-white text-purple" : "text-[#e7d8f2] hover:bg-white/10")}>
+                className={"w-full flex items-center justify-between gap-2 px-3 py-[10px] rounded-[11px] text-[13.5px] font-bold text-left " + (on ? "bg-white text-purple" : "text-[var(--t-accent)] hover:bg-white/10")}>
                 <span className="flex-1">{label}</span>
                 {b && <span className={"text-[11px] px-2 py-[2px] rounded-full font-bold " + (on ? "bg-lavender text-purple" : "bg-white/15 text-white")}>{b}</span>}
               </button>
@@ -725,7 +725,7 @@ export default function OrderEditor({ id }: { id: string }) {
           {sec === "summary" && (
             <>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <Card title="Customer & recipient" right={<button type="button" onClick={() => setSec("customer")} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#3e3248] text-purple bg-white">More</button>}>
+                <Card title="Customer & recipient" right={<button type="button" onClick={() => setSec("customer")} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[var(--l-accent)] text-purple bg-white">More</button>}>
                   <div className="px-5 pb-4">
                     <Row k="Customer" v={<Link href={`/customers/${o.customerId}`} className="text-purple hover:underline">{custName}</Link>} />
                     <Row k="Phone" v={o.sender.phone} />
@@ -734,10 +734,10 @@ export default function OrderEditor({ id }: { id: string }) {
                     <Row k="Delivery" v={`${o.methodLabel}${o.date ? ` · ${o.date}` : ""}${o.slotLabel ? ` · ${o.slotLabel}` : ""}`} />
                   </div>
                 </Card>
-                <Card title="Items" count={o.lines.length} right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#3e3248] text-purple bg-white">Edit</Link> : undefined}>
+                <Card title="Items" count={o.lines.length} right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[var(--l-accent)] text-purple bg-white">Edit</Link> : undefined}>
                   <div className="px-5 pb-4">
                     {o.lines.map((l) => (
-                      <div key={l.id} className="grid grid-cols-[44px_1fr_auto_auto] gap-3 items-center py-2 border-b border-[#3e3248] last:border-0">
+                      <div key={l.id} className="grid grid-cols-[44px_1fr_auto_auto] gap-3 items-center py-2 border-b border-[var(--l-accent)] last:border-0">
                         <div className="w-[44px] h-[44px] rounded-[10px]" style={{ background: l.bg }} />
                         <div className="min-w-0">
                           <div className="text-[13.5px] font-semibold text-body truncate">{l.name}</div>
@@ -877,12 +877,12 @@ export default function OrderEditor({ id }: { id: string }) {
 
           {/* ITEMS */}
           {sec === "items" && (
-            <Card title="Items" count={o.lines.length} hint="Frozen at the ordered price." right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#3e3248] text-purple bg-white">Edit</Link> : undefined}>
+            <Card title="Items" count={o.lines.length} hint="Frozen at the ordered price." right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[var(--l-accent)] text-purple bg-white">Edit</Link> : undefined}>
               <div className="px-5 pb-5 flex flex-col gap-3">
                 {o.lines.map((l) => {
                   const craftedLine = l.productType === "crafted";
                   return (
-                    <div key={l.id} className="border-[1.5px] border-[#3e3248] rounded-[14px] p-4 flex gap-3.5 bg-white">
+                    <div key={l.id} className="border-[1.5px] border-[var(--l-accent)] rounded-[14px] p-4 flex gap-3.5 bg-white">
                       <div className="w-[52px] h-[52px] rounded-[12px] shrink-0" style={{ background: l.bg }} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -896,7 +896,7 @@ export default function OrderEditor({ id }: { id: string }) {
                             that says which one came off the shelf.  */}
                         <div className="text-[13px] text-body-soft mt-0.5">
                           {l.variantLabel && (
-                            <span className="inline-block text-[12px] font-semibold px-2 py-0.5 rounded-full mr-1.5 align-middle" style={{ background: "#2b1c35", color: "#ce6ef7" }}>
+                            <span className="inline-block text-[12px] font-semibold px-2 py-0.5 rounded-full mr-1.5 align-middle" style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>
                               {l.variantLabel}
                             </span>
                           )}
@@ -909,10 +909,10 @@ export default function OrderEditor({ id }: { id: string }) {
                             actually judge and offered for download at the size
                             it arrived, not squeezed into a 40px square.  */}
                         {l.persoImageUrl && (
-                          <div className="mt-2.5 inline-flex items-center gap-3 border rounded-[12px] p-2.5" style={{ borderColor: "#dfd3ea", background: "#fff" }}>
-                            <a href={l.persoImageUrl} target="_blank" rel="noreferrer" className="block w-[72px] h-[72px] rounded-[9px] border shrink-0" style={{ borderColor: "#dfd3ea", background: `url(${l.persoImageUrl}) center/cover` }} />
+                          <div className="mt-2.5 inline-flex items-center gap-3 border rounded-[12px] p-2.5" style={{ borderColor: "var(--l-accent)", background: "#fff" }}>
+                            <a href={l.persoImageUrl} target="_blank" rel="noreferrer" className="block w-[72px] h-[72px] rounded-[9px] border shrink-0" style={{ borderColor: "var(--l-accent)", background: `url(${l.persoImageUrl}) center/cover` }} />
                             <div>
-                              <div className="text-[12px] font-medium uppercase tracking-[0.04em]" style={{ color: "#ce6ef7" }}>Customer&apos;s photo</div>
+                              <div className="text-[12px] font-medium uppercase tracking-[0.04em]" style={{ color: "var(--t-accent)" }}>Customer&apos;s photo</div>
                               <a href={l.persoImageUrl} download target="_blank" rel="noreferrer" className="text-[13px] font-semibold text-purple inline-flex items-center gap-1.5 mt-1 hover:underline">
                                 <Icon name="download" size={14} /> Download full size
                               </a>
@@ -921,8 +921,8 @@ export default function OrderEditor({ id }: { id: string }) {
                         )}
                         {l.refundNote && <div className="text-[12px] mt-1.5" style={{ color: SOLID.red }}>Refund: {formatTaka(l.refundPaisa ?? 0)} — {l.refundNote}</div>}
                         {openMaterials === l.id && (
-                          <div className="mt-2.5 border rounded-[10px] bg-white p-3" style={{ borderColor: "#dfd3ea" }}>
-                            <div className="text-[11px] font-medium mb-1.5" style={{ color: "#ce6ef7" }}>What was ordered</div>
+                          <div className="mt-2.5 border rounded-[10px] bg-white p-3" style={{ borderColor: "var(--l-accent)" }}>
+                            <div className="text-[11px] font-medium mb-1.5" style={{ color: "var(--t-accent)" }}>What was ordered</div>
                             <table className="w-full text-[12.5px]">
                               <tbody>
                                 {[
@@ -956,7 +956,7 @@ export default function OrderEditor({ id }: { id: string }) {
 
           {/* DELIVERY */}
           {sec === "delivery" && (
-            <Card title="Delivery" right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#3e3248] text-purple bg-white">Edit</Link> : undefined}>
+            <Card title="Delivery" right={!terminal ? <Link href={`/orders/${o.id}/edit`} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[var(--l-accent)] text-purple bg-white">Edit</Link> : undefined}>
               <div className="px-5 pb-4">
                 <Row k="Method" v={o.methodLabel} />
                 <Row k="Zone" v={o.zone === "dhaka" ? "Inside Dhaka" : "Nationwide"} />
@@ -990,7 +990,7 @@ export default function OrderEditor({ id }: { id: string }) {
 
                 {canAssign && (
                   <>
-                    <div className="inline-flex rounded-[12px] border-[1.5px] border-[#3e3248] overflow-hidden mt-3 bg-white">
+                    <div className="inline-flex rounded-[12px] border-[1.5px] border-[var(--l-accent)] overflow-hidden mt-3 bg-white">
                       {(["RIDER", "COURIER", "ONE_TIME"] as const).map((k) => {
                         const on = carrierKind === k;
                         return (
@@ -999,7 +999,7 @@ export default function OrderEditor({ id }: { id: string }) {
                             type="button"
                             onClick={() => { setCarrierKind(k); setCarrierId(""); }}
                             className="text-[13px] font-semibold px-4 py-2 inline-flex items-center gap-1.5"
-                            style={on ? { background: SOLID.purple, color: "#fff" } : { background: "#fff", color: "#afa4b7" }}
+                            style={on ? { background: SOLID.purple, color: "#fff" } : { background: "#fff", color: "var(--t-accent)" }}
                           >
                             <Icon name={k === "RIDER" ? "user" : k === "COURIER" ? "truck" : "bolt"} size={14} /> {k === "RIDER" ? "Own rider" : k === "COURIER" ? "Courier company" : "One-time rider"}
                           </button>
@@ -1131,7 +1131,7 @@ export default function OrderEditor({ id }: { id: string }) {
             <Card title="Photos & proof" hint="Out for delivery stays locked until the before-delivery photo exists.">
               <div className="px-5 pb-5">
                 {o.photoUpdates && (
-                  <div className="mb-4 rounded-[12px] border-[1.5px] px-4 py-3 flex items-center gap-3 flex-wrap bg-white" style={{ borderColor: o.prepPhoto ? "#bfe3cd" : "#f5dcb0" }}>
+                  <div className="mb-4 rounded-[12px] border-[1.5px] px-4 py-3 flex items-center gap-3 flex-wrap bg-white" style={{ borderColor: o.prepPhoto ? "var(--l-ok)" : "var(--l-warn)" }}>
                     <span className="w-6 h-6 rounded-full grid place-items-center text-white text-[12px] shrink-0" style={{ background: o.prepPhoto ? SOLID.green : SOLID.amber }}>{o.prepPhoto ? "✓" : "!"}</span>
                     <div className="min-w-0 flex-1">
                       <div className="text-[13.5px] font-semibold text-body">{o.prepPhoto ? "Customer asked for a photo — done" : "Customer asked for a photo before delivery"}</div>
@@ -1151,7 +1151,7 @@ export default function OrderEditor({ id }: { id: string }) {
                       <button type="button" onClick={() => void retryOrderMessage(photoMsg.id).then(() => reload())} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-purple text-white shrink-0">Send again</button>
                     )}
                     {o.prepPhoto && (
-                      <a href={waHref} target="_blank" rel="noreferrer" className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[#3e3248] text-purple bg-white shrink-0">Reply on WhatsApp</a>
+                      <a href={waHref} target="_blank" rel="noreferrer" className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-[1.5px] border-[var(--l-accent)] text-purple bg-white shrink-0">Reply on WhatsApp</a>
                     )}
                   </div>
                 )}
@@ -1167,8 +1167,8 @@ export default function OrderEditor({ id }: { id: string }) {
                   ] as const).map(([label, photo, empty, kind]) => {
                     const ph = photo as Order["prepPhoto"];
                     return (
-                      <div key={label} className="border-[1.5px] border-[#3e3248] rounded-[14px] overflow-hidden bg-white">
-                        <div className="px-3.5 pt-3 pb-2 text-[11.5px] font-bold flex items-center gap-1.5" style={{ color: ph ? SOLID.green : "#afa4b7" }}>
+                      <div key={label} className="border-[1.5px] border-[var(--l-accent)] rounded-[14px] overflow-hidden bg-white">
+                        <div className="px-3.5 pt-3 pb-2 text-[11.5px] font-bold flex items-center gap-1.5" style={{ color: ph ? SOLID.green : "var(--t-accent)" }}>
                           {ph && <Icon name="check" size={13} />} {label}
                         </div>
                         {ph ? (
@@ -1184,8 +1184,8 @@ export default function OrderEditor({ id }: { id: string }) {
                             </div>
                           </>
                         ) : (
-                          <div className="h-[170px] grid place-items-center text-center px-4 bg-[#291f31]"><div>
-                            <div className="w-10 h-10 rounded-full grid place-items-center mx-auto mb-2 bg-white text-purple border-[1.5px] border-[#3e3248]"><Icon name="photo" size={20} /></div>
+                          <div className="h-[170px] grid place-items-center text-center px-4 bg-[var(--s-accent)]"><div>
+                            <div className="w-10 h-10 rounded-full grid place-items-center mx-auto mb-2 bg-white text-purple border-[1.5px] border-[var(--l-accent)]"><Icon name="photo" size={20} /></div>
                             <p className="text-[12px] font-semibold text-body-soft m-0">{empty}</p>
                           </div></div>
                         )}
@@ -1215,7 +1215,7 @@ export default function OrderEditor({ id }: { id: string }) {
                      photographs are SENT. Off is not a reason to stop taking
                      them — the shop keeps its own proof either way, which is
                      what the line under it says.  */}
-                <div className="mt-5 border-[1.5px] border-[#3e3248] rounded-[14px] px-4 py-3.5 flex items-center justify-between gap-3 flex-wrap bg-white">
+                <div className="mt-5 border-[1.5px] border-[var(--l-accent)] rounded-[14px] px-4 py-3.5 flex items-center justify-between gap-3 flex-wrap bg-white">
                   <div className="text-[13.5px] font-semibold text-purple">Send these photos to the customer</div>
                   <button
                     type="button"
@@ -1223,7 +1223,7 @@ export default function OrderEditor({ id }: { id: string }) {
                     onClick={() => void togglePhotoUpdates()}
                     aria-pressed={o.photoUpdates}
                     className="w-[52px] h-[30px] rounded-full p-[3px] shrink-0 disabled:opacity-50"
-                    style={{ background: o.photoUpdates ? SOLID.green : "#2c1e38" }}
+                    style={{ background: o.photoUpdates ? SOLID.green : "var(--s-accent)" }}
                   >
                     <span className="block w-[24px] h-[24px] rounded-full bg-white transition-transform" style={{ transform: o.photoUpdates ? "translateX(22px)" : "none" }} />
                   </button>
@@ -1244,7 +1244,7 @@ export default function OrderEditor({ id }: { id: string }) {
                 {o.payment.refundPaisa > 0 && <Row k="Refunded" v={<span style={{ color: SOLID.red }}>{formatTaka(o.payment.refundPaisa)}</span>} />}
                 {/* record money in / out — cash collection lives here */}
                 {!cancelled && (
-                  <div className="mt-4 rounded-[12px] border-[1.5px] border-[#3e3248] p-4 bg-white">
+                  <div className="mt-4 rounded-[12px] border-[1.5px] border-[var(--l-accent)] p-4 bg-white">
                     <div className="text-[11.5px] font-bold mb-2.5 text-purple">Record a payment</div>
                     <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3 items-end">
                       <div>
@@ -1314,7 +1314,7 @@ export default function OrderEditor({ id }: { id: string }) {
                 )}
 
                 <div className="mt-4 flex flex-col gap-2">
-                  {codClosed && <div className="rounded-[10px] px-3.5 py-2.5 text-[12.5px] font-semibold border-[1.5px] bg-white" style={{ borderColor: SOLID.amber, color: "#f7b86e" }}>{codClosed}</div>}
+                  {codClosed && <div className="rounded-[10px] px-3.5 py-2.5 text-[12.5px] font-semibold border-[1.5px] bg-white" style={{ borderColor: SOLID.amber, color: "var(--t-warn)" }}>{codClosed}</div>}
                   {o.isGift && <div className="rounded-[10px] px-3.5 py-2.5 text-[12.5px] font-semibold border-[1.5px] bg-white" style={{ borderColor: SOLID.orchid, color: SOLID.purple }}>Gift order — cash on delivery is never offered.</div>}
                 </div>
               </div>
@@ -1354,8 +1354,8 @@ export default function OrderEditor({ id }: { id: string }) {
 
         {/* live preview */}
         <aside className="w-[280px] shrink-0 sticky top-4 hidden xl:block">
-          <div className="bg-white border-[1.5px] border-[#3e3248] rounded-[16px] overflow-hidden">
-            <div className="px-5 pt-5 pb-6 text-white" style={{ background: "linear-gradient(150deg,#470066,#cf43ea)" }}>
+          <div className="bg-white border-[1.5px] border-[var(--l-accent)] rounded-[16px] overflow-hidden">
+            <div className="px-5 pt-5 pb-6 text-white" style={{ background: "linear-gradient(150deg,var(--a-solid),var(--o-solid))" }}>
               <div className="text-[11px] font-medium opacity-85">Customer sees</div>
               <div className="font-semibold text-[15px] leading-tight mt-0.5">{cancelled ? "Order cancelled" : o.deliveryStatus === "delivered" ? "Delivered 🌸" : o.isGift ? "Your gift is on its way" : "Your order is on its way"}</div>
               <div className="text-[12px] opacity-85 mt-1">{o.isGift ? `For ${o.recipient?.name} · ` : ""}{o.etaLabel}</div>
@@ -1370,7 +1370,7 @@ export default function OrderEditor({ id }: { id: string }) {
                     const now = i === journeyIndex(o);
                     return (
                       <div key={s} className="flex items-center gap-2 text-[12.5px]">
-                        <span className="w-[18px] h-[18px] rounded-full grid place-items-center text-white text-[10.5px] shrink-0" style={{ background: done ? SOLID.green : now ? SOLID.purple : "#2c1e38" }}>{done ? "✓" : ""}</span>
+                        <span className="w-[18px] h-[18px] rounded-full grid place-items-center text-white text-[10.5px] shrink-0" style={{ background: done ? SOLID.green : now ? SOLID.purple : "var(--s-accent)" }}>{done ? "✓" : ""}</span>
                         <span className={now ? "text-purple font-semibold" : done ? "text-body font-medium" : "text-body-soft font-medium"}>{s}</span>
                       </div>
                     );
@@ -1425,7 +1425,7 @@ function OrderMessagesPanel({ orderId }: { orderId: string }) {
           <div className="flex flex-col gap-2.5">
             {rows.map((m) => {
               return (
-                <div key={m.id} className="flex items-start gap-3 rounded-[12px] border-[1.5px] border-[#3e3248] bg-white px-3.5 py-2.5">
+                <div key={m.id} className="flex items-start gap-3 rounded-[12px] border-[1.5px] border-[var(--l-accent)] bg-white px-3.5 py-2.5">
                   <Pill colour={MSG_COLOUR[m.status]}>{m.status}</Pill>
                   <div className="min-w-0 flex-1">
                     <div className="text-[13.5px] text-body font-semibold">
@@ -1436,7 +1436,7 @@ function OrderMessagesPanel({ orderId }: { orderId: string }) {
                     <div className="text-[12.5px] text-body-soft">
                       {m.sentAt ? `sent ${shortDate(Date.parse(m.sentAt))}, ${clockTime(Date.parse(m.sentAt))}` : `due ${shortDate(Date.parse(m.dueAt))}, ${clockTime(Date.parse(m.dueAt))}`}
                     </div>
-                    {m.error && <div className="text-[12.5px] font-medium mt-0.5" style={{ color: "#f7b86e" }}>{m.error}</div>}
+                    {m.error && <div className="text-[12.5px] font-medium mt-0.5" style={{ color: "var(--t-warn)" }}>{m.error}</div>}
                   </div>
                   {(m.status === "FAILED" || m.status === "SKIPPED") && (
                     <button type="button" disabled={busy === m.id} onClick={() => retry(m.id)}

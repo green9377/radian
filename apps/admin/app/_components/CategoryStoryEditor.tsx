@@ -136,7 +136,7 @@ export default function CategoryStoryEditor({
 
   return (
     <div className="space-y-6">
-      {err && <div className="text-[13px] text-[#c0392b]">{err}</div>}
+      {err && <div className="text-[13px] text-[var(--t-bad)]">{err}</div>}
 
       {/* ─────────────── TRUST BADGES ─────────────── */}
       {(!only || only === "badges") && (
@@ -189,7 +189,7 @@ export default function CategoryStoryEditor({
                       "w-[32px] h-[32px] rounded-[9px] grid place-items-center transition-colors " +
                       (b.isActive
                         ? "bg-lavender text-purple hover:bg-purple hover:text-white"
-                        : "bg-[#f0e8f6] text-body-soft")
+                        : "bg-[var(--s-accent)] text-body-soft")
                     }
                   >
                     <Icon name="eye" size={14} />
@@ -200,7 +200,7 @@ export default function CategoryStoryEditor({
                       setBadges((r) => r.filter((x) => x.id !== b.id));
                       removeCategoryBadge(b.id).catch(() => {});
                     }}
-                    className="w-[32px] h-[32px] rounded-[9px] grid place-items-center bg-lavender text-body-soft hover:bg-[#fdecea] hover:text-[#c0392b] transition-colors"
+                    className="w-[32px] h-[32px] rounded-[9px] grid place-items-center bg-lavender text-body-soft hover:bg-[var(--s-bad)] hover:text-[var(--t-bad)] transition-colors"
                   >
                     <Icon name="trash" size={14} />
                   </button>
@@ -272,7 +272,7 @@ export default function CategoryStoryEditor({
                         (`media.ts`), not a guess from the extension.  */}
                     {b.iconUrl && (
                       hasClearBackground(b.iconUrl) ? null : (
-                        <p className="mt-2.5 text-[12px] text-[#8A5A00] bg-[#FFF7E8] border border-[#F2D9A8] rounded-[9px] px-3 py-2">
+                        <p className="mt-2.5 text-[12px] text-[var(--t-warn)] bg-[var(--s-warn)] border border-[var(--l-warn)] rounded-[9px] px-3 py-2">
                           <b>This file has no see-through background.</b>
                         </p>
                       )
@@ -359,7 +359,7 @@ export default function CategoryStoryEditor({
 
         {open && (
           <div className="rounded-[14px] border-2 border-lavender-deep bg-white overflow-hidden">
-            <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[linear-gradient(135deg,#f6f0fa,#fff)] border-b border-lavender-deep">
+            <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[linear-gradient(135deg,var(--a-solid),#fff)] border-b border-lavender-deep">
               <input
                 className="ipt font-bold text-purple flex-1 min-w-0"
                 style={{ minHeight: 40 }}
@@ -390,7 +390,7 @@ export default function CategoryStoryEditor({
                   setOpenList(null);
                   removeCategorySpecList(id).catch((e: Error) => setErr(e.message));
                 }}
-                className="text-[12.5px] font-bold px-3 py-2 rounded-[10px] border-2 border-lavender-deep bg-white text-body-soft hover:border-[#e0a1a1] hover:text-[#c0392b] shrink-0"
+                className="text-[12.5px] font-bold px-3 py-2 rounded-[10px] border-2 border-lavender-deep bg-white text-body-soft hover:border-[var(--l-bad)] hover:text-[var(--t-bad)] shrink-0"
               >
                 Remove list
               </button>
@@ -432,7 +432,7 @@ export default function CategoryStoryEditor({
                         dropRow(open.id, s.id);
                         removeCategorySpec(s.id).catch(() => {});
                       }}
-                      className="w-[32px] h-[32px] rounded-[9px] grid place-items-center text-body-soft hover:text-[#c0392b] shrink-0"
+                      className="w-[32px] h-[32px] rounded-[9px] grid place-items-center text-body-soft hover:text-[var(--t-bad)] shrink-0"
                     >
                       <Icon name="trash" size={14} />
                     </button>
@@ -532,7 +532,7 @@ export default function CategoryStoryEditor({
                     setFaqs((r) => r.filter((x) => x.id !== f.id));
                     removeCategoryFaq(f.id).catch(() => {});
                   }}
-                  className="w-[32px] h-[32px] shrink-0 rounded-[9px] grid place-items-center text-body-soft hover:bg-[#fdecea] hover:text-[#c0392b] transition-colors"
+                  className="w-[32px] h-[32px] shrink-0 rounded-[9px] grid place-items-center text-body-soft hover:bg-[var(--s-bad)] hover:text-[var(--t-bad)] transition-colors"
                 >
                   <Icon name="trash" size={14} />
                 </button>

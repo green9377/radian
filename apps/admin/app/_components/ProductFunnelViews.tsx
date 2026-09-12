@@ -86,15 +86,15 @@ function SourceLegend({ demo }: { demo: boolean }) {
     <div className="flex gap-2.5 flex-wrap items-center text-[11.5px] mb-4">
       <span className="text-body-soft">Where the numbers come from:</span>
       {demo ? (
-        <span className="bg-[#fff8ec] text-[#b45309] border border-[#f0c88a] px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1.5">
+        <span className="bg-[var(--s-warn)] text-[var(--t-warn)] border border-[var(--l-warn)] px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1.5">
           <Icon name="bolt" size={12} /> Demo data — no real orders yet
         </span>
       ) : (
         <>
-          <span className="bg-[#e8f6ef] text-[#0f7d55] px-2.5 py-1 rounded-full font-semibold">
+          <span className="bg-[var(--s-ok)] text-[var(--t-ok)] px-2.5 py-1 rounded-full font-semibold">
             Radian database — money, authoritative
           </span>
-          <span className="bg-[#f0edf4] text-body-soft px-2.5 py-1 rounded-full font-semibold">
+          <span className="bg-[var(--s-accent)] text-body-soft px-2.5 py-1 rounded-full font-semibold">
             Web analytics — not connected yet
           </span>
         </>
@@ -127,7 +127,7 @@ function Stage({
         <span className="flex items-center gap-2">
           <b className={tracked ? "text-purple" : "text-body-soft"}>{label}</b>
           <span
-            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${tracked ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-[#f0edf4] text-body-soft"}`}
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${tracked ? "bg-[var(--s-ok)] text-[var(--t-ok)]" : "bg-[var(--s-accent)] text-body-soft"}`}
           >
             {tracked ? "DB" : "not tracked"}
           </span>
@@ -138,7 +138,7 @@ function Stage({
       </div>
       <div className="h-[26px] rounded-[7px] bg-lavender overflow-hidden">
         <div
-          className={`h-full rounded-[7px] ${tracked ? "bg-gradient-to-r from-[#470066] to-[#9c1fb8]" : "bg-lavender-deep"}`}
+          className={`h-full rounded-[7px] ${tracked ? "bg-gradient-to-r from-[var(--a-solid)] to-[var(--a-solid)]" : "bg-lavender-deep"}`}
           style={{ width: `${Math.max(tracked ? 6 : 0, pctOfTop)}%` }}
         />
       </div>
@@ -250,7 +250,7 @@ export function CatalogFunnel() {
       <SourceLegend demo={demo} />
 
       {error && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}.{" "}
           <button className="underline" onClick={() => load(days)}>
             Retry
@@ -320,7 +320,7 @@ export function CatalogFunnel() {
           </div>
           <div>
             <div className="text-[13px] text-body-soft">Margin earned</div>
-            <div className="text-[19px] font-medium text-[#0f7d55]">
+            <div className="text-[19px] font-medium text-[var(--t-ok)]">
               {formatTaka(t?.marginPaisa ?? 0)}
             </div>
           </div>
@@ -330,7 +330,7 @@ export function CatalogFunnel() {
           </div>
           <div>
             <div className="text-[13px] text-body-soft">Refunded</div>
-            <div className="text-[19px] font-medium text-[#c0392b]">
+            <div className="text-[19px] font-medium text-[var(--t-bad)]">
               {formatTaka(t?.refundPaisa ?? 0)}
             </div>
           </div>
@@ -423,10 +423,10 @@ export function CatalogFunnel() {
                       r.conv === null
                         ? "text-body-soft"
                         : r.conv < 3
-                          ? "text-[#c0392b]"
+                          ? "text-[var(--t-bad)]"
                           : r.conv < 6
-                            ? "text-[#b45309]"
-                            : "text-[#0f7d55]"
+                            ? "text-[var(--t-warn)]"
+                            : "text-[var(--t-ok)]"
                     }`}
                   >
                     {r.conv === null ? "—" : `${r.conv.toFixed(1)}%`}
@@ -439,15 +439,15 @@ export function CatalogFunnel() {
                       <span
                         className={`text-[11.5px] font-semibold px-2.5 py-1 rounded-full ${
                           r.leak === "No orders at all" || r.leak === "View → cart"
-                            ? "bg-[#fdecea] text-[#c0392b]"
-                            : "bg-[#fff8ec] text-[#b45309]"
+                            ? "bg-[var(--s-bad)] text-[var(--t-bad)]"
+                            : "bg-[var(--s-warn)] text-[var(--t-warn)]"
                         }`}
                       >
                         {r.leak}
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-semibold text-[#c0392b]">
+                  <td className="px-4 py-3 font-semibold text-[var(--t-bad)]">
                     {r.lostPaisa > 0 ? formatTaka(r.lostPaisa) : "—"}
                   </td>
                 </tr>
@@ -467,8 +467,8 @@ export function CatalogFunnel() {
         </table>
       </div>
 
-      <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#fff8ec] px-4 py-3 mt-4 text-[12.5px] text-[#7a4b09]">
-        <span className="text-[#b45309] shrink-0">
+      <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[var(--l-warn)] bg-[var(--s-warn)] px-4 py-3 mt-4 text-[12.5px] text-[var(--t-warn)]">
+        <span className="text-[var(--t-warn)] shrink-0">
           <Icon name="bolt" size={18} />
         </span>
         <div>&ldquo;Money lost&rdquo; counts refunds and the value of cancelled orders.</div>
@@ -579,7 +579,7 @@ export function ProductAnalysis({ slug }: { slug: string }) {
       <SourceLegend demo={demo} />
 
       {error && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}
         </div>
       )}
@@ -663,7 +663,7 @@ export function ProductAnalysis({ slug }: { slug: string }) {
                     <div
                       key={d.date}
                       title={`${d.date} · ${d.orders} orders · ${formatTaka(d.revenuePaisa)}`}
-                      className="flex-1 bg-gradient-to-t from-[#470066] to-[#cf43ea] rounded-t-[4px] min-w-[4px]"
+                      className="flex-1 bg-gradient-to-t from-[var(--a-solid)] to-[var(--o-solid)] rounded-t-[4px] min-w-[4px]"
                       style={{ height: `${(d.orders / maxDaily) * 100}%` }}
                     />
                   ))}

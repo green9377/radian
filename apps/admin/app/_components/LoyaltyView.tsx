@@ -218,7 +218,7 @@ export function LoyaltyView() {
             </button>
           </div>
 
-          <div className="md:col-span-4 border-t border-[#f1ecf6] pt-4 grid md:grid-cols-4 gap-4 items-end">
+          <div className="md:col-span-4 border-t border-[var(--l-accent)] pt-4 grid md:grid-cols-4 gap-4 items-end">
             <div>
               <Lbl>Festival — multiply earning by</Lbl>
               <select className={input} value={mult} onChange={(e) => setMult(e.target.value)}>
@@ -238,7 +238,7 @@ export function LoyaltyView() {
           </div>
 
           {s?.loyaltyEnabled && (
-            <div className="md:col-span-4 border-t border-[#f1ecf6] pt-4">
+            <div className="md:col-span-4 border-t border-[var(--l-accent)] pt-4">
               <button className={btnGhost} disabled={busy === "save"}
                 onClick={() => void save({ loyaltyEnabled: false }, "Switched off.")}>
                 Switch the scheme off
@@ -258,7 +258,7 @@ export function LoyaltyView() {
         ) : (
           <Table head={<><Th>Customer</Th><Th>Phone</Th><Th right>Orders</Th><Th right>Points</Th><Th right>Worth</Th></>}>
             {holders.map((h, i) => (
-              <tr key={h.customer?.id ?? i} className="border-t border-[#f1ecf6] hover:bg-[#fdfbff]">
+              <tr key={h.customer?.id ?? i} className="border-t border-[var(--l-accent)] hover:bg-[var(--s-accent)]">
                 <Td>
                   {h.customer ? (
                     <Link className="font-semibold text-purple hover:underline" href={`/customers/${h.customer.id}`}>
@@ -305,7 +305,7 @@ export function LoyaltyView() {
               {busy === "adj" ? "Saving…" : "Add the points"}
             </button>
           </div>
-          <div className="md:col-span-5 text-[12.5px] text-body-soft border-t border-[#f1ecf6] pt-3">
+          <div className="md:col-span-5 text-[12.5px] text-body-soft border-t border-[var(--l-accent)] pt-3">
             Points cost real money and write to the ledger — your PIN is required.
           </div>
         </div>

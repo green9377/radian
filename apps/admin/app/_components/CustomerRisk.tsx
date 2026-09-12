@@ -114,7 +114,7 @@ export default function CustomerRisk() {
       </div>
 
       {error && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}. Is the API (:4000) running? <button className="underline" onClick={load}>Retry</button>
         </div>
       )}
@@ -123,11 +123,11 @@ export default function CustomerRisk() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
         {[
-          { l: "High risk", v: String(stats.high), c: "#c0392b", bg: "#fdecec", icon: "shield" },
-          { l: "Watch list", v: String(stats.med), c: "#d98a0f", bg: "#fff8ec", icon: "bolt" },
-          { l: "Blocked", v: String(stats.blocked), c: "#b42318", bg: "#fbecec", icon: "trash" },
-          { l: "Fake COD (total)", v: String(stats.fake), c: "#8b3fb0", bg: "#f5eafb", icon: "cash" },
-          { l: "Failed deliveries", v: String(stats.failed), c: "#3182c9", bg: "#e9f1fb", icon: "truck" },
+          { l: "High risk", v: String(stats.high), c: "var(--t-bad)", bg: "var(--s-bad)", icon: "shield" },
+          { l: "Watch list", v: String(stats.med), c: "var(--t-warn)", bg: "var(--s-warn)", icon: "bolt" },
+          { l: "Blocked", v: String(stats.blocked), c: "var(--t-bad)", bg: "var(--s-bad)", icon: "trash" },
+          { l: "Fake COD (total)", v: String(stats.fake), c: "var(--t-accent)", bg: "var(--s-accent)", icon: "cash" },
+          { l: "Failed deliveries", v: String(stats.failed), c: "var(--t-info)", bg: "var(--s-info)", icon: "truck" },
         ].map((k, i) => (
           <div key={i} className="rounded-[14px] px-3.5 py-3 shadow-soft border border-white/60" style={{ background: k.bg }}>
             <span className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-white" style={{ background: k.c }}>
@@ -194,10 +194,10 @@ export default function CustomerRisk() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={risk.fakeCod > 0 ? "font-semibold text-[#c0392b]" : "text-body-soft"}>{risk.fakeCod}</span>
+                    <span className={risk.fakeCod > 0 ? "font-semibold text-[var(--t-bad)]" : "text-body-soft"}>{risk.fakeCod}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={risk.failedDeliveries > 0 ? "font-semibold text-[#b45309]" : "text-body-soft"}>{risk.failedDeliveries}</span>
+                    <span className={risk.failedDeliveries > 0 ? "font-semibold text-[var(--t-warn)]" : "text-body-soft"}>{risk.failedDeliveries}</span>
                   </td>
                   <td className="px-4 py-3 text-body-soft">{risk.refunds}</td>
                   <td className="px-4 py-3">
@@ -207,14 +207,14 @@ export default function CustomerRisk() {
                   <td className="px-4 py-3">
                     {blocked ? (
                       <>
-                        <span className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full bg-[#fdecea] text-[#c0392b] font-medium">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#c0392b]" /> Blocked
+                        <span className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full bg-[var(--s-bad)] text-[var(--t-bad)] font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--s-bad)]" /> Blocked
                         </span>
                         {risk.blockReason && <div className="text-[13px] text-body-soft mt-1 max-w-[160px]">{risk.blockReason}</div>}
                       </>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full bg-[#e6f4ec] text-[#2e7d5b] font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#2e7d5b]" /> Active
+                      <span className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full bg-[var(--s-ok)] text-[var(--t-ok)] font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--s-ok)]" /> Active
                       </span>
                     )}
                   </td>
@@ -226,7 +226,7 @@ export default function CustomerRisk() {
                         "text-[12px] font-medium px-3 py-1.5 rounded-[9px] border whitespace-nowrap disabled:opacity-50 " +
                         (blocked
                           ? "border-lavender-deep text-purple hover:border-orchid"
-                          : "border-[#e0a1a1] text-[#c0392b] hover:bg-[#fdecea]")
+                          : "border-[var(--l-bad)] text-[var(--t-bad)] hover:bg-[var(--s-bad)]")
                       }
                     >
                       {busy === c.id ? "…" : blocked ? "Unblock" : "Block"}
@@ -245,7 +245,7 @@ export default function CustomerRisk() {
       </div>
 
       {!isDemo && (
-        <div className="bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-3 mt-4 text-[12.5px]">
+        <div className="bg-[var(--s-warn)] border border-[var(--l-warn)] text-[var(--t-warn)] rounded-[12px] px-4 py-3 mt-4 text-[12.5px]">
           <b>Risk counters are placeholders.</b> Block / unblock below is real.
         </div>
       )}

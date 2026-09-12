@@ -143,8 +143,8 @@ export default function PurchaseDetailView({ id }: { id: string }) {
       {ok && <OkBar text={ok} onClose={() => setOk(null)} />}
 
       {costJump && (
-        <div className="rounded-[14px] border-2 px-5 py-4 mb-4" style={{ background: "#fff4e6", borderColor: "#f0b95e" }}>
-          <b className="text-[13.5px] block mb-1" style={{ color: "#8a5209" }}>⚠ Price looks unusual</b>
+        <div className="rounded-[14px] border-2 px-5 py-4 mb-4" style={{ background: "var(--s-warn)", borderColor: "var(--l-warn)" }}>
+          <b className="text-[13.5px] block mb-1" style={{ color: "var(--t-warn)" }}>⚠ Price looks unusual</b>
           <p className="text-[13px] text-body m-0 mb-3">{costJump}</p>
           <div className="flex gap-2">
             <button onClick={() => setCostJump(null)} className="border border-lavender-deep bg-white text-purple text-[13px] font-medium px-4 py-2 rounded-[10px]">
@@ -158,7 +158,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
                 );
                 setRecvPending(null);
               }}
-              className="text-white text-[13px] font-medium px-4 py-2 rounded-[10px]" style={{ background: "#b45309" }}>
+              className="text-white text-[13px] font-medium px-4 py-2 rounded-[10px]" style={{ background: "var(--s-warn)" }}>
               The price is right — receive anyway
             </button>
           </div>
@@ -170,8 +170,8 @@ export default function PurchaseDetailView({ id }: { id: string }) {
           purpose; before this the only trace was a line in the timeline. */}
       {gap && (
         <div className="mb-5 rounded-[14px] border px-5 py-4"
-          style={{ borderColor: "#f0c98a", background: "#fff8ec" }}>
-          <b className="text-[13.5px] block mb-1" style={{ color: "#8a5a00" }}>
+          style={{ borderColor: "var(--l-warn)", background: "var(--s-warn)" }}>
+          <b className="text-[13.5px] block mb-1" style={{ color: "var(--t-warn)" }}>
             <Icon name="alert" size={13} /> These goods never reached stock
           </b>
           <p className="text-[13px] text-body-soft m-0 mb-2.5">
@@ -182,7 +182,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
           </p>
           <button disabled={busy} onClick={() => act(() => repostPurchaseStock(id), "Stock posted.")}
             className="text-[12.5px] font-medium px-3.5 py-1.5 rounded-[9px] text-white disabled:opacity-50"
-            style={{ background: "#b45309" }}>
+            style={{ background: "var(--s-warn)" }}>
             Post stock now
           </button>
         </div>
@@ -210,7 +210,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
                     </span>
                     <span className="text-[13px] text-right">{fmtQty(l.qtyMilli)} {l.unit?.name}</span>
                     <span className="text-[13px] text-right font-medium"
-                      style={{ color: l.receivedQtyMilli >= l.qtyMilli ? "#0e7a3d" : l.receivedQtyMilli > 0 ? "#b45309" : "#9b8aa6" }}>
+                      style={{ color: l.receivedQtyMilli >= l.qtyMilli ? "var(--t-ok)" : l.receivedQtyMilli > 0 ? "var(--t-warn)" : "var(--t-accent)" }}>
                       {fmtQty(l.receivedQtyMilli)}
                     </span>
                     <span className="text-[13px] text-right">{formatTaka(l.unitPricePaisa)}</span>
@@ -296,7 +296,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
             {outstanding && (
               <>
                 <button disabled={busy} onClick={() => act(() => receivePurchase(id), "Goods received — stock posted, average cost updated.")}
-                  className="w-full text-white text-[13.5px] font-medium px-4 py-2.5 rounded-[10px]" style={{ background: "#0e7a3d" }}>
+                  className="w-full text-white text-[13.5px] font-medium px-4 py-2.5 rounded-[10px]" style={{ background: "var(--s-ok)" }}>
                   <Icon name="check" size={13} /> Receive everything outstanding
                 </button>
                 <button disabled={busy}
@@ -325,7 +325,7 @@ export default function PurchaseDetailView({ id }: { id: string }) {
                   if (p.paidPaisa > 0) { setCancelNote(""); setCancelOpen(true); }
                   else act(() => cancelPurchase(id), "Purchase cancelled.");
                 }}
-                className="w-full border border-[#e0a1a1] bg-white text-[#c0392b] text-[13.5px] font-medium px-4 py-2.5 rounded-[10px]">
+                className="w-full border border-[var(--l-bad)] bg-white text-[var(--t-bad)] text-[13.5px] font-medium px-4 py-2.5 rounded-[10px]">
                 Cancel this order
               </button>
             )}
@@ -422,9 +422,9 @@ export default function PurchaseDetailView({ id }: { id: string }) {
             <input className="ipt w-full" placeholder="Wilted, damaged, wrong item…" value={returnReason} onChange={(e) => setReturnReason(e.target.value)} />
           </Field>
           {returnTotal > 0 && (
-            <div className="rounded-[10px] px-3.5 py-2.5 text-[12.5px]" style={{ background: "#f7f1fb" }}>
+            <div className="rounded-[10px] px-3.5 py-2.5 text-[12.5px]" style={{ background: "var(--s-accent)" }}>
               Return value <b>{formatTaka(returnTotal)}</b> → due cut <b>{formatTaka(returnDueCut)}</b>
-              {returnCredit > 0 && <> · credit with {p.supplierName} <b style={{ color: "#0e8f74" }}>{formatTaka(returnCredit)}</b></>}
+              {returnCredit > 0 && <> · credit with {p.supplierName} <b style={{ color: "var(--t-ok)" }}>{formatTaka(returnCredit)}</b></>}
             </div>
           )}
         </Modal>

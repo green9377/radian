@@ -93,7 +93,7 @@ function VoidDialog({
         <h3 className="font-display text-[18px] text-purple m-0 mb-1">Void {bill.orderNo}?</h3>
         <p className="text-[12.5px] text-body-soft m-0 mb-4">This cannot be undone from here.</p>
 
-        <div className="rounded-[12px] px-4 py-3 mb-4 text-[12.5px]" style={{ background: "#3a2d10", color: "#f5c451" }}>
+        <div className="rounded-[12px] px-4 py-3 mb-4 text-[12.5px]" style={{ background: "var(--s-warn)", color: "var(--t-warn)" }}>
           <b className="block mb-1.5">What happens when you press it</b>
           <ul className="m-0 pl-4 space-y-1">
             {bill.advance
@@ -117,7 +117,7 @@ function VoidDialog({
           ))}
         </div>
 
-        {err && <p className="text-[12px] text-[#e1837a] m-0 mb-3">{err}</p>}
+        {err && <p className="text-[12px] text-[var(--t-gold)] m-0 mb-3">{err}</p>}
 
         <div className="flex gap-2">
           <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-[11px] border border-lavender-deep text-purple font-bold text-[13px]">
@@ -125,7 +125,7 @@ function VoidDialog({
           </button>
           <button type="button" onClick={go} disabled={busy}
             className="flex-1 py-2.5 rounded-[11px] text-white font-bold text-[13px] disabled:opacity-50"
-            style={{ background: "#a33a32" }}>
+            style={{ background: "var(--s-bad)" }}>
             {busy ? "Voiding…" : "Void it"}
           </button>
         </div>
@@ -263,16 +263,16 @@ export default function PosSaleView({ id }: { id: string }) {
             <Icon name="plus" size={14} /> Sell (counter)
           </Link>
           <span className={"text-[12px] font-medium px-3 py-1.5 rounded-full " + (voided
-            ? "bg-[#3a1616] text-[#ff9c92]"
+            ? "bg-[var(--s-bad)] text-[var(--t-bad)]"
             : advance
-              ? "bg-[#3c2e17] text-[#f7a96e]"
-              : "bg-[#1c3626] text-[#76efab]")}>
+              ? "bg-[var(--s-warn)] text-[var(--t-warn)]"
+              : "bg-[var(--s-ok)] text-[var(--t-ok)]")}>
             {voided ? "Voided" : advance ? "Advance — not handed over" : "Completed"}
           </span>
           {!voided && (
             <span className={"text-[12px] font-medium px-3 py-1.5 rounded-full " + (due > 0
-              ? "bg-[#3c2e17] text-[#f7a96e]"
-              : "bg-[#1c3626] text-[#76efab]")}>
+              ? "bg-[var(--s-warn)] text-[var(--t-warn)]"
+              : "bg-[var(--s-ok)] text-[var(--t-ok)]")}>
               {due > 0 ? `Due ${formatTaka(due)}` : "Paid"}
             </span>
           )}
@@ -280,17 +280,17 @@ export default function PosSaleView({ id }: { id: string }) {
       </div>
 
       {flash && (
-        <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px]" style={{ background: "#1c3626", color: "#76efab" }}>{flash}</div>
+        <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px]" style={{ background: "var(--s-ok)", color: "var(--t-ok)" }}>{flash}</div>
       )}
 
       {voided && (
-        <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px]" style={{ background: "#3a1616", color: "#ff9c92" }}>
+        <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px]" style={{ background: "var(--s-bad)", color: "var(--t-bad)" }}>
           <b>This bill was voided.</b> The stock went back and the payments were reversed.
         </div>
       )}
 
       {!voided && (rc?.refundedPaisa ?? 0) > 0 && (
-        <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px]" style={{ background: "#3c2e17", color: "#f7a96e" }}>
+        <div className="rounded-[12px] px-4 py-3 mb-4 text-[13px]" style={{ background: "var(--s-warn)", color: "var(--t-warn)" }}>
           <b>{formatTaka(rc?.refundedPaisa ?? 0)} has been refunded</b> against this bill through Returns.
         </div>
       )}
@@ -299,7 +299,7 @@ export default function PosSaleView({ id }: { id: string }) {
         <div>
           {/* ---------------- items ---------------- */}
           <div className={CARD + " overflow-hidden mb-5"}>
-            <div className="grid grid-cols-[minmax(0,1fr)_90px_110px_110px] gap-3 items-center px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "#470066" }}>
+            <div className="grid grid-cols-[minmax(0,1fr)_90px_110px_110px] gap-3 items-center px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/95" style={{ background: "var(--s-accent)" }}>
               <span>Item</span><span className="text-center">Qty</span><span className="text-right">Price</span><span className="text-right">Total</span>
             </div>
             {lines.map((l, i) => {
@@ -314,7 +314,7 @@ export default function PosSaleView({ id }: { id: string }) {
                   <div className="min-w-0">
                     <div className="text-[13.5px] font-medium text-purple truncate">{l.name}</div>
                     {l.sizeLabel && <div className="text-[11.5px] text-body-soft">{l.sizeLabel}</div>}
-                    {lineDisc > 0 && <div className="text-[11.5px] text-[#76efab]">less {formatTaka(lineDisc)} discount</div>}
+                    {lineDisc > 0 && <div className="text-[11.5px] text-[var(--t-ok)]">less {formatTaka(lineDisc)} discount</div>}
                   </div>
                   <div className="text-center text-[13px]">
                     {l.qty}{unit && <span className="text-body-soft text-[11.5px]"> {unit}</span>}
@@ -416,7 +416,7 @@ export default function PosSaleView({ id }: { id: string }) {
                        a screen that will not help. (POS audit §3 #21; on the
                        owner's list in POS_C.md.)  */}
                   {advance && (
-                    <p className="text-[12px] m-0 mt-2" style={{ color: "#f0b46a" }}>
+                    <p className="text-[12px] m-0 mt-2" style={{ color: "var(--t-warn)" }}>
                       No screen can cancel this advance order today — ask the owner.
                     </p>
                   )}
@@ -427,8 +427,8 @@ export default function PosSaleView({ id }: { id: string }) {
                     Puts the stock back and reverses the money{cashBack > 0 ? `, ${formatTaka(cashBack)} out of the cash box` : ""}.
                   </p>
                   <button type="button" onClick={() => setVoidOpen(true)}
-                    className="w-full text-[13px] font-bold text-[#ff9c92] border rounded-[10px] py-2.5"
-                    style={{ borderColor: "#6a2a25", background: "#2c1413" }}>
+                    className="w-full text-[13px] font-bold text-[var(--t-bad)] border rounded-[10px] py-2.5"
+                    style={{ borderColor: "var(--l-bad)", background: "var(--s-bad)" }}>
                     Void this bill
                   </button>
                 </>

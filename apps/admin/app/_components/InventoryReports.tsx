@@ -67,7 +67,7 @@ export function InvReportsView() {
                 className="text-[12.5px] font-medium px-3.5 py-2 rounded-full border transition-colors"
                 style={days === r
                   ? { background: ACCENT, color: "#fff", borderColor: ACCENT }
-                  : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
+                  : { background: "#fff", color: "var(--t-accent)", borderColor: "var(--l-accent)" }}>
                 {r} days
               </button>
             ))}
@@ -78,11 +78,11 @@ export function InvReportsView() {
 
       {report && valuation && (
         <Kpi items={[
-          { l: `Wastage (${days}d)`, v: formatTaka(report.totalWastagePaisa), c: "#c0392b", bg: "#fdecea", icon: "bolt" },
-          { l: `Given free (${days}d)`, v: formatTaka(report.totalGiftPaisa), c: "#cf43ea", bg: "#fbeafe", icon: "heart" },
-          { l: "Stock value now (AVCO)", v: formatTaka(valuation.totalPaisa), c: "#470066", bg: "#f5eafb", icon: "box" },
+          { l: `Wastage (${days}d)`, v: formatTaka(report.totalWastagePaisa), c: "var(--t-bad)", bg: "var(--s-bad)", icon: "bolt" },
+          { l: `Given free (${days}d)`, v: formatTaka(report.totalGiftPaisa), c: "var(--t-orchid)", bg: "var(--s-orchid)", icon: "heart" },
+          { l: "Stock value now (AVCO)", v: formatTaka(valuation.totalPaisa), c: "var(--t-accent)", bg: "var(--s-accent)", icon: "box" },
           {
-            l: "Worst day", c: "#b45309", bg: "#fff4e6", icon: "clock",
+            l: "Worst day", c: "var(--t-warn)", bg: "var(--s-warn)", icon: "clock",
             v: worstDay
               ? `${new Date(worstDay.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · ${formatTaka(worstDay.wastagePaisa + worstDay.giftPaisa)}`
               : "—",
@@ -95,10 +95,10 @@ export function InvReportsView() {
         <div className="flex items-center gap-3 mb-3">
           <b className="text-[14.5px] text-body">Write-offs per day</b>
           <span className="text-[12px] text-body-soft flex items-center gap-1.5">
-            <span className="w-[10px] h-[10px] rounded-[3px]" style={{ background: "#c0392b" }} /> Wastage
+            <span className="w-[10px] h-[10px] rounded-[3px]" style={{ background: "var(--s-bad)" }} /> Wastage
           </span>
           <span className="text-[12px] text-body-soft flex items-center gap-1.5">
-            <span className="w-[10px] h-[10px] rounded-[3px]" style={{ background: "#cf43ea" }} /> Gift
+            <span className="w-[10px] h-[10px] rounded-[3px]" style={{ background: "var(--s-orchid)" }} /> Gift
           </span>
           <Link href="/inventory/issue" className="ml-auto text-[12.5px] font-medium underline" style={{ color: ACCENT }}>
             Entries →
@@ -115,12 +115,12 @@ export function InvReportsView() {
                 <div key={s.date} className="flex-1 min-w-[4px] flex flex-col justify-end items-stretch group relative" style={{ height: 150 }}>
                   <div className="hidden group-hover:block absolute -top-1 left-1/2 -translate-x-1/2 -translate-y-full bg-white border border-lavender-deep rounded-[8px] shadow-soft px-2.5 py-1.5 text-[11.5px] whitespace-nowrap z-10">
                     <b>{new Date(s.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</b>
-                    {" · "}<span style={{ color: "#c0392b" }}>{formatTaka(s.wastagePaisa)}</span>
-                    {s.giftPaisa > 0 && <> · <span style={{ color: "#cf43ea" }}>{formatTaka(s.giftPaisa)}</span></>}
+                    {" · "}<span style={{ color: "var(--t-bad)" }}>{formatTaka(s.wastagePaisa)}</span>
+                    {s.giftPaisa > 0 && <> · <span style={{ color: "var(--t-orchid)" }}>{formatTaka(s.giftPaisa)}</span></>}
                   </div>
-                  <div style={{ height: hG, background: "#cf43ea" }} className={hG > 0 ? "rounded-t-[3px]" : ""} />
-                  <div style={{ height: hW, background: "#c0392b" }} className={hG === 0 && hW > 0 ? "rounded-t-[3px]" : ""} />
-                  {total === 0 && <div style={{ height: 2, background: "#eee6f5" }} />}
+                  <div style={{ height: hG, background: "var(--s-orchid)" }} className={hG > 0 ? "rounded-t-[3px]" : ""} />
+                  <div style={{ height: hW, background: "var(--s-bad)" }} className={hG === 0 && hW > 0 ? "rounded-t-[3px]" : ""} />
+                  {total === 0 && <div style={{ height: 2, background: "var(--s-accent)" }} />}
                 </div>
               );
             })}
@@ -149,11 +149,11 @@ export function InvReportsView() {
             </span>
             <span className="text-right text-[13px] text-body">{fmtQty(r.totalQtyMilli)} {r.unitShort}</span>
             <span className="text-right text-[12.5px] text-body-soft">{formatTaka(r.unitCostPaisa)}</span>
-            <span className="h-[10px] rounded-full overflow-hidden" style={{ background: "#f1eaf8" }}>
+            <span className="h-[10px] rounded-full overflow-hidden" style={{ background: "var(--s-accent)" }}>
               <span className="block h-full rounded-full"
-                style={{ width: `${Math.round((Math.abs(r.valuePaisa) / maxValue) * 100)}%`, background: r.valuePaisa < 0 ? "#c0392b" : ACCENT }} />
+                style={{ width: `${Math.round((Math.abs(r.valuePaisa) / maxValue) * 100)}%`, background: r.valuePaisa < 0 ? "var(--s-bad)" : ACCENT }} />
             </span>
-            <span className="text-right text-[13px] font-semibold" style={{ color: r.valuePaisa < 0 ? "#c0392b" : undefined }}>
+            <span className="text-right text-[13px] font-semibold" style={{ color: r.valuePaisa < 0 ? "var(--t-bad)" : undefined }}>
               {formatTaka(r.valuePaisa)}
             </span>
           </div>
@@ -222,7 +222,7 @@ export function InvSettingsView() {
       className="text-[12.5px] font-medium px-4 py-2 rounded-full border transition-colors disabled:opacity-60"
       style={on
         ? { background: tone, color: "#fff", borderColor: tone }
-        : { background: "#fff", color: "#5c4a6b", borderColor: "#e4d9ef" }}>
+        : { background: "#fff", color: "var(--t-accent)", borderColor: "var(--l-accent)" }}>
       {children}
     </button>
   );
@@ -278,7 +278,7 @@ export function InvSettingsView() {
                    cannot trust behaviour nobody told him about. */
                 others.length > 0 ? (
                   <span className="block text-[12px] rounded-[9px] px-2.5 py-2"
-                    style={{ background: "#e7f5f1", color: "#0e6b56" }}>
+                    style={{ background: "var(--s-ok)", color: "var(--t-ok)" }}>
                     Runs out here? The rest comes from{" "}
                     <b>{others.map((w) => w.name).join(" / ")}</b> automatically.
                   </span>
@@ -311,7 +311,7 @@ export function InvSettingsView() {
                 <b className="block text-[13.5px] text-body">Staff pick a store per order</b>
                 <span className="block text-[12.5px] text-body-soft">Off means the choices above always apply</span>
               </span>
-              <Pill on={settings.allowPerOrderWarehouse} tone="#0e7a3d"
+              <Pill on={settings.allowPerOrderWarehouse} tone="var(--t-ok)"
                 onClick={() => save({ allowPerOrderWarehouse: !settings.allowPerOrderWarehouse })}>
                 {settings.allowPerOrderWarehouse ? "On" : "Off"}
               </Pill>
@@ -325,9 +325,9 @@ export function InvSettingsView() {
                 </span>
               </span>
               <span className="flex gap-2 shrink-0">
-                <Pill on={settings.negativeStockPolicy === "ALLOW_WARN"} tone="#b45309"
+                <Pill on={settings.negativeStockPolicy === "ALLOW_WARN"} tone="var(--t-warn)"
                   onClick={() => save({ negativeStockPolicy: "ALLOW_WARN" })}>Allow, warn me</Pill>
-                <Pill on={settings.negativeStockPolicy === "BLOCK"} tone="#c0392b"
+                <Pill on={settings.negativeStockPolicy === "BLOCK"} tone="var(--t-bad)"
                   onClick={() => save({ negativeStockPolicy: "BLOCK" })}>Block the sale</Pill>
               </span>
             </div>

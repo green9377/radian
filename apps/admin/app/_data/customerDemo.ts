@@ -90,9 +90,9 @@ export function demoRisk(id: string, ordersCount: number, blocked: boolean): Ris
 }
 
 export const RISK_META: Record<RiskLevel, { label: string; chip: string; dot: string; c: string }> = {
-  low: { label: "Low", chip: "bg-[#e8f9ee] text-[#0e7a3d] border-[#c4eed4]", dot: "bg-[#0e7a3d]", c: "#0f9d6b" },
-  medium: { label: "Watch", chip: "bg-[#fff4e6] text-[#b45309] border-[#fce4c4]", dot: "bg-[#b45309]", c: "#d98a0f" },
-  high: { label: "High risk", chip: "bg-[#fbecec] text-[#b42318] border-[#f5d5d2]", dot: "bg-[#b42318]", c: "#c0392b" },
+  low: { label: "Low", chip: "bg-[var(--s-ok)] text-[var(--t-ok)] border-[var(--l-ok)]", dot: "bg-[var(--s-ok)]", c: "var(--s-ok)" },
+  medium: { label: "Watch", chip: "bg-[var(--s-warn)] text-[var(--t-warn)] border-[var(--l-warn)]", dot: "bg-[var(--s-warn)]", c: "var(--s-warn)" },
+  high: { label: "High risk", chip: "bg-[var(--s-bad)] text-[var(--t-bad)] border-[var(--l-bad)]", dot: "bg-[var(--s-bad)]", c: "var(--s-bad)" },
 };
 
 /* ---------------- Duplicate detection ---------------- */

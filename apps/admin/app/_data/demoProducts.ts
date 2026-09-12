@@ -91,9 +91,9 @@ export const DEMO_PRODUCTS: ApiProduct[] = [
   build({ id: "p2", sku: "ROSE-12", name: "Blush Romance — 12 Pink Roses", slug: "blush-romance-12-pink-roses", category: C.flowers, cost: 640, sell: 1290, stock: 24, sold: 168, tags: [T.love, T.her], vg: "g1", vLabel: "Pink", vSwatch: "#E8A0C0" }),
   build({ id: "p3", sku: "ROSE-99", name: "Midnight Rose Heart", slug: "midnight-rose-heart", category: C.flowers, cost: 1520, sell: 2990, offer: 2790, stock: 6, sold: 96, tags: [T.love, T.anniv, T.her], vg: "g1", vLabel: "Deep Red", vSwatch: "#7A0C2E" }),
   build({ id: "p4", sku: "ORCH-04", name: "White Orchid Elegance", slug: "white-orchid-elegance", category: C.flowers, cost: 900, sell: 1650, stock: 0, sold: 88, tags: [T.congrats, T.parents] }),
-  build({ id: "p5", sku: "CAKE-31", name: "Chocolate Fudge Celebration Cake", slug: "chocolate-fudge-cake", category: C.cakes, cost: 700, sell: 1450, stock: 9, sold: 143, tags: [T.bday, T.him], vg: "g2", vLabel: "Chocolate Fudge", vSwatch: "linear-gradient(160deg,#E8D8CE,#D3B49E)" }),
-  build({ id: "p6", sku: "CAKE-22", name: "Red Velvet Cream Cheese", slug: "red-velvet-cream-cheese", category: C.cakes, cost: 820, sell: 1650, offer: 1490, stock: 4, sold: 121, tags: [T.bday, T.anniv, T.her], vg: "g2", vLabel: "Red Velvet", vSwatch: "linear-gradient(160deg,#F7E0E4,#E7BAC3)" }),
-  build({ id: "p7", sku: "CAKE-08", name: "Vanilla Butter Cream — 1kg", slug: "vanilla-butter-cream-1kg", category: C.cakes, cost: 640, sell: 1190, stock: 11, sold: 74, tags: [T.bday, T.parents], vg: "g2", vLabel: "Vanilla", vSwatch: "linear-gradient(160deg,#FBF3E4,#EFDFBE)" }),
+  build({ id: "p5", sku: "CAKE-31", name: "Chocolate Fudge Celebration Cake", slug: "chocolate-fudge-cake", category: C.cakes, cost: 700, sell: 1450, stock: 9, sold: 143, tags: [T.bday, T.him], vg: "g2", vLabel: "Chocolate Fudge", vSwatch: "linear-gradient(160deg,var(--f-warn),var(--f-warn))" }),
+  build({ id: "p6", sku: "CAKE-22", name: "Red Velvet Cream Cheese", slug: "red-velvet-cream-cheese", category: C.cakes, cost: 820, sell: 1650, offer: 1490, stock: 4, sold: 121, tags: [T.bday, T.anniv, T.her], vg: "g2", vLabel: "Red Velvet", vSwatch: "linear-gradient(160deg,var(--f-bad),var(--f-bad))" }),
+  build({ id: "p7", sku: "CAKE-08", name: "Vanilla Butter Cream — 1kg", slug: "vanilla-butter-cream-1kg", category: C.cakes, cost: 640, sell: 1190, stock: 11, sold: 74, tags: [T.bday, T.parents], vg: "g2", vLabel: "Vanilla", vSwatch: "linear-gradient(160deg,var(--f-warn),var(--f-warn))" }),
   build({ id: "p8", sku: "CAKE-12", name: "Photo Print Birthday Cake", slug: "photo-print-birthday-cake", category: C.cakes, cost: 980, sell: 1890, stock: 3, sold: 57, type: "CRAFTED", tags: [T.bday] }),
   build({ id: "p9", sku: "CHOC-45", name: "Lindt Luxury Selection", slug: "lindt-luxury-selection", category: C.choc, cost: 1750, sell: 2450, stock: 21, sold: 64, zone: "NATIONWIDE", nature: "ARTIFICIAL", tags: [T.anniv, T.him] }),
   build({ id: "p10", sku: "CHOC-19", name: "Ferrero Bloom Chocolate Bouquet", slug: "ferrero-bloom-bouquet", category: C.choc, cost: 1400, sell: 1850, offer: 1350, stock: 8, sold: 39, zone: "NATIONWIDE", tags: [T.love, T.her] }),
@@ -202,14 +202,14 @@ export interface DemoAddon {
   active: boolean;
 }
 export const DEMO_ADDONS: DemoAddon[] = [
-  { id: "a1", name: "Premium greeting card", sku: "ADD-CARD", image: "linear-gradient(150deg,#EFD9F8,#DFC0F2)", pricePaisa: 15000, discountType: "NONE", discountValue: 0, stockQty: null, active: true },
-  { id: "a2", name: "Luxury gift wrap", sku: "ADD-WRAP", image: "linear-gradient(150deg,#EBDDF4,#D6BEEB)", pricePaisa: 10000, discountType: "NONE", discountValue: 0, stockQty: null, active: true },
-  { id: "a3", name: "Delivery video", sku: "ADD-VIDEO", image: "linear-gradient(150deg,#E9E4F4,#D3C9EC)", pricePaisa: 20000, discountType: "PERCENT", discountValue: 25, stockQty: null, active: true },
-  { id: "a4", name: "Glass vase", sku: "ADD-VASE", image: "linear-gradient(150deg,#E8EEF0,#C4D3D8)", pricePaisa: 45000, discountType: "NONE", discountValue: 0, stockQty: 14, active: true },
-  { id: "a5", name: "Teddy bear — 12 inch", sku: "ADD-TEDDY", image: "linear-gradient(150deg,#F6E9D8,#EDD4B0)", pricePaisa: 55000, discountType: "FLAT", discountValue: 5000, stockQty: 6, active: true },
-  { id: "a6", name: "Scented candle", sku: "ADD-CANDLE", image: "linear-gradient(150deg,#F3EEE6,#DCD1BE)", pricePaisa: 35000, discountType: "NONE", discountValue: 0, stockQty: 0, active: false },
-  { id: "a7", name: "Balloon set", sku: "ADD-BALN", image: "linear-gradient(150deg,#F9EAF3,#F0CBE2)", pricePaisa: 40000, discountType: "NONE", discountValue: 0, stockQty: 11, active: true },
-  { id: "a8", name: "Chocolate box — 9 pcs", sku: "ADD-CHOC", image: "linear-gradient(150deg,#F1E0D5,#E5C4AE)", pricePaisa: 38000, discountType: "NONE", discountValue: 0, stockQty: 9, active: true },
+  { id: "a1", name: "Premium greeting card", sku: "ADD-CARD", image: "linear-gradient(150deg,var(--a-solid),var(--a-solid))", pricePaisa: 15000, discountType: "NONE", discountValue: 0, stockQty: null, active: true },
+  { id: "a2", name: "Luxury gift wrap", sku: "ADD-WRAP", image: "linear-gradient(150deg,var(--a-solid),var(--a-solid))", pricePaisa: 10000, discountType: "NONE", discountValue: 0, stockQty: null, active: true },
+  { id: "a3", name: "Delivery video", sku: "ADD-VIDEO", image: "linear-gradient(150deg,var(--a-solid),var(--a-solid))", pricePaisa: 20000, discountType: "PERCENT", discountValue: 25, stockQty: null, active: true },
+  { id: "a4", name: "Glass vase", sku: "ADD-VASE", image: "linear-gradient(150deg,var(--f-ok),var(--f-ok))", pricePaisa: 45000, discountType: "NONE", discountValue: 0, stockQty: 14, active: true },
+  { id: "a5", name: "Teddy bear — 12 inch", sku: "ADD-TEDDY", image: "linear-gradient(150deg,var(--f-warn),var(--f-warn))", pricePaisa: 55000, discountType: "FLAT", discountValue: 5000, stockQty: 6, active: true },
+  { id: "a6", name: "Scented candle", sku: "ADD-CANDLE", image: "linear-gradient(150deg,var(--f-warn),var(--f-warn))", pricePaisa: 35000, discountType: "NONE", discountValue: 0, stockQty: 0, active: false },
+  { id: "a7", name: "Balloon set", sku: "ADD-BALN", image: "linear-gradient(150deg,var(--o-solid),var(--o-solid))", pricePaisa: 40000, discountType: "NONE", discountValue: 0, stockQty: 11, active: true },
+  { id: "a8", name: "Chocolate box — 9 pcs", sku: "ADD-CHOC", image: "linear-gradient(150deg,var(--f-warn),var(--f-warn))", pricePaisa: 38000, discountType: "NONE", discountValue: 0, stockQty: 9, active: true },
 ];
 
 /** a named set of add-ons — "Birthday add-ons", "Anniversary add-ons" */

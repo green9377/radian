@@ -143,22 +143,22 @@ const INLINE_ADDONS: Record<string, { name: string; pricePaisa: number; bg: stri
   "svc-premium-card": {
     name: "Premium Card",
     pricePaisa: 15000,
-    bg: "linear-gradient(150deg,#EFD9F8,#DFC0F2)",
+    bg: "linear-gradient(150deg,var(--a-solid),var(--a-solid))",
   },
   "svc-luxury-wrap": {
     name: "Luxury Wrap",
     pricePaisa: 10000,
-    bg: "linear-gradient(150deg,#EBDDF4,#D6BEEB)",
+    bg: "linear-gradient(150deg,var(--a-solid),var(--a-solid))",
   },
   "svc-delivery-video": {
     name: "Delivery Video",
     pricePaisa: 20000,
-    bg: "linear-gradient(150deg,#E9E4F4,#D3C9EC)",
+    bg: "linear-gradient(150deg,var(--a-solid),var(--a-solid))",
   },
   "svc-glass-vase": {
     name: "Glass Vase",
     pricePaisa: 45000,
-    bg: "linear-gradient(150deg,#E9E4F4,#D3C9EC)",
+    bg: "linear-gradient(150deg,var(--a-solid),var(--a-solid))",
   },
 };
 
@@ -235,12 +235,12 @@ export interface Offer {
 }
 
 export const OFFERS: Offer[] = [
-  { logo: "bKash", color: "#E2136E", text: "Assured cashback up to ৳300 paying with bKash", note: "T&C*" },
-  { logo: "Nagad", color: "#F5811F", text: "Get up to ৳150 cashback on Nagad payment", note: "T&C*" },
-  { logo: "RAD", color: "#470066", text: "Flat 15% off on orders above ৳1,499 — first-time customers", code: "NEW15" },
+  { logo: "bKash", color: "var(--t-orchid)", text: "Assured cashback up to ৳300 paying with bKash", note: "T&C*" },
+  { logo: "Nagad", color: "var(--t-warn)", text: "Get up to ৳150 cashback on Nagad payment", note: "T&C*" },
+  { logo: "RAD", color: "var(--t-accent)", text: "Flat 15% off on orders above ৳1,499 — first-time customers", code: "NEW15" },
   // ⚠️ সংখ্যা এখানে লিখো না — _data/promo.ts থেকে আসে, নইলে Cart-এর
   // progress bar আর এই লাইন আলাদা সংখ্যা দেখাবে।
-  { logo: "🌙", color: "#CF43EA", text: freeDeliveryOfferText(), note: "Auto-applied" },
+  { logo: "🌙", color: "var(--t-orchid)", text: freeDeliveryOfferText(), note: "Auto-applied" },
 ];
 
 /* ─────────────────── VARIANT GROUPS ───────────────────
@@ -255,27 +255,27 @@ const VARIANT_GROUPS: Record<
     kind: "colour",
     label: "Colour",
     items: [
-      { slug: "velvet-red-24-premium-roses", label: "Red", swatch: "#C4172B" },
-      { slug: "blush-romance-12-pink-roses", label: "Pink", swatch: "#E8A0C0" },
-      { slug: "midnight-rose-heart", label: "Deep Red", swatch: "#7A0C2E" },
-      { slug: "classic-red-6-roses-wrapped", label: "Classic Red", swatch: "#D93A4A" },
+      { slug: "velvet-red-24-premium-roses", label: "Red", swatch: "var(--f-bad)" },
+      { slug: "blush-romance-12-pink-roses", label: "Pink", swatch: "var(--o-solid)" },
+      { slug: "midnight-rose-heart", label: "Deep Red", swatch: "var(--o-solid)" },
+      { slug: "classic-red-6-roses-wrapped", label: "Classic Red", swatch: "var(--f-bad)" },
     ],
   },
   lilies: {
     kind: "colour",
     label: "Colour",
     items: [
-      { slug: "blush-lily-and-rose-box", label: "Blush", swatch: "#EEC3D2" },
-      { slug: "white-lily-peace-vase", label: "White", swatch: "#F4F1EC" },
+      { slug: "blush-lily-and-rose-box", label: "Blush", swatch: "var(--o-solid)" },
+      { slug: "white-lily-peace-vase", label: "White", swatch: "var(--f-warn)" },
     ],
   },
   seasonal: {
     kind: "colour",
     label: "Colour",
     items: [
-      { slug: "pastel-mixed-bloom-box", label: "Pastel", swatch: "#E7D3F2" },
-      { slug: "sunrise-gerbera-basket", label: "Sunrise", swatch: "#F2A03D" },
-      { slug: "golden-sunflower-cheer", label: "Golden", swatch: "#E9B923" },
+      { slug: "pastel-mixed-bloom-box", label: "Pastel", swatch: "var(--a-solid)" },
+      { slug: "sunrise-gerbera-basket", label: "Sunrise", swatch: "var(--f-warn)" },
+      { slug: "golden-sunflower-cheer", label: "Golden", swatch: "var(--f-warn)" },
     ],
   },
   /* Flavour — colour-এর মতোই আলাদা product, শুধু pill-এ ছবি দেখায় */
@@ -283,11 +283,11 @@ const VARIANT_GROUPS: Record<
     kind: "flavour",
     label: "Flavour",
     items: [
-      { slug: "black-forest-classic", label: "Black Forest", swatch: "linear-gradient(160deg,#F0E2D8,#DCC0AC)" },
-      { slug: "red-velvet-cream-cheese", label: "Red Velvet", swatch: "linear-gradient(160deg,#F7E0E4,#E7BAC3)" },
-      { slug: "vanilla-butter-cream-1kg", label: "Vanilla", swatch: "linear-gradient(160deg,#FBF3E4,#EFDFBE)" },
-      { slug: "fresh-fruit-gateau", label: "Fresh Fruit", swatch: "linear-gradient(160deg,#F2F0DC,#DCD9A8)" },
-      { slug: "chocolate-fudge-celebration-cake", label: "Chocolate Fudge", swatch: "linear-gradient(160deg,#E8D8CE,#D3B49E)" },
+      { slug: "black-forest-classic", label: "Black Forest", swatch: "linear-gradient(160deg,var(--f-warn),var(--f-warn))" },
+      { slug: "red-velvet-cream-cheese", label: "Red Velvet", swatch: "linear-gradient(160deg,var(--f-bad),var(--f-bad))" },
+      { slug: "vanilla-butter-cream-1kg", label: "Vanilla", swatch: "linear-gradient(160deg,var(--f-warn),var(--f-warn))" },
+      { slug: "fresh-fruit-gateau", label: "Fresh Fruit", swatch: "linear-gradient(160deg,var(--f-warn),var(--f-warn))" },
+      { slug: "chocolate-fudge-celebration-cake", label: "Chocolate Fudge", swatch: "linear-gradient(160deg,var(--f-warn),var(--f-warn))" },
     ],
   },
 };
@@ -317,7 +317,7 @@ const CAT_META: Record<ProductCategory, { label: string; slug: string }> = {
   giftboxes: { label: "Gift Boxes", slug: "gift-boxes" },
 };
 
-const GREY = "linear-gradient(150deg,#EFE4F7,#DDC9EC)";
+const GREY = "linear-gradient(150deg,var(--a-solid),var(--a-solid))";
 
 /** ৫০ টাকার ঘরে round — display-only, Ecommerce lock হলে API দেবে */
 function round50(paisa: number): number {
@@ -390,9 +390,9 @@ const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
     ],
     bundles: () =>
       bundleSet("Just Flowers", [
-        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,#F1E0D5,#E5C4AE)", best: true },
-        { id: "cake", label: "+ Cake", add: CAKE, bg: "linear-gradient(150deg,#F3DCE4,#E7BFD0)" },
-        { id: "teddy", label: "+ Teddy", add: TEDDY, bg: "linear-gradient(150deg,#F6E9D8,#EDD4B0)" },
+        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,var(--f-warn),var(--f-warn))", best: true },
+        { id: "cake", label: "+ Cake", add: CAKE, bg: "linear-gradient(150deg,var(--o-solid),var(--o-solid))" },
+        { id: "teddy", label: "+ Teddy", add: TEDDY, bg: "linear-gradient(150deg,var(--f-warn),var(--f-warn))" },
       ]),
     bundleHint: "most people add chocolates",
     addonTabs: ["popular", "chocolates", "anniversary", "keepsakes"],
@@ -449,9 +449,9 @@ const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
     ],
     bundles: () =>
       bundleSet("Just Cake", [
-        { id: "roses", label: "+ 6 Roses", add: ROSES6, bg: "linear-gradient(150deg,#F3DCE4,#E7BFD0)", best: true },
-        { id: "balloons", label: "+ Balloons", add: BALLOONS, bg: "linear-gradient(150deg,#F6E9D8,#EDD4B0)" },
-        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,#F1E0D5,#E5C4AE)" },
+        { id: "roses", label: "+ 6 Roses", add: ROSES6, bg: "linear-gradient(150deg,var(--o-solid),var(--o-solid))", best: true },
+        { id: "balloons", label: "+ Balloons", add: BALLOONS, bg: "linear-gradient(150deg,var(--f-warn),var(--f-warn))" },
+        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,var(--f-warn),var(--f-warn))" },
       ]),
     bundleHint: "cake + roses is the classic combo",
     addonTabs: ["popular", "birthday", "chocolates", "keepsakes"],
@@ -514,9 +514,9 @@ const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
     ],
     bundles: () =>
       bundleSet("Just Balloons", [
-        { id: "cake", label: "+ Cake", add: CAKE, bg: "linear-gradient(150deg,#F3DCE4,#E7BFD0)", best: true },
-        { id: "roses", label: "+ 6 Roses", add: ROSES6, bg: "linear-gradient(150deg,#F3DCE4,#E7BFD0)" },
-        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,#F1E0D5,#E5C4AE)" },
+        { id: "cake", label: "+ Cake", add: CAKE, bg: "linear-gradient(150deg,var(--o-solid),var(--o-solid))", best: true },
+        { id: "roses", label: "+ 6 Roses", add: ROSES6, bg: "linear-gradient(150deg,var(--o-solid),var(--o-solid))" },
+        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,var(--f-warn),var(--f-warn))" },
       ]),
     bundleHint: "balloons + cake = the whole birthday",
     addonTabs: ["popular", "birthday", "chocolates", "keepsakes"],
@@ -565,9 +565,9 @@ const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
     ],
     bundles: () =>
       bundleSet("Just Chocolates", [
-        { id: "roses", label: "+ 6 Roses", add: ROSES6, bg: "linear-gradient(150deg,#F3DCE4,#E7BFD0)", best: true },
-        { id: "teddy", label: "+ Teddy", add: TEDDY, bg: "linear-gradient(150deg,#F6E9D8,#EDD4B0)" },
-        { id: "card", label: "+ Premium Card", add: 15000, bg: "linear-gradient(150deg,#EFD9F8,#DFC0F2)" },
+        { id: "roses", label: "+ 6 Roses", add: ROSES6, bg: "linear-gradient(150deg,var(--o-solid),var(--o-solid))", best: true },
+        { id: "teddy", label: "+ Teddy", add: TEDDY, bg: "linear-gradient(150deg,var(--f-warn),var(--f-warn))" },
+        { id: "card", label: "+ Premium Card", add: 15000, bg: "linear-gradient(150deg,var(--a-solid),var(--a-solid))" },
       ]),
     bundleHint: "chocolates + roses is the classic pairing",
     addonTabs: ["popular", "chocolates", "anniversary", "keepsakes"],
@@ -609,9 +609,9 @@ const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
     ],
     bundles: () =>
       bundleSet("Just the Box", [
-        { id: "flowers", label: "+ Flowers", add: ROSES6, bg: "linear-gradient(150deg,#F3DCE4,#E7BFD0)", best: true },
-        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,#F1E0D5,#E5C4AE)" },
-        { id: "card", label: "+ Premium Card", add: 15000, bg: "linear-gradient(150deg,#EFD9F8,#DFC0F2)" },
+        { id: "flowers", label: "+ Flowers", add: ROSES6, bg: "linear-gradient(150deg,var(--o-solid),var(--o-solid))", best: true },
+        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,var(--f-warn),var(--f-warn))" },
+        { id: "card", label: "+ Premium Card", add: 15000, bg: "linear-gradient(150deg,var(--a-solid),var(--a-solid))" },
       ]),
     bundleHint: "adding flowers doubles the reaction",
     addonTabs: ["popular", "chocolates", "keepsakes", "anniversary"],
@@ -650,9 +650,9 @@ const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
     ],
     bundles: () =>
       bundleSet("Standard Combo", [
-        { id: "balloons", label: "+ Balloons", add: BALLOONS, bg: "linear-gradient(150deg,#F6E9D8,#EDD4B0)", best: true },
-        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,#F1E0D5,#E5C4AE)" },
-        { id: "teddy", label: "+ Teddy", add: TEDDY, bg: "linear-gradient(150deg,#F3DCE4,#E7BFD0)" },
+        { id: "balloons", label: "+ Balloons", add: BALLOONS, bg: "linear-gradient(150deg,var(--f-warn),var(--f-warn))", best: true },
+        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,var(--f-warn),var(--f-warn))" },
+        { id: "teddy", label: "+ Teddy", add: TEDDY, bg: "linear-gradient(150deg,var(--o-solid),var(--o-solid))" },
       ]),
     bundleHint: "balloons turn it into a full surprise",
     addonTabs: ["popular", "birthday", "chocolates", "keepsakes"],
@@ -701,9 +701,9 @@ const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
     ],
     bundles: () =>
       bundleSet("Standard Pot", [
-        { id: "ceramic", label: "+ Ceramic Pot", add: 40000, bg: "linear-gradient(150deg,#E9E4F4,#D3C9EC)", best: true },
-        { id: "card", label: "+ Premium Card", add: 15000, bg: "linear-gradient(150deg,#EFD9F8,#DFC0F2)" },
-        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,#F1E0D5,#E5C4AE)" },
+        { id: "ceramic", label: "+ Ceramic Pot", add: 40000, bg: "linear-gradient(150deg,var(--a-solid),var(--a-solid))", best: true },
+        { id: "card", label: "+ Premium Card", add: 15000, bg: "linear-gradient(150deg,var(--a-solid),var(--a-solid))" },
+        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,var(--f-warn),var(--f-warn))" },
       ]),
     bundleHint: "the ceramic pot is what makes it a gift",
     addonTabs: ["popular", "keepsakes", "chocolates", "anniversary"],
@@ -746,9 +746,9 @@ const TEMPLATES: Record<ProductCategory, DetailTemplate> = {
     ],
     bundles: () =>
       bundleSet("Just the Gift", [
-        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,#F1E0D5,#E5C4AE)", best: true },
-        { id: "roses", label: "+ 6 Roses", add: ROSES6, bg: "linear-gradient(150deg,#F3DCE4,#E7BFD0)" },
-        { id: "wrap", label: "+ Luxury Wrap", add: 10000, bg: "linear-gradient(150deg,#EBDDF4,#D6BEEB)" },
+        { id: "choco", label: "+ Chocolates", add: CHOCO, bg: "linear-gradient(150deg,var(--f-warn),var(--f-warn))", best: true },
+        { id: "roses", label: "+ 6 Roses", add: ROSES6, bg: "linear-gradient(150deg,var(--o-solid),var(--o-solid))" },
+        { id: "wrap", label: "+ Luxury Wrap", add: 10000, bg: "linear-gradient(150deg,var(--a-solid),var(--a-solid))" },
       ]),
     bundleHint: "chocolates make it feel complete",
     addonTabs: ["popular", "keepsakes", "chocolates", "birthday"],

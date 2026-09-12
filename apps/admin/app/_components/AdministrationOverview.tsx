@@ -39,14 +39,14 @@ import Icon from "./Icon";
 /*  The brand family, one hue per section — same idea as the sidebar accents.
     soft = card wash · text = numbers and icons · grad = chips and bars  */
 const B = {
-  purple:   { soft: "#f5eafb", text: "#7a2ea8", grad: "linear-gradient(135deg,#8a2bb0,#cf43ea)" },
-  orchid:   { soft: "#fbeafb", text: "#a021b8", grad: "linear-gradient(135deg,#a021b8,#e07be0)" },
-  pink:     { soft: "#fdeef7", text: "#c2419a", grad: "linear-gradient(135deg,#c2419a,#f08bc7)" },
-  lavender: { soft: "#f1edfb", text: "#6d5bb8", grad: "linear-gradient(135deg,#6d5bb8,#a794e8)" },
-  rosegold: { soft: "#fbf0ec", text: "#b76e79", grad: "linear-gradient(135deg,#b76e79,#e0a8a0)" },
-  emerald:  { soft: "#e6f7ef", text: "#12a172", grad: "linear-gradient(135deg,#12a172,#5ec9a8)" },
-  amber:    { soft: "#fdf3e2", text: "#b07818", grad: "linear-gradient(135deg,#d99a2b,#e9c46a)" },
-  rose:     { soft: "#fdecea", text: "#c0392b", grad: "linear-gradient(135deg,#c0392b,#e87a6e)" },
+  purple:   { soft: "var(--s-accent)", text: "var(--t-accent)", grad: "linear-gradient(135deg,var(--a-solid),var(--o-solid))" },
+  orchid:   { soft: "var(--s-orchid)", text: "var(--t-orchid)", grad: "linear-gradient(135deg,var(--o-solid),var(--o-solid))" },
+  pink:     { soft: "var(--s-orchid)", text: "var(--t-orchid)", grad: "linear-gradient(135deg,var(--o-solid),var(--o-solid))" },
+  lavender: { soft: "var(--s-accent)", text: "var(--t-info)", grad: "linear-gradient(135deg,var(--f-info),var(--f-info))" },
+  rosegold: { soft: "var(--s-bad)", text: "var(--t-gold)", grad: "linear-gradient(135deg,var(--t-gold),var(--t-gold))" },
+  emerald:  { soft: "var(--s-ok)", text: "var(--t-ok)", grad: "linear-gradient(135deg,var(--f-ok),var(--f-ok))" },
+  amber:    { soft: "var(--s-warn)", text: "var(--t-warn)", grad: "linear-gradient(135deg,var(--f-warn),var(--f-warn))" },
+  rose:     { soft: "var(--s-bad)", text: "var(--t-bad)", grad: "linear-gradient(135deg,var(--f-bad),var(--f-bad))" },
 } as const;
 type Hue = keyof typeof B;
 
@@ -125,7 +125,7 @@ export default function AdministrationOverview() {
     <div className={WRAP}>
       {/* ── hero — the brand itself, purple flowing into rose gold ───── */}
       <div className="rounded-[22px] px-6 py-6 mb-5 relative overflow-hidden"
-        style={{ background: "linear-gradient(120deg,#470066 0%,#8a2bb0 42%,#cf43ea 74%,#b76e79 100%)" }}>
+        style={{ background: "linear-gradient(120deg,var(--a-solid) 0%,var(--a-solid) 42%,var(--o-solid) 74%,var(--t-gold) 100%)" }}>
         <div className="absolute -right-10 -top-14 w-[220px] h-[220px] rounded-full opacity-20"
           style={{ background: "radial-gradient(circle,#fff,transparent 70%)" }} />
         <div className="flex items-center gap-3.5 relative">
@@ -165,13 +165,13 @@ export default function AdministrationOverview() {
             segments={[
               { value: withPin.length, color: B.purple.text },
               { value: noPin.length, color: B.amber.text },
-              { value: pendingInvites.length, color: "#d8d2e2" },
+              { value: pendingInvites.length, color: "var(--t-accent)" },
             ]}
             centerTop={people ? String(active.length) : "—"} />}
           legend={<>
             <LegendDot color={B.purple.text}>{withPin.length} with PIN</LegendDot>
             <LegendDot color={B.amber.text}>{noPin.length} no PIN</LegendDot>
-            <LegendDot color="#d8d2e2">{pendingInvites.length} invited</LegendDot>
+            <LegendDot color="var(--t-accent)">{pendingInvites.length} invited</LegendDot>
           </>} />
         <VizTile hue="orchid" icon="eye" label="Signed in now" href="/settings/audit?tab=sessions"
           viz={
@@ -280,7 +280,7 @@ export default function AdministrationOverview() {
             </>
           )}
           {company?.licence && (
-            <div className="mt-3 pt-3 border-t border-[#f6e9e4] flex items-center gap-2 text-[12.5px]">
+            <div className="mt-3 pt-3 border-t border-[var(--l-bad)] flex items-center gap-2 text-[12.5px]">
               <span className="text-body-soft">Trade licence</span>
               <span className="text-[11.5px] font-bold px-2.5 py-1 rounded-full"
                 style={{
@@ -304,14 +304,14 @@ export default function AdministrationOverview() {
               segments={[
                 { value: liveKeys.length, color: B.emerald.text },
                 { value: connected.length - liveKeys.length, color: B.amber.text },
-                { value: Math.max(0, services.length - connected.length), color: "#e4def0" },
+                { value: Math.max(0, services.length - connected.length), color: "var(--t-accent)" },
               ]}
               centerTop={services.length ? String(connected.length) : "—"}
               centerBottom="connected" />
             <div className="flex flex-col gap-1.5">
               <LegendDot color={B.emerald.text}>{liveKeys.length} live</LegendDot>
               <LegendDot color={B.amber.text}>{connected.length - liveKeys.length} sandbox</LegendDot>
-              <LegendDot color="#e4def0">{Math.max(0, services.length - connected.length)} off</LegendDot>
+              <LegendDot color="var(--t-accent)">{Math.max(0, services.length - connected.length)} off</LegendDot>
             </div>
           </div>
           <div className="grid gap-1.5 sm:grid-cols-2">
@@ -319,12 +319,12 @@ export default function AdministrationOverview() {
             {services.map((s) => (
               <Link key={s.kind + s.provider} href="/administration/integrations"
                 className="flex items-center gap-2 rounded-[10px] px-2.5 py-2 transition-colors"
-                style={{ background: s.isEnabled ? B.orchid.soft : "#faf8fc" }}>
+                style={{ background: s.isEnabled ? B.orchid.soft : "var(--s-accent)" }}>
                 <span className="w-[9px] h-[9px] rounded-full shrink-0"
-                  style={{ background: s.isEnabled ? (s.isLive ? B.emerald.text : B.amber.text) : "#d8d2e2" }} />
+                  style={{ background: s.isEnabled ? (s.isLive ? B.emerald.text : B.amber.text) : "var(--s-accent)" }} />
                 <span className="text-[12.5px] font-medium text-body truncate">{s.label}</span>
                 <span className="ml-auto text-[10.5px] font-bold uppercase tracking-wide shrink-0"
-                  style={{ color: s.isEnabled ? (s.isLive ? B.emerald.text : B.amber.text) : "#a99fbb" }}>
+                  style={{ color: s.isEnabled ? (s.isLive ? B.emerald.text : B.amber.text) : "var(--t-accent)" }}>
                   {s.isEnabled ? (s.isLive ? "live" : "sandbox") : "off"}
                 </span>
               </Link>
@@ -369,7 +369,7 @@ export default function AdministrationOverview() {
                 <span className="inline-block text-[11.5px] font-semibold px-2.5 py-1 rounded-full transition-colors"
                   style={s.exists
                     ? { background: B.emerald.soft, color: B.emerald.text }
-                    : { background: "#f4f1f8", color: "#a99fbb" }}>
+                    : { background: "var(--s-accent)", color: "var(--t-accent)" }}>
                   {s.label}
                 </span>
               </Link>
@@ -484,7 +484,7 @@ export function AdminSoon({ slug }: { slug: string }) {
   return (
     <div className={WRAP}>
       <div className="rounded-[18px] px-6 py-5 mb-5"
-        style={{ background: "linear-gradient(120deg,#470066,#8a2bb0 60%,#cf43ea)" }}>
+        style={{ background: "linear-gradient(120deg,var(--a-solid),var(--a-solid) 60%,var(--o-solid))" }}>
         <div className="text-[10.5px] font-bold tracking-[0.18em] uppercase text-white/70">Administration</div>
         <h1 className="font-display text-[24px] text-white leading-tight m-0">{part?.label ?? "Not built yet"}</h1>
       </div>
@@ -493,7 +493,7 @@ export function AdminSoon({ slug }: { slug: string }) {
         <p className="text-[13px] text-body leading-relaxed mt-3">
           {part?.what ?? "This screen is planned but not built."}
         </p>
-        <div className="mt-5 pt-4 border-t border-[#f0edf5]">
+        <div className="mt-5 pt-4 border-t border-[var(--l-accent)]">
           <Link href="/administration" className="text-[12.5px] text-purple font-semibold">
             ← Back to Administration
           </Link>

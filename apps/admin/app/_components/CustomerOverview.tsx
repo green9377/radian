@@ -61,9 +61,9 @@ function nextOccurrence(raw: string): { label: string; daysAway: number } | null
 }
 
 const OCC_META: Record<string, { label: string; c: string; icon: string }> = {
-  BIRTHDAY: { label: "Birthday", c: "#c01fd8", icon: "sparkle" },
-  ANNIVERSARY: { label: "Anniversary", c: "#d64fa0", icon: "heart" },
-  CUSTOM: { label: "Special day", c: "#3182c9", icon: "star" },
+  BIRTHDAY: { label: "Birthday", c: "var(--t-orchid)", icon: "sparkle" },
+  ANNIVERSARY: { label: "Anniversary", c: "var(--t-orchid)", icon: "heart" },
+  CUSTOM: { label: "Special day", c: "var(--t-info)", icon: "star" },
 };
 
 function Chip({ icon, c, sm }: { icon: string; c: string; sm?: boolean }) {
@@ -207,27 +207,27 @@ export default function CustomerOverview() {
   }, [all]);
 
   const HERO = [
-    { l: "Total customers", v: String(s.total), sub: `${s.withRecipients} have a recipient book`, icon: "user", c: "#7a2ea8", bg: "#f5eafb" },
-    { l: "Repeat buyers", v: String(s.repeat), sub: `${s.repeatRate}% repeat rate`, icon: "heart", c: "#12a172", bg: "#e6f7ef" },
-    { l: "Yet to order", v: String(s.neu), sub: "signed up, no order yet", icon: "bolt", c: "#c07a2b", bg: "#fbf1e2" },
-    { l: "Ordering from abroad", v: String(s.abroad), sub: "NRB — gifts sent home", icon: "truck", c: "#3182c9", bg: "#e9f1fb" },
-    { l: "Lifetime value", v: takaShort(s.ltv), sub: `${takaShort(s.avgLtv)} avg per customer`, icon: "cash", c: "#c01fd8", bg: "#fbe8fe" },
-    { l: "Gift network", v: String(s.recipients), sub: `${s.avgRecipients} recipients per customer`, icon: "pin", c: "#c0567a", bg: "#fbecf1" },
+    { l: "Total customers", v: String(s.total), sub: `${s.withRecipients} have a recipient book`, icon: "user", c: "var(--t-accent)", bg: "var(--s-accent)" },
+    { l: "Repeat buyers", v: String(s.repeat), sub: `${s.repeatRate}% repeat rate`, icon: "heart", c: "var(--t-ok)", bg: "var(--s-ok)" },
+    { l: "Yet to order", v: String(s.neu), sub: "signed up, no order yet", icon: "bolt", c: "var(--t-warn)", bg: "var(--s-warn)" },
+    { l: "Ordering from abroad", v: String(s.abroad), sub: "NRB — gifts sent home", icon: "truck", c: "var(--t-info)", bg: "var(--s-info)" },
+    { l: "Lifetime value", v: takaShort(s.ltv), sub: `${takaShort(s.avgLtv)} avg per customer`, icon: "cash", c: "var(--t-orchid)", bg: "var(--s-orchid)" },
+    { l: "Gift network", v: String(s.recipients), sub: `${s.avgRecipients} recipients per customer`, icon: "pin", c: "var(--t-orchid)", bg: "var(--s-orchid)" },
   ];
 
   const SECOND = [
-    { l: "Avg order value", v: takaShort(s.aov), icon: "bag", c: "#7a2ea8" },
-    { l: "Orders (all time)", v: String(s.orders), icon: "bag", c: "#8a6aa3" },
-    { l: "Avg orders / customer", v: s.avgOrders, icon: "layers", c: "#3182c9" },
-    { l: "One-time buyers", v: String(s.onetime), icon: "user", c: "#d98a0f" },
-    { l: "WhatsApp verified", v: s.verifiedPct + "%", icon: "shield", c: "#12a172" },
-    { l: "Favourite recipients", v: String(s.favourites), icon: "star", c: "#b76e79" },
-    { l: "Dhaka recipients", v: String(s.dhaka), icon: "pin", c: "#8b3fb0" },
-    { l: "Nationwide recipients", v: String(s.nationwide), icon: "truck", c: "#b5642f" },
-    { l: "No recipient yet", v: String(s.noRecipients), icon: "hash", c: "#8a6aa3" },
-    { l: "Quiet 90+ days", v: String(s.churn), icon: "clock", c: s.churn > 0 ? "#c0392b" : "#12a172" },
-    { l: "Unverified phone", v: String(s.noPhoneVerify), icon: "phone", c: s.noPhoneVerify > 0 ? "#d98a0f" : "#12a172" },
-    { l: "Blocked", v: String(s.blocked), icon: "trash", c: s.blocked > 0 ? "#c0392b" : "#12a172" },
+    { l: "Avg order value", v: takaShort(s.aov), icon: "bag", c: "var(--t-accent)" },
+    { l: "Orders (all time)", v: String(s.orders), icon: "bag", c: "var(--t-accent)" },
+    { l: "Avg orders / customer", v: s.avgOrders, icon: "layers", c: "var(--t-info)" },
+    { l: "One-time buyers", v: String(s.onetime), icon: "user", c: "var(--t-warn)" },
+    { l: "WhatsApp verified", v: s.verifiedPct + "%", icon: "shield", c: "var(--t-ok)" },
+    { l: "Favourite recipients", v: String(s.favourites), icon: "star", c: "var(--t-gold)" },
+    { l: "Dhaka recipients", v: String(s.dhaka), icon: "pin", c: "var(--t-accent)" },
+    { l: "Nationwide recipients", v: String(s.nationwide), icon: "truck", c: "var(--t-warn)" },
+    { l: "No recipient yet", v: String(s.noRecipients), icon: "hash", c: "var(--t-accent)" },
+    { l: "Quiet 90+ days", v: String(s.churn), icon: "clock", c: s.churn > 0 ? "var(--t-bad)" : "var(--t-ok)" },
+    { l: "Unverified phone", v: String(s.noPhoneVerify), icon: "phone", c: s.noPhoneVerify > 0 ? "var(--t-warn)" : "var(--t-ok)" },
+    { l: "Blocked", v: String(s.blocked), icon: "trash", c: s.blocked > 0 ? "var(--t-bad)" : "var(--t-ok)" },
   ];
 
   const mixTotal = s.total || 1;
@@ -269,7 +269,7 @@ export default function CustomerOverview() {
       </div>
 
       {error && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {error}. Is the API (:4000) running?{" "}
           <button className="underline" onClick={load}>Retry</button>
         </div>
@@ -307,7 +307,7 @@ export default function CustomerOverview() {
         <div className="lg:col-span-2 bg-white border border-lavender-deep rounded-[18px] p-5 shadow-soft">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <div className="flex items-center gap-2.5">
-              <Chip icon="sparkle" c="#cf43ea" />
+              <Chip icon="sparkle" c="var(--t-orchid)" />
               <div>
                 <div className="font-display text-[16px] text-purple leading-tight">Upcoming occasions · next 30 days</div>
                 <div className="text-[13px] text-body-soft">from every recipient book</div>
@@ -326,7 +326,7 @@ export default function CustomerOverview() {
                 const meta = OCC_META[u.occ.type] ?? OCC_META.CUSTOM;
                 const soon = u.daysAway <= 7;
                 return (
-                  <div key={i} className={"flex items-center gap-3 border rounded-[12px] px-3 py-2.5 " + (soon ? "bg-[#fff8fd] border-[#f0cdef]" : "bg-lavender/40 border-lavender-deep")}>
+                  <div key={i} className={"flex items-center gap-3 border rounded-[12px] px-3 py-2.5 " + (soon ? "bg-[var(--s-orchid)] border-[var(--l-orchid)]" : "bg-lavender/40 border-lavender-deep")}>
                     <Chip icon={meta.icon} c={meta.c} sm />
                     <div className="flex-1 min-w-0">
                       <div className="text-[13.5px] font-medium text-purple truncate">
@@ -341,7 +341,7 @@ export default function CustomerOverview() {
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-[13px] font-semibold" style={{ color: meta.c }}>{u.label}</div>
-                      <div className={"text-[11px] font-bold px-2 py-0.5 rounded-full mt-0.5 " + (soon ? "bg-[#fdecf5] text-[#c0287f]" : "bg-lavender-deep/60 text-body-soft")}>
+                      <div className={"text-[11px] font-bold px-2 py-0.5 rounded-full mt-0.5 " + (soon ? "bg-[var(--s-orchid)] text-[var(--t-orchid)]" : "bg-lavender-deep/60 text-body-soft")}>
                         {u.daysAway === 0 ? "today" : u.daysAway === 1 ? "tomorrow" : `in ${u.daysAway}d`}
                       </div>
                     </div>
@@ -355,21 +355,21 @@ export default function CustomerOverview() {
         {/* customer mix */}
         <div className="bg-white border border-lavender-deep rounded-[18px] p-5 shadow-soft">
           <div className="flex items-center gap-2.5 mb-3">
-            <Chip icon="grid" c="#8b3fb0" />
+            <Chip icon="grid" c="var(--t-accent)" />
             <div>
               <div className="font-display text-[16px] text-purple leading-tight">Customer mix</div>
               <div className="text-[13px] text-body-soft">derived from order count</div>
             </div>
           </div>
           <div className="flex h-[14px] rounded-full overflow-hidden mb-4 mt-1 bg-lavender">
-            <div style={{ width: `${(s.repeat / mixTotal) * 100}%`, background: "linear-gradient(90deg,#12a172,#3fce9a)" }} />
-            <div style={{ width: `${(s.onetime / mixTotal) * 100}%`, background: "linear-gradient(90deg,#d98a0f,#f0b95a)" }} />
-            <div style={{ width: `${(s.neu / mixTotal) * 100}%`, background: "linear-gradient(90deg,#470066,#cf43ea)" }} />
+            <div style={{ width: `${(s.repeat / mixTotal) * 100}%`, background: "linear-gradient(90deg,var(--f-ok),var(--f-ok))" }} />
+            <div style={{ width: `${(s.onetime / mixTotal) * 100}%`, background: "linear-gradient(90deg,var(--f-warn),var(--f-warn))" }} />
+            <div style={{ width: `${(s.neu / mixTotal) * 100}%`, background: "linear-gradient(90deg,var(--a-solid),var(--o-solid))" }} />
           </div>
           {[
-            { l: "Repeat (2+ orders)", v: s.repeat, c: "#12a172" },
-            { l: "One-time", v: s.onetime, c: "#d98a0f" },
-            { l: "Yet to order", v: s.neu, c: "#8b3fb0" },
+            { l: "Repeat (2+ orders)", v: s.repeat, c: "var(--f-ok)" },
+            { l: "One-time", v: s.onetime, c: "var(--t-warn)" },
+            { l: "Yet to order", v: s.neu, c: "var(--t-accent)" },
           ].map((r) => (
             <div key={r.l} className="flex items-center justify-between py-1.5 text-[13px]">
               <span className="flex items-center gap-2 text-body">
@@ -385,7 +385,7 @@ export default function CustomerOverview() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 2xl:gap-5 mb-4">
         <div className="bg-white border border-lavender-deep rounded-[18px] p-5 shadow-soft">
           <div className="flex items-center gap-2.5 mb-3">
-            <Chip icon="hash" c="#c01fd8" />
+            <Chip icon="hash" c="var(--t-orchid)" />
             <div>
               <div className="font-display text-[16px] text-purple leading-tight">Segments</div>
               <div className="text-[13px] text-body-soft">customers per tag</div>
@@ -396,7 +396,7 @@ export default function CustomerOverview() {
 
         <div className="bg-white border border-lavender-deep rounded-[18px] p-5 shadow-soft">
           <div className="flex items-center gap-2.5 mb-3">
-            <Chip icon="truck" c="#3182c9" />
+            <Chip icon="truck" c="var(--t-info)" />
             <div>
               <div className="font-display text-[16px] text-purple leading-tight">Where they order from</div>
               <div className="text-[13px] text-body-soft">customer country</div>
@@ -407,7 +407,7 @@ export default function CustomerOverview() {
 
         <div className="bg-white border border-lavender-deep rounded-[18px] p-5 shadow-soft">
           <div className="flex items-center gap-2.5 mb-3">
-            <Chip icon="heart" c="#d64fa0" />
+            <Chip icon="heart" c="var(--t-orchid)" />
             <div>
               <div className="font-display text-[16px] text-purple leading-tight">Who they gift to</div>
               <div className="text-[13px] text-body-soft">recipient relationship</div>
@@ -422,7 +422,7 @@ export default function CustomerOverview() {
         <div className="lg:col-span-2 bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-lavender-deep">
             <div className="flex items-center gap-2.5">
-              <Chip icon="star" c="#b76e79" />
+              <Chip icon="star" c="var(--t-gold)" />
               <div className="font-display text-[16px] text-purple">Top customers by lifetime value</div>
             </div>
             <Link href="/customers/list" className="text-[12.5px] font-semibold text-orchid">All customers →</Link>
@@ -472,7 +472,7 @@ export default function CustomerOverview() {
         {/* needs attention */}
         <div className="bg-white border border-lavender-deep rounded-[18px] p-5 shadow-soft">
           <div className="flex items-center gap-2.5 mb-3">
-            <Chip icon="clock" c="#d98a0f" />
+            <Chip icon="clock" c="var(--t-warn)" />
             <div>
               <div className="font-display text-[16px] text-purple leading-tight">Needs attention</div>
               <div className="text-[13px] text-body-soft">bought before, quiet 90+ days</div>
@@ -483,7 +483,7 @@ export default function CustomerOverview() {
               <Link
                 key={c.id}
                 href={`/customers/${c.id}`}
-                className="flex items-center gap-3 border border-[#f0d9a8] bg-[#fffaf0] rounded-[12px] px-3 py-2.5 hover:border-orchid"
+                className="flex items-center gap-3 border border-[var(--l-warn)] bg-[var(--s-warn)] rounded-[12px] px-3 py-2.5 hover:border-orchid"
               >
                 <span
                   className="w-[30px] h-[30px] rounded-full grid place-items-center text-white text-[11px] font-medium font-display shrink-0"

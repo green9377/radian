@@ -130,7 +130,7 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 /* ---------------- atoms ---------------- */
 function DemoPill() {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.05em] bg-[#fff8ec] text-[#b45309] border border-[#f0c88a] px-2.5 py-1 rounded-full">
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.05em] bg-[var(--s-warn)] text-[var(--t-warn)] border border-[var(--l-warn)] px-2.5 py-1 rounded-full">
       <Icon name="bolt" size={12} /> Demo data
     </span>
   );
@@ -191,21 +191,21 @@ function groupTint(id: string, alpha: number) {
 
 /* one colour per rule condition, so the rules list is readable at a glance */
 const FIELD_COLOR: Record<string, string> = {
-  OCCASION: "#cf43ea",
-  CATEGORY: "#0f7d55",
-  ZONE: "#3b5bdb",
-  PRODUCT_TYPE: "#b45309",
+  OCCASION: "var(--t-orchid)",
+  CATEGORY: "var(--t-ok)",
+  ZONE: "var(--t-info)",
+  PRODUCT_TYPE: "var(--t-warn)",
 };
 
 const HUE: Record<string, string> = {
-  purple: "from-[#470066] to-[#7d2ea8]",
-  orchid: "from-[#cf43ea] to-[#9c1fb8]",
-  rose: "from-[#b76e79] to-[#e09aa4]",
-  green: "from-[#0f7d55] to-[#37a97c]",
-  amber: "from-[#b45309] to-[#e29a34]",
-  red: "from-[#c0392b] to-[#e0705f]",
-  blue: "from-[#3b5bdb] to-[#7793f7]",
-  teal: "from-[#0b7285] to-[#3aa8bd]",
+  purple: "from-[var(--a-solid)] to-[var(--a-solid)]",
+  orchid: "from-[var(--o-solid)] to-[var(--a-solid)]",
+  rose: "from-[var(--t-gold)] to-[var(--f-bad)]",
+  green: "from-[var(--f-ok)] to-[var(--f-ok)]",
+  amber: "from-[var(--f-warn)] to-[var(--f-warn)]",
+  red: "from-[var(--f-bad)] to-[var(--f-bad)]",
+  blue: "from-[var(--f-info)] to-[var(--f-info)]",
+  teal: "from-[var(--f-ok)] to-[var(--f-ok)]",
 };
 /*  rule 17 — the ONE count-card shape (Occasions & Tags / Brands / Categories):
     coloured spine, icon in a tinted square, number large. The old Kpi was a
@@ -213,14 +213,14 @@ const HUE: Record<string, string> = {
     here. Hues map into the brand family — red and amber stay warnings,
     because "selling at a loss" must look like one.  */
 const KPI_TONE: Record<string, { c: string; edge: string; bg: string }> = {
-  purple: { c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8" },
-  orchid: { c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc" },
-  rose:   { c: "#a4566a", edge: "#c9788a", bg: "#fbeef0" },
-  green:  { c: "#0f7d55", edge: "#37a97c", bg: "#e9f6f0" },
-  teal:   { c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9" },
-  blue:   { c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9" },
-  amber:  { c: "#b45309", edge: "#e29a34", bg: "#fdf3e4" },
-  red:    { c: "#c0392b", edge: "#e0705f", bg: "#fdeeec" },
+  purple: { c: "var(--t-accent)", edge: "var(--t-accent)", bg: "var(--t-accent)" },
+  orchid: { c: "var(--t-accent)", edge: "var(--l-orchid)", bg: "var(--s-accent)" },
+  rose:   { c: "var(--t-gold)", edge: "var(--l-gold)", bg: "var(--s-bad)" },
+  green:  { c: "var(--t-ok)", edge: "var(--l-ok)", bg: "var(--s-ok)" },
+  teal:   { c: "var(--t-accent)", edge: "var(--l-accent)", bg: "var(--s-accent)" },
+  blue:   { c: "var(--t-accent)", edge: "var(--l-accent)", bg: "var(--s-accent)" },
+  amber:  { c: "var(--t-warn)", edge: "var(--l-warn)", bg: "var(--s-warn)" },
+  red:    { c: "var(--t-bad)", edge: "var(--l-bad)", bg: "var(--s-bad)" },
 };
 function Kpi({
   n,
@@ -507,7 +507,7 @@ function MiniList({
     <div className="flex flex-col gap-2.5">
       {rows.map((p) => {
         const t = tone?.(p);
-        const c = t === "danger" ? "text-[#c0392b]" : t === "warn" ? "text-[#b45309]" : "text-purple";
+        const c = t === "danger" ? "text-[var(--t-bad)]" : t === "warn" ? "text-[var(--t-warn)]" : "text-purple";
         return (
           <Link
             key={p.id}
@@ -564,10 +564,10 @@ function Attn({
   tone: "warn" | "danger";
 }) {
   const c = !n
-    ? "text-[#0f7d55] bg-[#e8f6ef] border-[#bfe3d2]"
+    ? "text-[var(--t-ok)] bg-[var(--s-ok)] border-[var(--l-ok)]"
     : tone === "danger"
-      ? "text-[#c0392b] bg-[#fdecea] border-[#e0a1a1]"
-      : "text-[#b45309] bg-[#fff8ec] border-[#f0c88a]";
+      ? "text-[var(--t-bad)] bg-[var(--s-bad)] border-[var(--l-bad)]"
+      : "text-[var(--t-warn)] bg-[var(--s-warn)] border-[var(--l-warn)]";
   return (
     <Link href={href} className={`border rounded-[14px] px-4 py-3.5 block hover:opacity-80 ${c}`}>
       <div className="text-[24px] font-medium font-display leading-none">{n}</div>
@@ -707,17 +707,17 @@ export function StockBoard() {
                       +
                     </button>
                     {p.stockQty <= 0 && (
-                      <span className="text-[11px] font-bold text-[#c0392b] ml-1">OUT</span>
+                      <span className="text-[11px] font-bold text-[var(--t-bad)] ml-1">OUT</span>
                     )}
                     {p.stockQty > 0 && p.stockQty <= 5 && (
-                      <span className="text-[11px] font-bold text-[#b45309] ml-1">LOW</span>
+                      <span className="text-[11px] font-bold text-[var(--t-warn)] ml-1">LOW</span>
                     )}
                   </div>
                 </td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() => patch(p.id, { showStock: !p.showStock })}
-                    className={`w-[38px] h-[22px] rounded-full relative transition-colors ${p.showStock ? "bg-[#0f7d55]" : "bg-[#cdbfda]"}`}
+                    className={`w-[38px] h-[22px] rounded-full relative transition-colors ${p.showStock ? "bg-[var(--s-ok)]" : "bg-[var(--s-accent)]"}`}
                   >
                     <span
                       className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white transition-all ${p.showStock ? "left-[18px]" : "left-[2px]"}`}
@@ -837,10 +837,10 @@ export function MarginBoard() {
               const c = noC
                 ? "text-body-soft"
                 : m < 0
-                  ? "text-[#c0392b]"
+                  ? "text-[var(--t-bad)]"
                   : pct < 20
-                    ? "text-[#b45309]"
-                    : "text-[#0f7d55]";
+                    ? "text-[var(--t-warn)]"
+                    : "text-[var(--t-ok)]";
               const bar = noC ? 0 : Math.max(0, Math.min(100, pct));
               return (
                 <tr key={p.id} className="hover:bg-lavender/70 border-t border-lavender-deep">
@@ -862,7 +862,7 @@ export function MarginBoard() {
                       <span className="text-[13px] text-body-soft">৳</span>
                       <input
                         className="ipt"
-                        style={{ width: 92, minHeight: 34, borderColor: noC ? "#f0c88a" : undefined }}
+                        style={{ width: 92, minHeight: 34, borderColor: noC ? "var(--l-warn)" : undefined }}
                         type="number"
                         placeholder="not set"
                         value={p.costPaisa ? Math.round(p.costPaisa / 100) : ""}
@@ -883,7 +883,7 @@ export function MarginBoard() {
                         onChange={(e) => typeLocal(p.id, { sellingPricePaisa: (Number(e.target.value) || 0) * 100 })}
                         onBlur={(e) => commit(p.id, { sellingPricePaisa: (Number(e.target.value) || 0) * 100 })}
                       />
-                      {saved === p.id && <span className="text-[#0f7d55]"><Icon name="check" size={15} /></span>}
+                      {saved === p.id && <span className="text-[var(--t-ok)]"><Icon name="check" size={15} /></span>}
                     </div>
                     <span className="text-[13px] text-body-soft">pays {formatTaka(p.offerPricePaisa)}</span>
                   </td>
@@ -893,7 +893,7 @@ export function MarginBoard() {
                   <td className="px-4 py-3">
                     <div className="h-[8px] rounded-full bg-lavender-deep/60 overflow-hidden">
                       <div
-                        className={`h-full rounded-full ${m < 0 ? "bg-[#c0392b]" : pct < 20 ? "bg-[#e29a34]" : "bg-[#0f7d55]"}`}
+                        className={`h-full rounded-full ${m < 0 ? "bg-[var(--s-bad)]" : pct < 20 ? "bg-[var(--s-warn)]" : "bg-[var(--s-ok)]"}`}
                         style={{ width: `${bar}%` }}
                       />
                     </div>
@@ -982,7 +982,7 @@ export function HealthBoard() {
                 return (
                   <span
                     key={c.key}
-                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${ok ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-[#fdecea] text-[#c0392b]"}`}
+                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${ok ? "bg-[var(--s-ok)] text-[var(--t-ok)]" : "bg-[var(--s-bad)] text-[var(--t-bad)]"}`}
                   >
                     {ok ? "✓" : "✕"} {c.label}
                   </span>
@@ -990,7 +990,7 @@ export function HealthBoard() {
               })}
             </div>
             <div
-              className={`text-[18px] font-display font-medium shrink-0 ${pct === 100 ? "text-[#0f7d55]" : pct >= 70 ? "text-[#b45309]" : "text-[#c0392b]"}`}
+              className={`text-[18px] font-display font-medium shrink-0 ${pct === 100 ? "text-[var(--t-ok)]" : pct >= 70 ? "text-[var(--t-warn)]" : "text-[var(--t-bad)]"}`}
             >
               {pct}%
             </div>
@@ -1209,9 +1209,9 @@ export function BulkActions() {
       {/* ---------- IMPORT / EXPORT ---------- */}
       <div className="grid lg:grid-cols-2 gap-4 mb-4">
         {/* download */}
-        <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5 border-t-[5px] border-t-[#0f7d55]">
+        <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5 border-t-[5px] border-t-[var(--l-ok)]">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[#0f7d55]"><Icon name="download" size={18} /></span>
+            <span className="text-[var(--t-ok)]"><Icon name="download" size={18} /></span>
             <h3 className="font-display text-[16px] text-purple m-0">Download</h3>
           </div>
           <p className="text-[13px] text-body-soft mt-0 mb-3.5">
@@ -1231,9 +1231,9 @@ export function BulkActions() {
         </div>
 
         {/* upload */}
-        <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5 border-t-[5px] border-t-[#3b5bdb]">
+        <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5 border-t-[5px] border-t-[var(--l-info)]">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[#3b5bdb]"><Icon name="upload" size={18} /></span>
+            <span className="text-[var(--t-info)]"><Icon name="upload" size={18} /></span>
             <h3 className="font-display text-[16px] text-purple m-0">Upload</h3>
           </div>
           <p className="text-[13px] text-body-soft mt-0 mb-3.5">
@@ -1246,7 +1246,7 @@ export function BulkActions() {
             <span className="text-[13px] text-body-soft">{importName || "no file chosen yet"}</span>
           </label>
           {importError && (
-            <p className="text-[12.5px] text-[#c0392b] mt-3 mb-0">{importError}</p>
+            <p className="text-[12.5px] text-[var(--t-bad)] mt-3 mb-0">{importError}</p>
           )}
         </div>
       </div>
@@ -1258,9 +1258,9 @@ export function BulkActions() {
             <div>
               <h3 className="font-display text-[16px] text-purple m-0">Check before saving</h3>
               <div className="text-[13px] text-body-soft mt-0.5">
-                <b className="text-[#0f7d55]">{okRows.length} ready</b>
-                {skipRows.length > 0 && <> · <b className="text-[#b45309]">{skipRows.length} nothing changed</b></>}
-                {badRows.length > 0 && <> · <b className="text-[#c0392b]">{badRows.length} SKU not found</b></>}
+                <b className="text-[var(--t-ok)]">{okRows.length} ready</b>
+                {skipRows.length > 0 && <> · <b className="text-[var(--t-warn)]">{skipRows.length} nothing changed</b></>}
+                {badRows.length > 0 && <> · <b className="text-[var(--t-bad)]">{badRows.length} SKU not found</b></>}
               </div>
             </div>
             <div className="flex gap-2.5">
@@ -1294,13 +1294,13 @@ export function BulkActions() {
                     <td className="px-4 py-2.5 text-purple">{r.product?.name ?? <span className="text-body-soft">not in catalog</span>}</td>
                     <td className="px-4 py-2.5">
                       {!r.product ? (
-                        <span className="text-[11.5px] bg-[#fdecea] text-[#c0392b] px-2 py-1 rounded-full">SKU not found — row skipped</span>
+                        <span className="text-[11.5px] bg-[var(--s-bad)] text-[var(--t-bad)] px-2 py-1 rounded-full">SKU not found — row skipped</span>
                       ) : r.changes.length === 0 ? (
                         <span className="text-[11.5px] bg-lavender text-body-soft px-2 py-1 rounded-full">nothing changed</span>
                       ) : (
                         <div className="flex flex-wrap gap-1.5">
                           {r.changes.map((c) => (
-                            <span key={c.field} className="text-[11.5px] bg-[#eef6fd] text-[#1e4e79] border border-[#b8d4ea] px-2 py-1 rounded-full">
+                            <span key={c.field} className="text-[11.5px] bg-[var(--s-info)] text-[var(--t-info)] border border-[var(--l-info)] px-2 py-1 rounded-full">
                               {c.field}: <s className="opacity-60">{c.from}</s> → <b>{c.to}</b>
                             </span>
                           ))}
@@ -1370,7 +1370,7 @@ export function BulkActions() {
         </div>
         {busy && <p className="text-[13px] text-body-soft mt-3 mb-0">Saving…</p>}
         {done && (
-          <p className="text-[12.5px] font-semibold text-[#0f7d55] mt-3 mb-0 inline-flex items-center gap-1.5">
+          <p className="text-[12.5px] font-semibold text-[var(--t-ok)] mt-3 mb-0 inline-flex items-center gap-1.5">
             <Icon name="check" size={15} /> {done}
           </p>
         )}
@@ -1437,7 +1437,7 @@ export function BulkActions() {
                   <td className="px-4 py-3">{formatTaka(p.offerPricePaisa)}</td>
                   <td className="px-4 py-3 text-body-soft">{p.zone === "DHAKA" ? "Dhaka" : "Nationwide"}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${p.isPublished ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-[#f0edf4] text-body-soft"}`}>
+                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${p.isPublished ? "bg-[var(--s-ok)] text-[var(--t-ok)]" : "bg-[var(--s-accent)] text-body-soft"}`}>
                       {p.isPublished ? "Published" : "Draft"}
                     </span>
                   </td>
@@ -1531,7 +1531,7 @@ function HexBox({ value, onCommit }: { value: string; onCommit: (hex: string) =>
   const ok = v.trim() === "" || /^#[0-9a-fA-F]{6}$/.test(v.trim());
   return (
     <input
-      className={"ipt w-full font-mono text-[12.5px]" + (ok ? "" : " !border-[#e0a1a1]")}
+      className={"ipt w-full font-mono text-[12.5px]" + (ok ? "" : " !border-[var(--l-bad)]")}
       style={{ minHeight: 34 }}
       placeholder="#e0203c"
       value={v}
@@ -1737,12 +1737,12 @@ export function VariantAttributes() {
   return (
     <div className={WRAP}>
       {img.err && (
-        <div className="mb-4 rounded-[12px] border border-[#f1c9c4] bg-[#fdf3f2] px-4 py-2.5 text-[13px] text-[#b42318]">
+        <div className="mb-4 rounded-[12px] border border-[var(--l-bad)] bg-[var(--s-bad)] px-4 py-2.5 text-[13px] text-[var(--t-bad)]">
           {img.err}
         </div>
       )}
       {saveErr && (
-        <div className="mb-4 rounded-[12px] border border-[#f1c9c4] bg-[#fdf3f2] px-4 py-2.5 text-[13px] text-[#b42318] flex items-center justify-between gap-3">
+        <div className="mb-4 rounded-[12px] border border-[var(--l-bad)] bg-[var(--s-bad)] px-4 py-2.5 text-[13px] text-[var(--t-bad)] flex items-center justify-between gap-3">
           <span className="font-semibold">{saveErr}</span>
           <button className="underline shrink-0 font-semibold" onClick={() => setSaveErr(null)}>Dismiss</button>
         </div>
@@ -1769,10 +1769,10 @@ export function VariantAttributes() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         {[
-          { l: "Lists", v: attrs.length, c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8", icon: "layers" },
-          { l: "Options", v: totalValues, c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc", icon: "grid" },
-          { l: "Colours", v: attrs.filter((a) => a.display === "SWATCH").reduce((s, a) => s + a.values.length, 0), c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "sparkle", tip: "Options on a colour list. These are what the shopper taps as swatches on a product page." },
-          { l: "Hidden", v: attrs.reduce((s, a) => s + a.values.filter((x) => !x.active).length, 0), c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "eye", tip: "Options switched off. They stay here and disappear from the product page." },
+          { l: "Lists", v: attrs.length, c: "var(--t-accent)", edge: "var(--l-accent)", bg: "var(--s-accent)", icon: "layers" },
+          { l: "Options", v: totalValues, c: "var(--t-accent)", edge: "var(--l-orchid)", bg: "var(--s-accent)", icon: "grid" },
+          { l: "Colours", v: attrs.filter((a) => a.display === "SWATCH").reduce((s, a) => s + a.values.length, 0), c: "var(--t-gold)", edge: "var(--l-gold)", bg: "var(--s-bad)", icon: "sparkle", tip: "Options on a colour list. These are what the shopper taps as swatches on a product page." },
+          { l: "Hidden", v: attrs.reduce((s, a) => s + a.values.filter((x) => !x.active).length, 0), c: "var(--t-accent)", edge: "var(--l-accent)", bg: "var(--s-accent)", icon: "eye", tip: "Options switched off. They stay here and disappear from the product page." },
         ].map((k, i) => (
           <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
             style={{ background: `linear-gradient(150deg,${k.bg},#ffffff 130%)` }}>
@@ -1794,7 +1794,7 @@ export function VariantAttributes() {
 
         {/* ── left: which list — the house chooser panel ── */}
         <div className="lg:sticky lg:top-4 self-start rounded-[18px] shadow-soft overflow-hidden"
-          style={{ background: "linear-gradient(168deg,#3b1152,#2a0b3d)" }}>
+          style={{ background: "linear-gradient(168deg,var(--a-solid),var(--a-solid))" }}>
           <div className="px-4 pt-4 pb-2.5 flex items-center gap-2">
             <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center text-white shrink-0" style={{ background: "rgba(255,255,255,.14)" }}>
               <Icon name="layers" size={14} />
@@ -1816,7 +1816,7 @@ export function VariantAttributes() {
                 >
                   <span
                     className="w-[30px] h-[30px] rounded-[9px] grid place-items-center shrink-0"
-                    style={on ? { background: "#6d3a9c", color: "#fff" } : { background: "rgba(255,255,255,.14)", color: "#fff" }}
+                    style={on ? { background: "var(--s-accent)", color: "#fff" } : { background: "rgba(255,255,255,.14)", color: "#fff" }}
                   >
                     <Icon name={a.display === "SWATCH" ? "sparkle" : a.display === "PHOTO" ? "photo" : "hash"} size={15} />
                   </span>
@@ -1881,7 +1881,7 @@ export function VariantAttributes() {
                    here (22 Aug 2026). Buttons in this house are bold and
                    clear: the live half carries the colour, an icon and a
                    shadow, so which mode is on reads across the room.  */}
-              <div className="inline-flex rounded-[12px] p-1 gap-1 ml-auto" style={{ background: "#f3ebf8", border: "1px solid #6d3a9c33" }}>
+              <div className="inline-flex rounded-[12px] p-1 gap-1 ml-auto" style={{ background: "var(--s-accent)", border: "1px solid #6d3a9c33" }}>
                 {(["SWATCH", "PHOTO", "TEXT"] as const).map((d) => {
                   const on = open.display === d;
                   return (
@@ -1891,8 +1891,8 @@ export function VariantAttributes() {
                       title={DISPLAY_HINT[d]}
                       className={`text-[13px] font-bold px-3.5 py-2 rounded-[9px] inline-flex items-center gap-2 transition-all ${on ? "text-white" : "hover:bg-white/70"}`}
                       style={on
-                        ? { background: "#6d3a9c", boxShadow: "0 3px 10px #6d3a9c55" }
-                        : { color: "#470066" }}
+                        ? { background: "var(--s-accent)", boxShadow: "0 3px 10px #6d3a9c55" }
+                        : { color: "var(--t-accent)" }}
                     >
                       <Icon name={d === "SWATCH" ? "sparkle" : d === "PHOTO" ? "photo" : "hash"} size={14} />
                       {DISPLAY_LABEL[d]}
@@ -1912,7 +1912,7 @@ export function VariantAttributes() {
                   setSelId(null);
                 }}
                 title="Delete this list"
-                className="w-9 h-9 grid place-items-center rounded-[10px] text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]"
+                className="w-9 h-9 grid place-items-center rounded-[10px] text-body-soft hover:text-[var(--t-bad)] hover:bg-[var(--s-bad)]"
               >
                 <Icon name="trash" size={15} />
               </button>
@@ -1933,12 +1933,12 @@ export function VariantAttributes() {
 
               <div className="divide-y divide-lavender-deep">
                 {open.values.map((val) => (
-                  <div key={val.id} className={vRowCls(open.display) + " py-2 " + (val.active ? "hover:bg-lavender/15" : "bg-[#faf7fc] opacity-70")}>
+                  <div key={val.id} className={vRowCls(open.display) + " py-2 " + (val.active ? "hover:bg-lavender/15" : "bg-[var(--s-accent)] opacity-70")}>
                     {open.display === "SWATCH" && (
                       <>
                         <label className="relative w-[52px] h-[34px] rounded-[9px] border border-lavender-deep cursor-pointer overflow-hidden"
                           title="Pick a colour"
-                          style={{ background: val.hex || "repeating-linear-gradient(45deg,#f3eef7,#f3eef7 5px,#e6dcee 5px,#e6dcee 10px)" }}>
+                          style={{ background: val.hex || "repeating-linear-gradient(45deg,var(--a-solid),var(--a-solid) 5px,var(--a-solid) 5px,var(--a-solid) 10px)" }}>
                           <input type="color" className="absolute inset-0 opacity-0 cursor-pointer"
                             value={/^#[0-9a-fA-F]{6}$/.test(val.hex ?? "") ? val.hex : "#cccccc"}
                             onChange={(e) => setValue(open.id, val.id, { hex: e.target.value })} />
@@ -1954,7 +1954,7 @@ export function VariantAttributes() {
                       <>
                         <label className="relative w-[52px] h-[38px] rounded-[9px] border border-lavender-deep cursor-pointer overflow-hidden bg-cover bg-center grid place-items-center text-body-soft"
                           title={val.imageUrl ? "Replace the photo" : "Upload a photo"}
-                          style={val.imageUrl ? { backgroundImage: `url(${val.imageUrl})` } : { background: "#f7f2fb" }}>
+                          style={val.imageUrl ? { backgroundImage: `url(${val.imageUrl})` } : { background: "var(--s-accent)" }}>
                           <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden"
                             disabled={img.busyId === val.id}
                             onChange={(e) => {
@@ -1974,7 +1974,7 @@ export function VariantAttributes() {
                           {val.imageUrl && (
                             <button title="Remove photo"
                               onClick={() => setValue(open.id, val.id, { imageUrl: "" })}
-                              className="shrink-0 w-[30px] h-[30px] grid place-items-center rounded-[8px] text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]">
+                              className="shrink-0 w-[30px] h-[30px] grid place-items-center rounded-[8px] text-body-soft hover:text-[var(--t-bad)] hover:bg-[var(--s-bad)]">
                               ×
                             </button>
                           )}
@@ -2002,7 +2002,7 @@ export function VariantAttributes() {
                           }),
                         )
                       }
-                      className="justify-self-end w-[30px] h-[30px] grid place-items-center rounded-[8px] text-body-soft hover:text-[#c0392b] hover:bg-[#fdecee]"
+                      className="justify-self-end w-[30px] h-[30px] grid place-items-center rounded-[8px] text-body-soft hover:text-[var(--t-bad)] hover:bg-[var(--s-bad)]"
                       title="Delete"
                     >
                       <Icon name="trash" size={14} />
@@ -2352,7 +2352,7 @@ export function UpgradeProducts() {
                         {linked && (
                           <div className="flex items-center gap-1.5 flex-wrap mt-1">
                             <span
-                              className="text-[10px] font-bold uppercase tracking-[0.04em] px-1.5 py-0.5 rounded-full bg-[#eef6fd] text-[#1e4e79] border border-[#b8d4ea]"
+                              className="text-[10px] font-bold uppercase tracking-[0.04em] px-1.5 py-0.5 rounded-full bg-[var(--s-info)] text-[var(--t-info)] border border-[var(--l-info)]"
                               title="On the website this only switches the option — it never opens its own page"
                             >
                               option only · no own page
@@ -2426,7 +2426,7 @@ export function UpgradeProducts() {
                         )}
                       </div>
                       <div
-                        className={`text-[13.5px] font-semibold ${noCost ? "text-[#b45309]" : margin < 0 ? "text-[#c0392b]" : mPct < 20 ? "text-[#b45309]" : "text-[#0f7d55]"}`}
+                        className={`text-[13.5px] font-semibold ${noCost ? "text-[var(--t-warn)]" : margin < 0 ? "text-[var(--t-bad)]" : mPct < 20 ? "text-[var(--t-warn)]" : "text-[var(--t-ok)]"}`}
                       >
                         {noCost ? (
                           <span className="text-[11px]">no cost</span>
@@ -2440,7 +2440,7 @@ export function UpgradeProducts() {
                       <button
                         onClick={() => set(u.id, { active: !u.active })}
                         title={u.active ? "Turn off" : "Turn on"}
-                        className={`w-[38px] h-[22px] rounded-full relative transition-colors justify-self-start ${u.active ? "bg-[#0f7d55]" : "bg-[#cdbfda]"}`}
+                        className={`w-[38px] h-[22px] rounded-full relative transition-colors justify-self-start ${u.active ? "bg-[var(--s-ok)]" : "bg-[var(--s-accent)]"}`}
                       >
                         <span
                           className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white transition-all ${u.active ? "left-[18px]" : "left-[2px]"}`}
@@ -2449,7 +2449,7 @@ export function UpgradeProducts() {
                       <button
                         onClick={() => { if (confirm(`Remove "${u.name}" as an upgrade? The product stays in your catalog.`)) unlink(u); }}
                         title="Remove as upgrade (the product itself stays)"
-                        className="border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#e0a1a1] rounded-[10px] w-[38px] h-[38px] grid place-items-center justify-self-end"
+                        className="border border-lavender-deep bg-white text-body-soft hover:text-[var(--t-bad)] hover:border-[var(--l-bad)] rounded-[10px] w-[38px] h-[38px] grid place-items-center justify-self-end"
                       >
                         <Icon name="trash" size={16} />
                       </button>
@@ -2558,13 +2558,13 @@ export function UpgradeProducts() {
                   key={i}
                   className="rounded-[16px] border-[1.5px] shadow-soft px-5 py-4"
                   style={{
-                    borderColor: tone === "good" ? "#9fd8bf" : "#f0b8b0",
-                    background: tone === "good" ? "linear-gradient(135deg,#f2fbf7,#ffffff)" : "linear-gradient(135deg,#fdf2f0,#ffffff)",
+                    borderColor: tone === "good" ? "var(--l-ok)" : "var(--l-bad)",
+                    background: tone === "good" ? "linear-gradient(135deg,var(--f-ok),#ffffff)" : "linear-gradient(135deg,var(--f-bad),#ffffff)",
                   }}
                 >
                   <div
                     className="text-[11px] font-bold uppercase tracking-[0.05em] mb-1.5"
-                    style={{ color: tone === "good" ? "#0f7d55" : "#c0392b" }}
+                    style={{ color: tone === "good" ? "var(--t-ok)" : "var(--t-bad)" }}
                   >
                     {tone === "good" ? "Best performer" : "Weakest link"}
                   </div>
@@ -2582,7 +2582,7 @@ export function UpgradeProducts() {
                       </div>
                     ))}
                   </div>
-                  <div className="text-[12px] mt-3" style={{ color: tone === "good" ? "#0f7d55" : "#c0392b" }}>
+                  <div className="text-[12px] mt-3" style={{ color: tone === "good" ? "var(--t-ok)" : "var(--t-bad)" }}>
                     {tone === "good"
                       ? "Copy this pattern — same kind of jump on your other products."
                       : "Start here: shrink the jump, or show the upgrade better on the page."}
@@ -2597,9 +2597,9 @@ export function UpgradeProducts() {
             <div className="font-display text-[15px] text-purple">Price jump vs. how many take it</div>
             <div className="relative h-[180px] border-l border-b border-lavender-deep ml-9 mr-2">
               {/* bands */}
-              <span className="absolute inset-y-0 left-0 w-[45%] bg-[#e8f6ef]/70" />
-              <span className="absolute inset-y-0 left-[45%] w-[30%] bg-[#fff8ec]/70" />
-              <span className="absolute inset-y-0 left-[75%] right-0 bg-[#fdecea]/70" />
+              <span className="absolute inset-y-0 left-0 w-[45%] bg-[var(--s-ok)]/70" />
+              <span className="absolute inset-y-0 left-[45%] w-[30%] bg-[var(--s-warn)]/70" />
+              <span className="absolute inset-y-0 left-[75%] right-0 bg-[var(--s-bad)]/70" />
               {perfRows.map((r) => {
                 const jump = r.basePrice > 0 ? ((r.pays - r.basePrice) / r.basePrice) * 100 : 0;
                 const x = Math.min(97, (jump / 150) * 100);
@@ -2614,7 +2614,7 @@ export function UpgradeProducts() {
                       top: `${y}%`,
                       width: Math.max(12, Math.min(30, 12 + r.stat.upgradeOrders)),
                       height: Math.max(12, Math.min(30, 12 + r.stat.upgradeOrders)),
-                      background: r.takePct >= 18 ? "#37a97c" : r.takePct >= 8 ? "#e29a34" : "#e0705f",
+                      background: r.takePct >= 18 ? "var(--s-ok)" : r.takePct >= 8 ? "var(--s-warn)" : "var(--s-bad)",
                     }}
                   />
                 );
@@ -2624,7 +2624,7 @@ export function UpgradeProducts() {
               <span className="absolute -left-9 top-1/2 -translate-y-1/2 text-[13px] text-body-soft rotate-[-90deg] origin-center">take</span>
             </div>
             <div className="flex justify-between text-[13px] text-body-soft ml-9 mr-2 mt-1">
-              <span>+0%</span><span className="text-[#0f7d55]">sweet spot</span><span className="text-[#b45309]">risky</span><span className="text-[#c0392b]">too steep</span><span>+150%</span>
+              <span>+0%</span><span className="text-[var(--t-ok)]">sweet spot</span><span className="text-[var(--t-warn)]">risky</span><span className="text-[var(--t-bad)]">too steep</span><span>+150%</span>
             </div>
             <div className="text-[13px] text-body-soft mt-2">Bubble size = how many orders took it.</div>
           </div>
@@ -2639,13 +2639,13 @@ export function UpgradeProducts() {
                   <span className="text-[13px] text-purple font-medium w-[170px] shrink-0 truncate">{nameOf(b.baseId)}</span>
                   <span className="flex h-[22px] rounded-[8px] overflow-hidden flex-1 min-w-[180px] bg-lavender">
                     <span
-                      className="grid place-items-center text-[11px] font-bold text-white bg-[#c6b0dd]"
+                      className="grid place-items-center text-[11px] font-bold text-white bg-[var(--s-accent)]"
                       style={{ width: `${b.total ? (b.baseOrders / b.total) * 100 : 100}%` }}
                     >
                       {b.baseOrders > 0 && b.baseOrders}
                     </span>
                     <span
-                      className="grid place-items-center text-[11px] font-bold text-white bg-gradient-to-r from-[#7d2ea8] to-[#cf43ea]"
+                      className="grid place-items-center text-[11px] font-bold text-white bg-gradient-to-r from-[var(--a-solid)] to-[var(--o-solid)]"
                       style={{ width: `${b.total ? (b.upgradeOrders / b.total) * 100 : 0}%` }}
                     >
                       {b.upgradeOrders > 0 && b.upgradeOrders}
@@ -2661,8 +2661,8 @@ export function UpgradeProducts() {
               {byBase.length === 0 && <div className="text-[13px] text-body-soft">No upgrades yet.</div>}
             </div>
             <div className="flex gap-4 mt-4 text-[13px] text-body-soft">
-              <span className="inline-flex items-center gap-1.5"><span className="w-[10px] h-[10px] rounded-full bg-[#c6b0dd]" /> took the standard</span>
-              <span className="inline-flex items-center gap-1.5"><span className="w-[10px] h-[10px] rounded-full bg-[#9c1fb8]" /> moved up</span>
+              <span className="inline-flex items-center gap-1.5"><span className="w-[10px] h-[10px] rounded-full bg-[var(--s-accent)]" /> took the standard</span>
+              <span className="inline-flex items-center gap-1.5"><span className="w-[10px] h-[10px] rounded-full bg-[var(--s-accent)]" /> moved up</span>
             </div>
           </div>
 
@@ -2697,18 +2697,18 @@ export function UpgradeProducts() {
                           <div className="flex items-center gap-2">
                             <span className="h-[7px] rounded-full bg-lavender flex-1 min-w-[60px] overflow-hidden">
                               <span
-                                className={`block h-full rounded-full ${takePct < 8 ? "bg-[#e0705f]" : takePct < 18 ? "bg-[#e29a34]" : "bg-[#37a97c]"}`}
+                                className={`block h-full rounded-full ${takePct < 8 ? "bg-[var(--s-bad)]" : takePct < 18 ? "bg-[var(--s-warn)]" : "bg-[var(--s-ok)]"}`}
                                 style={{ width: `${Math.min(100, takePct * 2.5)}%` }}
                               />
                             </span>
                             <b className="text-purple w-[38px] text-right">{takePct}%</b>
-                            <span className={`text-[11px] w-[42px] ${delta >= 0 ? "text-[#0f7d55]" : "text-[#c0392b]"}`}>
+                            <span className={`text-[11px] w-[42px] ${delta >= 0 ? "text-[var(--t-ok)]" : "text-[var(--t-bad)]"}`}>
                               {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}
                             </span>
                           </div>
                         </td>
                         <td className="px-3 py-3 text-right">
-                          <b className={jump > 90 ? "text-[#c0392b]" : "text-purple"}>+{jump}%</b>
+                          <b className={jump > 90 ? "text-[var(--t-bad)]" : "text-purple"}>+{jump}%</b>
                           <div className="text-[13px] text-body-soft">{formatTaka(basePrice)} → {formatTaka(pays)}</div>
                         </td>
                         <td className="px-3 py-3 text-right">{stat.baseOrders}</td>
@@ -2718,11 +2718,11 @@ export function UpgradeProducts() {
                           {!up.active ? (
                             <span className="text-[11.5px] bg-lavender text-body-soft px-2 py-1 rounded-full">Off</span>
                           ) : takePct < 8 ? (
-                            <span className="text-[11.5px] bg-[#fdecea] text-[#c0392b] px-2 py-1 rounded-full">
+                            <span className="text-[11.5px] bg-[var(--s-bad)] text-[var(--t-bad)] px-2 py-1 rounded-full">
                               {jump > 90 ? "Jump too big" : "Explain it better"}
                             </span>
                           ) : takePct >= 30 ? (
-                            <span className="text-[11.5px] bg-[#e8f6ef] text-[#0f7d55] px-2 py-1 rounded-full">Strong — price it higher</span>
+                            <span className="text-[11.5px] bg-[var(--s-ok)] text-[var(--t-ok)] px-2 py-1 rounded-full">Strong — price it higher</span>
                           ) : (
                             <span className="text-[11.5px] bg-lavender text-purple px-2 py-1 rounded-full">Doing fine</span>
                           )}
@@ -2769,7 +2769,7 @@ export function UpgradeProducts() {
     add-on card was missed.
 
     These two adapters are now the only place the CSS and the URL meet.  */
-const ADDON_TILE = "linear-gradient(150deg,#EFE4F7,#DDC9EC)";
+const ADDON_TILE = "linear-gradient(150deg,var(--a-solid),var(--a-solid))";
 /** `url(https://x) center/cover` → `https://x`; anything else → null */
 const bareUrl = (css: string | null | undefined): string | null => {
   if (!css) return null;
@@ -2965,7 +2965,7 @@ export function AddonsView() {
 
   async function addBlank() {
     const blank = {
-      name: "", sku: "", image: "linear-gradient(150deg,#EFE4F7,#DDC9EC)",
+      name: "", sku: "", image: "linear-gradient(150deg,var(--a-solid),var(--a-solid))",
       pricePaisa: 0, discountType: "NONE" as DiscountKind, discountValue: 0,
       stockQty: null, active: true,
     };
@@ -3205,7 +3205,7 @@ export function AddonsView() {
   return (
     <div className={WRAP}>
       {img.err && (
-        <div className="mb-4 rounded-[12px] border border-[#f1c9c4] bg-[#fdf3f2] px-4 py-2.5 text-[13px] text-[#b42318]">
+        <div className="mb-4 rounded-[12px] border border-[var(--l-bad)] bg-[var(--s-bad)] px-4 py-2.5 text-[13px] text-[var(--t-bad)]">
           {img.err}
         </div>
       )}
@@ -3220,8 +3220,8 @@ export function AddonsView() {
       </div>
 
       {problems.length > 0 && (
-        <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#fff8ec] px-4 py-3 mb-5 text-[12.5px] text-[#7a4b09]">
-          <span className="text-[#b45309] shrink-0"><Icon name="bolt" size={18} /></span>
+        <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[var(--l-warn)] bg-[var(--s-warn)] px-4 py-3 mb-5 text-[12.5px] text-[var(--t-warn)]">
+          <span className="text-[var(--t-warn)] shrink-0"><Icon name="bolt" size={18} /></span>
           <div>
             <b>Needs a look:</b> {problems.join(" · ")}.
           </div>
@@ -3384,7 +3384,7 @@ export function AddonsView() {
               <button
                 disabled={bulkBusy}
                 onClick={() => void runBulk("DELETE")}
-                className="ml-auto text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white/15 hover:bg-[#c0392b]"
+                className="ml-auto text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white/15 hover:bg-[var(--s-bad)]"
               >
                 Move to bin
               </button>
@@ -3402,7 +3402,7 @@ export function AddonsView() {
                   key={a.id}
                   className={`group bg-white rounded-[16px] shadow-soft overflow-hidden border transition-all hover:shadow-lift hover:-translate-y-[2px] ${a.active ? "border-orchid-mid/60" : "border-lavender-deep opacity-70"}`}
                 >
-                  <span className={`block h-[4px] ${a.active ? "bg-gradient-to-r from-[#7d2ea8] via-[#cf43ea] to-[#e6a8f5]" : "bg-lavender-deep"}`} />
+                  <span className={`block h-[4px] ${a.active ? "bg-gradient-to-r from-[var(--a-solid)] via-[var(--o-solid)] to-[var(--a-solid)]" : "bg-lavender-deep"}`} />
                   {/*  DEC-PRD-042 — the tick that puts this card in a bulk
                       action. Top-left of the photo so it never fights the
                       OFFER / OUT badges on the right.  */}
@@ -3459,7 +3459,7 @@ export function AddonsView() {
                         </span>
                       )}
                       {out && (
-                        <span className="absolute top-2 right-2 bg-[#c0392b] text-white text-[11px] font-bold px-2 py-0.5 rounded-full pointer-events-none">
+                        <span className="absolute top-2 right-2 bg-[var(--s-bad)] text-white text-[11px] font-bold px-2 py-0.5 rounded-full pointer-events-none">
                           OUT
                         </span>
                       )}
@@ -3480,7 +3480,7 @@ export function AddonsView() {
                         <span className="block text-[10px] font-semibold uppercase tracking-[0.04em] text-body-soft mb-1">SKU</span>
                         <input
                           className="ipt font-mono"
-                          style={{ minHeight: 32, fontSize: 11.5, borderColor: isDupeSku(a.sku) ? "#e0705f" : undefined }}
+                          style={{ minHeight: 32, fontSize: 11.5, borderColor: isDupeSku(a.sku) ? "var(--l-bad)" : undefined }}
                           title={isDupeSku(a.sku) ? "Another add-on already uses this SKU" : undefined}
                           placeholder="ADD-CARD"
                           value={a.sku}
@@ -3512,13 +3512,13 @@ export function AddonsView() {
                     <label className="mt-2.5 flex items-center gap-2 cursor-pointer select-none">
                       <input
                         type="checkbox"
-                        className="w-[15px] h-[15px] accent-[#0e7a3d]"
+                        className="w-[15px] h-[15px] accent-[var(--t-ok)]"
                         checked={a.isFree === true}
                         onChange={(e) => set(a.id, { isFree: e.target.checked, ...(e.target.checked ? { pricePaisa: 0 } : {}) })}
                       />
                       <span className="text-[12px] font-bold text-purple">Free — no charge</span>
                       {!a.isFree && a.pricePaisa <= 0 && (
-                        <span className="text-[11px] font-semibold text-[#b45309]">
+                        <span className="text-[11px] font-semibold text-[var(--t-warn)]">
                           ৳0 and not free — hidden from the website
                         </span>
                       )}
@@ -3570,7 +3570,7 @@ export function AddonsView() {
                           </span>
                           <button
                             onClick={() => set(a.id, { itemId: null, itemLabel: null })}
-                            className="text-[12px] text-body-soft hover:text-[#c0392b] px-1"
+                            className="text-[12px] text-body-soft hover:text-[var(--t-bad)] px-1"
                           >
                             Unlink
                           </button>
@@ -3622,7 +3622,7 @@ export function AddonsView() {
                     </div>
 
                     <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-lavender-deep">
-                      <span className="inline-flex items-baseline gap-1.5 bg-gradient-to-r from-[#f3e6fb] to-[#fbe7f4] border border-orchid-mid/50 rounded-[10px] px-2.5 py-1">
+                      <span className="inline-flex items-baseline gap-1.5 bg-gradient-to-r from-[var(--a-solid)] to-[var(--o-solid)] border border-orchid-mid/50 rounded-[10px] px-2.5 py-1">
                         <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-body-soft">Adds</span>
                         <b className="text-[16px] font-display text-purple leading-none">+{formatTaka(pays)}</b>
                       </span>
@@ -3634,14 +3634,14 @@ export function AddonsView() {
                         onClick={() => set(a.id, { active: !a.active })}
                         className="inline-flex items-center gap-2 text-[13px] text-body-soft"
                       >
-                        <span className={`w-[36px] h-[21px] rounded-full relative transition-colors ${a.active ? "bg-[#0f7d55]" : "bg-[#cdbfda]"}`}>
+                        <span className={`w-[36px] h-[21px] rounded-full relative transition-colors ${a.active ? "bg-[var(--s-ok)]" : "bg-[var(--s-accent)]"}`}>
                           <span className={`absolute top-[2px] w-[17px] h-[17px] rounded-full bg-white transition-all ${a.active ? "left-[17px]" : "left-[2px]"}`} />
                         </span>
                         {a.active ? "Live" : "Hidden"}
                       </button>
                       <button
                         onClick={() => deleteAddon(a.id)}
-                        className="text-body-soft hover:text-[#c0392b]"
+                        className="text-body-soft hover:text-[var(--t-bad)]"
                         title="Delete"
                       >
                         <Icon name="trash" size={16} />
@@ -3773,7 +3773,7 @@ export function AddonsView() {
                       </button>
                       <button
                         onClick={() => deleteGroup(g.id)}
-                        className="border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#e0a1a1] rounded-[10px] w-[34px] h-[34px] grid place-items-center"
+                        className="border border-lavender-deep bg-white text-body-soft hover:text-[var(--t-bad)] hover:border-[var(--l-bad)] rounded-[10px] w-[34px] h-[34px] grid place-items-center"
                       >
                         <Icon name="trash" size={15} />
                       </button>
@@ -3793,7 +3793,7 @@ export function AddonsView() {
                           <span className="w-[26px] h-[26px] rounded-[7px]" style={{ background: a.image }} />
                           <span className="text-[12.5px] font-medium text-purple">{a.name || "untitled"}</span>
                           <span className="text-[13px] text-body-soft">+{formatTaka(paysOf(a))}</span>
-                          <button onClick={() => toggleInGroup(g.id, id)} className="text-body-soft hover:text-[#c0392b]">x</button>
+                          <button onClick={() => toggleInGroup(g.id, id)} className="text-body-soft hover:text-[var(--t-bad)]">x</button>
                         </span>
                       );
                     })}
@@ -3912,13 +3912,13 @@ export function AddonsView() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => patchRule(r.id, { active: !r.active })}
-                        className={`w-[38px] h-[22px] rounded-full relative transition-colors ${r.active ? "bg-[#0f7d55]" : "bg-[#cdbfda]"}`}
+                        className={`w-[38px] h-[22px] rounded-full relative transition-colors ${r.active ? "bg-[var(--s-ok)]" : "bg-[var(--s-accent)]"}`}
                       >
                         <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white transition-all ${r.active ? "left-[18px]" : "left-[2px]"}`} />
                       </button>
                       <button
                         onClick={() => removeRule(r.id)}
-                        className="border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#e0a1a1] rounded-[10px] w-[34px] h-[34px] grid place-items-center"
+                        className="border border-lavender-deep bg-white text-body-soft hover:text-[var(--t-bad)] hover:border-[var(--l-bad)] rounded-[10px] w-[34px] h-[34px] grid place-items-center"
                       >
                         <Icon name="trash" size={15} />
                       </button>
@@ -3945,13 +3945,13 @@ export function AddonsView() {
                     )}
                   </div>
                   {r.values.length === 0 && RULE_VALUES[r.field].length > 0 && (
-                    <div className="text-[12px] text-[#b45309] mt-2">
+                    <div className="text-[12px] text-[var(--t-warn)] mt-2">
                       Pick at least one value — until then this rule does nothing.
                     </div>
                   )}
 
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t border-lavender-deep flex-wrap">
-                    <span className={`text-[12px] font-semibold px-2.5 py-1 rounded-full ${n ? "bg-[#e8f6ef] text-[#0f7d55]" : "bg-[#fff8ec] text-[#b45309]"}`}>
+                    <span className={`text-[12px] font-semibold px-2.5 py-1 rounded-full ${n ? "bg-[var(--s-ok)] text-[var(--t-ok)]" : "bg-[var(--s-warn)] text-[var(--t-warn)]"}`}>
                       {n} product{n === 1 ? "" : "s"} match right now
                     </span>
                     <span className="text-[13px] text-body-soft">
@@ -4051,7 +4051,7 @@ export function AddonsView() {
                                 </span>
                               )}
                               {out && (
-                                <span className="absolute bottom-1.5 left-1.5 bg-[#c0392b] text-white text-[9.5px] font-bold px-1.5 py-0.5 rounded-full">
+                                <span className="absolute bottom-1.5 left-1.5 bg-[var(--s-bad)] text-white text-[9.5px] font-bold px-1.5 py-0.5 rounded-full">
                                   OUT OF STOCK
                                 </span>
                               )}
@@ -4096,7 +4096,7 @@ export function AddonsView() {
                     style={{
                       background: a.imageUrl
                         ? `url(${a.imageUrl}) center/cover no-repeat`
-                        : "linear-gradient(150deg,#EFE4F7,#DDC9EC)",
+                        : "linear-gradient(150deg,var(--a-solid),var(--a-solid))",
                     }}
                   />
                   <div className="min-w-0 flex-1">
@@ -4141,7 +4141,7 @@ export function AddonsView() {
                         setTrashBusy(null);
                       }
                     }}
-                    className="text-[12.5px] font-semibold px-3 py-2 rounded-[10px] text-[#c0392b] hover:bg-[#fdecea] disabled:opacity-50 inline-flex items-center gap-1.5"
+                    className="text-[12.5px] font-semibold px-3 py-2 rounded-[10px] text-[var(--t-bad)] hover:bg-[var(--s-bad)] disabled:opacity-50 inline-flex items-center gap-1.5"
                   >
                     <Icon name="trash" size={14} /> Delete forever
                   </button>
@@ -4200,7 +4200,7 @@ export function AddonsView() {
                   </div>
                   <span className="block h-[8px] rounded-full bg-lavender overflow-hidden my-2.5">
                     <span
-                      className="block h-full rounded-full bg-gradient-to-r from-[#9c1fb8] to-[#cf43ea]"
+                      className="block h-full rounded-full bg-gradient-to-r from-[var(--a-solid)] to-[var(--o-solid)]"
                       style={{ width: `${pp.sharePct}%` }}
                     />
                   </span>
@@ -4275,12 +4275,12 @@ export function AddonsView() {
                           <div className="flex items-center gap-2">
                             <span className="h-[7px] rounded-full bg-lavender flex-1 min-w-[60px] overflow-hidden">
                               <span
-                                className={`block h-full rounded-full ${weak ? "bg-[#e0705f]" : attachPct < 20 ? "bg-[#e29a34]" : "bg-[#37a97c]"}`}
+                                className={`block h-full rounded-full ${weak ? "bg-[var(--s-bad)]" : attachPct < 20 ? "bg-[var(--s-warn)]" : "bg-[var(--s-ok)]"}`}
                                 style={{ width: `${Math.min(100, attachPct * 2)}%` }}
                               />
                             </span>
                             <b className="text-purple w-[38px] text-right">{attachPct}%</b>
-                            <span className={`text-[11px] w-[42px] ${delta >= 0 ? "text-[#0f7d55]" : "text-[#c0392b]"}`}>
+                            <span className={`text-[11px] w-[42px] ${delta >= 0 ? "text-[var(--t-ok)]" : "text-[var(--t-bad)]"}`}>
                               {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}
                             </span>
                           </div>
@@ -4321,11 +4321,11 @@ export function AddonsView() {
                           {!a.active ? (
                             <span className="text-[11.5px] bg-lavender text-body-soft px-2 py-1 rounded-full">Hidden</span>
                           ) : groupsOf(a.id).length === 0 ? (
-                            <span className="text-[11.5px] bg-[#fff8ec] text-[#b45309] px-2 py-1 rounded-full">In no group</span>
+                            <span className="text-[11.5px] bg-[var(--s-warn)] text-[var(--t-warn)] px-2 py-1 rounded-full">In no group</span>
                           ) : weak ? (
-                            <span className="text-[11.5px] bg-[#fdecea] text-[#c0392b] px-2 py-1 rounded-full">Check price or photo</span>
+                            <span className="text-[11.5px] bg-[var(--s-bad)] text-[var(--t-bad)] px-2 py-1 rounded-full">Check price or photo</span>
                           ) : attachPct >= 30 ? (
-                            <span className="text-[11.5px] bg-[#e8f6ef] text-[#0f7d55] px-2 py-1 rounded-full">Strong — push it wider</span>
+                            <span className="text-[11.5px] bg-[var(--s-ok)] text-[var(--t-ok)] px-2 py-1 rounded-full">Strong — push it wider</span>
                           ) : (
                             <span className="text-[11.5px] bg-lavender text-purple px-2 py-1 rounded-full">Doing fine</span>
                           )}
@@ -4393,8 +4393,8 @@ export function AddonsView() {
       )}
 
       {demo && (
-        <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#fff8ec] px-4 py-3 mt-5 text-[12.5px] text-[#7a4b09]">
-          <span className="text-[#b45309] shrink-0"><Icon name="bolt" size={18} /></span>
+        <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[var(--l-warn)] bg-[var(--s-warn)] px-4 py-3 mt-5 text-[12.5px] text-[var(--t-warn)]">
+          <span className="text-[var(--t-warn)] shrink-0"><Icon name="bolt" size={18} /></span>
           <div>Demo data — not saved.</div>
         </div>
       )}

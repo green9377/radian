@@ -210,7 +210,7 @@ export function MarketingOverview() {
 
       {/* MKT-D14 — what the clock has been doing while nobody watched */}
       <Card className="px-5 py-3.5 mb-5 flex items-center justify-between gap-4 flex-wrap"
-        style={{ background: auto?.errors.length ? TONE.rose.soft : "#fbf8fd" }}>
+        style={{ background: auto?.errors.length ? TONE.rose.soft : "var(--s-accent)" }}>
         <div className="flex items-center gap-3">
           <span className="text-[16px]">{auto?.errors.length ? "⚠" : "⏱"}</span>
           <div>
@@ -548,12 +548,12 @@ export function CampaignDetail({ id }: { id: string }) {
           <div className="font-display text-[16px] text-white">Did it come back?</div>
         </div>
         <div className="grid lg:grid-cols-[1.2fr_1fr]">
-          <div className="p-5 border-r border-[#f3eef7]">
+          <div className="p-5 border-r border-[var(--l-accent)]">
             <RoiLine label="Revenue (VAT excluded)" value={c.revenuePaisa} />
             <RoiLine label="− Cost of the goods" value={-c.cogsPaisa} />
             <RoiLine label="= Gross profit" value={c.revenuePaisa - c.cogsPaisa} bold />
             <RoiLine label="− Delivery cost" value={-c.deliveryCostPaisa} />
-            <div className="mt-3 pt-3 border-t-2 border-[#efe9f3] flex items-end justify-between gap-4">
+            <div className="mt-3 pt-3 border-t-2 border-[var(--l-accent)] flex items-end justify-between gap-4">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-body-soft">What was left</div>
                 <div className="text-[30px] font-bold leading-none mt-1"
@@ -805,7 +805,7 @@ export function OccasionsView() {
               placeholder="Why (optional) — e.g. asked us on the phone"
             />
             <div className="flex gap-2.5 mt-5">
-              <button onClick={() => void stopContacting()} className="flex-1 text-white text-[13.5px] font-bold py-2.5 rounded-[11px]" style={{ background: "#c0392b" }}>Stop contacting</button>
+              <button onClick={() => void stopContacting()} className="flex-1 text-white text-[13.5px] font-bold py-2.5 rounded-[11px]" style={{ background: "var(--s-bad)" }}>Stop contacting</button>
               <button onClick={() => setStopping(null)} className="border-[1.5px] border-lavender-deep text-purple text-[13.5px] font-medium px-4 py-2.5 rounded-[11px]">Cancel</button>
             </div>
           </div>
@@ -1269,7 +1269,7 @@ export function AffiliateDetail({ id }: { id: string }) {
               <code className="text-[16px] font-bold px-3 py-1.5 rounded-lg inline-block"
                 style={{ background: TONE.brand.soft, color: TONE.brand.text }}>{a.code}</code>
               <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-body-soft mt-4 mb-1">Link to share</div>
-              <div className="text-[12.5px] break-all px-3 py-2 rounded-lg border border-[#efe9f3] bg-[#fdfbfe]">{link}</div>
+              <div className="text-[12.5px] break-all px-3 py-2 rounded-lg border border-[var(--l-accent)] bg-[var(--s-accent)]">{link}</div>
               <button className={`${btnGhost} mt-2`}
                 onClick={() => { void navigator.clipboard?.writeText(link); setOk("Link copied"); }}>
                 Copy link

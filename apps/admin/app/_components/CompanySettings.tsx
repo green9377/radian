@@ -30,14 +30,14 @@ import Icon from "./Icon";
 
 type Form = Partial<ApiCompany>;
 
-const GRAD_HERO = "linear-gradient(120deg,#470066 0%,#8a2bb0 42%,#cf43ea 74%,#b76e79 100%)";
+const GRAD_HERO = "linear-gradient(120deg,var(--a-solid) 0%,var(--a-solid) 42%,var(--o-solid) 74%,var(--t-gold) 100%)";
 
 type TagKind = "web" | "challan" | "watch" | "file";
 const TAGS: Record<TagKind, { label: string; bg: string; fg: string }> = {
-  web: { label: "Website", bg: "#391930", fg: "#dc7fc5" },
-  challan: { label: "Mushak challan", bg: "#3c2f17", fg: "#edc278" },
-  watch: { label: "Reminder only", bg: "#17273a", fg: "#82a7d9" },
-  file: { label: "On file only", bg: "#282330", fg: "#aaa4b7" },
+  web: { label: "Website", bg: "var(--s-orchid)", fg: "var(--t-orchid)" },
+  challan: { label: "Mushak challan", bg: "var(--s-warn)", fg: "var(--t-warn)" },
+  watch: { label: "Reminder only", bg: "var(--s-info)", fg: "var(--t-info)" },
+  file: { label: "On file only", bg: "var(--s-accent)", fg: "var(--t-accent)" },
 };
 
 function Tag({ kind }: { kind: TagKind }) {
@@ -128,13 +128,13 @@ export default function CompanySettings() {
               <span className="flex items-center gap-1.5 px-3 py-[7px] rounded-full text-[11px] font-bold text-white"
                 style={{ background: "rgba(255,255,255,0.18)" }}>
                 <span className="w-[7px] h-[7px] rounded-full"
-                  style={{ background: ready.ready ? "#4be3a4" : "#ffd166" }} />
+                  style={{ background: ready.ready ? "var(--s-ok)" : "var(--s-warn)" }} />
                 {ready.ready ? "Challan ready" : `Challan: ${ready.missing.length} to fill`}
               </span>
             )}
             <button
               className="px-4 py-2 rounded-[11px] text-[12.5px] font-bold transition-all disabled:opacity-60"
-              style={{ background: "#fff", color: "#b97fdc", boxShadow: dirty ? "0 4px 14px rgba(0,0,0,0.25)" : undefined }}
+              style={{ background: "#fff", color: "var(--t-accent)", boxShadow: dirty ? "0 4px 14px rgba(0,0,0,0.25)" : undefined }}
               disabled={busy || !dirty}
               onClick={() => void save()}
             >
@@ -148,7 +148,7 @@ export default function CompanySettings() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ── name & brand ──────────────────────────────────────────── */}
-        <Section grad="linear-gradient(120deg,#8a2bb0,#cf43ea)" icon="gem" title="Name & brand">
+        <Section grad="linear-gradient(120deg,var(--a-solid),var(--o-solid))" icon="gem" title="Name & brand">
           <Field label="Registered name" tags={["challan"]} placeholder="As on the VAT certificate"
             value={form.legalName} onChange={set("legalName")} />
           <div className="grid grid-cols-2 gap-3">
@@ -185,7 +185,7 @@ export default function CompanySettings() {
                 />
               </label>
               {form.logoUrl && !logoBusy && (
-                <button onClick={() => set("logoUrl")("")} className="text-[13px] text-body-soft hover:text-[#e1837a]">Remove</button>
+                <button onClick={() => set("logoUrl")("")} className="text-[13px] text-body-soft hover:text-[var(--t-bad)]">Remove</button>
               )}
             </div>
             <p className="text-[10.5px] text-body-soft mt-1.5">Transparent PNG / WebP / SVG · about 400 × 120</p>
@@ -222,7 +222,7 @@ export default function CompanySettings() {
                 />
               </label>
               {form.logoLightUrl && !logoLightBusy && (
-                <button onClick={() => set("logoLightUrl")("")} className="text-[13px] text-body-soft hover:text-[#e1837a]">Remove</button>
+                <button onClick={() => set("logoLightUrl")("")} className="text-[13px] text-body-soft hover:text-[var(--t-bad)]">Remove</button>
               )}
             </div>
             <p className="text-[10.5px] text-body-soft mt-1.5">White or light mark on a transparent background · same size as the logo</p>
@@ -230,7 +230,7 @@ export default function CompanySettings() {
         </Section>
 
         {/* ── government numbers ────────────────────────────────────── */}
-        <Section grad="linear-gradient(120deg,#b07818,#d9a53a)" icon="shield" title="Government numbers">
+        <Section grad="linear-gradient(120deg,var(--f-warn),var(--f-warn))" icon="shield" title="Government numbers">
           <div className="grid grid-cols-2 gap-3">
             <Field label="BIN" tags={["challan"]} placeholder="9 to 13 digits"
               value={form.bin} onChange={set("bin")} />
@@ -255,7 +255,7 @@ export default function CompanySettings() {
               />
               {licence && licence.daysLeft <= 60 && (
                 <p className="text-[11px] font-bold mt-1"
-                  style={{ color: licence.daysLeft < 0 ? "#e1837a" : "#edc278" }}>
+                  style={{ color: licence.daysLeft < 0 ? "var(--t-bad)" : "var(--t-warn)" }}>
                   {licence.daysLeft < 0
                     ? `Expired ${Math.abs(licence.daysLeft)} days ago`
                     : `Runs out in ${licence.daysLeft} days`}
@@ -266,7 +266,7 @@ export default function CompanySettings() {
         </Section>
 
         {/* ── address ───────────────────────────────────────────────── */}
-        <Section grad="linear-gradient(120deg,#3b76c4,#6ba3e8)" icon="pin" title="Address">
+        <Section grad="linear-gradient(120deg,var(--f-info),var(--f-info))" icon="pin" title="Address">
           <Field label="Registered address" tags={["challan"]} placeholder="As on the VAT certificate"
             value={form.registeredAddress} onChange={set("registeredAddress")} />
           <Field label="Shop address" tags={["web"]} placeholder="Blank = same as registered"
@@ -279,7 +279,7 @@ export default function CompanySettings() {
         </Section>
 
         {/* ── contact & signatory ───────────────────────────────────── */}
-        <Section grad="linear-gradient(120deg,#b76e79,#432926)" icon="phone" title="Contact & signatory">
+        <Section grad="linear-gradient(120deg,var(--t-gold),var(--t-gold))" icon="phone" title="Contact & signatory">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Public phone" tags={["web"]} placeholder="01…"
               value={form.publicPhone} onChange={set("publicPhone")} />
@@ -297,11 +297,11 @@ export default function CompanySettings() {
 
       {dirty && (
         <div className="mt-4 rounded-[14px] px-4 py-3 flex items-center justify-between gap-3"
-          style={{ background: "#3c2f17", border: "1px solid #524528" }}>
-          <span className="text-[12.5px] font-bold" style={{ color: "#edc278" }}>Unsaved changes.</span>
+          style={{ background: "var(--s-warn)", border: "1px solid var(--l-warn)" }}>
+          <span className="text-[12.5px] font-bold" style={{ color: "var(--t-warn)" }}>Unsaved changes.</span>
           <button
             className="px-4 py-2 rounded-[11px] text-[12.5px] font-bold text-white disabled:opacity-60"
-            style={{ background: "linear-gradient(135deg,#8a2bb0,#cf43ea)", boxShadow: "0 4px 12px rgba(138,43,176,0.35)" }}
+            style={{ background: "linear-gradient(135deg,var(--a-solid),var(--o-solid))", boxShadow: "0 4px 12px rgba(138,43,176,0.35)" }}
             disabled={busy} onClick={() => void save()}>
             {busy ? "Saving…" : "Save changes"}
           </button>
@@ -315,7 +315,7 @@ function Section({ grad, icon, title, children }: {
   grad: string; icon: string; title: string; children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[16px] bg-white border border-[#3c3249] overflow-hidden self-start"
+    <div className="rounded-[16px] bg-white border border-[var(--l-accent)] overflow-hidden self-start"
       style={{ boxShadow: "0 2px 10px rgba(70,0,102,0.06)" }}>
       <div className="px-4 py-2.5 flex items-center gap-2.5" style={{ background: grad }}>
         <span className="text-white"><Icon name={icon} size={14} strokeWidth={2.3} /></span>

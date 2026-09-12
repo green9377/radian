@@ -147,11 +147,11 @@ export default function CollectionsView({ embedded }: { embedded?: boolean } = {
       {!embedded && <SaveBar state={saveState} onSave={() => flash("Saved")} />}
 
       {err && (
-        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-4">
+        <div className="flex items-start gap-2 bg-[var(--s-bad)] border border-[var(--l-bad)] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[var(--t-bad)] mb-4">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
-      {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
+      {ok && <div className="bg-[var(--s-ok)] border border-[var(--l-ok)] rounded-[11px] px-3.5 py-2 text-[12px] text-[var(--t-ok)] mb-4">{ok}</div>}
 
       {loading ? <p className="text-[13px] text-body-soft">Loading…</p> : (
         <div className="space-y-1.5 mb-4">
@@ -229,7 +229,7 @@ export default function CollectionsView({ embedded }: { embedded?: boolean } = {
                           {uploadingId === c.id && <span className="absolute inset-x-0 bottom-0 bg-purple/85 text-white text-[11px] py-1 text-center">Uploading…</span>}
                           <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(e) => pickImage(c.id, e.target.files?.[0] ?? null)} />
                         </label>
-                        {c.imageUrl && <button onClick={() => patch(c.id, { imageUrl: null })} className="text-[12.5px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove</button>}
+                        {c.imageUrl && <button onClick={() => patch(c.id, { imageUrl: null })} className="text-[12.5px] text-body-soft hover:text-[var(--t-bad)] mt-1.5">Remove</button>}
                       </L>
 
                       <div className="space-y-3">
@@ -243,7 +243,7 @@ export default function CollectionsView({ embedded }: { embedded?: boolean } = {
                         <div className="text-[11.5px] text-body-soft">
                           Web address: <code className="text-purple">/collections/{c.slug}</code>
                         </div>
-                        <button onClick={() => remove(c.id)} className="text-[13px] text-body-soft hover:text-[#c0392b]">Remove this collection</button>
+                        <button onClick={() => remove(c.id)} className="text-[13px] text-body-soft hover:text-[var(--t-bad)]">Remove this collection</button>
                       </div>
                     </div>
                   </div>

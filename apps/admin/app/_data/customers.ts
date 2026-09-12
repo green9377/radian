@@ -195,7 +195,7 @@ export const CUSTOMERS: Customer[] = [
     ltvPaisa: 1_894_000,
     lastOrderAt: now - 18 * DAY,
     firstOrderAt: Date.parse("2025-11-14T00:00:00Z"),
-    avatarBg: "linear-gradient(150deg,#cf43ea,#b76e79)",
+    avatarBg: "linear-gradient(150deg,var(--o-solid),var(--t-gold))",
   },
   {
     id: "cus-farhana",
@@ -238,7 +238,7 @@ export const CUSTOMERS: Customer[] = [
     ltvPaisa: 3_640_000,
     lastOrderAt: now - 6 * DAY,
     firstOrderAt: Date.parse("2025-12-20T00:00:00Z"),
-    avatarBg: "linear-gradient(150deg,#cf43ea,#470066)",
+    avatarBg: "linear-gradient(150deg,var(--o-solid),var(--a-solid))",
   },
   {
     id: "cus-imran",
@@ -273,7 +273,7 @@ export const CUSTOMERS: Customer[] = [
     ltvPaisa: 720_000,
     lastOrderAt: now - 30 * DAY,
     firstOrderAt: Date.parse("2026-02-14T00:00:00Z"),
-    avatarBg: "linear-gradient(150deg,#470066,#cf43ea)",
+    avatarBg: "linear-gradient(150deg,var(--a-solid),var(--o-solid))",
   },
   {
     id: "cus-rafiul",
@@ -304,7 +304,7 @@ export const CUSTOMERS: Customer[] = [
     ltvPaisa: 430_000,
     lastOrderAt: now - 40 * DAY,
     firstOrderAt: Date.parse("2026-02-10T00:00:00Z"),
-    avatarBg: "linear-gradient(150deg,#7a6689,#b98fd0)",
+    avatarBg: "linear-gradient(150deg,var(--a-solid),var(--a-solid))",
   },
   {
     id: "cus-tania",
@@ -319,7 +319,7 @@ export const CUSTOMERS: Customer[] = [
     note: "",
     ordersCount: 0,
     ltvPaisa: 0,
-    avatarBg: "linear-gradient(150deg,#b76e79,#e8c9ce)",
+    avatarBg: "linear-gradient(150deg,var(--t-gold),var(--t-gold))",
   },
 ];
 

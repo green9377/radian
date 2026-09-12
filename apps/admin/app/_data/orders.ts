@@ -85,18 +85,18 @@ export interface StatusMeta {
 
 export const SALES_STATUS_META: Record<SalesStatus, StatusMeta> = {
   placed: { label: "Placed", chip: "bg-lavender text-purple border-lavender-deep", dot: "bg-orchid" },
-  confirmed: { label: "Confirmed", chip: "bg-[#eef2ff] text-[#4338ca] border-[#dde3ff]", dot: "bg-[#4338ca]" },
-  completed: { label: "Completed", chip: "bg-[#e8f9ee] text-[#0e7a3d] border-[#c4eed4]", dot: "bg-[#0e7a3d]" },
-  cancelled: { label: "Cancelled", chip: "bg-[#fbecec] text-[#b42318] border-[#f5d5d2]", dot: "bg-[#b42318]" },
+  confirmed: { label: "Confirmed", chip: "bg-[var(--s-info)] text-[var(--t-info)] border-[var(--l-info)]", dot: "bg-[var(--s-info)]" },
+  completed: { label: "Completed", chip: "bg-[var(--s-ok)] text-[var(--t-ok)] border-[var(--l-ok)]", dot: "bg-[var(--s-ok)]" },
+  cancelled: { label: "Cancelled", chip: "bg-[var(--s-bad)] text-[var(--t-bad)] border-[var(--l-bad)]", dot: "bg-[var(--s-bad)]" },
 };
 
 export const DELIVERY_STATUS_META: Record<DeliveryStatus, StatusMeta> = {
   unassigned: { label: "Not started", chip: "bg-lavender-deep/50 text-body-soft border-lavender-deep", dot: "bg-body-soft" },
-  preparing: { label: "Preparing", chip: "bg-[#fff4e6] text-[#b45309] border-[#fce4c4]", dot: "bg-[#b45309]" },
-  out_for_delivery: { label: "Out for delivery", chip: "bg-[#eaf6ff] text-[#0369a1] border-[#cde9fb]", dot: "bg-[#0369a1]" },
-  delivered: { label: "Delivered", chip: "bg-[#e8f9ee] text-[#0e7a3d] border-[#c4eed4]", dot: "bg-[#0e7a3d]" },
-  failed: { label: "Delivery failed", chip: "bg-[#fbecec] text-[#b42318] border-[#f5d5d2]", dot: "bg-[#b42318]" },
-  stock_reverted: { label: "Stock reverted", chip: "bg-[#f4ecff] text-purple border-lavender-deep", dot: "bg-orchid" },
+  preparing: { label: "Preparing", chip: "bg-[var(--s-warn)] text-[var(--t-warn)] border-[var(--l-warn)]", dot: "bg-[var(--s-warn)]" },
+  out_for_delivery: { label: "Out for delivery", chip: "bg-[var(--s-info)] text-[var(--t-info)] border-[var(--l-info)]", dot: "bg-[var(--s-info)]" },
+  delivered: { label: "Delivered", chip: "bg-[var(--s-ok)] text-[var(--t-ok)] border-[var(--l-ok)]", dot: "bg-[var(--s-ok)]" },
+  failed: { label: "Delivery failed", chip: "bg-[var(--s-bad)] text-[var(--t-bad)] border-[var(--l-bad)]", dot: "bg-[var(--s-bad)]" },
+  stock_reverted: { label: "Stock reverted", chip: "bg-[var(--s-accent)] text-purple border-lavender-deep", dot: "bg-orchid" },
 };
 
 export const PAYMENT_STATUS_META: Record<PaymentStatus, StatusMeta> = {
@@ -104,12 +104,12 @@ export const PAYMENT_STATUS_META: Record<PaymentStatus, StatusMeta> = {
       `api.ts`. An online order whose payment never arrived is not a
       cash-on-delivery order, and calling it one sends a parcel out with
       nothing for the rider to collect.  */
-  unpaid: { label: "Not paid", chip: "bg-[#fff4e6] text-[#b45309] border-[#fce4c4]", dot: "bg-[#b45309]" },
-  advance_paid: { label: "Advance paid", chip: "bg-[#eef2ff] text-[#4338ca] border-[#dde3ff]", dot: "bg-[#4338ca]" },
-  paid: { label: "Paid", chip: "bg-[#e8f9ee] text-[#0e7a3d] border-[#c4eed4]", dot: "bg-[#0e7a3d]" },
-  cod_collected: { label: "COD collected", chip: "bg-[#e8f9ee] text-[#0e7a3d] border-[#c4eed4]", dot: "bg-[#0e7a3d]" },
-  partially_refunded: { label: "Part refunded", chip: "bg-[#f4ecff] text-purple border-lavender-deep", dot: "bg-orchid" },
-  refunded: { label: "Refunded", chip: "bg-[#fbecec] text-[#b42318] border-[#f5d5d2]", dot: "bg-[#b42318]" },
+  unpaid: { label: "Not paid", chip: "bg-[var(--s-warn)] text-[var(--t-warn)] border-[var(--l-warn)]", dot: "bg-[var(--s-warn)]" },
+  advance_paid: { label: "Advance paid", chip: "bg-[var(--s-info)] text-[var(--t-info)] border-[var(--l-info)]", dot: "bg-[var(--s-info)]" },
+  paid: { label: "Paid", chip: "bg-[var(--s-ok)] text-[var(--t-ok)] border-[var(--l-ok)]", dot: "bg-[var(--s-ok)]" },
+  cod_collected: { label: "COD collected", chip: "bg-[var(--s-ok)] text-[var(--t-ok)] border-[var(--l-ok)]", dot: "bg-[var(--s-ok)]" },
+  partially_refunded: { label: "Part refunded", chip: "bg-[var(--s-accent)] text-purple border-lavender-deep", dot: "bg-orchid" },
+  refunded: { label: "Refunded", chip: "bg-[var(--s-bad)] text-[var(--t-bad)] border-[var(--l-bad)]", dot: "bg-[var(--s-bad)]" },
 };
 
 /**
@@ -371,7 +371,7 @@ export const ORDERS: Order[] = [
     slotLabel: "3 PM – 6 PM",
     payment: { method: "online", status: "paid", paidPaisa: 337000, duePaisa: 0, refundPaisa: 0 },
     lines: [
-      line("white-orchid-elegance", "White Orchid Elegance", "linear-gradient(160deg,#F1E6F8,#DFC8F0)", "Grand", "readymade", 1, 329000, { addonLabels: ["Greeting card"] }),
+      line("white-orchid-elegance", "White Orchid Elegance", "linear-gradient(160deg,var(--a-solid),var(--a-solid))", "Grand", "readymade", 1, 329000, { addonLabels: ["Greeting card"] }),
     ],
     subtotalPaisa: 329000,
     couponCode: null,
@@ -380,7 +380,7 @@ export const ORDERS: Order[] = [
     deliveryWaivedPaisa: 0,
     totalPaisa: 337000,
     etaLabel: "Today, 3 PM – 6 PM",
-    prepPhoto: { at: NOW - 90 * 60_000, by: "Kitchen · Shila", caption: "Bouquet ready before dispatch", bg: "linear-gradient(160deg,#F1E6F8,#DFC8F0)" },
+    prepPhoto: { at: NOW - 90 * 60_000, by: "Kitchen · Shila", caption: "Bouquet ready before dispatch", bg: "linear-gradient(160deg,var(--a-solid),var(--a-solid))" },
     deliveryPhoto: null,
     internalNote: "Regular customer — wrap with the premium ribbon.",
   },
@@ -413,8 +413,8 @@ export const ORDERS: Order[] = [
     slotLabel: "12:00 AM sharp",
     payment: { method: "online", status: "paid", paidPaisa: 389000, duePaisa: 0, refundPaisa: 0 },
     lines: [
-      line("soft-peony-dream", "Soft Peony Dream", "linear-gradient(160deg,#EFE4F8,#DBC3F0)", "Premium", "readymade", 1, 279000, { bundleLabel: "With chocolate box" }),
-      line("chocolate-fudge-celebration-cake", "Chocolate Fudge Celebration Cake", "linear-gradient(160deg,#F6EBE2,#E9D2BE)", "1 lb", "crafted", 1, 95000),
+      line("soft-peony-dream", "Soft Peony Dream", "linear-gradient(160deg,var(--a-solid),var(--a-solid))", "Premium", "readymade", 1, 279000, { bundleLabel: "With chocolate box" }),
+      line("chocolate-fudge-celebration-cake", "Chocolate Fudge Celebration Cake", "linear-gradient(160deg,var(--f-warn),var(--f-warn))", "1 lb", "crafted", 1, 95000),
     ],
     subtotalPaisa: 374000,
     couponCode: null,
@@ -423,7 +423,7 @@ export const ORDERS: Order[] = [
     deliveryWaivedPaisa: 0,
     totalPaisa: 389000,
     etaLabel: "Tonight, 12:00 AM sharp",
-    prepPhoto: { at: NOW - 45 * 60_000, by: "Kitchen · Shila", caption: "Peony arrangement + chocolate box", bg: "linear-gradient(160deg,#EFE4F8,#DBC3F0)" },
+    prepPhoto: { at: NOW - 45 * 60_000, by: "Kitchen · Shila", caption: "Peony arrangement + chocolate box", bg: "linear-gradient(160deg,var(--a-solid),var(--a-solid))" },
     deliveryPhoto: null,
     internalNote: "Anniversary — attach the handwritten card, no invoice inside.",
   },
@@ -453,7 +453,7 @@ export const ORDERS: Order[] = [
     slotLabel: "10 AM – 1 PM",
     payment: { method: "cod", status: "unpaid", paidPaisa: 0, duePaisa: 195000, refundPaisa: 0 },
     lines: [
-      line("birthday-balloon-bouquet", "Birthday Balloon Bouquet", "linear-gradient(160deg,#F9EAF3,#F0CBE2)", "Standard", "readymade", 1, 189000, { addonLabels: ["Birthday card", "Scented candle"] }),
+      line("birthday-balloon-bouquet", "Birthday Balloon Bouquet", "linear-gradient(160deg,var(--o-solid),var(--o-solid))", "Standard", "readymade", 1, 189000, { addonLabels: ["Birthday card", "Scented candle"] }),
     ],
     subtotalPaisa: 189000,
     couponCode: null,
@@ -494,7 +494,7 @@ export const ORDERS: Order[] = [
     slotLabel: null,
     payment: { method: "online", status: "paid", paidPaisa: 695100, duePaisa: 0, refundPaisa: 0 },
     lines: [
-      line("velvet-red-24-premium-roses", "Velvet Red — 24 Premium Roses", "linear-gradient(160deg,#F8E4E8,#EFC5CF)", "24 stems", "readymade", 1, 690000, { addonLabels: ["Greeting card"] }),
+      line("velvet-red-24-premium-roses", "Velvet Red — 24 Premium Roses", "linear-gradient(160deg,var(--f-bad),var(--f-bad))", "24 stems", "readymade", 1, 690000, { addonLabels: ["Greeting card"] }),
     ],
     subtotalPaisa: 690000,
     couponCode: "WELCOME10",
@@ -503,8 +503,8 @@ export const ORDERS: Order[] = [
     deliveryWaivedPaisa: 0,
     totalPaisa: 695100,
     etaLabel: "Delivered in 2 hours",
-    prepPhoto: { at: NOW - 5 * DAY + 55 * 60_000, by: "Kitchen · Rana", caption: "24 roses arranged", bg: "linear-gradient(160deg,#F8E4E8,#EFC5CF)" },
-    deliveryPhoto: { at: NOW - 5 * DAY + 90 * 60_000, by: "Rider · Sohel", caption: "Handed over at the door", bg: "linear-gradient(160deg,#EFE7DE,#D9C7B4)" },
+    prepPhoto: { at: NOW - 5 * DAY + 55 * 60_000, by: "Kitchen · Rana", caption: "24 roses arranged", bg: "linear-gradient(160deg,var(--f-bad),var(--f-bad))" },
+    deliveryPhoto: { at: NOW - 5 * DAY + 90 * 60_000, by: "Rider · Sohel", caption: "Handed over at the door", bg: "linear-gradient(160deg,var(--f-warn),var(--f-warn))" },
   },
 
   /* 5 — CANCELLED after preparing · crafted line · per-line refund · stock reverted */
@@ -538,8 +538,8 @@ export const ORDERS: Order[] = [
     slotLabel: "6 PM – 9 PM",
     payment: { method: "online", status: "partially_refunded", paidPaisa: 247000, duePaisa: 0, refundPaisa: 178000 },
     lines: [
-      line("rose-pink-birthday-cake", "Rose Pink Birthday Cake", "linear-gradient(160deg,#FAE9F1,#F0CBDE)", "2 lb", "readymade", 1, 165000, { refundPaisa: 165000, refundNote: "Readymade — refunded in full" }),
-      line("photo-print-mug", "Photo Print Mug", "linear-gradient(160deg,#EDE7F6,#D6C7EC)", "Standard", "crafted", 1, 76000, { persoText: "Happy Birthday Ammu", refundPaisa: 13000, refundNote: "Crafted — ৳630 advance forfeited, rest refunded" }),
+      line("rose-pink-birthday-cake", "Rose Pink Birthday Cake", "linear-gradient(160deg,var(--o-solid),var(--o-solid))", "2 lb", "readymade", 1, 165000, { refundPaisa: 165000, refundNote: "Readymade — refunded in full" }),
+      line("photo-print-mug", "Photo Print Mug", "linear-gradient(160deg,var(--a-solid),var(--a-solid))", "Standard", "crafted", 1, 76000, { persoText: "Happy Birthday Ammu", refundPaisa: 13000, refundNote: "Crafted — ৳630 advance forfeited, rest refunded" }),
     ],
     subtotalPaisa: 241000,
     couponCode: null,
@@ -580,7 +580,7 @@ export const ORDERS: Order[] = [
     slotLabel: null,
     payment: { method: "cod", status: "cod_collected", paidPaisa: 310000, duePaisa: 0, refundPaisa: 0 },
     lines: [
-      line("blush-romance-12-pink-roses", "Blush Romance — 12 Pink Roses", "linear-gradient(160deg,#F8E7F5,#EDC7E6)", "12 stems", "readymade", 2, 149000),
+      line("blush-romance-12-pink-roses", "Blush Romance — 12 Pink Roses", "linear-gradient(160deg,var(--o-solid),var(--o-solid))", "12 stems", "readymade", 2, 149000),
     ],
     subtotalPaisa: 298000,
     couponCode: null,
@@ -589,8 +589,8 @@ export const ORDERS: Order[] = [
     deliveryWaivedPaisa: 0,
     totalPaisa: 310000,
     etaLabel: "Delivered",
-    prepPhoto: { at: NOW - 20 * DAY, by: "Warehouse · Jamal", caption: "Packed for courier", bg: "linear-gradient(160deg,#F8E7F5,#EDC7E6)" },
-    deliveryPhoto: { at: NOW - 19 * DAY, by: "Courier · SA Paribahan", caption: "Delivered in Sylhet", bg: "linear-gradient(160deg,#E7EFDE,#C9D9B4)" },
+    prepPhoto: { at: NOW - 20 * DAY, by: "Warehouse · Jamal", caption: "Packed for courier", bg: "linear-gradient(160deg,var(--o-solid),var(--o-solid))" },
+    deliveryPhoto: { at: NOW - 19 * DAY, by: "Courier · SA Paribahan", caption: "Delivered in Sylhet", bg: "linear-gradient(160deg,var(--f-ok),var(--f-ok))" },
     internalNote: "NRB sender in USA — send delivery photo to her WhatsApp.",
   },
 ];

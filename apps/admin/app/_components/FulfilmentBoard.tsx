@@ -136,7 +136,7 @@ function Row({
   }
 
   return (
-    <tr className="hover:bg-[#231538]">
+    <tr className="hover:bg-[var(--s-accent)]">
       <td className={`${CELL} w-[34px]`} style={d.late ? { boxShadow: `inset 4px 0 0 ${SOLID.red}` } : undefined}>
         <Said say={say} />
         <input
@@ -450,15 +450,15 @@ export default function FulfilmentBoard() {
 function PanelFrame({ title, sub, onClose, children }: { title: string; sub: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-40" onClick={onClose}>
-      <div className="absolute inset-0 bg-[#320049]/30" />
+      <div className="absolute inset-0 bg-[var(--s-accent)]/30" />
       <div className="absolute right-0 top-0 h-full w-[440px] max-w-full bg-white shadow-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="px-5 pt-5 pb-4 border-b border-[#3e3447]">
+        <div className="px-5 pt-5 pb-4 border-b border-[var(--l-accent)]">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[15px] font-medium text-purple">{title}</div>
               <div className={`${SOFT} truncate`}>{sub}</div>
             </div>
-            <button type="button" onClick={onClose} className="w-8 h-8 rounded-[9px] border border-[#3e3447] grid place-items-center text-[#afa4b7] hover:text-purple shrink-0" title="Close">×</button>
+            <button type="button" onClick={onClose} className="w-8 h-8 rounded-[9px] border border-[var(--l-accent)] grid place-items-center text-[var(--t-accent)] hover:text-purple shrink-0" title="Close">×</button>
           </div>
         </div>
         <div className="px-5 py-4 flex flex-col gap-3">{children}</div>
@@ -492,10 +492,10 @@ function BulkPanel({
   }
   return (
     <PanelFrame title="Assign selected parcels" sub={`${orderIds.length} parcel${orderIds.length === 1 ? "" : "s"} to one carrier`} onClose={onClose}>
-      {err && <div className="rounded-[10px] border-[1.5px] px-3 py-2 text-[12.5px] font-medium bg-white" style={{ borderColor: SOLID.amber, color: "#f7b86e" }}>{err}</div>}
-      <div className="inline-flex rounded-[10px] border border-[#3e3447] overflow-hidden">
+      {err && <div className="rounded-[10px] border-[1.5px] px-3 py-2 text-[12.5px] font-medium bg-white" style={{ borderColor: SOLID.amber, color: "var(--t-warn)" }}>{err}</div>}
+      <div className="inline-flex rounded-[10px] border border-[var(--l-accent)] overflow-hidden">
         {(["RIDER", "COURIER"] as const).map((k) => (
-          <button key={k} type="button" onClick={() => { setKind(k); setCarrierId(""); }} className="text-[12.5px] font-medium px-3 py-2" style={kind === k ? { background: SOLID.purple, color: "#fff" } : { background: "#fff", color: "#afa4b7" }}>
+          <button key={k} type="button" onClick={() => { setKind(k); setCarrierId(""); }} className="text-[12.5px] font-medium px-3 py-2" style={kind === k ? { background: SOLID.purple, color: "#fff" } : { background: "#fff", color: "var(--t-accent)" }}>
             {k === "RIDER" ? "Own rider" : "Courier company"}
           </button>
         ))}
@@ -507,7 +507,7 @@ function BulkPanel({
         </select></div>
       <span className={`text-[12px] ${SOFT}`}>Consignment numbers are typed per parcel afterwards.</span>
       {result && (
-        <div className="rounded-[12px] border border-[#3e3447] bg-white p-3 text-[12.5px]">
+        <div className="rounded-[12px] border border-[var(--l-accent)] bg-white p-3 text-[12.5px]">
           <div className="font-medium text-body">{result.assigned} assigned{result.failed.length > 0 ? `, ${result.failed.length} not` : ""}</div>
           {result.failed.map((f) => <div key={f.orderId} className={SOFT}>{f.orderId.slice(-6)}: {f.reason}</div>)}
           {result.failed.length > 0 && <div className="mt-2"><ActButton onClick={onDone}>Close and refresh</ActButton></div>}
@@ -597,13 +597,13 @@ function BoardPanel({
   const input = "ipt h-[38px]";
   return (
     <PanelFrame title={title} sub={`${o.orderNo} · ${name} · ${o.address}`} onClose={onClose}>
-      {err && <div className="rounded-[10px] border-[1.5px] px-3 py-2 text-[12.5px] font-medium bg-white" style={{ borderColor: SOLID.amber, color: "#f7b86e" }}>{err}</div>}
+      {err && <div className="rounded-[10px] border-[1.5px] px-3 py-2 text-[12.5px] font-medium bg-white" style={{ borderColor: SOLID.amber, color: "var(--t-warn)" }}>{err}</div>}
 
       {mode === "assign" && (
         <>
-          <div className="inline-flex rounded-[10px] border border-[#3e3447] overflow-hidden">
+          <div className="inline-flex rounded-[10px] border border-[var(--l-accent)] overflow-hidden">
             {(["RIDER", "COURIER", "ONE_TIME"] as const).map((k) => (
-              <button key={k} type="button" onClick={() => { setKind(k); setCarrierId(""); }} className="text-[12.5px] font-medium px-3 py-2" style={kind === k ? { background: SOLID.purple, color: "#fff" } : { background: "#fff", color: "#afa4b7" }}>
+              <button key={k} type="button" onClick={() => { setKind(k); setCarrierId(""); }} className="text-[12.5px] font-medium px-3 py-2" style={kind === k ? { background: SOLID.purple, color: "#fff" } : { background: "#fff", color: "var(--t-accent)" }}>
                 {k === "RIDER" ? "Own rider" : k === "COURIER" ? "Courier company" : "One-time rider"}
               </button>
             ))}
@@ -643,7 +643,7 @@ function BoardPanel({
 
       {mode === "photo" && (
         <>
-          <div className="rounded-[12px] border px-3.5 py-3 flex items-start gap-3" style={{ borderColor: photoDone ? "#bfe3cd" : "#f5dcb0", background: photoDone ? "#1e3226" : "#3a2b16" }}>
+          <div className="rounded-[12px] border px-3.5 py-3 flex items-start gap-3" style={{ borderColor: photoDone ? "var(--l-ok)" : "var(--l-warn)", background: photoDone ? "var(--s-ok)" : "var(--s-warn)" }}>
             <span className="w-5 h-5 rounded-full grid place-items-center text-white text-[11px] shrink-0" style={{ background: photoDone ? SOLID.green : SOLID.amber }}>{photoDone ? "✓" : "!"}</span>
             <div className="text-[12.5px]">
               <div className="font-medium text-body">{photoDone ? "Photo saved" : "Customer asked for a photo before delivery"}</div>
@@ -670,7 +670,7 @@ function BoardPanel({
 
       {mode === "deliver" && (
         <>
-          <div className="rounded-[12px] border px-3.5 py-3 flex items-start gap-3" style={{ borderColor: proofDone ? "#bfe3cd" : "#f5dcb0", background: proofDone ? "#1e3226" : "#3a2b16" }}>
+          <div className="rounded-[12px] border px-3.5 py-3 flex items-start gap-3" style={{ borderColor: proofDone ? "var(--l-ok)" : "var(--l-warn)", background: proofDone ? "var(--s-ok)" : "var(--s-warn)" }}>
             <span className="w-5 h-5 rounded-full grid place-items-center text-white text-[11px] shrink-0" style={{ background: proofDone ? SOLID.green : SOLID.amber }}>{proofDone ? "✓" : "!"}</span>
             <div className="text-[12.5px]">
               <div className="font-medium text-body">{proofDone ? "Hand-over photo saved" : "The rule asks for a hand-over photo before Delivered"}</div>
@@ -699,8 +699,8 @@ function BoardPanel({
           <div><span className={LABEL}>Note</span><input className={input} value={note} onChange={(e) => setNote(e.target.value)} placeholder="optional" /></div>
           <div className="grid gap-2">
             {([["RETRY", "Retry", "assign a carrier again"], ["KEEP", "Keep as failed", "no retry yet — stays on the board"], ["CANCEL", "Cancel order", "goes to Cancelled · refund rules apply"]] as const).map(([k, t, sub]) => (
-              <button key={k} type="button" onClick={() => setDecision(k)} className="text-left rounded-[12px] border-[1.5px] px-3.5 py-2.5" style={{ borderColor: decision === k ? SOLID.red : "#e4dbec", background: decision === k ? "#391616" : "#fff" }}>
-                <span className="block text-[13px] font-medium" style={{ color: decision === k ? SOLID.red : "#f1eaf6" }}>{t}</span>
+              <button key={k} type="button" onClick={() => setDecision(k)} className="text-left rounded-[12px] border-[1.5px] px-3.5 py-2.5" style={{ borderColor: decision === k ? SOLID.red : "var(--l-accent)", background: decision === k ? "var(--s-bad)" : "#fff" }}>
+                <span className="block text-[13px] font-medium" style={{ color: decision === k ? SOLID.red : "var(--t-accent)" }}>{t}</span>
                 <span className={`block text-[12px] ${SOFT}`}>{sub}</span>
               </button>
             ))}

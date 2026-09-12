@@ -163,15 +163,15 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
 
       {/* SUP-R01 — duplicate phone warns, never blocks */}
       {dupWarn && (
-        <div className="rounded-[14px] border-2 px-5 py-4 mb-4" style={{ background: "#fff4e6", borderColor: "#f0b95e" }}>
-          <b className="text-[13.5px] block mb-1" style={{ color: "#8a5209" }}>⚠ Same phone, different supplier</b>
+        <div className="rounded-[14px] border-2 px-5 py-4 mb-4" style={{ background: "var(--s-warn)", borderColor: "var(--l-warn)" }}>
+          <b className="text-[13.5px] block mb-1" style={{ color: "var(--t-warn)" }}>⚠ Same phone, different supplier</b>
           <p className="text-[13px] text-body m-0 mb-3">{dupWarn}</p>
           <div className="flex gap-2">
             <button onClick={() => setDupWarn(null)} className="border border-lavender-deep bg-white text-purple text-[13px] font-medium px-4 py-2 rounded-[10px]">
               Let me check
             </button>
             <button onClick={() => save(true)} disabled={busy}
-              className="text-white text-[13px] font-medium px-4 py-2 rounded-[10px]" style={{ background: "#b45309" }}>
+              className="text-white text-[13px] font-medium px-4 py-2 rounded-[10px]" style={{ background: "var(--s-warn)" }}>
               It's fine — save anyway
             </button>
           </div>
@@ -251,7 +251,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
 
             {/* DEC-SUP-005 — opening due */}
             {openingLocked ? (
-              <div className="rounded-[12px] px-4 py-3 mt-1 text-[12.5px]" style={{ background: "#f5f1f9", color: "#6b5878" }}>
+              <div className="rounded-[12px] px-4 py-3 mt-1 text-[12.5px]" style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>
                 Opening due: <b>{formatTaka(loaded!.openingDuePaisa)}</b>
                 {loaded!.openingNote ? <> · {loaded!.openingNote}</> : null} — change it with an <b>Adjustment entry</b>.
               </div>
@@ -291,7 +291,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
                       className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
                       style={notifyChannel === c
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+                        : { background: "#fff", borderColor: "var(--l-accent)", color: "var(--t-accent)" }}>
                       {c === "WHATSAPP" ? "WhatsApp" : c === "SMS" ? "SMS" : "Off"}
                     </button>
                   ))}
@@ -304,7 +304,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
                       className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
                       style={notifyMode === m
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+                        : { background: "#fff", borderColor: "var(--l-accent)", color: "var(--t-accent)" }}>
                       {m === "MANUAL" ? "Manual" : "Auto (later)"}
                     </button>
                   ))}
@@ -328,7 +328,7 @@ export default function SupplierEditor({ supplierId, vendorMode = false }: { sup
                       className="text-[12.5px] font-medium px-3.5 py-2 rounded-[10px] border"
                       style={status === s
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#e3d7ec", color: "#6b5878" }}>
+                        : { background: "#fff", borderColor: "var(--l-accent)", color: "var(--t-accent)" }}>
                       {s === "ACTIVE" ? "Active" : "Inactive"}
                     </button>
                   ))}

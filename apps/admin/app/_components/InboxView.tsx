@@ -73,10 +73,10 @@ function displayName(c: { customer?: { name: string } | null; guestName?: string
   by its tile before the text is read.
 */
 const AVATAR_TONES = [
-  { bg: "#f3e8ff", fg: "#6b21a8" }, // brand purple
-  { bg: "#fce7f3", fg: "#9d174d" }, // brand pink
-  { bg: "#ede9fe", fg: "#5b21b6" }, // soft lavender
-  { bg: "#fdf0e3", fg: "#9a5b21" }, // rose gold
+  { bg: "var(--s-accent)", fg: "var(--t-accent)" }, // brand purple
+  { bg: "var(--s-orchid)", fg: "var(--t-orchid)" }, // brand pink
+  { bg: "var(--s-info)", fg: "var(--t-accent)" }, // soft lavender
+  { bg: "var(--s-warn)", fg: "var(--t-warn)" }, // rose gold
 ];
 
 function initials(name: string): string {
@@ -179,7 +179,7 @@ function Avatar({
       style={{
         width: size,
         height: size,
-        background: showPhoto ? "#f1f5f9" : tone.bg,
+        background: showPhoto ? "var(--s-info)" : tone.bg,
         color: tone.fg,
         fontSize: Math.round(size * 0.36),
       }}
@@ -210,11 +210,11 @@ function Avatar({
   by channel.
 */
 const CHANNELS = {
-  WEB_CHAT:  { label: "Web chat",  short: "Web", bg: "#ede9fe", fg: "#5b21b6", dot: "#7c3aed" },
-  WHATSAPP:  { label: "WhatsApp",  short: "WA",  bg: "#dcfce7", fg: "#166534", dot: "#25d366" },
-  MESSENGER: { label: "Messenger", short: "FB",  bg: "#dbeafe", fg: "#1e40af", dot: "#0084ff" },
-  INSTAGRAM: { label: "Instagram", short: "IG",  bg: "#fce7f3", fg: "#9d174d", dot: "#e1306c" },
-  SMS:       { label: "SMS",       short: "SMS", bg: "#f1f5f9", fg: "#334155", dot: "#64748b" },
+  WEB_CHAT:  { label: "Web chat",  short: "Web", bg: "var(--s-info)", fg: "var(--t-accent)", dot: "var(--t-accent)" },
+  WHATSAPP:  { label: "WhatsApp",  short: "WA",  bg: "var(--s-ok)", fg: "var(--t-ok)", dot: "var(--t-ok)" },
+  MESSENGER: { label: "Messenger", short: "FB",  bg: "var(--s-info)", fg: "var(--t-info)", dot: "var(--t-info)" },
+  INSTAGRAM: { label: "Instagram", short: "IG",  bg: "var(--s-orchid)", fg: "var(--t-orchid)", dot: "var(--t-orchid)" },
+  SMS:       { label: "SMS",       short: "SMS", bg: "var(--s-info)", fg: "var(--t-info)", dot: "var(--t-info)" },
 } as const;
 
 type ChannelKey = keyof typeof CHANNELS;
@@ -500,7 +500,7 @@ export default function InboxView() {
       {/* ── title row: the name, and the one switch that changes everything ── */}
       <div className="shrink-0 flex items-start gap-4 flex-wrap">
         <div className="flex-1 min-w-[240px]">
-          <p className="text-[11px] font-extrabold tracking-[.16em] text-[#a78bb5] uppercase">
+          <p className="text-[11px] font-extrabold tracking-[.16em] text-[var(--t-accent)] uppercase">
             Commerce · Support
           </p>
           <h1 className="text-[30px] font-extrabold text-gray-900 leading-tight flex items-center gap-2">
@@ -527,7 +527,7 @@ export default function InboxView() {
               onChange={(e) =>
                 void patchSettings({ aiProvider: e.target.value as "ANTHROPIC" | "OPENAI" })
               }
-              className="h-11 rounded-2xl border-2 border-gray-200 bg-white px-3 text-[13px] font-bold text-gray-700 outline-none focus:border-[#cf43ea]"
+              className="h-11 rounded-2xl border-2 border-gray-200 bg-white px-3 text-[13px] font-bold text-gray-700 outline-none focus:border-[var(--l-orchid)]"
             >
               <option value="ANTHROPIC">Claude (Anthropic)</option>
               <option value="OPENAI">OpenAI</option>
@@ -549,8 +549,8 @@ export default function InboxView() {
           onClick={() => setChannel("ALL")}
           className={`text-left rounded-2xl pl-4 pr-4 py-3 border-2 transition-transform active:scale-[0.99] ${
             channel === "ALL"
-              ? "border-transparent bg-[#470066] text-white shadow-[0_8px_22px_rgba(70,0,102,0.28)]"
-              : "border-gray-200 bg-white hover:border-[#cf43ea]"
+              ? "border-transparent bg-[var(--s-accent)] text-white shadow-[0_8px_22px_rgba(70,0,102,0.28)]"
+              : "border-gray-200 bg-white hover:border-[var(--l-orchid)]"
           }`}
         >
           <p className={`text-[12px] font-extrabold ${channel === "ALL" ? "text-white/75" : "text-gray-500"}`}>
@@ -579,23 +579,23 @@ export default function InboxView() {
               {/* the coloured spine — the channel is legible before the number is read */}
               <span
                 className="absolute left-0 top-0 bottom-0 w-1.5"
-                style={{ background: on ? "rgba(255,255,255,.55)" : idle ? "#e5e7eb" : c.dot }}
+                style={{ background: on ? "rgba(255,255,255,.55)" : idle ? "var(--s-info)" : c.dot }}
               />
               <p
                 className="text-[12px] font-extrabold truncate"
-                style={{ color: on ? "rgba(255,255,255,.8)" : idle ? "#c3c9d4" : "#6b7280" }}
+                style={{ color: on ? "rgba(255,255,255,.8)" : idle ? "var(--t-info)" : "var(--t-soft)" }}
               >
                 {c.label}
               </p>
               <p
                 className="text-[28px] font-extrabold leading-none mt-1"
-                style={{ color: on ? "#fff" : idle ? "#c3c9d4" : "#111827" }}
+                style={{ color: on ? "#fff" : idle ? "var(--t-info)" : "var(--t-info)" }}
               >
                 {st.total}
               </p>
               <p
                 className="text-[11.5px] font-bold mt-1.5"
-                style={{ color: on ? "rgba(255,255,255,.8)" : idle ? "#dbe0e8" : c.fg }}
+                style={{ color: on ? "rgba(255,255,255,.8)" : idle ? "var(--t-info)" : c.fg }}
               >
                 {idle ? "nothing yet" : st.unread > 0 ? `${st.unread} unread` : "all read"}
               </p>
@@ -607,13 +607,13 @@ export default function InboxView() {
       {/* ── the two panes. This row owns the rest of the screen and no more. ── */}
       <div className="flex-1 min-h-0 flex gap-5 mt-5">
         {/* left: the thread list */}
-        <div className="w-[360px] shrink-0 flex flex-col min-h-0 bg-white rounded-3xl border-2 border-[#f0edf5] overflow-hidden shadow-[0_4px_20px_rgba(70,0,102,0.05)]">
-          <div className="shrink-0 p-3.5 border-b-2 border-[#f6f4f9]">
+        <div className="w-[360px] shrink-0 flex flex-col min-h-0 bg-white rounded-3xl border-2 border-[var(--l-accent)] overflow-hidden shadow-[0_4px_20px_rgba(70,0,102,0.05)]">
+          <div className="shrink-0 p-3.5 border-b-2 border-[var(--l-accent)]">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search name or phone…"
-              className="w-full h-11 rounded-2xl border-2 border-gray-200 px-4 text-[13.5px] font-medium outline-none focus:border-[#cf43ea]"
+              className="w-full h-11 rounded-2xl border-2 border-gray-200 px-4 text-[13.5px] font-medium outline-none focus:border-[var(--l-orchid)]"
             />
             <div className="flex gap-1.5 mt-2.5 flex-wrap">
               {STATUS_TABS.map((t) => {
@@ -627,8 +627,8 @@ export default function InboxView() {
                     onClick={() => setTab(t.key)}
                     className={`px-3 py-1.5 rounded-full text-[12px] font-extrabold transition ${
                       tab === t.key
-                        ? "bg-[#470066] text-white shadow-[0_4px_12px_rgba(70,0,102,0.25)]"
-                        : "bg-[#f6f4f9] text-gray-500 hover:bg-[#ece7f2]"
+                        ? "bg-[var(--s-accent)] text-white shadow-[0_4px_12px_rgba(70,0,102,0.25)]"
+                        : "bg-[var(--s-accent)] text-gray-500 hover:bg-[var(--s-accent)]"
                     }`}
                   >
                     {t.label}
@@ -642,8 +642,8 @@ export default function InboxView() {
               onClick={() => setUnreadOnly((v) => !v)}
               className={`mt-2.5 w-full h-10 rounded-2xl text-[12.5px] font-extrabold transition ${
                 unreadOnly
-                  ? "bg-[#cf43ea] text-white shadow-[0_4px_14px_rgba(207,67,234,0.35)]"
-                  : "bg-[#f6f4f9] text-gray-500 hover:bg-[#ece7f2]"
+                  ? "bg-[var(--s-orchid)] text-white shadow-[0_4px_14px_rgba(207,67,234,0.35)]"
+                  : "bg-[var(--s-accent)] text-gray-500 hover:bg-[var(--s-accent)]"
               }`}
             >
               {unreadOnly ? "Showing unread only" : `Unread only${unreadAll ? ` (${unreadAll})` : ""}`}
@@ -657,7 +657,7 @@ export default function InboxView() {
                   setUnreadOnly(false);
                   setSearch("");
                 }}
-                className="mt-2 w-full text-[11.5px] font-bold text-gray-400 hover:text-[#cf43ea]"
+                className="mt-2 w-full text-[11.5px] font-bold text-gray-400 hover:text-[var(--t-orchid)]"
               >
                 Clear filters
               </button>
@@ -665,7 +665,7 @@ export default function InboxView() {
           </div>
 
           {/* the first of the two things that scroll */}
-          <div className="flex-1 min-h-0 overflow-y-auto divide-y-2 divide-[#faf8fc]">
+          <div className="flex-1 min-h-0 overflow-y-auto divide-y-2 divide-[var(--l-accent)]">
             {items === null && <p className="p-5 text-[13px] font-bold text-gray-300">Loading…</p>}
             {items?.length === 0 && (
               <p className="p-5 text-[13px] font-bold text-gray-300">
@@ -683,7 +683,7 @@ export default function InboxView() {
                   setDetail(null);
                 }}
                 className={`w-full text-left px-4 py-3.5 transition ${
-                  openId === c.id ? "bg-[#f7f0fb]" : "hover:bg-[#fbf9fd]"
+                  openId === c.id ? "bg-[var(--s-accent)]" : "hover:bg-[var(--s-accent)]"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
@@ -707,7 +707,7 @@ export default function InboxView() {
                     )}
                   </span>
                   {c.unreadForStaff > 0 && (
-                    <span className="min-w-[22px] h-[22px] px-1.5 grid place-items-center rounded-full bg-[#cf43ea] text-white text-[11px] font-extrabold">
+                    <span className="min-w-[22px] h-[22px] px-1.5 grid place-items-center rounded-full bg-[var(--s-orchid)] text-white text-[11px] font-extrabold">
                       {c.unreadForStaff}
                     </span>
                   )}
@@ -754,7 +754,7 @@ export default function InboxView() {
         </div>
 
         {/* right: the open conversation */}
-        <div className="flex-1 min-w-0 flex flex-col min-h-0 bg-white rounded-3xl border-2 border-[#f0edf5] overflow-hidden shadow-[0_4px_20px_rgba(70,0,102,0.05)]">
+        <div className="flex-1 min-w-0 flex flex-col min-h-0 bg-white rounded-3xl border-2 border-[var(--l-accent)] overflow-hidden shadow-[0_4px_20px_rgba(70,0,102,0.05)]">
           {!openId ? (
             <div className="flex-1 grid place-items-center">
               <p className="text-[14px] font-bold text-gray-300">Pick a conversation from the left</p>
@@ -766,7 +766,7 @@ export default function InboxView() {
           ) : (
             <>
               {/* header — pinned */}
-              <div className="shrink-0 px-5 py-3.5 border-b-2 border-[#f6f4f9] flex items-center gap-2.5 flex-wrap">
+              <div className="shrink-0 px-5 py-3.5 border-b-2 border-[var(--l-accent)] flex items-center gap-2.5 flex-wrap">
                 <div className="flex-1 min-w-[180px]">
                   <div className="flex items-center gap-2">
                     <span
@@ -804,7 +804,7 @@ export default function InboxView() {
                     onChange={(e) =>
                       void act(() => assignInboxConversation(detail.id, e.target.value || null))
                     }
-                    className="h-10 text-[12.5px] font-bold border-2 border-gray-200 rounded-2xl px-2.5 outline-none focus:border-[#cf43ea]"
+                    className="h-10 text-[12.5px] font-bold border-2 border-gray-200 rounded-2xl px-2.5 outline-none focus:border-[var(--l-orchid)]"
                   >
                     <option value="">Unassigned</option>
                     {users
@@ -837,7 +837,7 @@ export default function InboxView() {
               {/* the second of the two things that scroll */}
               <div
                 ref={listRef}
-                className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-5 py-5 space-y-3 bg-[#FBF9FD]"
+                className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-5 py-5 space-y-3 bg-[var(--s-accent)]"
               >
                 {detail.messages.map((m) => {
                   const fromCustomer = m.authorType === "CUSTOMER";
@@ -853,10 +853,10 @@ export default function InboxView() {
                             ? "mx-auto text-center text-[11.5px] font-bold text-gray-400 bg-white border-2 border-gray-100 rounded-full px-4 py-1.5"
                             : `max-w-[72%] min-w-0 break-words rounded-3xl px-4 py-3 text-[14px] leading-snug ${
                                 fromCustomer
-                                  ? "bg-white text-gray-800 border-2 border-[#f0edf5] rounded-bl-lg shadow-[0_2px_8px_rgba(70,0,102,0.04)]"
+                                  ? "bg-white text-gray-800 border-2 border-[var(--l-accent)] rounded-bl-lg shadow-[0_2px_8px_rgba(70,0,102,0.04)]"
                                   : m.authorType === "AI"
                                     ? "bg-purple-100 text-purple-900 rounded-br-lg"
-                                    : "bg-[#470066] text-white rounded-br-lg shadow-[0_4px_14px_rgba(70,0,102,0.25)]"
+                                    : "bg-[var(--s-accent)] text-white rounded-br-lg shadow-[0_4px_14px_rgba(70,0,102,0.25)]"
                               }`
                         }
                       >
@@ -897,7 +897,7 @@ export default function InboxView() {
               </div>
 
               {/* composer — pinned, and it never walks off the bottom again */}
-              <div className="shrink-0 border-t-2 border-[#f6f4f9] p-3.5">
+              <div className="shrink-0 border-t-2 border-[var(--l-accent)] p-3.5">
                 {error && <p className="text-[12px] font-bold text-rose-500 px-1 pb-1.5">{error}</p>}
                 <div className="flex items-end gap-2.5">
                   <textarea
@@ -911,12 +911,12 @@ export default function InboxView() {
                     }}
                     rows={2}
                     placeholder="Reply to the customer…"
-                    className="flex-1 resize-none rounded-2xl border-2 border-gray-200 px-4 py-3 text-[14px] outline-none focus:border-[#cf43ea]"
+                    className="flex-1 resize-none rounded-2xl border-2 border-gray-200 px-4 py-3 text-[14px] outline-none focus:border-[var(--l-orchid)]"
                   />
                   <button
                     disabled={busy || !draft.trim()}
                     onClick={() => void send()}
-                    className="px-7 h-[52px] rounded-2xl bg-[#470066] text-white font-extrabold text-[14px] shadow-[0_6px_18px_rgba(70,0,102,0.3)] hover:opacity-90 transition-transform active:scale-[0.98] disabled:opacity-30 disabled:shadow-none"
+                    className="px-7 h-[52px] rounded-2xl bg-[var(--s-accent)] text-white font-extrabold text-[14px] shadow-[0_6px_18px_rgba(70,0,102,0.3)] hover:opacity-90 transition-transform active:scale-[0.98] disabled:opacity-30 disabled:shadow-none"
                   >
                     Send
                   </button>

@@ -64,10 +64,10 @@ export default function ItemsOverview() {
      and Costs boards were removed (21 Jul): they only repeated what the list already
      shows, and "assembled but no recipe" is an Assembly question, not an Item one. */
   const issues = [
-    { n: s.noPrice.length, label: "on sale with no price", tone: "#c0392b", bg: "#fdecea", icon: "cash", href: "/items/list?only=noPrice" },
-    { n: s.noCost.length, label: "no cost set", tone: "#b45309", bg: "#fff4e6", icon: "box", href: "/items/list?only=noCost" },
-    { n: s.noCat.length, label: "not in a category", tone: "#0e8f74", bg: "#e7f5f1", icon: "grid", href: "/items/list" },
-    { n: s.noPhoto.length, label: "no photo", tone: "#b76e79", bg: "#f6ece3", icon: "photo", href: "/items/list?only=noPhoto" },
+    { n: s.noPrice.length, label: "on sale with no price", tone: "var(--t-bad)", bg: "var(--s-bad)", icon: "cash", href: "/items/list?only=noPrice" },
+    { n: s.noCost.length, label: "no cost set", tone: "var(--t-warn)", bg: "var(--s-warn)", icon: "box", href: "/items/list?only=noCost" },
+    { n: s.noCat.length, label: "not in a category", tone: "var(--t-ok)", bg: "var(--s-ok)", icon: "grid", href: "/items/list" },
+    { n: s.noPhoto.length, label: "no photo", tone: "var(--t-gold)", bg: "var(--s-warn)", icon: "photo", href: "/items/list?only=noPhoto" },
   ].filter((x) => x.n > 0);
 
   return (
@@ -92,15 +92,15 @@ export default function ItemsOverview() {
       {/* ---- the five numbers ---- */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 mb-5">
         <BigKpi label="Total items" value={items.length} sub={s.hidden ? `${s.hidden} hidden` : "all visible"}
-          tone="#470066" bg="linear-gradient(140deg,#f5eafb,#efe0f8)" icon="box" href="/items/list" />
+          tone="var(--t-accent)" bg="linear-gradient(140deg,var(--a-solid),var(--a-solid))" icon="box" href="/items/list" />
         <BigKpi label="Ingredients & packing" value={items.filter((i) => i.itemType === "RAW" || i.itemType === "PACKAGING").length}
-          tone="#0e8f74" bg="linear-gradient(140deg,#e7f5f1,#d9efe8)" icon="layers" href="/items/list" />
+          tone="var(--t-ok)" bg="linear-gradient(140deg,var(--f-ok),var(--f-ok))" icon="layers" href="/items/list" />
         <BigKpi label="Assembled" value={s.assembled.length}
-          tone="#a020c9" bg="linear-gradient(140deg,#f9e9fd,#f3d9fa)" icon="sparkle" href="/items/list" />
+          tone="var(--t-accent)" bg="linear-gradient(140deg,var(--a-solid),var(--a-solid))" icon="sparkle" href="/items/list" />
         <BigKpi label="Categories" value={cats.length}
-          tone="#b5642f" bg="linear-gradient(140deg,#f9efe6,#f4e3d3)" icon="grid" href="/items/categories" />
+          tone="var(--t-warn)" bg="linear-gradient(140deg,var(--f-warn),var(--f-warn))" icon="grid" href="/items/categories" />
         <BigKpi label="Cost of one of each" value={formatTaka(s.perUnit)} sub="not stock value"
-          tone="#0e7a3d" bg="linear-gradient(140deg,#e8f7ef,#d8f0e3)" icon="cash" href="/items/list?sort=cost" />
+          tone="var(--t-ok)" bg="linear-gradient(140deg,var(--f-ok),var(--f-ok))" icon="cash" href="/items/list?sort=cost" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-5 items-start">
@@ -112,7 +112,7 @@ export default function ItemsOverview() {
             </span>
             <span className="text-[14px] font-semibold text-purple">Needs attention</span>
             {issues.length > 0 && (
-              <span className="ml-auto text-[12px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: "#c0392b" }}>
+              <span className="ml-auto text-[12px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: "var(--s-bad)" }}>
                 {issues.reduce((n, i) => n + i.n, 0)}
               </span>
             )}
@@ -120,7 +120,7 @@ export default function ItemsOverview() {
 
           {issues.length === 0 ? (
             <div className="px-5 py-10 text-center">
-              <span className="w-[46px] h-[46px] rounded-[13px] grid place-items-center text-white mx-auto mb-3" style={{ background: "#12a172" }}>
+              <span className="w-[46px] h-[46px] rounded-[13px] grid place-items-center text-white mx-auto mb-3" style={{ background: "var(--s-ok)" }}>
                 <Icon name="check" size={22} />
               </span>
               <div className="text-[15px] text-purple font-semibold">

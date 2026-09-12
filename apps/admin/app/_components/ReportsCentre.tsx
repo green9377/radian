@@ -26,7 +26,7 @@ import {
     accountant. No new dependency on either side — the API still has none
     beyond Nest and Prisma.  */
 
-const btn = "rounded-[10px] border border-[#e4d3f2] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#faf6fd] disabled:opacity-50";
+const btn = "rounded-[10px] border border-[var(--l-accent)] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[var(--s-accent)] disabled:opacity-50";
 
 function todayIso() { return new Date().toISOString().slice(0, 10); }
 function monthStartIso() {
@@ -132,9 +132,9 @@ export function ReportsCentre() {
                     title={m.description}
                     className="rounded-full px-3.5 py-1.5 text-[12.5px] border"
                     style={{
-                      borderColor: on ? "#7d2ea8" : "#e4d3f2",
-                      background: on ? "#7d2ea8" : "#fff",
-                      color: on ? "#fff" : "#470066",
+                      borderColor: on ? "var(--l-accent)" : "var(--l-accent)",
+                      background: on ? "var(--s-accent)" : "#fff",
+                      color: on ? "#fff" : "var(--t-accent)",
                     }}
                   >
                     {m.title}
@@ -153,12 +153,12 @@ export function ReportsCentre() {
             <label className="text-[11.5px] text-body-soft">
               From
               <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-                className="block rounded-[9px] border border-[#e4d3f2] px-2 py-1 text-[12.5px] mt-0.5" />
+                className="block rounded-[9px] border border-[var(--l-accent)] px-2 py-1 text-[12.5px] mt-0.5" />
             </label>
             <label className="text-[11.5px] text-body-soft">
               To
               <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-                className="block rounded-[9px] border border-[#e4d3f2] px-2 py-1 text-[12.5px] mt-0.5" />
+                className="block rounded-[9px] border border-[var(--l-accent)] px-2 py-1 text-[12.5px] mt-0.5" />
             </label>
           </>
         ) : (
@@ -187,13 +187,13 @@ export function ReportsCentre() {
       </div>
 
       {err && (
-        <div className="no-print rounded-[12px] border border-[#f6cfd2] bg-[#fdeff0] text-[#b42318] px-4 py-3 text-[13px] mb-4">{err}</div>
+        <div className="no-print rounded-[12px] border border-[var(--l-bad)] bg-[var(--s-bad)] text-[var(--t-bad)] px-4 py-3 text-[13px] mb-4">{err}</div>
       )}
 
       {loading && !data && <p className="text-body-soft text-[13.5px]">Loading…</p>}
 
       {data && (
-        <div className="sheet bg-white border border-[#eee6f4] rounded-[16px] px-5 py-4">
+        <div className="sheet bg-white border border-[var(--l-accent)] rounded-[16px] px-5 py-4">
           <div className="mb-3">
             <h2 className="font-display text-[20px] text-purple leading-tight m-0">{data.title}</h2>
             <p className="text-[12.5px] text-body-soft m-0 mt-0.5">{data.subtitle}</p>
@@ -208,7 +208,7 @@ export function ReportsCentre() {
               ABOVE the table and it prints — a footnote nobody reads is how a
               partial figure gets quoted as a whole one. */}
           {data.caveat && (
-            <div className="rounded-[10px] border border-[#fadfb4] bg-[#fff7ec] text-[#b45309] px-3.5 py-2 text-[12px] mb-3 leading-relaxed">
+            <div className="rounded-[10px] border border-[var(--l-warn)] bg-[var(--s-warn)] text-[var(--t-warn)] px-3.5 py-2 text-[12px] mb-3 leading-relaxed">
               {data.caveat}
             </div>
           )}
@@ -219,7 +219,7 @@ export function ReportsCentre() {
             <div className="overflow-x-auto">
               <table className="w-full text-[12.5px] border-collapse">
                 <thead>
-                  <tr className="border-b-2 border-[#e4d3f2]">
+                  <tr className="border-b-2 border-[var(--l-accent)]">
                     {data.columns.map((c) => (
                       <th key={c.key} className={`py-1.5 px-2 font-medium text-purple ${c.numeric ? "text-right" : "text-left"}`}>
                         {c.label}
@@ -229,7 +229,7 @@ export function ReportsCentre() {
                 </thead>
                 <tbody>
                   {data.rows.map((row, i) => (
-                    <tr key={i} className="border-b border-[#f4eff8]">
+                    <tr key={i} className="border-b border-[var(--l-accent)]">
                       {data.columns.map((c) => (
                         <td key={c.key} className={`py-1.5 px-2 ${c.numeric ? "text-right tabular-nums" : ""}`}>
                           {formatReportCell(row[c.key], c.format)}
@@ -240,7 +240,7 @@ export function ReportsCentre() {
                 </tbody>
                 {data.totals && (
                   <tfoot>
-                    <tr className="border-t-2 border-[#e4d3f2] font-medium">
+                    <tr className="border-t-2 border-[var(--l-accent)] font-medium">
                       {data.columns.map((c) => (
                         <td key={c.key} className={`py-2 px-2 text-purple ${c.numeric ? "text-right tabular-nums" : ""}`}>
                           {formatReportCell(data.totals![c.key], c.format)}

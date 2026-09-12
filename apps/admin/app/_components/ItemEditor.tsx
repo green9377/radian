@@ -507,9 +507,9 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
           ]).map((o) => (
             <button key={o.k} onClick={() => setMode(o.k)}
               className="text-left rounded-[18px] border-2 bg-white p-6 hover:shadow-lift transition-all"
-              style={{ borderColor: "#efe4f7" }}
+              style={{ borderColor: "var(--l-accent)" }}
               onMouseEnter={(e) => (e.currentTarget.style.borderColor = ACCENT)}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#efe4f7")}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--l-accent)")}
             >
               <span className="w-[48px] h-[48px] rounded-[14px] grid place-items-center text-white mb-4" style={{ background: ACCENT }}>
                 <Icon name={o.icon} size={23} />
@@ -556,7 +556,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
             {isNew && (
               <button onClick={() => setMode(null)}
                 className="text-[12.5px] font-semibold mt-1 inline-flex items-center gap-1.5 px-2 py-1 rounded-full"
-                style={{ background: "#f9e9fd", color: "#8b21c9" }}
+                style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}
                 title="Change what you are adding">
                 <Icon name={mode === "variants" ? "sparkle" : "box"} size={11} />
                 {mode === "variants" ? "With variants" : "Single item"}
@@ -572,7 +572,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
           {!isNew && (
             <button onClick={removeThis} disabled={saving}
               className="text-[13.5px] font-semibold px-4 py-2.5 rounded-[11px] border inline-flex items-center gap-2 disabled:opacity-50"
-              style={{ background: "#fff", borderColor: "#f0d4d0", color: "#c0392b" }}>
+              style={{ background: "#fff", borderColor: "var(--l-bad)", color: "var(--t-bad)" }}>
               <Icon name="trash" size={14} /> Delete
             </button>
           )}
@@ -607,7 +607,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
             return (
               <button key={s.key} onClick={() => !disabled && setSection(s.key)} disabled={disabled}
                 className="w-full text-left text-[13.5px] font-semibold px-3 py-2.5 rounded-[10px] flex items-center gap-2.5 mb-0.5 disabled:opacity-35"
-                style={on ? { background: ACCENT, color: "#fff" } : { color: "#5b4166" }}>
+                style={on ? { background: ACCENT, color: "#fff" } : { color: "var(--t-accent)" }}>
                 <Icon name={s.icon} size={14} />
                 {s.key === "photo" && variantMode ? "Photos" : s.label}
               </button>
@@ -642,7 +642,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                         className="text-[13px] font-semibold px-3.5 py-2 rounded-[10px] border-2 transition-colors"
                         style={on
                           ? { background: tone, borderColor: tone, color: "#fff" }
-                          : { background: "#fff", borderColor: "#e8dcf0", color: tone }}>
+                          : { background: "#fff", borderColor: "var(--l-accent)", color: tone }}>
                         {t.name}
                       </button>
                     );
@@ -743,7 +743,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                         onErr={setErr}
                       />
                     </Row>
-                    <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "#d9c7e6" }}>
+                    <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "var(--l-accent)" }}>
                       <div className="px-4 py-3 flex items-center gap-2.5" style={{ background: ACCENT }}>
                         <span className="text-[13.5px] font-bold text-white">
                           {variantPreview.length} photo{variantPreview.length === 1 ? "" : "s"} — one per variant
@@ -766,7 +766,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                 <div className="font-mono text-[12px] text-body-soft truncate">{v.sku}</div>
                               </div>
                               <span className="text-[12px] font-semibold shrink-0"
-                                style={{ color: vImages[k] ? "#0e7a3d" : "#8b7a95" }}>
+                                style={{ color: vImages[k] ? "var(--t-ok)" : "var(--t-accent)" }}>
                                 {vImages[k] ? "own photo" : "uses group photo"}
                               </span>
                             </div>
@@ -911,13 +911,13 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                           });
                           return (
                             <div key={a.id} className="rounded-[14px] border overflow-hidden"
-                              style={{ borderColor: picked.length ? "#d9c0ea" : "#e8dcf0" }}>
+                              style={{ borderColor: picked.length ? "var(--l-accent)" : "var(--l-accent)" }}>
                               <div className="px-3.5 py-2.5 flex items-center gap-2 border-b"
-                                style={{ background: picked.length ? "#f5eafb" : "#faf6fd", borderColor: "#e8dcf0" }}>
+                                style={{ background: picked.length ? "var(--s-accent)" : "var(--s-accent)", borderColor: "var(--l-accent)" }}>
                                 <Icon name={isColour ? "sparkle" : "grid"} size={13} />
                                 <span className="text-[13px] font-bold text-purple">{isColour ? a.name : `Size — ${a.name}`}</span>
                                 <span className="ml-auto text-[12px] font-semibold"
-                                  style={{ color: picked.length ? ACCENT : "#8b7a95" }}>
+                                  style={{ color: picked.length ? ACCENT : "var(--t-accent)" }}>
                                   {picked.length ? `${picked.length} picked` : "none"}
                                 </span>
                               </div>
@@ -931,12 +931,12 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                         <button key={v.id} type="button" onClick={() => toggle(v.id)} title={v.label}
                                           className="w-[34px] h-[34px] rounded-full grid place-items-center transition-transform hover:scale-105"
                                           style={{
-                                            background: v.swatch ?? "#e8dcf0",
+                                            background: v.swatch ?? "var(--s-accent)",
                                             boxShadow: on
                                               ? `0 0 0 2px #fff, 0 0 0 4px ${ACCENT}`
                                               : "inset 0 0 0 1px rgba(0,0,0,.10)",
                                           }}>
-                                          {on && <Icon name="check" size={15} style={{ color: isPale(v.swatch) ? "#2c0f3d" : "#fff" }} />}
+                                          {on && <Icon name="check" size={15} style={{ color: isPale(v.swatch) ? "var(--t-accent)" : "#fff" }} />}
                                         </button>
                                       );
                                     })}
@@ -951,7 +951,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                           className="text-[13px] font-semibold px-3 py-1.5 rounded-[9px] border-2 transition-colors"
                                           style={on
                                             ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                                            : { background: "#fff", borderColor: "#e8dcf0", color: "#5b4166" }}>
+                                            : { background: "#fff", borderColor: "var(--l-accent)", color: "var(--t-accent)" }}>
                                           {v.label}
                                         </button>
                                       );
@@ -969,7 +969,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                           Photos are NOT here: the Photos tab asks for them, one per
                           variant, after this list exists (owner, 20 Aug). */}
                       {variantPreview.length > 0 && (
-                        <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "#d9c0ea" }}>
+                        <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "var(--l-accent)" }}>
                           <div className="px-4 py-3 flex items-center gap-2.5" style={{ background: ACCENT }}>
                             <span className="w-[24px] h-[24px] rounded-full grid place-items-center text-[12px] font-bold"
                               style={{ background: "rgba(255,255,255,.2)", color: "#fff" }}>
@@ -1023,11 +1023,11 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                           return { ...d, attributeValueIds: already ? others : [...others, id] };
                         });
                       return (
-                        <div key={a.id} className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
-                          <div className="px-3.5 py-2.5 flex items-center gap-2 border-b" style={{ background: "#faf6fd", borderColor: "#e8dcf0" }}>
+                        <div key={a.id} className="rounded-[14px] border overflow-hidden" style={{ borderColor: "var(--l-accent)" }}>
+                          <div className="px-3.5 py-2.5 flex items-center gap-2 border-b" style={{ background: "var(--s-accent)", borderColor: "var(--l-accent)" }}>
                             <Icon name={isColour ? "sparkle" : "grid"} size={13} />
                             <span className="text-[13px] font-bold text-purple">{isColour ? a.name : `Size — ${a.name}`}</span>
-                            <span className="ml-auto text-[12px]" style={{ color: chosen ? ACCENT : "#8b7a95" }}>
+                            <span className="ml-auto text-[12px]" style={{ color: chosen ? ACCENT : "var(--t-accent)" }}>
                               {chosen?.label ?? "not set"}
                             </span>
                           </div>
@@ -1041,7 +1041,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                     <button key={v.id} type="button" onClick={() => pick(v.id)} title={v.label}
                                       className="w-[34px] h-[34px] rounded-full grid place-items-center transition-transform hover:scale-105"
                                       style={{
-                                        background: v.swatch ?? "#e8dcf0",
+                                        background: v.swatch ?? "var(--s-accent)",
                                         boxShadow: on
                                           ? `0 0 0 2px #fff, 0 0 0 4px ${ACCENT}`
                                           : "inset 0 0 0 1px rgba(0,0,0,.10)",
@@ -1049,7 +1049,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                       {on && (
                                         <Icon name="check" size={15}
                                           /* dark tick on pale swatches, white on dark ones */
-                                          style={{ color: isPale(v.swatch) ? "#2c0f3d" : "#fff" }} />
+                                          style={{ color: isPale(v.swatch) ? "var(--t-accent)" : "#fff" }} />
                                       )}
                                     </button>
                                   );
@@ -1065,7 +1065,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                                       className="text-[13px] font-semibold px-3 py-1.5 rounded-[9px] border-2 transition-colors"
                                       style={on
                                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                                        : { background: "#fff", borderColor: "#e8dcf0", color: "#5b4166" }}>
+                                        : { background: "#fff", borderColor: "var(--l-accent)", color: "var(--t-accent)" }}>
                                       {v.label}
                                     </button>
                                   );
@@ -1100,12 +1100,12 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                   A service is always on sale and never bought.
                 </Note>
               ) : (
-                <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0", borderTopColor: "#e8dcf0" }}>
+                <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "var(--l-accent)", borderTopColor: "var(--l-accent)" }}>
                   <SwitchRow on={draft.isPurchasable} onClick={() => set("isPurchasable", !draft.isPurchasable)}
-                    icon="download" tone="#0e8f74"
+                    icon="download" tone="var(--t-ok)"
                     title="We buy it" sub="Can go on a purchase order" />
                   <SwitchRow on={draft.isSaleable} onClick={() => set("isSaleable", !draft.isSaleable)}
-                    icon="cash" tone="#8b21c9"
+                    icon="cash" tone="var(--t-accent)"
                     title="We sell it" sub="Sold at the counter, and may sit behind a product" />
                 </div>
               )}
@@ -1133,7 +1133,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                   hint="The average of what you have actually paid."
                 >
                   {costIsAuto ? (
-                    <div className="ipt w-full flex items-center justify-between" style={{ background: "#faf6fd" }}>
+                    <div className="ipt w-full flex items-center justify-between" style={{ background: "var(--s-accent)" }}>
                       <b className="text-body">{formatTaka(costPaisa)}</b>
                       <span className="text-[12px] text-body-soft">
                         {item?.costMode === "AUTO" ? "from its recipe" : "average of your purchases"}
@@ -1157,12 +1157,12 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                    counter, services included. The price follows the cost by default;
                    fixing it by hand is the exception, and it says so.  */}
               {(draft.isSaleable || draft.itemType === "SERVICE") && (
-                <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
-                  <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "#faf6fd", borderColor: "#e8dcf0" }}>
+                <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "var(--l-accent)" }}>
+                  <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "var(--s-accent)", borderColor: "var(--l-accent)" }}>
                     <Icon name="cash" size={13} />
                     <span className="text-[13px] font-bold text-purple">Counter price</span>
                     <Info text="What the till charges; a website product may price differently." />
-                    <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#d9c7e6" }}>
+                    <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "var(--l-accent)" }}>
                       {([
                         { k: false, label: "Automatic" },
                         { k: true, label: "Fixed price" },
@@ -1172,8 +1172,8 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                           className="text-[12.5px] font-bold px-3.5 py-1"
                           style={{
                             background: (draft.sellTaka.trim() !== "") === o.k ? ACCENT : "#fff",
-                            color: (draft.sellTaka.trim() !== "") === o.k ? "#fff" : "#6b5077",
-                            borderLeft: i ? "1px solid #e8dcf0" : undefined,
+                            color: (draft.sellTaka.trim() !== "") === o.k ? "#fff" : "var(--t-accent)",
+                            borderLeft: i ? "1px solid var(--l-accent)" : undefined,
                           }}>
                           {o.label}
                         </button>
@@ -1198,7 +1198,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                           </span>
                         </span>
                         <span className="text-body-soft">→</span>
-                        <b className="font-display text-[22px] leading-none" style={{ color: "#0e7a3d" }}>
+                        <b className="font-display text-[22px] leading-none" style={{ color: "var(--t-ok)" }}>
                           {suggestedPaisa === null ? "—" : formatTaka(suggestedPaisa)}
                         </b>
                         {suggestedPaisa === null && (
@@ -1218,7 +1218,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                       </div>
                     )}
                     {sellPaisa !== null && floorPaisa !== null && sellPaisa < floorPaisa && (
-                      <p className="text-[12px] text-[#c0392b] m-0 mt-2">
+                      <p className="text-[12px] text-[var(--t-bad)] m-0 mt-2">
                         Below the floor — {formatTaka(floorPaisa)} is the least this may sell for.
                       </p>
                     )}
@@ -1234,12 +1234,12 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               )}
 
               {/* the minimum-profit rule the owner asked for */}
-              <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
-                <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "#faf6fd", borderColor: "#e8dcf0" }}>
+              <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "var(--l-accent)" }}>
+                <div className="px-4 py-2.5 flex items-center gap-2 border-b" style={{ background: "var(--s-accent)", borderColor: "var(--l-accent)" }}>
                   <Icon name="shield" size={13} />
                   <span className="text-[13px] font-bold text-purple">Minimum profit</span>
                   <Info text="The till refuses to sell under it." />
-                  <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "#d9c7e6" }}>
+                  <div className="ml-auto inline-flex rounded-full overflow-hidden border" style={{ borderColor: "var(--l-accent)" }}>
                     {([
                       { k: "none" as const, label: "Off" },
                       { k: "percent" as const, label: "%" },
@@ -1249,8 +1249,8 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                         className="text-[12.5px] font-bold px-3.5 py-1"
                         style={{
                           background: draft.marginMode === o.k ? ACCENT : "#fff",
-                          color: draft.marginMode === o.k ? "#fff" : "#6b5077",
-                          borderLeft: i ? "1px solid #e8dcf0" : undefined,
+                          color: draft.marginMode === o.k ? "#fff" : "var(--t-accent)",
+                          borderLeft: i ? "1px solid var(--l-accent)" : undefined,
                         }}>
                         {o.label}
                       </button>
@@ -1275,7 +1275,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
 
                       {/* the sum, spelled out — a rule you cannot see the effect of is a rule nobody trusts */}
                       <div className="mt-3.5 rounded-[12px] px-4 py-3 flex items-center gap-3 flex-wrap"
-                        style={{ background: "linear-gradient(120deg,#f3fbf6,#e6f6ee)" }}>
+                        style={{ background: "linear-gradient(120deg,var(--f-ok),var(--f-ok))" }}>
                         <span className="text-[13px] text-body">
                           {formatTaka(costPaisa)}
                           <span className="text-body-soft"> cost</span>
@@ -1286,10 +1286,10 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                           <span className="text-body-soft"> profit</span>
                         </span>
                         <span className="text-body-soft">→</span>
-                        <span className="font-display text-[22px] leading-none" style={{ color: "#0e7a3d" }}>
+                        <span className="font-display text-[22px] leading-none" style={{ color: "var(--t-ok)" }}>
                           {floorPaisa === null ? "—" : formatTaka(floorPaisa)}
                         </span>
-                        <span className="text-[12.5px] font-semibold" style={{ color: "#0e7a3d" }}>
+                        <span className="text-[12.5px] font-semibold" style={{ color: "var(--t-ok)" }}>
                           lowest you may sell it for
                         </span>
                       </div>
@@ -1305,9 +1305,9 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               the count itself belongs to Inventory and is only ever read from there. */}
           {section === "stock" && (
             <Sect title="Stock & alerts">
-              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0" }}>
+              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "var(--l-accent)" }}>
                 <SwitchRow on={draft.isStockTracked} onClick={() => set("isStockTracked", !draft.isStockTracked)}
-                  icon="box" tone="#2563a8"
+                  icon="box" tone="var(--t-info)"
                   title="Track inventory" sub="Count it in and out, and warn when it runs low" />
               </div>
 
@@ -1323,7 +1323,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                     </div>
                   </Row>
                   <Row label="Current stock" hint="Live from Inventory.">
-                    <div className="ipt w-full flex items-center text-body-soft" style={{ background: "#faf6fd" }}>
+                    <div className="ipt w-full flex items-center text-body-soft" style={{ background: "var(--s-accent)" }}>
                       {stock.text}
                     </div>
                   </Row>
@@ -1344,10 +1344,10 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
             <Sect title="Sell online">
               {/*  DEC-ITM-024 — its own switch, not the counter's. Off = it never
                    appears on the product page; the till is untouched either way.  */}
-              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0" }}>
+              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "var(--l-accent)" }}>
                 <SwitchRow on={draft.isOnline && draft.isSaleable}
                   onClick={() => draft.isSaleable && set("isOnline", !draft.isOnline)}
-                  icon="link" tone="#8b21c9"
+                  icon="link" tone="var(--t-accent)"
                   title="Sell online" sub="Counter still sells it when off" />
               </div>
 
@@ -1374,7 +1374,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                   <Link href="/products" className="underline ml-2 font-semibold">open products</Link>
                 </Note>
               ) : (
-                <div className="rounded-[16px] border p-5" style={{ borderColor: "#e8dcf0", background: "linear-gradient(140deg,#faf6fd,#f4ebfa)" }}>
+                <div className="rounded-[16px] border p-5" style={{ borderColor: "var(--l-accent)", background: "linear-gradient(140deg,var(--a-solid),var(--a-solid))" }}>
                   <div className="font-display text-[17px] text-purple">Not on the website yet</div>
                   <p className="text-[13px] text-body m-0 mt-1.5 max-w-[440px]">
                     Creating a product copies the code <b className="font-mono">{item?.sku}</b> across; the
@@ -1415,7 +1415,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                 <dt className="text-body-soft">Purchase</dt>
                 <dd className="m-0 text-body">
                   {item?.costMode === "AUTO"
-                    ? <span className="text-[#0e7a3d]">{formatTaka(item.computedCostPaisa ?? 0)} <span className="text-[11px]">auto</span></span>
+                    ? <span className="text-[var(--t-ok)]">{formatTaka(item.computedCostPaisa ?? 0)} <span className="text-[11px]">auto</span></span>
                     : formatTaka(costPaisa)}
                 </dd>
                 {/* DEC-ITM-018 — the floor is the number that actually constrains selling,
@@ -1430,7 +1430,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
                     )}
                   </dd></>)}
                 <dt className="text-body-soft">Sell above</dt>
-                <dd className="m-0 font-semibold" style={{ color: floorPaisa === null ? "#8b7a95" : "#0e7a3d" }}>
+                <dd className="m-0 font-semibold" style={{ color: floorPaisa === null ? "var(--t-accent)" : "var(--t-ok)" }}>
                   {floorPaisa === null ? "no floor" : formatTaka(floorPaisa)}
                 </dd>
                 {vatBp > 0 && (<><dt className="text-body-soft">VAT</dt>
@@ -1443,7 +1443,7 @@ export default function ItemEditor({ itemId }: { itemId?: string }) {
               <div className="flex gap-1.5 flex-wrap mt-3">
                 {draft.isPurchasable && <Pill text="bought" />}
                 {draft.isSaleable && <Pill text="sold" />}
-                {!draft.isStockTracked && <Pill text="not stocked" tone="#2563a8" bg="#e8f0fa" />}
+                {!draft.isStockTracked && <Pill text="not stocked" tone="var(--t-info)" bg="var(--s-info)" />}
               </div>
             </div>
           </div>
@@ -1599,7 +1599,7 @@ export function Info({ text }: { text: string }) {
         tabIndex={0}
         aria-label={text}
         className="w-[16px] h-[16px] rounded-full grid place-items-center text-[10px] font-bold cursor-help shrink-0 select-none align-middle inline-grid"
-        style={{ background: "#efe4f7", color: "#7a5b8c" }}
+        style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}
         onMouseEnter={place}
         onMouseLeave={() => setBox(null)}
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); box ? setBox(null) : place(); }}
@@ -1617,7 +1617,7 @@ export function Info({ text }: { text: string }) {
               top: box.top,
               left: box.left,
               transform: `translate(-50%, ${box.below ? "0" : "-100%"})`,
-              background: "#2c0f3d",
+              background: "var(--s-accent)",
               boxShadow: "0 8px 26px rgba(44,15,61,.34)",
             }}
           >
@@ -1636,7 +1636,7 @@ export function Row({
     <div className={wide ? "md:col-span-2" : undefined}>
       <label className="flex items-center gap-1.5 text-[12.5px] font-bold text-purple mb-1.5">
         {label}
-        {required && <span className="text-[#c0392b]">*</span>}
+        {required && <span className="text-[var(--t-bad)]">*</span>}
         {hint && <Info text={hint} />}
       </label>
       {children}
@@ -1649,7 +1649,7 @@ export function Pair({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>;
 }
 
-function Pill({ text, tone = "#470066", bg = "#f7f1fb" }: { text: string; tone?: string; bg?: string }) {
+function Pill({ text, tone = "var(--t-accent)", bg = "var(--s-accent)" }: { text: string; tone?: string; bg?: string }) {
   return <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: bg, color: tone }}>{text}</span>;
 }
 
@@ -1664,17 +1664,17 @@ export function SwitchRow({
   return (
     <button type="button" onClick={onClick}
       className="w-full text-left px-4 py-3 grid grid-cols-[34px_minmax(0,1fr)_44px] items-center gap-3 hover:bg-lavender/25 transition-colors"
-      style={{ borderColor: "#e8dcf0" }}>
+      style={{ borderColor: "var(--l-accent)" }}>
       <span className="w-[32px] h-[32px] rounded-[10px] grid place-items-center transition-colors"
-        style={{ background: on ? tone : "#f0e8f6", color: on ? "#fff" : "#a08fb0" }}>
+        style={{ background: on ? tone : "var(--s-accent)", color: on ? "#fff" : "var(--t-accent)" }}>
         <Icon name={icon} size={15} />
       </span>
       <span className="min-w-0">
-        <span className="block text-[13.5px] font-bold" style={{ color: on ? "#2c0f3d" : "#7a6b85" }}>{title}</span>
+        <span className="block text-[13.5px] font-bold" style={{ color: on ? "var(--t-accent)" : "var(--t-accent)" }}>{title}</span>
         <span className="block text-[12.5px] text-body-soft truncate">{sub}</span>
       </span>
       <span className="w-[40px] h-[22px] rounded-full relative justify-self-end transition-colors"
-        style={{ background: on ? tone : "#d6cbdf" }}>
+        style={{ background: on ? tone : "var(--s-accent)" }}>
         <span className="absolute top-[3px] w-[16px] h-[16px] bg-white rounded-full transition-all"
           style={{ left: on ? 21 : 3 }} />
       </span>
@@ -1685,10 +1685,10 @@ export function SwitchRow({
 /** the one place a coloured explanation box is allowed — and it is one line, not three */
 export function Note({ tone, children }: { tone: "green" | "grey" | "purple" | "amber"; children: React.ReactNode }) {
   const T = {
-    green: { bg: "#e8f7ef", fg: "#0e7a3d" },
-    grey: { bg: "#f5f2f7", fg: "#6b5077" },
-    purple: { bg: "#f7f1fb", fg: "#470066" },
-    amber: { bg: "#fbf1e2", fg: "#8a5209" },
+    green: { bg: "var(--s-ok)", fg: "var(--t-ok)" },
+    grey: { bg: "var(--s-accent)", fg: "var(--t-accent)" },
+    purple: { bg: "var(--s-accent)", fg: "var(--t-accent)" },
+    amber: { bg: "var(--s-warn)", fg: "var(--t-warn)" },
   }[tone];
   return (
     <div className="rounded-[12px] px-4 py-3 text-[13px]" style={{ background: T.bg, color: T.fg }}>
@@ -1703,7 +1703,7 @@ export function TakaInput({
 }: { value: string; onChange: (v: string) => void; placeholder?: string; disabled?: boolean }) {
   return (
     <div className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-semibold pointer-events-none" style={{ color: "#8b7a95" }}>৳</span>
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-semibold pointer-events-none" style={{ color: "var(--t-accent)" }}>৳</span>
       <input className="ipt ipt-icon w-full" inputMode="decimal" placeholder={placeholder}
         value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)} />
     </div>
@@ -1717,7 +1717,7 @@ export function PercentInput({
     <div className="relative">
       <input className="ipt w-full" inputMode="decimal" placeholder={placeholder}
         value={value} onChange={(e) => onChange(e.target.value)} style={{ paddingRight: 34 }} />
-      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13.5px] font-semibold pointer-events-none" style={{ color: "#8b7a95" }}>%</span>
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13.5px] font-semibold pointer-events-none" style={{ color: "var(--t-accent)" }}>%</span>
     </div>
   );
 }
@@ -1763,8 +1763,8 @@ export function PhotoDrop({
         onDrop={(e) => { e.preventDefault(); setOver(false); take(e.dataTransfer.files?.[0]); }}
         className="relative w-[300px] max-w-full h-[190px] rounded-[16px] border-2 border-dashed grid place-items-center cursor-pointer transition-colors overflow-hidden"
         style={{
-          borderColor: over ? ACCENT : "#ddcfe8",
-          background: over ? "#f7f1fb" : "#fcfaFd",
+          borderColor: over ? ACCENT : "var(--l-accent)",
+          background: over ? "var(--s-accent)" : "var(--s-accent)",
         }}
       >
         <input type="file" accept="image/*" className="hidden"
@@ -1782,7 +1782,7 @@ export function PhotoDrop({
         ) : (
           <span className="text-center px-6">
             <span className="w-[42px] h-[42px] rounded-[13px] grid place-items-center mx-auto mb-2.5"
-              style={{ background: "#f0e4f8", color: ACCENT }}>
+              style={{ background: "var(--s-accent)", color: ACCENT }}>
               <Icon name="photo" size={20} />
             </span>
             <span className="block text-[13.5px] font-bold text-purple">
@@ -1797,7 +1797,7 @@ export function PhotoDrop({
         <div className="flex flex-col gap-2">
           <ItemThumb item={item} size={54} />
           <button type="button" onClick={() => onImage(null)}
-            className="text-[12.5px] font-semibold text-[#c0392b] underline">
+            className="text-[12.5px] font-semibold text-[var(--t-bad)] underline">
             remove
           </button>
         </div>
@@ -1834,7 +1834,7 @@ export function TypeKindFields({
             style={{
               background: kind === o.k ? ACCENT : "#fff",
               color: kind === o.k ? "#fff" : ACCENT,
-              borderLeft: i ? "1px solid #e2d2ec" : undefined,
+              borderLeft: i ? "1px solid var(--l-accent)" : undefined,
             }}>
             {o.label}
           </button>
@@ -1865,7 +1865,7 @@ export function TypeKindFields({
                 className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-2"
                 style={on
                   ? { background: m.colour, borderColor: m.colour, color: "#fff" }
-                  : { background: "#fff", borderColor: "#e8dcf0", color: m.colour }}>
+                  : { background: "#fff", borderColor: "var(--l-accent)", color: m.colour }}>
                 {m.label}
               </button>
             );
@@ -1904,7 +1904,7 @@ function NewTypeButton({
       <button type="button"
         onClick={() => { setName(""); setKind("own"); setCounted(true); setRecipe(false); setBehaviour("RAW"); setOpen(true); }}
         className="text-[13px] font-semibold px-3.5 py-2 rounded-[10px] border-2 border-dashed inline-flex items-center gap-1.5"
-        style={{ borderColor: "#d9c7e6", color: ACCENT }}>
+        style={{ borderColor: "var(--l-accent)", color: ACCENT }}>
         <Icon name="plus" size={13} /> New type
       </button>
     );
@@ -1922,7 +1922,7 @@ function NewTypeButton({
         <input className="ipt w-full" autoFocus placeholder="Dry Flower, Imported Chocolate…"
           value={name} onChange={(e) => setName(e.target.value)} />
         {name.trim() && dup && (
-          <p className="text-[12px] text-[#c0392b] m-0 mt-1">&ldquo;{name.trim()}&rdquo; already exists.</p>
+          <p className="text-[12px] text-[var(--t-bad)] m-0 mt-1">&ldquo;{name.trim()}&rdquo; already exists.</p>
         )}
       </Field>
       <TypeKindFields
@@ -2092,8 +2092,8 @@ function AttrStarter({ onDone, onErr }: { onDone: () => Promise<void> | void; on
   }
 
   return (
-    <div className="rounded-[12px] border px-4 py-3.5" style={{ background: "#f7f1fb", borderColor: "#efe4f7" }}>
-      <div className="text-[13px] font-semibold mb-1" style={{ color: "#470066" }}>No labels yet</div>
+    <div className="rounded-[12px] border px-4 py-3.5" style={{ background: "var(--s-accent)", borderColor: "var(--l-accent)" }}>
+      <div className="text-[13px] font-semibold mb-1" style={{ color: "var(--t-accent)" }}>No labels yet</div>
       <p className="text-[13px] text-body m-0 mb-2.5 leading-relaxed">
         Labels tell a red rose from a white one.
       </p>
@@ -2101,7 +2101,7 @@ function AttrStarter({ onDone, onErr }: { onDone: () => Promise<void> | void; on
         {["Colour", "Size"].map((n) => (
           <button key={n} type="button" onClick={() => one(n)} disabled={!!busy}
             className="text-[12.5px] font-medium px-3 py-1.5 rounded-[9px] border bg-white disabled:opacity-60"
-            style={{ borderColor: "#efe4f7", color: ACCENT }}>
+            style={{ borderColor: "var(--l-accent)", color: ACCENT }}>
             {busy === n ? "…" : `just ${n}`}
           </button>
         ))}
@@ -2143,14 +2143,14 @@ function InlineValueAdd({
     return (
       <button type="button" onClick={() => setOpen(true)}
         className="text-[12.5px] font-semibold px-3.5 py-2 rounded-[10px] border-2 border-dashed inline-flex items-center gap-1.5"
-        style={{ borderColor: "#d9c7e6", color: ACCENT }}>
+        style={{ borderColor: "var(--l-accent)", color: ACCENT }}>
         <Icon name="plus" size={13} /> New {attrName.toLowerCase()}
       </button>
     );
   }
 
   return (
-    <div className="w-full rounded-[14px] border-2 p-3.5 mt-1" style={{ borderColor: "#d9c7e6", background: "#faf6fd" }}>
+    <div className="w-full rounded-[14px] border-2 p-3.5 mt-1" style={{ borderColor: "var(--l-accent)", background: "var(--s-accent)" }}>
       <div className="flex items-center gap-2 mb-2.5">
         <span className="text-[12.5px] font-bold text-purple">New {attrName.toLowerCase()}</span>
         <button type="button" onClick={() => setOpen(false)}
@@ -2169,7 +2169,7 @@ function InlineValueAdd({
               {QUICK_SWATCHES.map((c) => (
                 <button key={c} type="button" onClick={() => setSwatch(swatch === c ? null : c)} title={c}
                   className="w-[26px] h-[26px] rounded-full border-2 shrink-0 transition-transform hover:scale-110"
-                  style={{ background: c, borderColor: swatch === c ? "#2c0f3d" : "#e3d7ec" }} />
+                  style={{ background: c, borderColor: swatch === c ? "var(--l-accent)" : "var(--l-accent)" }} />
               ))}
             </span>
             <input className="ipt font-mono" style={{ minHeight: 38, width: 110 }}
@@ -2221,9 +2221,9 @@ export function VariantPhoto({
       <label
         className="w-[44px] h-[44px] rounded-[11px] overflow-hidden cursor-pointer grid place-items-center text-[10.5px] font-bold"
         style={{
-          background: url ? "#fff" : "#f0e8f6",
-          color: "#a08fb0",
-          boxShadow: own ? `0 0 0 2px #fff, 0 0 0 3px ${ACCENT}` : "inset 0 0 0 1px #e2d2ec",
+          background: url ? "#fff" : "var(--s-accent)",
+          color: "var(--t-accent)",
+          boxShadow: own ? `0 0 0 2px #fff, 0 0 0 3px ${ACCENT}` : "inset 0 0 0 1px var(--t-accent)",
         }}
         title={own ? "Has its own photo — click to replace" : "Click to give this one its own photo"}
       >

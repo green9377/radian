@@ -34,39 +34,39 @@ import HomeContentView from "./HomeContentView";
 const SECTIONS = [
   {
     id: "layout", label: "Layout", blurb: "Which sections, in what order", icon: "grid",
-    tint: "#2d1c37", edge: "#412d4e", chip: "#301f3a",
-    ink: "#c778ed", sub: "#af9fbc", strong: "#ce6ef7",
-    fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#401c46",
+    tint: "var(--t-accent)", edge: "var(--l-accent)", chip: "var(--s-accent)",
+    ink: "var(--t-accent)", sub: "var(--t-accent)", strong: "var(--t-accent)",
+    fill: "linear-gradient(100deg,var(--a-solid),var(--o-solid))", glow: "rgba(71,0,102,.30)", soft: "var(--o-solid)",
   },
   {
     id: "contents", label: "Contents", blurb: "What goes inside each section", icon: "box",
-    tint: "#192939", edge: "#2b3e4f", chip: "#1f2e3d",
-    ink: "#7db5e8", sub: "#94aec6", strong: "#79b3ec",
-    fill: "linear-gradient(100deg,#185FA5,#3f83c4)", glow: "rgba(24,95,165,.25)", soft: "#203343",
+    tint: "var(--t-info)", edge: "var(--l-info)", chip: "var(--s-info)",
+    ink: "var(--t-info)", sub: "var(--t-info)", strong: "var(--t-info)",
+    fill: "linear-gradient(100deg,var(--f-info),var(--f-info))", glow: "rgba(24,95,165,.25)", soft: "var(--f-info)",
   },
   {
     id: "banners", label: "Banners", blurb: "The big picture and the promo strip", icon: "photo",
-    tint: "#381a24", edge: "#4f2b39", chip: "#3c1f2a",
-    ink: "#db8aa3", sub: "#bf9ba7", strong: "#d586a0",
-    fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#401c28",
+    tint: "var(--t-orchid)", edge: "var(--l-orchid)", chip: "var(--s-orchid)",
+    ink: "var(--t-orchid)", sub: "var(--t-gold)", strong: "var(--t-gold)",
+    fill: "linear-gradient(100deg,var(--t-gold),var(--t-gold))", glow: "rgba(153,53,86,.28)", soft: "var(--t-orchid)",
   },
   {
     id: "trust", label: "Trust strip", blurb: "The promises under the banner", icon: "shield",
-    tint: "#1f3427", edge: "#314a3a", chip: "#24392c",
-    ink: "#82e3af", sub: "#9cbfac", strong: "#76efab",
-    fill: "linear-gradient(100deg,#0E7A3D,#2f9c5c)", glow: "rgba(14,122,61,.25)", soft: "#254130",
+    tint: "var(--t-ok)", edge: "var(--l-ok)", chip: "var(--s-ok)",
+    ink: "var(--t-ok)", sub: "var(--t-ok)", strong: "var(--t-ok)",
+    fill: "linear-gradient(100deg,var(--f-ok),var(--f-ok))", glow: "rgba(14,122,61,.25)", soft: "var(--t-ok)",
   },
   {
     id: "budget", label: "Budget cards", blurb: "Gifts for Every Budget", icon: "cash",
-    tint: "#3c2e17", edge: "#514429", chip: "#41351f",
-    ink: "#f4c871", sub: "#ccb78e", strong: "#f7c76e",
-    fill: "linear-gradient(100deg,#8a5a00,#b8821e)", glow: "rgba(138,90,0,.25)", soft: "#463a1e",
+    tint: "var(--t-warn)", edge: "var(--l-warn)", chip: "var(--s-warn)",
+    ink: "var(--t-warn)", sub: "var(--t-warn)", strong: "var(--t-warn)",
+    fill: "linear-gradient(100deg,var(--f-warn),var(--f-warn))", glow: "rgba(138,90,0,.25)", soft: "var(--t-warn)",
   },
   {
     id: "wording", label: "Wording", blurb: "The three lines above every section", icon: "tag",
-    tint: "#282032", edge: "#3c3348", chip: "#2b2434",
-    ink: "#dfd2e4", sub: "#ada2b9", strong: "#dfd2e4",
-    fill: "linear-gradient(100deg,#5f4b73,#7f6b93)", glow: "rgba(95,75,115,.24)", soft: "#2b2337",
+    tint: "var(--t-accent)", edge: "var(--l-accent)", chip: "var(--s-accent)",
+    ink: "var(--t-accent)", sub: "var(--t-accent)", strong: "var(--t-accent)",
+    fill: "linear-gradient(100deg,var(--a-solid),var(--a-solid))", glow: "rgba(95,75,115,.24)", soft: "var(--a-solid)",
   },
 ] as const;
 type SecId = (typeof SECTIONS)[number]["id"];
@@ -82,17 +82,17 @@ export default function HomepageView() {
       {/* the brand band — the same one the Storefront hub wears */}
       <div
         className="rounded-[18px] px-6 py-5 mb-4 text-white relative overflow-hidden"
-        style={{ background: "linear-gradient(120deg,#4a1259 0%,#7B2D8E 48%,#B44BC9 100%)" }}
+        style={{ background: "linear-gradient(120deg,var(--a-solid) 0%,var(--a-solid) 48%,var(--a-solid) 100%)" }}
       >
         <span
           aria-hidden
           className="absolute -right-8 -top-12 w-[190px] h-[190px] rounded-[50%_50%_50%_0] -rotate-45 opacity-[0.13]"
-          style={{ background: "linear-gradient(150deg,#1f1727,#351840)" }}
+          style={{ background: "linear-gradient(150deg,#ffffff,var(--a-solid))" }}
         />
         <div className="relative">
-          <div className="text-[11.5px] font-semibold uppercase tracking-[0.18em] text-[#e9c9f5] mb-1">Storefront</div>
+          <div className="text-[11.5px] font-semibold uppercase tracking-[0.18em] text-[var(--t-accent)] mb-1">Storefront</div>
           <h1 className="font-display text-[24px] font-medium m-0 leading-tight">Homepage</h1>
-          <p className="text-[12.5px] text-[#e6d3ee] mt-1.5 mb-0">{active.blurb}</p>
+          <p className="text-[12.5px] text-[var(--t-accent)] mt-1.5 mb-0">{active.blurb}</p>
         </div>
       </div>
 
@@ -187,10 +187,10 @@ export default function HomepageView() {
     lists dropped onto the page.  */
 function Panel({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-[18px] border border-lavender-deep overflow-hidden bg-[#2b1d34] shadow-[0_2px_14px_rgba(80,40,100,0.06)]">
+    <div className="rounded-[18px] border border-lavender-deep overflow-hidden bg-[var(--s-accent)] shadow-[0_2px_14px_rgba(80,40,100,0.06)]">
       <div
         className="px-5 py-3.5"
-        style={{ background: "linear-gradient(120deg,#2c1b35 0%,#2d1b37 55%,#341c22 100%)" }}
+        style={{ background: "linear-gradient(120deg,var(--a-solid) 0%,var(--a-solid) 55%,var(--f-bad) 100%)" }}
       >
         <div className="font-display text-[16px] text-purple">{title}</div>
         <div className="text-[12px] text-body-soft">{hint}</div>

@@ -171,7 +171,7 @@ function OrderRow({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
   }
 
   return (
-    <tr className="hover:bg-[#231538]">
+    <tr className="hover:bg-[var(--s-accent)]">
       <td className={`${CELL} w-[130px]`}>
         <Said say={say} />
         <Link href={`/orders/${o.id}`} className={NO}>{o.orderNo}</Link>
@@ -220,7 +220,7 @@ function OrderRow({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
           )}
           <ActButton href={`/orders/${o.id}`}>Open</ActButton>
           {open && (
-            <div className="mt-1 rounded-[12px] border border-[#3e3447] bg-white p-2.5 w-[220px] flex flex-col gap-2">
+            <div className="mt-1 rounded-[12px] border border-[var(--l-accent)] bg-white p-2.5 w-[220px] flex flex-col gap-2">
               <select className="ipt h-[34px] text-[12.5px]" value={open} onChange={(e) => setOpen(e.target.value as Kind)}>
                 {KINDS.map(([k, l]) => (
                   <option key={k} value={k}>{l}</option>
@@ -288,7 +288,7 @@ function GatewayRow({ p }: { p: ApiOnlinePayment }) {
   const s = GW[p.status] ?? { label: p.status, colour: SOLID.grey };
   const stillOwing = p.order ? p.order.totalPaisa - p.order.paidPaisa > 0 : false;
   return (
-    <tr className="hover:bg-[#231538]">
+    <tr className="hover:bg-[var(--s-accent)]">
       <td className={`${CELL} w-[150px]`}>
         <span className={VALUE}>{fmtStamp(p.createdAt)}</span>
         {p.settledAt && <span className={LABEL}>settled {fmtStamp(p.settledAt)}</span>}
@@ -307,7 +307,7 @@ function GatewayRow({ p }: { p: ApiOnlinePayment }) {
       </td>
       <td className={CELL}>
         <Pill colour={s.colour}>{s.label}</Pill>
-        {p.gatewayReason && <span className="block mt-1 font-medium leading-snug" style={{ color: p.status === "FAILED" ? SOLID.red : "#afa4b7" }}>{p.gatewayReason}</span>}
+        {p.gatewayReason && <span className="block mt-1 font-medium leading-snug" style={{ color: p.status === "FAILED" ? SOLID.red : "var(--t-accent)" }}>{p.gatewayReason}</span>}
         {stillOwing && p.status !== "SUCCESS" && <span className={LABEL}>the order is still owing</span>}
       </td>
       <td className={`${CELL} w-[110px] text-right whitespace-nowrap`}>
@@ -397,7 +397,7 @@ function ReturnRow({ r, me, onChanged }: { r: ApiReturn; me: ApiMe | null; onCha
   }
 
   return (
-    <tr className="hover:bg-[#231538]">
+    <tr className="hover:bg-[var(--s-accent)]">
       <td className={`${CELL} w-[130px]`}>
         <Said say={say} />
         <Link href={`/returns/${r.id}`} className={NO}>{r.returnNo}</Link>
@@ -449,7 +449,7 @@ function ReturnRow({ r, me, onChanged }: { r: ApiReturn; me: ApiMe | null; onCha
               {/*  audit #32 — a rejection without a written reason is one
                    nobody can answer for when the customer rings.  */}
               {why !== null && (
-                <div className="rounded-[12px] border border-[#3e3447] bg-white p-2.5 flex flex-col gap-2">
+                <div className="rounded-[12px] border border-[var(--l-accent)] bg-white p-2.5 flex flex-col gap-2">
                   <input className="ipt h-[34px] text-[12.5px]" autoFocus value={why}
                     placeholder="Why is it refused?" onChange={(e) => setWhy(e.target.value)} />
                   <ActButton kind="solid" colour={SOLID.red} disabled={busy || !why.trim()}
@@ -654,7 +654,7 @@ export default function PaymentsView() {
     <div className={WRAP}>
       <Band title="Payments" help={HELP} tiles={tiles} active={active} onTile={onTile} right={<BandButton href="/returns/new" icon="plus">New return</BandButton>} />
 
-      <div className="flex gap-0.5 border-b-[1.5px] border-[#3e3447] mb-3">
+      <div className="flex gap-0.5 border-b-[1.5px] border-[var(--l-accent)] mb-3">
         {TABS.map(([k, label]) => {
           const on = tab === k;
           const n = k === "orders" ? stats?.counts.all : k === "gateway" ? gw?.counts.ALL : rCounts?.all ?? rStats?.counts.all;
@@ -729,10 +729,10 @@ export default function PaymentsView() {
 
       {paged && (
         <div className="flex items-center gap-2 mt-3">
-          <button className="text-[12.5px] px-3 py-2 rounded-[9px] border border-[#3e3447] disabled:opacity-40"
+          <button className="text-[12.5px] px-3 py-2 rounded-[9px] border border-[var(--l-accent)] disabled:opacity-40"
             disabled={loading || page <= 1} onClick={() => load({ page: page - 1 })}>← Prev</button>
           <span className="text-[12.5px] text-body-soft">{from}–{to} of {total}</span>
-          <button className="text-[12.5px] px-3 py-2 rounded-[9px] border border-[#3e3447] disabled:opacity-40"
+          <button className="text-[12.5px] px-3 py-2 rounded-[9px] border border-[var(--l-accent)] disabled:opacity-40"
             disabled={loading || to >= total} onClick={() => load({ page: page + 1 })}>Next →</button>
         </div>
       )}

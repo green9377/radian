@@ -200,13 +200,13 @@ export function ReturnsOverview() {
           /*  Named "All returns" behind a door so nobody reads the strip as the
               door's own count. The figure is the same on every door on purpose.
               Every number here is counted over the whole book, not a page.  */
-          { l: door ? "All returns" : "Returns", v: stats.counts.all ?? 0, c: "#ce6ef7", bg: "#2e1a38", icon: "box" },
+          { l: door ? "All returns" : "Returns", v: stats.counts.all ?? 0, c: "var(--t-accent)", bg: "var(--s-accent)", icon: "box" },
           /*  a queue, not a report — a return raised in June that nobody has
               decided is still waiting today (audit 11 Sep 2026)  */
-          { l: "Needs approval", v: stats.needsApproval, c: "#f7c06e", bg: "#3b2b17", icon: "bolt" },
-          { l: "Refunded", v: formatTaka(stats.refundPaisa), c: "#e1837a", bg: "#3b1a16", icon: "cash" },
-          { l: "Store credit", v: formatTaka(stats.storeCreditPaisa), c: "#6a94f1", bg: "#16243b", icon: "star" },
-          { l: "Return value", v: formatTaka(stats.returnValuePaisa), c: "#76efab", bg: "#1f3529", icon: "tag" },
+          { l: "Needs approval", v: stats.needsApproval, c: "var(--t-warn)", bg: "var(--s-warn)", icon: "bolt" },
+          { l: "Refunded", v: formatTaka(stats.refundPaisa), c: "var(--t-gold)", bg: "var(--s-bad)", icon: "cash" },
+          { l: "Store credit", v: formatTaka(stats.storeCreditPaisa), c: "var(--t-info)", bg: "var(--s-info)", icon: "star" },
+          { l: "Return value", v: formatTaka(stats.returnValuePaisa), c: "var(--t-ok)", bg: "var(--s-ok)", icon: "tag" },
         ]} />
       )}
 
@@ -236,7 +236,7 @@ export function ReturnsOverview() {
           <div className="px-4 py-6 text-[13px] text-body-soft">No returns yet. Start one from a delivered order.</div>}
         {rows.map((r) => (
           <Link key={r.id} href={`/returns/${r.id}`}
-            className="grid grid-cols-[130px_1fr_140px_120px_130px_110px] gap-3 px-4 py-3 items-center hover:bg-[#291a35]">
+            className="grid grid-cols-[130px_1fr_140px_120px_130px_110px] gap-3 px-4 py-3 items-center hover:bg-[var(--s-accent)]">
             <span className="font-semibold text-[13px]" style={{ color: ACCENT }}>{r.returnNo}</span>
             <span className="text-[13px]">
               <b>{r.customer?.name ?? "—"}</b>
@@ -246,7 +246,7 @@ export function ReturnsOverview() {
             <span className="text-right text-[13px]">{formatTaka(r.returnValuePaisa)}</span>
             <span className="text-right text-[13px]">
               {r.refundPaisa > 0 ? formatTaka(r.refundPaisa) : "—"}
-              {r.storeCreditPaisa > 0 && <span className="text-[11px] text-[#6a94f1]"> +{formatTaka(r.storeCreditPaisa)} credit</span>}
+              {r.storeCreditPaisa > 0 && <span className="text-[11px] text-[var(--t-info)]"> +{formatTaka(r.storeCreditPaisa)} credit</span>}
             </span>
             <StatusPill status={r.status} />
           </Link>
@@ -572,12 +572,12 @@ export function NewReturn() {
           <div className="mt-3 divide-y divide-lavender-deep">
             {orderHits.map((o) => (
               <button key={o.id} onClick={() => pickOrder(o.id)}
-                className="w-full text-left py-2.5 px-1 hover:bg-[#291a35] flex items-center justify-between gap-3">
+                className="w-full text-left py-2.5 px-1 hover:bg-[var(--s-accent)] flex items-center justify-between gap-3">
                 <span className="text-[13px]">
                   <b style={{ color: ACCENT }}>{o.orderNo}</b> · {o.customer?.name ?? o.senderName}
                   <span className="text-body-soft"> · {o.senderPhone || "—"}</span>
                   {returnedIds[o.id] > 0 && (
-                    <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: "#3b2b17", color: "#f7a96e" }}>
+                    <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: "var(--s-warn)", color: "var(--t-warn)" }}>
                       {returnedIds[o.id] === 1 ? "already returned once" : `already returned ${returnedIds[o.id]} times`}
                     </span>
                   )}
@@ -630,7 +630,7 @@ export function NewReturn() {
                  payload said when the parcel arrived. It WARNS and never
                  blocks: DEC-RTN-014 leaves the call to the shop.  */}
             {el.outsideWindow && (
-              <div className="px-4 py-2.5 text-[12.5px] border-b border-lavender-deep" style={{ background: "#3b2b17", color: "#f7c06e" }}>
+              <div className="px-4 py-2.5 text-[12.5px] border-b border-lavender-deep" style={{ background: "var(--s-warn)", color: "var(--t-warn)" }}>
                 Delivered {el.daysSinceDelivery} days ago — past the shop&apos;s {el.returnWindowDays}-day return window.
               </div>
             )}
@@ -650,7 +650,7 @@ export function NewReturn() {
                       onChange={(e) => setDrafts((s) => ({ ...s, [l.orderLineId]: { ...d, checked: e.target.checked } }))} />
                     <div className="flex-1 min-w-0">
                       <div className="text-[13.5px] font-medium">{l.name}
-                        <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: l.productType === "CRAFTED" ? "#3b2b17" : "#eef", color: l.productType === "CRAFTED" ? "#f7a96e" : "#8681da" }}>{l.productType}</span>
+                        <span className="text-[11px] ml-2 px-1.5 py-0.5 rounded-full" style={{ background: l.productType === "CRAFTED" ? "var(--s-warn)" : "#eef", color: l.productType === "CRAFTED" ? "var(--t-warn)" : "var(--t-info)" }}>{l.productType}</span>
                       </div>
                       <div className="text-[12px] text-body-soft">
                         {formatTaka(l.unitPaisa)} each · ordered {l.qty}
@@ -762,7 +762,7 @@ export function NewReturn() {
                 </div>
 
                 {pickOpen && (
-                  <div className="border border-lavender-deep rounded-[10px] p-2 mb-2 bg-[#291a35]">
+                  <div className="border border-lavender-deep rounded-[10px] p-2 mb-2 bg-[var(--s-accent)]">
                     <input className="ipt" autoFocus placeholder="Search the counter list…"
                       value={pickSearch} onChange={(e) => setPickSearch(e.target.value)} />
                     <div className="mt-1.5 max-h-[190px] overflow-y-auto">
@@ -780,7 +780,7 @@ export function NewReturn() {
                           <div key={h.id}
                             className="w-full text-left px-2 py-1.5 rounded-[8px] opacity-45 flex items-center justify-between gap-2">
                             <span className="text-[12.5px] truncate">{h.name}</span>
-                            <span className="text-[11.5px] shrink-0" style={{ color: "#e1837a" }}>none in stock</span>
+                            <span className="text-[11.5px] shrink-0" style={{ color: "var(--t-gold)" }}>none in stock</span>
                           </div>
                         ) : (
                         <button key={h.id} type="button"
@@ -823,7 +823,7 @@ export function NewReturn() {
                         <QtyStepper size="sm" value={r.qty} min={1}
                           onChange={(n) => { setReplTouched(true); setRepl((rows) => rows.map((x, j) => j === i ? { ...x, qty: n } : x)); }} />
                       </span>
-                      <button type="button" aria-label="Remove" className="text-[13px] text-body-soft hover:text-[#e1837a] shrink-0"
+                      <button type="button" aria-label="Remove" className="text-[13px] text-body-soft hover:text-[var(--t-gold)] shrink-0"
                         onClick={() => { setReplTouched(true); setRepl((rows) => rows.filter((_, j) => j !== i)); }}>✕</button>
                     </div>
                   ))}
@@ -838,12 +838,12 @@ export function NewReturn() {
                      this is so nobody meets that refusal by surprise.  */}
                 <div className="flex items-center justify-between text-[12px] mt-2 pt-2 border-t border-lavender-deep">
                   <span className="text-body-soft">Going out</span>
-                  <b style={{ color: replValue > selectedValue ? "#e1837a" : undefined }}>
+                  <b style={{ color: replValue > selectedValue ? "var(--t-gold)" : undefined }}>
                     {formatTaka(replValue)} of {formatTaka(selectedValue)}
                   </b>
                 </div>
                 {replValue > selectedValue && (
-                  <div className="text-[11.5px] mt-1" style={{ color: "#e1837a" }}>
+                  <div className="text-[11.5px] mt-1" style={{ color: "var(--t-gold)" }}>
                     More is going out than came back.
                   </div>
                 )}
@@ -875,7 +875,7 @@ export function NewReturn() {
                      sides: any figure could be typed and it was only clamped,
                      silently, at payout. The ceiling is the smaller of what
                      the goods are worth and what is still in hand.  */}
-                <div className="text-[11.5px] mt-1" style={{ color: compPaisa > compMax ? "#e1837a" : undefined }}>
+                <div className="text-[11.5px] mt-1" style={{ color: compPaisa > compMax ? "var(--t-gold)" : undefined }}>
                   {compPaisa > compMax
                     ? `At most ${formatTaka(compMax)} — that is what is still in hand on this bill.`
                     : `At most ${formatTaka(compMax)} (goods ${formatTaka(selectedValue)}, still in hand ${formatTaka(el.refundableCap)}).`}
@@ -924,7 +924,7 @@ const ASK_META: Record<AskKind, {
     title: "Reject this return",
     verb: "it is being rejected",
     confirm: "Reject it",
-    tone: "#e1837a",
+    tone: "var(--t-gold)",
     placeholder: "e.g. Goods were used, not faulty",
     blurb: (no) => `${no} will be refused — the customer gets nothing back.`,
   },
@@ -932,7 +932,7 @@ const ASK_META: Record<AskKind, {
     title: "Cancel this return",
     verb: "it is being cancelled",
     confirm: "Cancel it",
-    tone: "#f7c06e",
+    tone: "var(--t-warn)",
     placeholder: "e.g. Customer changed their mind",
     blurb: (no) => `${no} stops here. Nothing is refunded, credited or restocked.`,
   },
@@ -940,7 +940,7 @@ const ASK_META: Record<AskKind, {
     title: "Delete this return",
     verb: "",
     confirm: "Delete it",
-    tone: "#e1837a",
+    tone: "var(--t-gold)",
     placeholder: "",
     blurb: (no) =>
       `${no} disappears from the book entirely — no claim, no reason, nothing on the order's timeline.`,
@@ -1093,7 +1093,7 @@ export function ReturnDetail({ id }: { id: string }) {
                        moment the return was written, before anything had gone
                        anywhere near a shelf. Until the return completes this
                        is a DECISION, not a fact, and it now reads as one.  */}
-                  <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: l.restockAction === "RESTOCK" ? "#1f3529" : "#29242e", color: l.restockAction === "RESTOCK" ? "#76efab" : "#aea4b7" }}>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: l.restockAction === "RESTOCK" ? "var(--s-ok)" : "var(--s-accent)", color: l.restockAction === "RESTOCK" ? "var(--t-ok)" : "var(--t-accent)" }}>
                     {l.restockAction === "RESTOCK"
                       ? (r.status === "completed" ? "Restocked" : "To be restocked")
                       : (r.status === "completed" ? "Written off" : "To be written off")}
@@ -1108,7 +1108,7 @@ export function ReturnDetail({ id }: { id: string }) {
                both: what came back, and what went out in its place  */}
           {(r.replacements?.length ?? 0) > 0 && (
             <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft overflow-hidden">
-              <div className="px-4 py-2.5 text-[12px] font-semibold text-white" style={{ background: "#0e7a3d" }}>Given instead</div>
+              <div className="px-4 py-2.5 text-[12px] font-semibold text-white" style={{ background: "var(--s-ok)" }}>Given instead</div>
               {r.replacements!.map((x) => (
                 <div key={x.id} className="px-4 py-3 border-b border-lavender-deep last:border-0 flex items-center justify-between gap-3">
                   <div className="text-[13.5px]">{x.name} <span className="text-body-soft">× {x.qty}</span></div>
@@ -1144,7 +1144,7 @@ export function ReturnDetail({ id }: { id: string }) {
             {r.compensationPaisa > 0 && <div className="flex justify-between"><span className="text-body-soft">Compensation</span><span>{formatTaka(r.compensationPaisa)}</span></div>}
             <div className="flex justify-between pt-1.5 border-t border-lavender-deep"><span className="text-body-soft">Order paid / refunded</span><span>{formatTaka(r.order?.paidPaisa ?? 0)} / {formatTaka(r.order?.refundPaisa ?? 0)}</span></div>
             {creditBalance !== null && (
-              <div className="flex justify-between"><span className="text-body-soft">Customer store credit</span><b style={{ color: "#6a94f1" }}>{formatTaka(creditBalance)}</b></div>
+              <div className="flex justify-between"><span className="text-body-soft">Customer store credit</span><b style={{ color: "var(--t-info)" }}>{formatTaka(creditBalance)}</b></div>
             )}
           </div>
 
@@ -1156,13 +1156,13 @@ export function ReturnDetail({ id }: { id: string }) {
                    dead end the owner walked into (21 Aug).  */}
               {needsPayout && nothingPayable ? (
                 /*  audit #12 — no button at all, and the reason in one line.  */
-                <div className="text-[12.5px] leading-[1.5]" style={{ color: "#f7c06e" }}>
+                <div className="text-[12.5px] leading-[1.5]" style={{ color: "var(--t-warn)" }}>
                   Nothing is payable: {formatTaka(r.order?.paidPaisa ?? 0)} collected, {formatTaka(r.order?.refundPaisa ?? 0)} already
                   returned. Cancel it, or settle as store credit or a replacement.
                 </div>
               ) : needsPayout ? (
                 <button disabled={busy} onClick={() => setPayoutOpen(true)}
-                  className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px]" style={{ background: "#0e7a3d" }}>
+                  className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px]" style={{ background: "var(--s-ok)" }}>
                   {busy ? "Working…" : `Complete & pay out ${formatTaka(payoutPaisa)}`}
                 </button>
               ) : (
@@ -1171,7 +1171,7 @@ export function ReturnDetail({ id }: { id: string }) {
                     () => completeReturn(id, { refundMethod: r.resolution === "STORE_CREDIT" ? "STORE_CREDIT" : refundMethod }),
                     r.resolution === "STORE_CREDIT" ? "Store credit given" : "Return completed",
                   )}
-                  className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px]" style={{ background: "#0e7a3d" }}>
+                  className="w-full text-white text-[13.5px] font-medium px-4 py-3 rounded-[10px]" style={{ background: "var(--s-ok)" }}>
                   {busy ? "Working…" : r.resolution === "STORE_CREDIT"
                     ? `Complete — give ${formatTaka(r.creditAskPaisa ?? r.returnValuePaisa)} store credit`
                     : "Complete — the replacement goes out"}
@@ -1195,7 +1195,7 @@ export function ReturnDetail({ id }: { id: string }) {
 
           {pending && (
             <div className="bg-white border border-lavender-deep rounded-[14px] shadow-soft p-4 space-y-2">
-              <div className="text-[13px] font-semibold" style={{ color: "#f7c06e" }}>Needs approval</div>
+              <div className="text-[13px] font-semibold" style={{ color: "var(--t-warn)" }}>Needs approval</div>
               {/*  audit #31 — the two reasons somebody cannot decide this, each
                    said plainly instead of a button that returns 403.  */}
               {isRequester && (
@@ -1212,7 +1212,7 @@ export function ReturnDetail({ id }: { id: string }) {
                 <button disabled={busy || !canApprove} onClick={() => act(() => approveReturn(id), "Approved")}
                   className="flex-1 text-white text-[13px] font-medium px-4 py-2.5 rounded-[10px] disabled:opacity-40" style={{ background: ACCENT }}>Approve</button>
                 <button disabled={busy || !mayApprove} onClick={() => setAsk({ kind: "reject" })}
-                  className="flex-1 text-[13px] font-medium px-4 py-2.5 rounded-[10px] border border-[#4d2e2e] text-[#e1837a] disabled:opacity-40">Reject</button>
+                  className="flex-1 text-[13px] font-medium px-4 py-2.5 rounded-[10px] border border-[var(--l-bad)] text-[var(--t-gold)] disabled:opacity-40">Reject</button>
               </div>
             </div>
           )}
@@ -1239,7 +1239,7 @@ export function ReturnDetail({ id }: { id: string }) {
                behind it. It asks now, and says what it removes.  */}
           {r.status !== "completed" && (
             <button disabled={busy} onClick={() => setAsk({ kind: "delete" })}
-              className="w-full text-[12px] px-4 py-2 rounded-[10px] text-[#e1837a]">Delete</button>
+              className="w-full text-[12px] px-4 py-2 rounded-[10px] text-[var(--t-gold)]">Delete</button>
           )}
         </div>
       </div>
@@ -1400,7 +1400,7 @@ export function ReturnSettingsView() {
                 <button className="text-[11.5px] underline" onClick={() => updateReturnReason(r.id, { label: r.label, requiresApproval: !r.requiresApproval, defaultRefundMethod: r.defaultRefundMethod }).then(load)}>
                   {r.requiresApproval ? "approval off" : "approval on"}
                 </button>
-                <button className="text-[11.5px] text-[#e1837a] underline" onClick={() => deleteReturnReason(r.id).then(load)}>remove</button>
+                <button className="text-[11.5px] text-[var(--t-gold)] underline" onClick={() => deleteReturnReason(r.id).then(load)}>remove</button>
               </div>
             </div>
           ))}
@@ -1526,7 +1526,7 @@ function CancelRules() {
         </div>
       </div>
 
-      {saved && <div className="text-[13px] font-semibold text-[#76efc3] mt-3">Saved ✓</div>}
+      {saved && <div className="text-[13px] font-semibold text-[var(--t-ok)] mt-3">Saved ✓</div>}
     </div>
   );
 }

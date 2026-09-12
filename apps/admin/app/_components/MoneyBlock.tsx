@@ -252,11 +252,11 @@ interface Tone {
   chip: string;
 }
 const DARK: Tone = {
-  label: "text-[#c9a6e4]",
+  label: "text-[var(--t-accent)]",
   value: "text-white",
-  faint: "text-[#a98ac4]",
+  faint: "text-[var(--t-accent)]",
   line: "border-white/15",
-  chip: "text-[#e7d8f2] border-white/25 hover:bg-white/10",
+  chip: "text-[var(--t-accent)] border-white/25 hover:bg-white/10",
 };
 const LIGHT: Tone = {
   label: "text-body-soft",
@@ -313,7 +313,7 @@ export function MoneyBlock(p: MoneyBlockProps) {
   const rows = p.doors ? all.filter(([id]) => p.doors!.includes(id)) : all;
 
   const card = "rounded-[12px] px-3 py-3";
-  const cardBg = { background: p.tone === "light" ? "#f6f2fa" : "rgba(255,255,255,.07)" };
+  const cardBg = { background: p.tone === "light" ? "var(--s-accent)" : "rgba(255,255,255,.07)" };
   const editor = "pt-2 flex items-center gap-1.5 flex-wrap";
 
   return (
@@ -370,7 +370,7 @@ export function MoneyBlock(p: MoneyBlockProps) {
                 <TakaInput className="ipt h-[36px] text-[13px] text-right" style={{ width: 82 }}
                   valuePaisa={Math.round(Math.max(0, c.amountTaka) * 100)}
                   onPaisa={(pz) => p.onCharges(p.charges.map((x) => (x.id === c.id ? { ...x, amountTaka: pz / 100 } : x)))} />
-                <button type="button" title="Remove this charge" className={`shrink-0 ${t.label} hover:text-[#ff9b9b]`}
+                <button type="button" title="Remove this charge" className={`shrink-0 ${t.label} hover:text-[var(--t-bad)]`}
                   onClick={() => p.onCharges(p.charges.filter((x) => x.id !== c.id))}>
                   <Icon name="trash" size={14} />
                 </button>
@@ -431,16 +431,16 @@ export function MoneyResult({ pay, totalPaisa, tone, dueLabel = "Due — collect
   const over = pay.overpaidNoChange;
 
   const right = due
-    ? { label: dueLabel, value: formatTaka(pay.duePaisa), fg: "#f0b46a", bg: "rgba(240,180,106,.14)" }
+    ? { label: dueLabel, value: formatTaka(pay.duePaisa), fg: "var(--t-warn)", bg: "rgba(240,180,106,.14)" }
     : change
-      ? { label: "Change to give", value: formatTaka(pay.changePaisa), fg: "#7fe0a8", bg: "rgba(127,224,168,.14)" }
+      ? { label: "Change to give", value: formatTaka(pay.changePaisa), fg: "var(--t-ok)", bg: "rgba(127,224,168,.14)" }
       : over
-        ? { label: "Overpaid — reduce", value: formatTaka(pay.paidPaisa - totalPaisa), fg: "#f0b46a", bg: "rgba(240,180,106,.14)" }
-        : { label: settledLabel, value: "৳ 0", fg: "#7fe0a8", bg: "rgba(127,224,168,.14)" };
+        ? { label: "Overpaid — reduce", value: formatTaka(pay.paidPaisa - totalPaisa), fg: "var(--t-warn)", bg: "rgba(240,180,106,.14)" }
+        : { label: settledLabel, value: "৳ 0", fg: "var(--t-ok)", bg: "rgba(127,224,168,.14)" };
 
   return (
     <div className="grid grid-cols-2 gap-2">
-      <div className="rounded-[12px] px-3 py-2.5" style={{ background: tone === "light" ? "#f6f2fa" : "rgba(255,255,255,.07)" }}>
+      <div className="rounded-[12px] px-3 py-2.5" style={{ background: tone === "light" ? "var(--s-accent)" : "rgba(255,255,255,.07)" }}>
         <div className={`text-[10.5px] uppercase tracking-[0.08em] font-medium ${t.label}`}>Paid</div>
         <div className={`text-[19px] font-semibold font-display ${t.value}`} style={{ fontVariantNumeric: "tabular-nums" }}>
           {formatTaka(pay.paidPaisa)}
@@ -508,7 +508,7 @@ export function PaymentLines({ pay, tone, maxHeight = 148, fill, methods = COUNT
                     style={{ paddingLeft: 22, fontVariantNumeric: "tabular-nums" }} />
                 </span>
                 <button type="button" onClick={() => pay.removeRow(r.id)} title="Remove this payment"
-                  className={`shrink-0 ${t.label} hover:text-[#ff9b9b] ${pay.pays.length > 1 ? "" : "invisible"}`}>
+                  className={`shrink-0 ${t.label} hover:text-[var(--t-bad)] ${pay.pays.length > 1 ? "" : "invisible"}`}>
                   <Icon name="trash" size={15} />
                 </button>
               </div>
@@ -568,22 +568,22 @@ export function PayDialog({
     <div className="fixed inset-0 z-50 grid place-items-center px-4" style={{ background: "rgba(40,20,50,.45)" }}
       onClick={onClose}>
       <div className="w-full max-w-[420px] rounded-[16px] text-white shadow-lift overflow-hidden"
-        style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }} onClick={(e) => e.stopPropagation()}>
+        style={{ background: "linear-gradient(170deg,var(--a-solid),var(--a-solid))" }} onClick={(e) => e.stopPropagation()}>
         <div className="p-4 pb-2 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[12px] text-[#c9a6e4] font-medium uppercase tracking-[0.06em]">{title}</div>
+            <div className="text-[12px] text-[var(--t-accent)] font-medium uppercase tracking-[0.06em]">{title}</div>
             {who && <div className="text-[14px] font-medium truncate">{who}</div>}
           </div>
-          <button type="button" onClick={onClose} className="text-[#c9a6e4] text-[22px] leading-none px-1 shrink-0">×</button>
+          <button type="button" onClick={onClose} className="text-[var(--t-accent)] text-[22px] leading-none px-1 shrink-0">×</button>
         </div>
 
         <div className="px-4">
           <div className="rounded-[12px] px-3 py-3 text-center" style={{ background: "rgba(255,255,255,.07)" }}>
-            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">{owedLabel}</div>
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[var(--t-accent)] font-medium">{owedLabel}</div>
             <div className="text-[32px] font-semibold font-display leading-[1.2]" style={{ fontVariantNumeric: "tabular-nums" }}>
               {formatTaka(owedPaisa)}
             </div>
-            {note && <div className="text-[11px] text-[#a98ac4]">{note}</div>}
+            {note && <div className="text-[11px] text-[var(--t-accent)]">{note}</div>}
           </div>
 
           <div className="rounded-[12px] px-3 py-3 mt-3" style={{ background: "rgba(255,255,255,.07)" }}>
@@ -594,28 +594,28 @@ export function PayDialog({
         <div className="p-4 pt-3 mt-3 border-t border-white/15">
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-[12px] px-3 py-2.5" style={{ background: "rgba(255,255,255,.07)" }}>
-              <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">{leftLabel}</div>
+              <div className="text-[10.5px] uppercase tracking-[0.08em] text-[var(--t-accent)] font-medium">{leftLabel}</div>
               <div className="text-[19px] font-semibold font-display" style={{ fontVariantNumeric: "tabular-nums" }}>{formatTaka(taking)}</div>
             </div>
             <div className="rounded-[12px] px-3 py-2.5"
               style={{ background: left > 0 ? "rgba(240,180,106,.14)" : "rgba(127,224,168,.14)" }}>
-              <div className="text-[10.5px] uppercase tracking-[0.08em] font-medium truncate" style={{ color: left > 0 ? "#f0b46a" : "#7fe0a8" }}>
+              <div className="text-[10.5px] uppercase tracking-[0.08em] font-medium truncate" style={{ color: left > 0 ? "var(--t-warn)" : "var(--t-ok)" }}>
                 {left > 0 ? dueAfterLabel : clearedLabel}
               </div>
-              <div className="text-[19px] font-semibold font-display" style={{ color: left > 0 ? "#f0b46a" : "#7fe0a8", fontVariantNumeric: "tabular-nums" }}>
+              <div className="text-[19px] font-semibold font-display" style={{ color: left > 0 ? "var(--t-warn)" : "var(--t-ok)", fontVariantNumeric: "tabular-nums" }}>
                 {formatTaka(left)}
               </div>
             </div>
           </div>
 
-          {tooMuch && <p className="text-[12px] text-[#ff9b9b] mt-2 mb-0">Cannot be more than {formatTaka(owedPaisa)}.</p>}
-          {error && <div className="mt-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{error}</div>}
+          {tooMuch && <p className="text-[12px] text-[var(--t-bad)] mt-2 mb-0">Cannot be more than {formatTaka(owedPaisa)}.</p>}
+          {error && <div className="mt-2 text-[11.5px] text-[var(--t-bad)] bg-white/10 rounded-[8px] px-3 py-2">{error}</div>}
 
           <div className="flex gap-2 mt-3">
             <button type="button" onClick={onClose}
               className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20">Cancel</button>
             <button type="button" onClick={onConfirm} disabled={busy || taking <= 0 || tooMuch}
-              className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
+              className="flex-1 bg-white hover:bg-[var(--s-accent)] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
               <Icon name="check" size={17} /> {busy ? "Working…" : `${confirmLabel} · ${formatTaka(taking)}`}
             </button>
           </div>
@@ -669,22 +669,22 @@ export function RefundDialog({
     <div className="fixed inset-0 z-50 grid place-items-center px-4" style={{ background: "rgba(40,20,50,.45)" }}
       onClick={onClose}>
       <div className="w-full max-w-[420px] rounded-[16px] text-white shadow-lift overflow-hidden"
-        style={{ background: "linear-gradient(170deg,#3c0a5a,#26063a)" }} onClick={(e) => e.stopPropagation()}>
+        style={{ background: "linear-gradient(170deg,var(--a-solid),var(--a-solid))" }} onClick={(e) => e.stopPropagation()}>
         <div className="p-4 pb-2 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[12px] text-[#c9a6e4] font-medium uppercase tracking-[0.06em]">{title}</div>
+            <div className="text-[12px] text-[var(--t-accent)] font-medium uppercase tracking-[0.06em]">{title}</div>
             {who && <div className="text-[14px] font-medium truncate">{who}</div>}
           </div>
-          <button type="button" onClick={onClose} className="text-[#c9a6e4] text-[22px] leading-none px-1 shrink-0">×</button>
+          <button type="button" onClick={onClose} className="text-[var(--t-accent)] text-[22px] leading-none px-1 shrink-0">×</button>
         </div>
 
         <div className="px-4">
           <div className="rounded-[12px] px-3 py-3 text-center" style={{ background: "rgba(255,255,255,.07)" }}>
-            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c9a6e4] font-medium">{amountLabel}</div>
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-[var(--t-accent)] font-medium">{amountLabel}</div>
             <div className="text-[32px] font-semibold font-display leading-[1.2]" style={{ fontVariantNumeric: "tabular-nums" }}>
               {formatTaka(amountPaisa)}
             </div>
-            {note && <div className="text-[11px] text-[#a98ac4]">{note}</div>}
+            {note && <div className="text-[11px] text-[var(--t-accent)]">{note}</div>}
           </div>
 
           {children && (
@@ -692,13 +692,13 @@ export function RefundDialog({
           )}
 
           <div className="rounded-[12px] px-3 py-3 mt-3" style={{ background: "rgba(255,255,255,.07)" }}>
-            <div className="text-[12.5px] font-medium text-[#c9a6e4] mb-1.5">How it goes back</div>
+            <div className="text-[12.5px] font-medium text-[var(--t-accent)] mb-1.5">How it goes back</div>
             <select className="ipt h-[40px] text-[13px]" value={method}
               onChange={(e) => { onMethod(e.target.value); onAccount?.(""); }}>
               {methodPlaceholder && <option value="">{methodPlaceholder}</option>}
               {methods.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
-            {methodNote && <div className="text-[11.5px] text-[#c9a6e4] mt-1.5">{methodNote}</div>}
+            {methodNote && <div className="text-[11.5px] text-[var(--t-accent)] mt-1.5">{methodNote}</div>}
             {(() => {
               // P7-8 — same case-insensitive match as the payment rows
               const accounts = methods.find((m) => m.id.toLowerCase() === method.toLowerCase())?.accounts ?? [];
@@ -717,14 +717,14 @@ export function RefundDialog({
         </div>
 
         <div className="p-4 pt-3 mt-3 border-t border-white/15">
-          {error && <div className="mb-2 text-[11.5px] text-[#ff9b9b] bg-white/10 rounded-[8px] px-3 py-2">{error}</div>}
+          {error && <div className="mb-2 text-[11.5px] text-[var(--t-bad)] bg-white/10 rounded-[8px] px-3 py-2">{error}</div>}
           <div className="flex gap-2">
             <button type="button" onClick={onClose}
               className="px-4 py-3 rounded-[12px] text-[13.5px] font-medium border border-white/25 text-white bg-white/10 hover:bg-white/20">Cancel</button>
             {/*  a refund with no method picked is money leaving from nowhere —
                 the button stays shut until somebody says where from  */}
             <button type="button" onClick={onConfirm} disabled={busy || (!!methodPlaceholder && !method)}
-              className="flex-1 bg-white hover:bg-[#f4ecf9] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
+              className="flex-1 bg-white hover:bg-[var(--s-accent)] text-purple text-[14.5px] py-3 rounded-[12px] font-semibold inline-flex items-center justify-center gap-2 shadow-soft disabled:opacity-40">
               <Icon name="check" size={17} /> {busy ? "Working…" : `${confirmLabel} · ${formatTaka(amountPaisa)}`}
             </button>
           </div>

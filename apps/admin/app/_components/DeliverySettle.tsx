@@ -148,8 +148,8 @@ export function DeliverySettle() {
         <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">Delivered — accounts unfinished</h1>
       </div>
 
-      {err && <div className="bg-[#fdeff0] text-[#b42318] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">{err}</div>}
-      {ok && <div className="bg-[#e9f9ef] text-[#0e7a3d] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">{ok}</div>}
+      {err && <div className="bg-[var(--s-bad)] text-[var(--t-bad)] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">{err}</div>}
+      {ok && <div className="bg-[var(--s-ok)] text-[var(--t-ok)] text-[13px] font-medium px-4 py-3 rounded-[12px] mb-4">{ok}</div>}
 
       <div className="flex items-end gap-3 flex-wrap mb-5">
         <div className="min-w-[220px]">
@@ -177,10 +177,10 @@ export function DeliverySettle() {
       {picked.size > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           {[
-            { l: "Parcels", v: String(picked.size), c: "#7d2ea8" },
-            { l: "Cash expected", v: formatTaka(totals.expected), c: "#0b5f9e" },
-            { l: "Cash received", v: formatTaka(totals.gross), c: totals.gross < totals.expected ? "#b42318" : "#0e7a3d" },
-            { l: "Their charge", v: formatTaka(totals.charge), c: "#b45309" },
+            { l: "Parcels", v: String(picked.size), c: "var(--t-accent)" },
+            { l: "Cash expected", v: formatTaka(totals.expected), c: "var(--t-info)" },
+            { l: "Cash received", v: formatTaka(totals.gross), c: totals.gross < totals.expected ? "var(--t-bad)" : "var(--t-ok)" },
+            { l: "Their charge", v: formatTaka(totals.charge), c: "var(--t-warn)" },
           ].map((s) => (
             <div key={s.l} className="bg-white border border-lavender-deep rounded-[13px] px-4 py-3">
               <div className="text-[12px] text-body-soft">{s.l}</div>
@@ -193,7 +193,7 @@ export function DeliverySettle() {
       {/*  Short payment is shown, never blocked. "They handed over less than was
           due" is a fact worth recording and chasing, not an input error. */}
       {picked.size > 0 && totals.gross > 0 && totals.gross < totals.expected && (
-        <div className="bg-[#fff4e2] text-[#b45309] text-[13px] px-4 py-3 rounded-[12px] mb-4">
+        <div className="bg-[var(--s-warn)] text-[var(--t-warn)] text-[13px] px-4 py-3 rounded-[12px] mb-4">
           {formatTaka(totals.expected - totals.gross)} less than was due on these parcels.
         </div>
       )}
@@ -217,7 +217,7 @@ export function DeliverySettle() {
                 const stale = (r.daysSince ?? 0) >= 7 && r.codDuePaisa > 0;
                 const prepaid = r.codDuePaisa === 0;
                 return (
-                  <tr key={r.assignmentId} className={`border-t border-lavender-deep ${stale ? "bg-[#fff4e2]" : "hover:bg-lavender/40"}`}>
+                  <tr key={r.assignmentId} className={`border-t border-lavender-deep ${stale ? "bg-[var(--s-warn)]" : "hover:bg-lavender/40"}`}>
                     <td className="px-3 py-2.5 text-center">
                       <input type="checkbox" checked={picked.has(r.assignmentId)} onChange={() => toggle(r.assignmentId)} aria-label={`Select ${r.orderNo}`} />
                     </td>

@@ -178,7 +178,7 @@ export default function ItemSizesView() {
               <button onClick={() => setDlg({ id: a.id, name: a.name, lines: a.values.map((v) => ({ id: v.id, label: v.label })) })}
                 className="text-body-soft hover:text-purple px-1.5 py-1" title="Edit"><Icon name="edit" size={15} /></button>
               <button onClick={() => remove(a)}
-                className="text-body-soft hover:text-[#c0392b] px-1.5 py-1" title="Delete"><Icon name="trash" size={15} /></button>
+                className="text-body-soft hover:text-[var(--t-bad)] px-1.5 py-1" title="Delete"><Icon name="trash" size={15} /></button>
             </span>
           </div>
         ))}
@@ -200,15 +200,15 @@ export default function ItemSizesView() {
           busy={busy}
         >
           {dlgErr && (
-            <p className="text-[12.5px] text-[#c0392b] rounded-[10px] px-3 py-2 m-0"
-              style={{ background: "#fdecea" }}>{dlgErr}</p>
+            <p className="text-[12.5px] text-[var(--t-bad)] rounded-[10px] px-3 py-2 m-0"
+              style={{ background: "var(--s-bad)" }}>{dlgErr}</p>
           )}
           <Field label="Size type name" required>
             <input autoFocus className="ipt w-full" placeholder="e.g. Flower Vase"
               value={dlg.name}
               onChange={(e) => { setDlg({ ...dlg, name: e.target.value }); setDlgErr(null); }} />
             {dupName && (
-              <p className="text-[11.5px] text-[#c0392b] m-0 mt-1">
+              <p className="text-[11.5px] text-[var(--t-bad)] m-0 mt-1">
                 &ldquo;{dlg.name.trim()}&rdquo; already exists.
               </p>
             )}
@@ -230,12 +230,12 @@ export default function ItemSizesView() {
                     }}
                   />
                   <button type="button" onClick={() => setDlg({ ...dlg, lines: dlg.lines.filter((_, k) => k !== i) })}
-                    className="text-body-soft hover:text-[#c0392b] px-1 shrink-0"><Icon name="trash" size={14} /></button>
+                    className="text-body-soft hover:text-[var(--t-bad)] px-1 shrink-0"><Icon name="trash" size={14} /></button>
                 </div>
               ))}
               <button type="button" onClick={() => setDlg({ ...dlg, lines: [...dlg.lines, { label: "" }] })}
                 className="self-start text-[12.5px] font-medium px-3 py-1.5 rounded-[9px] border inline-flex items-center gap-1.5"
-                style={{ borderColor: "#efe4f7", color: ACCENT }}>
+                style={{ borderColor: "var(--l-accent)", color: ACCENT }}>
                 <Icon name="plus" size={13} /> Add size
               </button>
             </div>

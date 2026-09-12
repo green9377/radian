@@ -45,11 +45,11 @@ export default function PurchaseReturnsView() {
       {isDemo && <DemoBar what="sample returns" onRetry={load} />}
 
       <Kpi items={[
-        { l: "Total returned", v: formatTaka(total), c: "#470066", bg: "#f5eafb", icon: "box" },
-        { l: "Cut from dues", v: formatTaka(rows.reduce((s, r) => s + r.dueCutPaisa, 0)), c: "#b45309", bg: "#fff4e6", icon: "cash" },
-        { l: "Became credit", v: formatTaka(credit), c: "#0e8f74", bg: "#e7f5f1", icon: "check" },
-        { l: "Returns", v: rows.length, c: "#2563a8", bg: "#e8f0fa", icon: "grid" },
-        { l: "Suppliers", v: new Set(rows.map((r) => r.purchase?.supplierName)).size, c: "#b5642f", bg: "#f9efe6", icon: "user" },
+        { l: "Total returned", v: formatTaka(total), c: "var(--t-accent)", bg: "var(--s-accent)", icon: "box" },
+        { l: "Cut from dues", v: formatTaka(rows.reduce((s, r) => s + r.dueCutPaisa, 0)), c: "var(--t-warn)", bg: "var(--s-warn)", icon: "cash" },
+        { l: "Became credit", v: formatTaka(credit), c: "var(--t-ok)", bg: "var(--s-ok)", icon: "check" },
+        { l: "Returns", v: rows.length, c: "var(--t-info)", bg: "var(--s-info)", icon: "grid" },
+        { l: "Suppliers", v: new Set(rows.map((r) => r.purchase?.supplierName)).size, c: "var(--t-warn)", bg: "var(--s-warn)", icon: "user" },
       ]} />
 
       <DataTable head={
@@ -75,8 +75,8 @@ export default function PurchaseReturnsView() {
             </span>
             <span className="text-[12.5px] text-body-soft">{fmtDate(r.returnDate)}</span>
             <span className="text-[13px] font-medium text-right">{formatTaka(r.totalPaisa)}</span>
-            <span className="text-[13px] text-right" style={{ color: "#b45309" }}>{formatTaka(r.dueCutPaisa)}</span>
-            <span className="text-[13px] text-right" style={{ color: r.creditPaisa > 0 ? "#0e8f74" : "#9b8aa6" }}>
+            <span className="text-[13px] text-right" style={{ color: "var(--t-warn)" }}>{formatTaka(r.dueCutPaisa)}</span>
+            <span className="text-[13px] text-right" style={{ color: r.creditPaisa > 0 ? "var(--t-ok)" : "var(--t-accent)" }}>
               {r.creditPaisa > 0 ? formatTaka(r.creditPaisa) : "—"}
             </span>
           </div>

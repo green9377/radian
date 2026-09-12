@@ -83,7 +83,7 @@ export function CarrierMoneyLive() {
               <Td><Chip tone={c.type === "COURIER" ? "sky" : "brand"}>{c.type === "COURIER" ? "Courier" : "Rider"}</Chip></Td>
               <Td right><span className="font-bold">{taka(c.paisa)}</span></Td>
               <Td right>
-                <span className="font-semibold" style={{ color: c.daysHeld > 7 ? TONE.rose.text : "#6b6b6b" }}>{c.daysHeld} days</span>
+                <span className="font-semibold" style={{ color: c.daysHeld > 7 ? TONE.rose.text : "var(--t-soft)" }}>{c.daysHeld} days</span>
               </Td>
               <Td right>
                 <button className={btnGhost} onClick={() => setF({ ...f, carrierId: c.carrierId, carrierName: c.name, carrierType: c.type, gross: String(c.paisa / 100) })}>
@@ -574,7 +574,7 @@ export function ReportsLive() {
               <div className="px-5 py-3">
                 {pnl.income.length === 0 && <div className="text-[13px] text-body-soft py-3">Nothing earned in this period.</div>}
                 {pnl.income.map((r) => (
-                  <div key={r.code} className="flex justify-between py-2 border-b border-[#f6f2f9] last:border-0 text-[13.5px]">
+                  <div key={r.code} className="flex justify-between py-2 border-b border-[var(--l-accent)] last:border-0 text-[13.5px]">
                     <span className="text-body-soft">{r.name}</span><span className="font-semibold text-purple">{taka(r.paisa)}</span>
                   </div>
                 ))}
@@ -612,17 +612,17 @@ export function ReportsLive() {
                   {d.buckets.map((b) => {
                     const bad = b.bucket === "over 30 days" && b.paisa > 0;
                     return (
-                      <div key={b.bucket} className="text-center px-2 py-2.5 rounded-xl" style={{ background: bad ? TONE.rose.soft : "#faf8fc" }}>
+                      <div key={b.bucket} className="text-center px-2 py-2.5 rounded-xl" style={{ background: bad ? TONE.rose.soft : "var(--s-accent)" }}>
                         <div className="text-[10px] uppercase text-body-soft font-bold">{b.bucket}</div>
-                        <div className="text-[13px] font-bold mt-0.5" style={{ color: bad ? TONE.rose.text : "#3d2352" }}>{taka(b.paisa)}</div>
+                        <div className="text-[13px] font-bold mt-0.5" style={{ color: bad ? TONE.rose.text : "var(--t-accent)" }}>{taka(b.paisa)}</div>
                       </div>
                     );
                   })}
                 </div>
                 {d.rows.slice(0, 12).map((r) => (
-                  <div key={r.ref} className="flex justify-between py-1.5 text-[12.5px] border-b border-[#f6f2f9] last:border-0">
+                  <div key={r.ref} className="flex justify-between py-1.5 text-[12.5px] border-b border-[var(--l-accent)] last:border-0">
                     <span className="text-body-soft">{r.ref} · {r.who}</span>
-                    <span><b>{taka(r.paisa)}</b> <span style={{ color: r.days > 30 ? TONE.rose.text : "#6b6b6b" }}>{r.days}d</span></span>
+                    <span><b>{taka(r.paisa)}</b> <span style={{ color: r.days > 30 ? TONE.rose.text : "var(--t-soft)" }}>{r.days}d</span></span>
                   </div>
                 ))}
                 {d.rows.length === 0 && <div className="text-[13px] text-body-soft">Nothing outstanding — clean.</div>}
@@ -656,14 +656,14 @@ export function ReportsLive() {
           <Panel title="Goods that left but never arrived" emoji="📦" tone={leak.goodsStuckOut.overdueCount > 0 ? "rose" : "slate"}
             sub="out of the warehouse, not delivered and not returned">
             <div className="px-5 py-4">
-              <div className="text-[21px] font-bold mb-3" style={{ color: leak.goodsStuckOut.overdueCount > 0 ? TONE.rose.text : "#3d2352" }}>
+              <div className="text-[21px] font-bold mb-3" style={{ color: leak.goodsStuckOut.overdueCount > 0 ? TONE.rose.text : "var(--t-accent)" }}>
                 {taka(leak.goodsStuckOut.totalPaisa)}
                 <span className="text-[12px] font-normal text-body-soft ml-2">{leak.goodsStuckOut.overdueCount} over a week</span>
               </div>
               {leak.goodsStuckOut.rows.map((r) => (
-                <div key={r.orderNo} className="flex justify-between py-1.5 text-[12.5px] border-b border-[#f6f2f9] last:border-0">
+                <div key={r.orderNo} className="flex justify-between py-1.5 text-[12.5px] border-b border-[var(--l-accent)] last:border-0">
                   <span className="text-body-soft">{r.orderNo}</span>
-                  <span><b>{taka(r.paisa)}</b> <span style={{ color: r.days > 7 ? TONE.rose.text : "#6b6b6b" }}>{r.days}d</span></span>
+                  <span><b>{taka(r.paisa)}</b> <span style={{ color: r.days > 7 ? TONE.rose.text : "var(--t-soft)" }}>{r.days}d</span></span>
                 </div>
               ))}
               {leak.goodsStuckOut.rows.length === 0 && <div className="text-[13px] text-body-soft">Nothing stuck — good.</div>}
@@ -674,7 +674,7 @@ export function ReportsLive() {
             <div className="px-5 py-4">
               {leak.writeOffs.length === 0 && <div className="text-[13px] text-body-soft">Nothing written off yet.</div>}
               {leak.writeOffs.map((w) => (
-                <div key={w.actor} className="flex justify-between py-2 border-b border-[#f6f2f9] last:border-0 text-[13px]">
+                <div key={w.actor} className="flex justify-between py-2 border-b border-[var(--l-accent)] last:border-0 text-[13px]">
                   <span className="text-body-soft">{w.actor} <span className="text-[11.5px]">({w.count} times)</span></span>
                   <span><b>{taka(w.wastagePaisa)}</b> spoiled · {taka(w.giftPaisa)} given</span>
                 </div>
@@ -685,7 +685,7 @@ export function ReportsLive() {
           <Panel title="Price given away" emoji="🏷" tone="brand" sub="discounts and counter adjustments, newest first">
             <div className="px-5 py-4">
               {leak.discounts.rows.slice(0, 10).map((d) => (
-                <div key={d.orderNo} className="flex justify-between py-1.5 text-[12.5px] border-b border-[#f6f2f9] last:border-0">
+                <div key={d.orderNo} className="flex justify-between py-1.5 text-[12.5px] border-b border-[var(--l-accent)] last:border-0">
                   <span className="text-body-soft">{d.orderNo}{d.counter ? " · counter" : ""}</span>
                   <span>
                     {d.discountPaisa > 0 && <span style={{ color: TONE.amber.text }}>−{taka(d.discountPaisa)}</span>}
@@ -704,7 +704,7 @@ export function ReportsLive() {
                 { l: "Store credit given / used", v: -1, text: `${taka(leak.storeCredit.issuedPaisa)} / ${taka(leak.storeCredit.usedPaisa)}` },
                 { l: "Staff advances not yet recovered", v: leak.staffAdvanceOutstandingPaisa, bold: true },
               ].map((r) => (
-                <div key={r.l} className="flex justify-between py-2 border-b border-[#f6f2f9] last:border-0 text-[13.5px]">
+                <div key={r.l} className="flex justify-between py-2 border-b border-[var(--l-accent)] last:border-0 text-[13.5px]">
                   <span className="text-body-soft">{r.l}</span>
                   <span className={r.bold ? "font-bold" : "text-body-soft"}>{r.text ?? taka(r.v)}</span>
                 </div>

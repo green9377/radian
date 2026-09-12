@@ -57,33 +57,33 @@ import SpecialDateField from "./SpecialDateField";
 const SECTIONS = [
   {
     id: "profile", label: "Profile", blurb: "Name, phone, photo", icon: "user",
-    tint: "#f3e8f9", edge: "#e6d3f2", chip: "#e6d3f2",
-    ink: "#3b0b52", sub: "#816894", strong: "#470066",
-    fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#e9a8f5",
+    tint: "var(--t-accent)", edge: "var(--l-accent)", chip: "var(--s-accent)",
+    ink: "var(--t-accent)", sub: "var(--t-accent)", strong: "var(--t-accent)",
+    fill: "linear-gradient(100deg,var(--a-solid),var(--o-solid))", glow: "rgba(71,0,102,.30)", soft: "var(--o-solid)",
   },
   {
     id: "recipients", label: "Recipients", blurb: "Who they send to", icon: "pin",
-    tint: "#fbeaf0", edge: "#f2cddb", chip: "#f2cddb",
-    ink: "#6b2138", sub: "#a06a7c", strong: "#993556",
-    fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#f4c0d1",
+    tint: "var(--t-orchid)", edge: "var(--l-orchid)", chip: "var(--s-orchid)",
+    ink: "var(--t-orchid)", sub: "var(--t-gold)", strong: "var(--t-gold)",
+    fill: "linear-gradient(100deg,var(--t-gold),var(--t-gold))", glow: "rgba(153,53,86,.28)", soft: "var(--t-orchid)",
   },
   {
     id: "segments", label: "Segments", blurb: "Tags and notes", icon: "hash",
-    tint: "#f9e9fd", edge: "#eecffa", chip: "#eecffa",
-    ink: "#5e1a5c", sub: "#96639a", strong: "#8c2d84",
-    fill: "linear-gradient(100deg,#8c2d84,#b444ad)", glow: "rgba(140,45,132,.26)", soft: "#f0c4ec",
+    tint: "var(--t-accent)", edge: "var(--l-accent)", chip: "var(--s-accent)",
+    ink: "var(--t-orchid)", sub: "var(--t-orchid)", strong: "var(--t-orchid)",
+    fill: "linear-gradient(100deg,var(--o-solid),var(--o-solid))", glow: "rgba(140,45,132,.26)", soft: "var(--o-solid)",
   },
   {
     id: "orders", label: "Orders", blurb: "Value and history", icon: "bag",
-    tint: "#f8eef0", edge: "#e8c9ce", chip: "#e8c9ce",
-    ink: "#6d3a43", sub: "#a5757e", strong: "#98545f",
-    fill: "linear-gradient(100deg,#98545f,#c07f8a)", glow: "rgba(152,84,95,.26)", soft: "#eccdd2",
+    tint: "var(--t-bad)", edge: "var(--l-gold)", chip: "var(--s-gold)",
+    ink: "var(--t-bad)", sub: "var(--t-gold)", strong: "var(--t-bad)",
+    fill: "linear-gradient(100deg,var(--f-bad),var(--f-bad))", glow: "rgba(152,84,95,.26)", soft: "var(--t-bad)",
   },
   {
     id: "activity", label: "Activity", blurb: "Every change, logged", icon: "clock",
-    tint: "#f3eff8", edge: "#e4dcee", chip: "#e4dcee",
-    ink: "#453556", sub: "#8b7c9c", strong: "#5f4b73",
-    fill: "linear-gradient(100deg,#5f4b73,#7f6b93)", glow: "rgba(95,75,115,.24)", soft: "#ded4ec",
+    tint: "var(--t-accent)", edge: "var(--l-accent)", chip: "var(--s-accent)",
+    ink: "var(--t-accent)", sub: "var(--t-accent)", strong: "var(--t-accent)",
+    fill: "linear-gradient(100deg,var(--a-solid),var(--a-solid))", glow: "rgba(95,75,115,.24)", soft: "var(--a-solid)",
   },
 ] as const;
 type SecId = (typeof SECTIONS)[number]["id"];
@@ -150,7 +150,7 @@ function Field({
 }
 
 const delBtn =
-  "border border-lavender-deep bg-white text-body-soft hover:text-[#c0392b] hover:border-[#e0a1a1] rounded-[10px] w-[38px] h-[38px] grid place-items-center shrink-0 transition-colors";
+  "border border-lavender-deep bg-white text-body-soft hover:text-[var(--t-bad)] hover:border-[var(--l-bad)] rounded-[10px] w-[38px] h-[38px] grid place-items-center shrink-0 transition-colors";
 const addBtn =
   "self-start mt-3 border border-lavender-deep bg-white text-[13px] px-3.5 py-2 rounded-[10px] hover:border-orchid text-purple font-medium inline-flex items-center gap-1.5 transition-colors";
 
@@ -431,7 +431,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
   const t: "new" | "onetime" | "repeat" =
     orders <= 0 ? "new" : orders === 1 ? "onetime" : "repeat";
   const aov = orders > 0 ? Math.round(ltvPaisa / orders) : 0;
-  const avatarBg = api?.avatarBg ?? "linear-gradient(150deg,#cf43ea,#b76e79)";
+  const avatarBg = api?.avatarBg ?? "linear-gradient(150deg,var(--o-solid),var(--t-gold))";
   const joinedMs = ms(api?.firstOrderAt);
   const abroad = country.trim().toLowerCase() !== "bangladesh";
 
@@ -460,7 +460,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
           <button
             type="button"
             onClick={handleBlock}
-            className="border border-lavender-deep bg-white text-[13.5px] px-4 py-2.5 rounded-[11px] font-medium hover:border-[#e0a1a1] hover:text-[#c0392b] text-body-soft"
+            className="border border-lavender-deep bg-white text-[13.5px] px-4 py-2.5 rounded-[11px] font-medium hover:border-[var(--l-bad)] hover:text-[var(--t-bad)] text-body-soft"
           >
             {status === "blocked" ? "Unblock" : "Block"}
           </button>
@@ -479,7 +479,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
         <div className="text-[13px] text-body-soft mb-4">Loading customer…</div>
       )}
       {notFound && (
-        <div className="bg-[#fff4e6] border border-[#fce4c4] text-[#b45309] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[var(--s-warn)] border border-[var(--l-warn)] text-[var(--t-warn)] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           This customer could not be loaded.{" "}
           <Link href="/customers/list" className="underline font-medium">
             Back to all customers
@@ -487,7 +487,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
         </div>
       )}
       {saveErr && (
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
+        <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {saveErr}
         </div>
       )}
@@ -559,10 +559,10 @@ export default function CustomerEditor({ id }: { id?: string }) {
                   purple → rose gold ঢাল, accent দুই জায়গায় মাত্র。            */}
               <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden mb-5">
                 <div className="flex items-center gap-4 px-5 py-4"
-                  style={{ background: "linear-gradient(105deg,#470066,#320049 62%,#b76e79)" }}>
+                  style={{ background: "linear-gradient(105deg,var(--a-solid),var(--a-solid) 62%,var(--t-gold))" }}>
                   <label className="relative shrink-0 cursor-pointer" title="Upload a photo">
                     <span className="w-[58px] h-[58px] rounded-full grid place-items-center overflow-hidden border-2 border-orchid-mid"
-                      style={{ background: imageUrl ? "#fff" : "#f9e9fd" }}>
+                      style={{ background: imageUrl ? "#fff" : "var(--s-accent)" }}>
                       {imageUrl
                         ? /* eslint-disable-next-line @next/next/no-img-element */
                           <img src={imageUrl} alt="" className="w-full h-full object-cover" />
@@ -597,7 +597,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
                     </div>
                   </div>
                   <span className="ml-auto shrink-0 text-[11.5px] px-3 py-1.5 rounded-full font-medium inline-flex items-center gap-1.5"
-                    style={{ background: "#e8c9ce", color: "#7a3f48" }}>
+                    style={{ background: "var(--s-gold)", color: "var(--t-bad)" }}>
                     <Icon name="shield" size={12} /> WhatsApp is the login
                   </span>
                 </div>
@@ -688,7 +688,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
                             "text-[13px] px-4 py-2 rounded-[8px] font-medium capitalize transition-colors " +
                             (status === s
                               ? s === "blocked"
-                                ? "bg-white text-[#c0392b] shadow-soft"
+                                ? "bg-white text-[var(--t-bad)] shadow-soft"
                                 : "bg-white text-purple shadow-soft"
                               : "text-body-soft hover:text-purple")
                           }
@@ -903,7 +903,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
                             <button
                               type="button"
                               onClick={() => removeOccasion(r.id, i)}
-                              className="text-body-soft hover:text-[#c0392b] text-[13px] px-1"
+                              className="text-body-soft hover:text-[var(--t-bad)] text-[13px] px-1"
                               title="Remove date"
                             >
                               ✕
@@ -1068,7 +1068,7 @@ export default function CustomerEditor({ id }: { id?: string }) {
           <div className="bg-white border border-lavender-deep rounded-[18px] shadow-lift overflow-hidden">
             <div
               className="px-5 pt-6 pb-7 text-center text-white"
-              style={{ background: "linear-gradient(150deg,#470066,#cf43ea)" }}
+              style={{ background: "linear-gradient(150deg,var(--a-solid),var(--o-solid))" }}
             >
               {/* the customer's own account view — photo if there is one */}
               <div

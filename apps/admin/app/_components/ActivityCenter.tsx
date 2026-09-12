@@ -21,7 +21,7 @@ import Icon from "./Icon";
 import { AuditView } from "./AuditView";
 import { SessionsScreen } from "./AdminSystem";
 
-const GRAD_HERO = "linear-gradient(120deg,#470066 0%,#8a2bb0 42%,#cf43ea 74%,#b76e79 100%)";
+const GRAD_HERO = "linear-gradient(120deg,var(--a-solid) 0%,var(--a-solid) 42%,var(--o-solid) 74%,var(--t-gold) 100%)";
 
 function ActivityCenterInner() {
   const params = useSearchParams();
@@ -56,7 +56,7 @@ function ActivityCenterInner() {
                   className="flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-1.5 rounded-[9px] transition-colors"
                   style={{
                     background: on ? "#fff" : "transparent",
-                    color: on ? "#b97fdc" : "rgba(255,255,255,0.85)",
+                    color: on ? "var(--t-accent)" : "rgba(255,255,255,0.85)",
                   }}>
                   <Icon name={t.icon} size={13} strokeWidth={2.4} />
                   {t.label}

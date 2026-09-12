@@ -33,13 +33,13 @@ const day = (d?: string | null) =>
   d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "—";
 
 const STATE: Record<string, { label: string; c: string; bg: string }> = {
-  active: { label: "Live", c: "#0f7d55", bg: "#e8f6ee" },
-  scheduled: { label: "Scheduled", c: "#185fa5", bg: "#e6f1fb" },
-  paused: { label: "Paused", c: "#8a5a00", bg: "#fff6e5" },
-  expired: { label: "Ended", c: "#5f5e5a", bg: "#f1efe8" },
-  draft: { label: "Draft", c: "#5f5e5a", bg: "#f1efe8" },
-  pending_approval: { label: "Waiting for approval", c: "#8a5a00", bg: "#fff6e5" },
-  archived: { label: "Archived", c: "#5f5e5a", bg: "#f1efe8" },
+  active: { label: "Live", c: "var(--t-ok)", bg: "var(--s-ok)" },
+  scheduled: { label: "Scheduled", c: "var(--t-info)", bg: "var(--s-info)" },
+  paused: { label: "Paused", c: "var(--t-warn)", bg: "var(--s-warn)" },
+  expired: { label: "Ended", c: "var(--t-soft)", bg: "var(--s-warn)" },
+  draft: { label: "Draft", c: "var(--t-soft)", bg: "var(--s-warn)" },
+  pending_approval: { label: "Waiting for approval", c: "var(--t-warn)", bg: "var(--s-warn)" },
+  archived: { label: "Archived", c: "var(--t-soft)", bg: "var(--s-warn)" },
 };
 
 export default function OfferDetail({ id }: { id: string }) {
@@ -95,7 +95,7 @@ export default function OfferDetail({ id }: { id: string }) {
   if (err || !offer)
     return (
       <div className={WRAP}>
-        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 text-[13px]">
+        <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 text-[13px]">
           {err ?? "Offer not found."}
         </div>
       </div>
@@ -138,10 +138,10 @@ export default function OfferDetail({ id }: { id: string }) {
       {/* the four counts, in the house shape */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         {[
-          { l: "Times used", v: String(offer.redeemedCount), c: "#470066", edge: "#6d3a9c", bg: "#f3ebf8", icon: "bolt" },
-          { l: "Revenue", v: taka(money.revenuePaisa), c: "#8b3fb0", edge: "#cf43ea", bg: "#f7eafc", icon: "cash" },
-          { l: "Given away", v: taka(money.discountPaisa), c: "#a4566a", edge: "#c9788a", bg: "#fbeef0", icon: "tag" },
-          { l: "New customers", v: String(money.newCustomers), c: "#5c3b8a", edge: "#8b6fc4", bg: "#efebf9", icon: "user" },
+          { l: "Times used", v: String(offer.redeemedCount), c: "var(--t-accent)", edge: "var(--l-accent)", bg: "var(--s-accent)", icon: "bolt" },
+          { l: "Revenue", v: taka(money.revenuePaisa), c: "var(--t-accent)", edge: "var(--l-orchid)", bg: "var(--s-accent)", icon: "cash" },
+          { l: "Given away", v: taka(money.discountPaisa), c: "var(--t-gold)", edge: "var(--l-gold)", bg: "var(--s-bad)", icon: "tag" },
+          { l: "New customers", v: String(money.newCustomers), c: "var(--t-accent)", edge: "var(--l-accent)", bg: "var(--s-accent)", icon: "user" },
         ].map((k, i) => (
           <div key={i} className="relative rounded-[16px] border border-white/70 shadow-soft overflow-hidden px-4 py-3.5"
             style={{ background: `linear-gradient(150deg,${k.bg},#ffffff 130%)` }}>
@@ -163,7 +163,7 @@ export default function OfferDetail({ id }: { id: string }) {
         <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft overflow-hidden">
           <div className="px-5 py-3.5 border-b border-lavender-deep flex items-center gap-2">
             <span className="w-[30px] h-[30px] rounded-[9px] grid place-items-center text-white shrink-0"
-              style={{ background: "#6d3a9c" }}><Icon name="user" size={15} /></span>
+              style={{ background: "var(--s-accent)" }}><Icon name="user" size={15} /></span>
             <span className="font-display text-[17px] text-purple">Who used it</span>
             <span className="ml-auto text-[12.5px] font-bold text-purple/50 tabular-nums">{reds.length}</span>
           </div>
@@ -171,7 +171,7 @@ export default function OfferDetail({ id }: { id: string }) {
           {reds.length === 0 ? (
             <div className="text-center py-12">
               <span className="w-[42px] h-[42px] rounded-[13px] grid place-items-center mx-auto mb-2.5"
-                style={{ background: "#f3ebf8", color: "#6d3a9c" }}><Icon name="bolt" size={19} /></span>
+                style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}><Icon name="bolt" size={19} /></span>
               <div className="text-[13.5px] text-body-soft">Nobody has used this offer yet</div>
             </div>
           ) : (

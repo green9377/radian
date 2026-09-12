@@ -42,9 +42,9 @@ interface Notice {
 }
 
 const TONE = {
-  rose: { bg: "#fdecea", fg: "#c0392b" },
-  amber: { bg: "#fdf3e2", fg: "#b07818" },
-  sky: { bg: "#eef5fd", fg: "#3b76c4" },
+  rose: { bg: "var(--t-bad)", fg: "var(--t-bad)" },
+  amber: { bg: "var(--s-warn)", fg: "var(--t-warn)" },
+  sky: { bg: "var(--s-info)", fg: "var(--t-info)" },
 } as const;
 
 export default function NotificationsBell() {
@@ -177,7 +177,7 @@ export default function NotificationsBell() {
         <span className="text-white"><Icon name="alert" size={15} strokeWidth={2.2} /></span>
         {notices.length > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-[3px] rounded-full grid place-items-center text-[9px] font-bold text-white"
-            style={{ background: "linear-gradient(135deg,#c0392b,#e8604f)", boxShadow: "0 0 0 2px #2f1246" }}>
+            style={{ background: "linear-gradient(135deg,var(--f-bad),var(--f-bad))", boxShadow: "0 0 0 2px var(--s-accent)" }}>
             {notices.length}
           </span>
         )}
@@ -189,9 +189,9 @@ export default function NotificationsBell() {
           just to the right of it, bottom-aligned with the bell's home.  */}
       {open && (
         <div className="fixed left-[258px] bottom-[14px] w-[310px] z-50 rounded-[16px] overflow-hidden bg-white"
-          style={{ boxShadow: "0 12px 40px rgba(40,20,55,0.38)", border: "1px solid #e9e2f2" }}>
+          style={{ boxShadow: "0 12px 40px rgba(40,20,55,0.38)", border: "1px solid var(--l-accent)" }}>
           <div className="px-3.5 py-2.5 flex items-center gap-2"
-            style={{ background: "linear-gradient(120deg,#8a2bb0,#cf43ea)" }}>
+            style={{ background: "linear-gradient(120deg,var(--a-solid),var(--o-solid))" }}>
             <span className="text-[11.5px] font-extrabold tracking-[0.1em] uppercase text-white flex-1">Notifications</span>
             <span className="text-[10px] font-bold px-2 py-[1px] rounded-full bg-white/25 text-white">{notices.length}</span>
           </div>
@@ -202,7 +202,7 @@ export default function NotificationsBell() {
             <div className="max-h-[340px] overflow-y-auto">
               {notices.map((n) => (
                 <Link key={n.id} href={n.href} onClick={() => setOpen(false)}
-                  className="flex items-start gap-2.5 px-3.5 py-3 border-b border-[#f3eff8] last:border-0 hover:bg-[#faf7fd] transition-colors">
+                  className="flex items-start gap-2.5 px-3.5 py-3 border-b border-[var(--l-accent)] last:border-0 hover:bg-[var(--s-accent)] transition-colors">
                   <span className="w-[26px] h-[26px] rounded-[8px] grid place-items-center shrink-0 mt-[1px]"
                     style={{ background: TONE[n.tone].bg, color: TONE[n.tone].fg }}>
                     <Icon name={n.icon} size={13} strokeWidth={2.3} />

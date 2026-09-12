@@ -143,7 +143,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (offline)
     return (
-      <div className="min-h-screen grid place-items-center p-6" style={{ background: "#faf7fc" }}>
+      <div className="min-h-screen grid place-items-center p-6" style={{ background: "var(--s-accent)" }}>
         <Card className="px-8 py-10 text-center max-w-[420px]">
           <div className="text-[28px] mb-2">⚡</div>
           <div className="font-display text-[20px] text-purple mb-1">The API is not answering</div>
@@ -157,7 +157,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           </p>
           <button
             onClick={() => void boot()}
-            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-[13px] font-semibold border border-[#e7dff0] bg-white text-purple hover:border-orchid transition-all"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-[13px] font-semibold border border-[var(--l-accent)] bg-white text-purple hover:border-orchid transition-all"
           >
             Try now
           </button>
@@ -293,7 +293,7 @@ function LoginForm({ onDone }: { onDone: (m: Me) => void }) {
             such account" would turn this box into a way to find out who works
             here, and the owner's own address is one of them.  */}
         {forgotSaid && (
-          <p className="text-[12.5px] mt-3 leading-relaxed" style={{ color: "#0b6244" }}>
+          <p className="text-[12.5px] mt-3 leading-relaxed" style={{ color: "var(--t-ok)" }}>
             {forgotSaid}
           </p>
         )}
@@ -338,7 +338,7 @@ function LoginForm({ onDone }: { onDone: (m: Me) => void }) {
 
 function Shell({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   return (
-    <div className="min-h-screen grid place-items-center p-6" style={{ background: "linear-gradient(140deg,#f7ecfa,#eef4fb 60%,#fdf6f9)" }}>
+    <div className="min-h-screen grid place-items-center p-6" style={{ background: "linear-gradient(140deg,var(--a-solid),var(--f-info) 60%,var(--o-solid))" }}>
       <div className="w-full max-w-[400px]">
         <div className="text-center mb-5">
           <div className="w-14 h-14 rounded-2xl grid place-items-center text-[26px] mx-auto mb-3 text-white shadow-[0_6px_20px_rgba(160,33,184,0.3)]"

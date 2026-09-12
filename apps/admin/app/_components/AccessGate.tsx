@@ -57,13 +57,13 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-[80vh] grid place-items-center p-6">
-      <div className="w-full max-w-[380px] rounded-[20px] bg-white border border-[#3c3249] p-7 text-center"
+      <div className="w-full max-w-[380px] rounded-[20px] bg-white border border-[var(--l-accent)] p-7 text-center"
         style={{ boxShadow: "0 8px 30px rgba(70,0,102,0.10)" }}>
         <span className="w-[46px] h-[46px] rounded-[14px] grid place-items-center text-white mx-auto mb-4"
-          style={{ background: "linear-gradient(135deg,#8a2bb0,#cf43ea)", display: "grid" }}>
+          style={{ background: "linear-gradient(135deg,var(--a-solid),var(--o-solid))", display: "grid" }}>
           <Icon name="lock" size={20} strokeWidth={2.2} />
         </span>
-        <h2 className="text-[16px] font-bold text-[#dfd2e4] m-0">
+        <h2 className="text-[16px] font-bold text-[var(--t-accent)] m-0">
           This part is not open to your template
         </h2>
         <p className="text-[12.5px] text-body-soft mt-1.5 mb-5">
@@ -72,7 +72,7 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
         <button
           onClick={() => router.push("/")}
           className="px-4 py-2 rounded-[11px] text-[12.5px] font-bold text-white"
-          style={{ background: "linear-gradient(135deg,#8a2bb0,#cf43ea)", boxShadow: "0 4px 12px rgba(138,43,176,0.35)" }}>
+          style={{ background: "linear-gradient(135deg,var(--a-solid),var(--o-solid))", boxShadow: "0 4px 12px rgba(138,43,176,0.35)" }}>
           Go to my work
         </button>
       </div>

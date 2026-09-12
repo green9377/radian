@@ -34,27 +34,27 @@ const WRAP = "px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full";
 const SECTIONS = [
   {
     id: "all", label: "All articles", blurb: "Everything you have written", icon: "grid",
-    tint: "#f3e8f9", edge: "#e6d3f2", chip: "#e6d3f2",
-    ink: "#3b0b52", sub: "#816894", strong: "#470066",
-    fill: "linear-gradient(100deg,#470066,#7a1e86)", glow: "rgba(71,0,102,.30)", soft: "#e9a8f5",
+    tint: "var(--t-accent)", edge: "var(--l-accent)", chip: "var(--s-accent)",
+    ink: "var(--t-accent)", sub: "var(--t-accent)", strong: "var(--t-accent)",
+    fill: "linear-gradient(100deg,var(--a-solid),var(--o-solid))", glow: "rgba(71,0,102,.30)", soft: "var(--o-solid)",
   },
   {
     id: "published", label: "Published", blurb: "Live on the website", icon: "eye",
-    tint: "#e9f7ee", edge: "#c9e8d4", chip: "#c9e8d4",
-    ink: "#124f2e", sub: "#5c8f74", strong: "#0E7A3D",
-    fill: "linear-gradient(100deg,#0E7A3D,#2f9c5c)", glow: "rgba(14,122,61,.25)", soft: "#a9e3c1",
+    tint: "var(--t-ok)", edge: "var(--l-ok)", chip: "var(--s-ok)",
+    ink: "var(--t-ok)", sub: "var(--t-ok)", strong: "var(--t-ok)",
+    fill: "linear-gradient(100deg,var(--f-ok),var(--f-ok))", glow: "rgba(14,122,61,.25)", soft: "var(--t-ok)",
   },
   {
     id: "drafts", label: "Drafts", blurb: "Only you can see these", icon: "clock",
-    tint: "#fdf4e5", edge: "#f0deb9", chip: "#f0deb9",
-    ink: "#6b4a08", sub: "#a5854a", strong: "#8a5a00",
-    fill: "linear-gradient(100deg,#8a5a00,#b8821e)", glow: "rgba(138,90,0,.25)", soft: "#f0d9a4",
+    tint: "var(--t-warn)", edge: "var(--l-warn)", chip: "var(--s-warn)",
+    ink: "var(--t-warn)", sub: "var(--t-warn)", strong: "var(--t-warn)",
+    fill: "linear-gradient(100deg,var(--f-warn),var(--f-warn))", glow: "rgba(138,90,0,.25)", soft: "var(--t-warn)",
   },
   {
     id: "homepage", label: "On the homepage", blurb: "The newest three", icon: "star",
-    tint: "#fbeaf0", edge: "#f2cddb", chip: "#f2cddb",
-    ink: "#6b2138", sub: "#a06a7c", strong: "#993556",
-    fill: "linear-gradient(100deg,#993556,#c25476)", glow: "rgba(153,53,86,.28)", soft: "#f4c0d1",
+    tint: "var(--t-orchid)", edge: "var(--l-orchid)", chip: "var(--s-orchid)",
+    ink: "var(--t-orchid)", sub: "var(--t-gold)", strong: "var(--t-gold)",
+    fill: "linear-gradient(100deg,var(--t-gold),var(--t-gold))", glow: "rgba(153,53,86,.28)", soft: "var(--t-orchid)",
   },
 ] as const;
 type SecId = (typeof SECTIONS)[number]["id"];
@@ -119,11 +119,11 @@ export default function JournalView() {
       <SaveBar state={saveState} onSave={() => flash("Saved")} />
 
       {err && (
-        <div className="flex items-start gap-2 bg-[#fdecea] border border-[#f5c6c2] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[#a3261f] mb-4">
+        <div className="flex items-start gap-2 bg-[var(--s-bad)] border border-[var(--l-bad)] rounded-[11px] px-3.5 py-2.5 text-[12px] text-[var(--t-bad)] mb-4">
           <span className="mt-0.5 shrink-0"><Icon name="alert" size={14} /></span><span>{err}</span>
         </div>
       )}
-      {ok && <div className="bg-[#eef7f0] border border-[#cfe8d6] rounded-[11px] px-3.5 py-2 text-[12px] text-[#12693f] mb-4">{ok}</div>}
+      {ok && <div className="bg-[var(--s-ok)] border border-[var(--l-ok)] rounded-[11px] px-3.5 py-2 text-[12px] text-[var(--t-ok)] mb-4">{ok}</div>}
 
       <ModuleCard>
         <ModuleHeader
@@ -134,7 +134,7 @@ export default function JournalView() {
             ? "Nothing published yet"
             : "Newest three show on the homepage"}
           chips={counts.drafts > 0
-            ? [{ label: `${counts.drafts} draft${counts.drafts > 1 ? "s" : ""}`, bg: "#f9e9fd", color: "#5e1a5c" }]
+            ? [{ label: `${counts.drafts} draft${counts.drafts > 1 ? "s" : ""}`, bg: "var(--s-accent)", color: "var(--t-orchid)" }]
             : []}
           action={{ label: "＋ Write an article", onClick: () => setEditFor("new") }}
         />
@@ -210,7 +210,7 @@ export default function JournalView() {
               ) : shown.map((r) => (
                 <div key={r.id}
                   className={"rounded-[16px] border px-4 py-3.5 " +
-                    (r.isPublished ? "border-lavender-deep bg-white" : "border-[#f0d5a8] bg-[#fffdf6]")}>
+                    (r.isPublished ? "border-lavender-deep bg-white" : "border-[var(--l-warn)] bg-[var(--s-warn)]")}>
                   <div className="flex items-center gap-3">
                     <span className="w-[64px] h-[44px] rounded-[10px] bg-lavender shrink-0 overflow-hidden grid place-items-center">
                       {r.coverUrl
@@ -222,9 +222,9 @@ export default function JournalView() {
                       <span className="block text-[14px] font-medium text-purple">
                         {r.title}
                         {r.isPublished
-                          ? <Badge bg="#E8F9EE" color="#0E7A3D">live</Badge>
-                          : <Badge bg="#FFF4E6" color="#8a5a00">draft</Badge>}
-                        {homepageIds.has(r.id) && <Badge bg="#FBEAF0" color="#993556">on homepage</Badge>}
+                          ? <Badge bg="var(--s-ok)" color="var(--t-ok)">live</Badge>
+                          : <Badge bg="var(--s-warn)" color="var(--t-warn)">draft</Badge>}
+                        {homepageIds.has(r.id) && <Badge bg="var(--s-orchid)" color="var(--t-gold)">on homepage</Badge>}
                       </span>
                       <span className="block text-[11.5px] text-body-soft">
                         {r.words ? `${r.words} words` : "empty"}
@@ -349,7 +349,7 @@ function ArticleDialog({ post, onClose, onSaved, onError }: {
                     finally { setUploading(false); }
                   }} />
               </label>
-              {coverUrl && <button onClick={() => setCoverUrl(null)} className="text-[12px] text-body-soft hover:text-[#c0392b] mt-1.5">Remove cover</button>}
+              {coverUrl && <button onClick={() => setCoverUrl(null)} className="text-[12px] text-body-soft hover:text-[var(--t-bad)] mt-1.5">Remove cover</button>}
             </L>
             <div className="space-y-4">
               <L label="Written by"><input className="ipt" value={author} placeholder="Radian"
@@ -369,7 +369,7 @@ function ArticleDialog({ post, onClose, onSaved, onError }: {
 
         <div className="px-5 py-4 border-t border-lavender-deep flex items-center justify-between gap-2">
           {post
-            ? <button onClick={remove} className="text-[12.5px] text-body-soft hover:text-[#c0392b]">Remove this article</button>
+            ? <button onClick={remove} className="text-[12.5px] text-body-soft hover:text-[var(--t-bad)]">Remove this article</button>
             : <span />}
           <span className="flex items-center gap-2">
             <button onClick={onClose} className="text-[13px] text-body-soft hover:text-purple px-3 py-2">Cancel</button>
@@ -391,7 +391,7 @@ function ActionBtn({ children, onClick, solid }: {
 }) {
   if (solid) {
     return (
-      <button onClick={onClick} className="text-[12px] font-medium px-3.5 py-1.5 rounded-full text-white" style={{ background: "#0E7A3D" }}>
+      <button onClick={onClick} className="text-[12px] font-medium px-3.5 py-1.5 rounded-full text-white" style={{ background: "var(--s-ok)" }}>
         {children}
       </button>
     );

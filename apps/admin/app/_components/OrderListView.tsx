@@ -136,7 +136,7 @@ function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
   }
 
   return (
-    <tr className="hover:bg-[#231538]">
+    <tr className="hover:bg-[var(--s-accent)]">
       {/* order no */}
       <td className={`${CELL} w-[132px]`} style={hot ? { boxShadow: `inset 4px 0 0 ${SOLID.red}` } : undefined}>
         <Said say={say} />
@@ -191,11 +191,11 @@ function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
       {/* total */}
       <td className={`${CELL} w-[136px] whitespace-nowrap`}>
         <div className="grid grid-cols-[40px_1fr] gap-x-1.5 gap-y-[3px]">
-          <span className="text-[11px] font-medium text-[#afa4b7] leading-[1.5]">Total</span>
+          <span className="text-[11px] font-medium text-[var(--t-accent)] leading-[1.5]">Total</span>
           <span className="font-medium text-body">{formatTaka(o.totalPaisa)}</span>
-          <span className="text-[11px] font-medium text-[#afa4b7] leading-[1.5]">Paid</span>
+          <span className="text-[11px] font-medium text-[var(--t-accent)] leading-[1.5]">Paid</span>
           <span className="font-medium" style={{ color: o.paidPaisa > 0 ? SOLID.green : SOLID.grey }}>{formatTaka(o.paidPaisa)}</span>
-          <span className="text-[11px] font-medium text-[#afa4b7] leading-[1.5]">{refunded ? "Refund" : "Due"}</span>
+          <span className="text-[11px] font-medium text-[var(--t-accent)] leading-[1.5]">{refunded ? "Refund" : "Due"}</span>
           {refunded ? (
             <span className="font-medium" style={{ color: SOLID.grey }}>{formatTaka(o.refundPaisa)}</span>
           ) : (
@@ -237,7 +237,7 @@ function Row({ o, onChanged }: { o: ApiOrder; onChanged: () => void }) {
           {/*  #14 — where the next step is taken, said rather than offered as a
                button that would only ever be refused  */}
           {!next && where && (
-            <span className="text-[11.5px] font-medium text-[#afa4b7] leading-[1.3] px-1">
+            <span className="text-[11.5px] font-medium text-[var(--t-accent)] leading-[1.3] px-1">
               Next step: {where}
             </span>
           )}

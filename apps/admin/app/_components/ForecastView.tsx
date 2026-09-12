@@ -38,7 +38,7 @@ export function ForecastView() {
     return (
       <div className={WRAP}>
         <Header eyebrow="Intelligence" title="Forecast & market" />
-        <div className="rounded-[12px] border border-[#f6cfd2] bg-[#fdeff0] text-[#b42318] px-4 py-3 text-[13px]">{err}</div>
+        <div className="rounded-[12px] border border-[var(--l-bad)] bg-[var(--s-bad)] text-[var(--t-bad)] px-4 py-3 text-[13px]">{err}</div>
       </div>
     );
   }
@@ -61,7 +61,7 @@ export function ForecastView() {
       )}
 
       {/* ---- the countdown: the promise, kept in public ---- */}
-      <div className="rounded-[16px] border border-[#eee6f4] bg-white px-4 py-3.5 mb-5">
+      <div className="rounded-[16px] border border-[var(--l-accent)] bg-white px-4 py-3.5 mb-5">
         <div className="text-[13.5px] font-medium text-purple">How much history there is</div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
           <Stat label="Days with trading" value={String(data.readiness.daysRecorded)} />
@@ -91,11 +91,11 @@ export function ForecastView() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-6">
         {data.market.items.map((m) => (
-          <div key={m.label} className="rounded-[14px] border border-[#eee6f4] bg-white px-3.5 py-3">
+          <div key={m.label} className="rounded-[14px] border border-[var(--l-accent)] bg-white px-3.5 py-3">
             <div className="text-[12px] text-body-soft">{m.label}</div>
             <div
               className="font-display text-[20px] leading-none mt-1.5"
-              style={{ color: m.changeBp >= 0 ? "#0e7a3d" : "#b42318" }}
+              style={{ color: m.changeBp >= 0 ? "var(--t-ok)" : "var(--t-bad)" }}
             >
               {m.changeBp >= 0 ? "+" : "−"}{formatBp(Math.abs(m.changeBp))}
             </div>
@@ -107,7 +107,7 @@ export function ForecastView() {
       {/*  Condition 5, said out loud. This module issues no buying advice at
           all — an over-forecast on flowers is money in a bin, and for a shop
           whose stock rots that is not a figure of speech. */}
-      <div className="rounded-[14px] border border-[#fadfb4] bg-[#fff7ec] text-[#b45309] px-4 py-3 text-[12.5px] leading-relaxed">
+      <div className="rounded-[14px] border border-[var(--l-warn)] bg-[var(--s-warn)] text-[var(--t-warn)] px-4 py-3 text-[12.5px] leading-relaxed">
         <b>No buying suggestions are made here.</b> {data.recommendationNote}
       </div>
     </div>
@@ -116,9 +116,9 @@ export function ForecastView() {
 
 function Stat({ label, value, good }: { label: string; value: string; good?: boolean }) {
   return (
-    <div className="rounded-[12px] px-3 py-2.5" style={{ background: good ? REAL_BG : "#faf6fd" }}>
-      <div className="text-[11px]" style={{ color: good ? REAL_TEXT : "#6b6b76" }}>{label}</div>
-      <div className="font-display text-[17px] leading-none mt-1" style={{ color: good ? REAL_TEXT : "#470066" }}>{value}</div>
+    <div className="rounded-[12px] px-3 py-2.5" style={{ background: good ? REAL_BG : "var(--s-accent)" }}>
+      <div className="text-[11px]" style={{ color: good ? REAL_TEXT : "var(--t-soft)" }}>{label}</div>
+      <div className="font-display text-[17px] leading-none mt-1" style={{ color: good ? REAL_TEXT : "var(--t-accent)" }}>{value}</div>
     </div>
   );
 }
@@ -136,7 +136,7 @@ function ProjectionCard({ p }: { p: Projection }) {
         <span className="text-[13.5px] font-medium" style={{ color: textCol }}>{p.label}</span>
         <span
           className="text-[10px] font-bold uppercase tracking-[0.06em] px-2 py-0.5 rounded-full"
-          style={{ background: real ? "#149a52" : "#7d2ea8", color: "#fff" }}
+          style={{ background: real ? "var(--s-ok)" : "var(--s-accent)", color: "#fff" }}
         >
           {real ? "Worked out" : "Invented"}
         </span>
@@ -157,7 +157,7 @@ function ProjectionCard({ p }: { p: Projection }) {
             <div key={`${pt.label}-${i}`} className="flex-1 flex flex-col items-center gap-1">
               <div
                 className="w-full rounded-t-[3px]"
-                style={{ height: `${Math.max(3, (pt.value / max) * 42)}px`, background: real ? "#149a52" : "#7d2ea8" }}
+                style={{ height: `${Math.max(3, (pt.value / max) * 42)}px`, background: real ? "var(--s-ok)" : "var(--s-accent)" }}
               />
               <span className="text-[9.5px]" style={{ color: textCol, opacity: 0.7 }}>{pt.label}</span>
             </div>

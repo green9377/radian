@@ -20,20 +20,20 @@ import { ordersOverview, deliveryMoney, formatTaka, type ApiOrdersOverview, type
 */
 
 const T = {
-  bg: "#16101c",
-  card: "#1f1727",
-  line: "#3a2d45",
-  ink: "#f1eaf6",
-  grey: "#a79bb3",
-  lav: "#241a2c",
-  lav2: "#33263d",
-  purple: "#470066",
-  orchid: "#cf43ea",
-  green: "#3ddc84",
-  amber: "#f5a524",
+  bg: "var(--s-accent)",
+  card: "var(--s-accent)",
+  line: "var(--l-accent)",
+  ink: "var(--t-accent)",
+  grey: "var(--t-accent)",
+  lav: "var(--t-accent)",
+  lav2: "var(--t-accent)",
+  purple: "var(--t-accent)",
+  orchid: "var(--t-orchid)",
+  green: "var(--t-ok)",
+  amber: "var(--t-warn)",
   red: "#ff6b60",
   blue: "#5aa9f0",
-  tint: { g: "#12321f", a: "#3a2a10", r: "#3d1a17", b: "#14283b", p: "#2e1d3a", n: "#241a2c" },
+  tint: { g: "var(--t-ok)", a: "var(--t-warn)", r: "var(--t-bad)", b: "var(--t-info)", p: "var(--t-accent)", n: "var(--t-accent)" },
 };
 
 const DHAKA = 6 * 3600_000;

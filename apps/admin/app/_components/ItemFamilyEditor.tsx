@@ -176,7 +176,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
             <div className="text-[11px] font-bold tracking-[0.08em] uppercase" style={{ color: ACCENT }}>master data · item group</div>
             <h1 className="font-display text-[25px] text-purple mt-1 mb-0 leading-tight">{base}</h1>
             <span className="text-[12.5px] font-semibold mt-1 inline-flex items-center gap-1.5 px-2 py-1 rounded-full"
-              style={{ background: "#f9e9fd", color: "#8b21c9" }}>
+              style={{ background: "var(--s-accent)", color: "var(--t-accent)" }}>
               <Icon name="sparkle" size={11} /> {members.length} variants
             </span>
           </div>
@@ -200,7 +200,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
           {SECTIONS.map((s) => (
             <button key={s.key} onClick={() => setSection(s.key)}
               className="w-full text-left text-[13.5px] font-semibold px-3 py-2.5 rounded-[10px] flex items-center gap-2.5 mb-0.5"
-              style={section === s.key ? { background: ACCENT, color: "#fff" } : { color: "#5b4166" }}>
+              style={section === s.key ? { background: ACCENT, color: "#fff" } : { color: "var(--t-accent)" }}>
               <Icon name={s.icon} size={14} /> {s.label}
             </button>
           ))}
@@ -210,11 +210,11 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
         <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft p-5">
           {section === "basics" && (
             <Sect title="Basics">
-              <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
+              <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "var(--l-accent)" }}>
                 {members.map((m) => (
                   <Link key={m.id} href={`/items/${m.id}`}
                     className="px-3.5 py-2.5 flex items-center gap-3 border-b last:border-0 hover:bg-lavender/30"
-                    style={{ borderColor: "#f0e8f6" }}>
+                    style={{ borderColor: "var(--l-accent)" }}>
                     <ItemThumb item={m} size={34} />
                     <span className="min-w-0 flex-1">
                       <span className="block text-[13.5px] font-semibold text-body truncate">{m.name}</span>
@@ -285,7 +285,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                   onErr={setErr}
                 />
               </Row>
-              <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "#d9c0ea" }}>
+              <div className="rounded-[16px] border overflow-hidden" style={{ borderColor: "var(--l-accent)" }}>
                 <div className="px-4 py-3" style={{ background: ACCENT }}>
                   <span className="text-[13.5px] font-bold text-white">{members.length} variants</span>
                 </div>
@@ -303,7 +303,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                           <div className="font-mono text-[12px] text-body-soft truncate">{m.sku}</div>
                         </div>
                         <span className="text-[12px] font-semibold shrink-0"
-                          style={{ color: own ? "#0e7a3d" : "#8b7a95" }}>
+                          style={{ color: own ? "var(--t-ok)" : "var(--t-accent)" }}>
                           {own ? "own photo" : "uses group photo"}
                         </span>
                       </div>
@@ -316,14 +316,14 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
 
           {section === "behaviour" && (
             <Sect title="How it is used" hint="Applied to every variant">
-              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0" }}>
+              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "var(--l-accent)" }}>
                 <SwitchRow on={val(isPurchasable, cur.isPurchasable) ?? false}
                   onClick={() => setIsPurchasable(!(val(isPurchasable, cur.isPurchasable) ?? false))}
-                  icon="download" tone="#0e8f74"
+                  icon="download" tone="var(--t-ok)"
                   title="We buy it" sub={cur.isPurchasable === null && isPurchasable === null ? "they differ" : ""} />
                 <SwitchRow on={val(isActive, cur.isActive) ?? false}
                   onClick={() => setIsActive(!(val(isActive, cur.isActive) ?? false))}
-                  icon="check" tone="#8b21c9"
+                  icon="check" tone="var(--t-accent)"
                   title="Show in the shop" sub={cur.isActive === null && isActive === null ? "they differ" : ""} />
               </div>
             </Sect>
@@ -342,7 +342,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                       className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] border-2"
                       style={priceMode === k
                         ? { background: ACCENT, borderColor: ACCENT, color: "#fff" }
-                        : { background: "#fff", borderColor: "#e8dcf0", color: "#5b4166" }}>
+                        : { background: "#fff", borderColor: "var(--l-accent)", color: "var(--t-accent)" }}>
                       {label}
                     </button>
                   ))}
@@ -364,8 +364,8 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                 </div>
               </Row>
 
-              <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "#e8dcf0" }}>
-                <div className="px-4 py-2.5 border-b text-[12.5px] font-bold text-purple" style={{ background: "#faf6fd", borderColor: "#e8dcf0" }}>
+              <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "var(--l-accent)" }}>
+                <div className="px-4 py-2.5 border-b text-[12.5px] font-bold text-purple" style={{ background: "var(--s-accent)", borderColor: "var(--l-accent)" }}>
                   What each one costs and sells for now
                 </div>
                 <div className="divide-y divide-lavender-deep">
@@ -373,7 +373,7 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
                     <div key={m.id} className="px-4 py-2 grid grid-cols-[minmax(0,1fr)_100px_120px] gap-3 items-center text-[13px]">
                       <span className="truncate text-body">{m.name}</span>
                       <span className="text-right text-body-soft">{formatTaka(m.effectiveCostPaisa ?? 0)}</span>
-                      <span className="text-right font-semibold" style={{ color: m.effectiveSellPricePaisa == null ? "#c0392b" : "#0e7a3d" }}>
+                      <span className="text-right font-semibold" style={{ color: m.effectiveSellPricePaisa == null ? "var(--t-bad)" : "var(--t-ok)" }}>
                         {m.effectiveSellPricePaisa == null ? "no price" : formatTaka(m.effectiveSellPricePaisa)}
                         {m.sellPriceIsManual && <span className="text-[11px] font-normal text-body-soft"> fixed</span>}
                       </span>
@@ -399,10 +399,10 @@ export default function ItemFamilyEditor({ familyKey }: { familyKey: string }) {
 
           {section === "connect" && (
             <Sect title="Sell online">
-              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "#e8dcf0" }}>
+              <div className="rounded-[14px] border overflow-hidden divide-y" style={{ borderColor: "var(--l-accent)" }}>
                 <SwitchRow on={val(isOnline, cur.isOnline) ?? false}
                   onClick={() => setIsOnline(!(val(isOnline, cur.isOnline) ?? false))}
-                  icon="link" tone="#8b21c9"
+                  icon="link" tone="var(--t-accent)"
                   title="Sell online" sub={cur.isOnline === null && isOnline === null ? "they differ" : ""} />
               </div>
             </Sect>

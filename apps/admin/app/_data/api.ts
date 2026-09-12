@@ -1685,7 +1685,7 @@ export function adaptOrder(a: ApiOrder): any {
           by: p.capturedBy || "",
           caption: p.caption || "",
           url: p.url || "",
-          bg: p.bg || "linear-gradient(160deg,#EFE4F8,#DBC3F0)",
+          bg: p.bg || "linear-gradient(160deg,var(--a-solid),var(--a-solid))",
         }
       : null;
   };
@@ -1723,7 +1723,7 @@ export function adaptOrder(a: ApiOrder): any {
       id: l.id,
       productId: l.productId,
       name: l.name,
-      bg: l.bg || "linear-gradient(160deg,#F1E6F8,#DFC8F0)",
+      bg: l.bg || "linear-gradient(160deg,var(--a-solid),var(--a-solid))",
       // DEC-PRD-014 — the colour that was sold, carried through to the screens
       variantLabel: l.variantLabel || undefined,
       sizeLabel: l.sizeLabel || "",
@@ -1784,17 +1784,17 @@ export interface StatusMeta {
 }
 export const SALES_STATUS_META: Record<SalesStatus, StatusMeta> = {
   placed: { label: "Placed", chip: "bg-lavender text-purple border-lavender-deep", dot: "bg-orchid" },
-  confirmed: { label: "Confirmed", chip: "bg-[#eef2ff] text-[#4338ca] border-[#dde3ff]", dot: "bg-[#4338ca]" },
-  completed: { label: "Completed", chip: "bg-[#e8f9ee] text-[#0e7a3d] border-[#c4eed4]", dot: "bg-[#0e7a3d]" },
-  cancelled: { label: "Cancelled", chip: "bg-[#fbecec] text-[#b42318] border-[#f5d5d2]", dot: "bg-[#b42318]" },
+  confirmed: { label: "Confirmed", chip: "bg-[var(--s-info)] text-[var(--t-info)] border-[var(--l-info)]", dot: "bg-[var(--s-info)]" },
+  completed: { label: "Completed", chip: "bg-[var(--s-ok)] text-[var(--t-ok)] border-[var(--l-ok)]", dot: "bg-[var(--s-ok)]" },
+  cancelled: { label: "Cancelled", chip: "bg-[var(--s-bad)] text-[var(--t-bad)] border-[var(--l-bad)]", dot: "bg-[var(--s-bad)]" },
 };
 export const DELIVERY_STATUS_META: Record<DeliveryStatus, StatusMeta> = {
   unassigned: { label: "Not started", chip: "bg-lavender-deep/50 text-body-soft border-lavender-deep", dot: "bg-body-soft" },
-  preparing: { label: "Preparing", chip: "bg-[#fff4e6] text-[#b45309] border-[#fce4c4]", dot: "bg-[#b45309]" },
-  out_for_delivery: { label: "Out for delivery", chip: "bg-[#eaf6ff] text-[#0369a1] border-[#cde9fb]", dot: "bg-[#0369a1]" },
-  delivered: { label: "Delivered", chip: "bg-[#e8f9ee] text-[#0e7a3d] border-[#c4eed4]", dot: "bg-[#0e7a3d]" },
-  failed: { label: "Delivery failed", chip: "bg-[#fbecec] text-[#b42318] border-[#f5d5d2]", dot: "bg-[#b42318]" },
-  stock_reverted: { label: "Stock reverted", chip: "bg-[#f4ecff] text-purple border-lavender-deep", dot: "bg-orchid" },
+  preparing: { label: "Preparing", chip: "bg-[var(--s-warn)] text-[var(--t-warn)] border-[var(--l-warn)]", dot: "bg-[var(--s-warn)]" },
+  out_for_delivery: { label: "Out for delivery", chip: "bg-[var(--s-info)] text-[var(--t-info)] border-[var(--l-info)]", dot: "bg-[var(--s-info)]" },
+  delivered: { label: "Delivered", chip: "bg-[var(--s-ok)] text-[var(--t-ok)] border-[var(--l-ok)]", dot: "bg-[var(--s-ok)]" },
+  failed: { label: "Delivery failed", chip: "bg-[var(--s-bad)] text-[var(--t-bad)] border-[var(--l-bad)]", dot: "bg-[var(--s-bad)]" },
+  stock_reverted: { label: "Stock reverted", chip: "bg-[var(--s-accent)] text-purple border-lavender-deep", dot: "bg-orchid" },
 };
 export const PAYMENT_STATUS_META: Record<PaymentStatus, StatusMeta> = {
   /*
@@ -1813,12 +1813,12 @@ export const PAYMENT_STATUS_META: Record<PaymentStatus, StatusMeta> = {
     COD was invented here, on the screen. `paymentLabel()` below now says which
     it is, because only the ORDER knows its method.
   */
-  unpaid: { label: "Not paid", chip: "bg-[#fff4e6] text-[#b45309] border-[#fce4c4]", dot: "bg-[#b45309]" },
-  advance_paid: { label: "Advance paid", chip: "bg-[#eef2ff] text-[#4338ca] border-[#dde3ff]", dot: "bg-[#4338ca]" },
-  paid: { label: "Paid", chip: "bg-[#e8f9ee] text-[#0e7a3d] border-[#c4eed4]", dot: "bg-[#0e7a3d]" },
-  cod_collected: { label: "COD collected", chip: "bg-[#e8f9ee] text-[#0e7a3d] border-[#c4eed4]", dot: "bg-[#0e7a3d]" },
-  partially_refunded: { label: "Part refunded", chip: "bg-[#f4ecff] text-purple border-lavender-deep", dot: "bg-orchid" },
-  refunded: { label: "Refunded", chip: "bg-[#fbecec] text-[#b42318] border-[#f5d5d2]", dot: "bg-[#b42318]" },
+  unpaid: { label: "Not paid", chip: "bg-[var(--s-warn)] text-[var(--t-warn)] border-[var(--l-warn)]", dot: "bg-[var(--s-warn)]" },
+  advance_paid: { label: "Advance paid", chip: "bg-[var(--s-info)] text-[var(--t-info)] border-[var(--l-info)]", dot: "bg-[var(--s-info)]" },
+  paid: { label: "Paid", chip: "bg-[var(--s-ok)] text-[var(--t-ok)] border-[var(--l-ok)]", dot: "bg-[var(--s-ok)]" },
+  cod_collected: { label: "COD collected", chip: "bg-[var(--s-ok)] text-[var(--t-ok)] border-[var(--l-ok)]", dot: "bg-[var(--s-ok)]" },
+  partially_refunded: { label: "Part refunded", chip: "bg-[var(--s-accent)] text-purple border-lavender-deep", dot: "bg-orchid" },
+  refunded: { label: "Refunded", chip: "bg-[var(--s-bad)] text-[var(--t-bad)] border-[var(--l-bad)]", dot: "bg-[var(--s-bad)]" },
 };
 /**
  * What to call an order's payment state, given the METHOD as well as the
@@ -2891,11 +2891,11 @@ export const deleteItemType = (id: string) =>
 
 /** the five built-ins, for when the API is unreachable and the form still has to render */
 export const FALLBACK_ITEM_TYPES: ApiItemTypeRow[] = [
-  { id: "sys-raw", name: "Raw material", behaviour: "RAW", isSystem: true, colour: "#0e8f74" },
-  { id: "sys-fin", name: "Finished", behaviour: "FINISHED", isSystem: true, colour: "#8b21c9" },
-  { id: "sys-pack", name: "Packaging", behaviour: "PACKAGING", isSystem: true, colour: "#b5642f" },
-  { id: "sys-cons", name: "Consumable", behaviour: "CONSUMABLE", isSystem: true, colour: "#8a6d1f" },
-  { id: "sys-serv", name: "Service", behaviour: "SERVICE", isSystem: true, colour: "#2563a8" },
+  { id: "sys-raw", name: "Raw material", behaviour: "RAW", isSystem: true, colour: "var(--t-ok)" },
+  { id: "sys-fin", name: "Finished", behaviour: "FINISHED", isSystem: true, colour: "var(--t-accent)" },
+  { id: "sys-pack", name: "Packaging", behaviour: "PACKAGING", isSystem: true, colour: "var(--t-warn)" },
+  { id: "sys-cons", name: "Consumable", behaviour: "CONSUMABLE", isSystem: true, colour: "var(--t-warn)" },
+  { id: "sys-serv", name: "Service", behaviour: "SERVICE", isSystem: true, colour: "var(--t-info)" },
 ];
 
 /** DEC-ITM-018 — the floor, computed the same way the server does it. */
@@ -2925,23 +2925,23 @@ export const ITEM_TYPE_META: Record<
   { label: string; short: string; colour: string; bg: string; blurb: string }
 > = {
   RAW: {
-    label: "Raw material", short: "Raw", colour: "#0e8f74", bg: "#e7f5f1",
+    label: "Raw material", short: "Raw", colour: "var(--t-ok)", bg: "var(--s-ok)",
     blurb: "Goes INTO something — rose stems, lilies, foliage.",
   },
   FINISHED: {
-    label: "Finished", short: "Finished", colour: "#7a2ea8", bg: "#f5eafb",
+    label: "Finished", short: "Finished", colour: "var(--t-accent)", bg: "var(--s-accent)",
     blurb: "Sold as it is (teddy) or assembled from a recipe (bouquet).",
   },
   PACKAGING: {
-    label: "Packaging", short: "Packing", colour: "#b5642f", bg: "#f9efe6",
+    label: "Packaging", short: "Packing", colour: "var(--t-warn)", bg: "var(--s-warn)",
     blurb: "Wraps the gift — box, ribbon, wrapping paper.",
   },
   CONSUMABLE: {
-    label: "Consumable", short: "Consumable", colour: "#8a6d1f", bg: "#faf3df",
+    label: "Consumable", short: "Consumable", colour: "var(--t-warn)", bg: "var(--s-warn)",
     blurb: "Used up, never sold — glue, tape, pins.",
   },
   SERVICE: {
-    label: "Service", short: "Service", colour: "#2563a8", bg: "#e8f0fa",
+    label: "Service", short: "Service", colour: "var(--t-info)", bg: "var(--s-info)",
     blurb: "Nothing to store — gift wrapping, card writing.",
   },
 };
@@ -3709,10 +3709,10 @@ export async function loadPurchaseStatsSafe(): Promise<{ stats: PurchaseStats; i
 }
 
 export const PURCHASE_STATUS_META: Record<PurchaseStatus, { label: string; colour: string; bg: string }> = {
-  ORDERED: { label: "Ordered", colour: "#2563a8", bg: "#e8f0fa" },
-  ADVANCE_PAID: { label: "Advance paid", colour: "#b45309", bg: "#fff4e6" },
-  RECEIVED: { label: "Received", colour: "#0e7a3d", bg: "#e8f7ef" },
-  CANCELLED: { label: "Cancelled", colour: "#8d7a97", bg: "#efe9f4" },
+  ORDERED: { label: "Ordered", colour: "var(--t-info)", bg: "var(--s-info)" },
+  ADVANCE_PAID: { label: "Advance paid", colour: "var(--t-warn)", bg: "var(--s-warn)" },
+  RECEIVED: { label: "Received", colour: "var(--t-ok)", bg: "var(--s-ok)" },
+  CANCELLED: { label: "Cancelled", colour: "var(--t-accent)", bg: "var(--s-accent)" },
 };
 
 /** purchase timeline — same audit trail pattern as products (D9 lesson: UI tells the
@@ -3802,15 +3802,15 @@ export interface InvOverview {
 }
 
 export const INV_REASON_META: Record<InvReason, { label: string; colour: string; bg: string }> = {
-  OPENING:         { label: "Opening",     colour: "#2563a8", bg: "#e8f0fa" },
-  PURCHASE:        { label: "Purchase",    colour: "#0e7a3d", bg: "#e8f7ef" },
-  PURCHASE_RETURN: { label: "Purch. return", colour: "#b45309", bg: "#fff4e6" },
-  SALE:            { label: "Sale",        colour: "#470066", bg: "#f5eafb" },
-  SALE_RETURN:     { label: "Sale return", colour: "#2563a8", bg: "#e8f0fa" },
-  TRANSFER:        { label: "Transfer",    colour: "#0e8f74", bg: "#e7f5f1" },
-  WASTAGE:         { label: "Wastage",     colour: "#c0392b", bg: "#fdecea" },
-  ADJUSTMENT:      { label: "Adjustment",  colour: "#8d7a97", bg: "#efe9f4" },
-  GIFT:            { label: "Gift",        colour: "#cf43ea", bg: "#fbeafe" },
+  OPENING:         { label: "Opening",     colour: "var(--t-info)", bg: "var(--s-info)" },
+  PURCHASE:        { label: "Purchase",    colour: "var(--t-ok)", bg: "var(--s-ok)" },
+  PURCHASE_RETURN: { label: "Purch. return", colour: "var(--t-warn)", bg: "var(--s-warn)" },
+  SALE:            { label: "Sale",        colour: "var(--t-accent)", bg: "var(--s-accent)" },
+  SALE_RETURN:     { label: "Sale return", colour: "var(--t-info)", bg: "var(--s-info)" },
+  TRANSFER:        { label: "Transfer",    colour: "var(--t-ok)", bg: "var(--s-ok)" },
+  WASTAGE:         { label: "Wastage",     colour: "var(--t-bad)", bg: "var(--s-bad)" },
+  ADJUSTMENT:      { label: "Adjustment",  colour: "var(--t-accent)", bg: "var(--s-accent)" },
+  GIFT:            { label: "Gift",        colour: "var(--t-orchid)", bg: "var(--s-orchid)" },
 };
 
 export const listInvWarehouses = () => j<ApiWarehouse[]>(`/inventory/warehouses`);
@@ -4183,10 +4183,10 @@ export interface AsmWastageReport {
 }
 
 export const ASM_STATUS_META: Record<AsmProductionStatus, { label: string; colour: string; bg: string }> = {
-  IN_PROGRESS: { label: "In progress", colour: "#2563a8", bg: "#e8f0fa" },
-  FINISHED:    { label: "Finished — transfer it", colour: "#b45309", bg: "#fff4e6" },
-  TRANSFERRED: { label: "Transferred", colour: "#0e7a3d", bg: "#e8f7ef" },
-  CANCELLED:   { label: "Cancelled", colour: "#8d7a97", bg: "#efe9f4" },
+  IN_PROGRESS: { label: "In progress", colour: "var(--t-info)", bg: "var(--s-info)" },
+  FINISHED:    { label: "Finished — transfer it", colour: "var(--t-warn)", bg: "var(--s-warn)" },
+  TRANSFERRED: { label: "Transferred", colour: "var(--t-ok)", bg: "var(--s-ok)" },
+  CANCELLED:   { label: "Cancelled", colour: "var(--t-accent)", bg: "var(--s-accent)" },
 };
 
 export const listAsmTemplates = () => j<AsmTemplate[]>(`/assembly/templates`);
@@ -5174,12 +5174,12 @@ export const getCustomerCredit = (customerId: string) =>
   );
 
 export const RETURN_STATUS_META: Record<ReturnStatus, { label: string; tone: string }> = {
-  draft: { label: "Draft", tone: "#b9acc4" },
-  pending_approval: { label: "Needs approval", tone: "#f5a524" },
-  approved: { label: "Approved", tone: "#5aa9f0" },
-  completed: { label: "Completed", tone: "#3ddc84" },
-  rejected: { label: "Rejected", tone: "#ff6b60" },
-  cancelled: { label: "Cancelled", tone: "#b9acc4" },
+  draft: { label: "Draft", tone: "var(--t-accent)" },
+  pending_approval: { label: "Needs approval", tone: "var(--t-warn)" },
+  approved: { label: "Approved", tone: "var(--t-info)" },
+  completed: { label: "Completed", tone: "var(--t-ok)" },
+  rejected: { label: "Rejected", tone: "var(--t-bad)" },
+  cancelled: { label: "Cancelled", tone: "var(--t-accent)" },
 };
 export const RESOLUTION_LABEL: Record<ReturnResolution, string> = {
   REFUND: "Refund",
@@ -5311,13 +5311,13 @@ export const quoteOffers = (b: Record<string, unknown>) =>
   j<ApiQuoteResult>(`/offers/quote`, { method: "POST", body: JSON.stringify(b) });
 
 export const OFFER_LIVESTATE_META: Record<ApiOfferLiveState, { label: string; bg: string; text: string }> = {
-  draft: { label: "Draft", bg: "#f0edf4", text: "#6b6b6b" },
-  pending_approval: { label: "Needs approval", bg: "#fff4e2", text: "#b45309" },
-  scheduled: { label: "Scheduled", bg: "#fff4e2", text: "#b45309" },
-  active: { label: "Active", bg: "#e8f6ef", text: "#0f7d55" },
-  expired: { label: "Expired", bg: "#f0edf4", text: "#6b6b6b" },
-  paused: { label: "Paused", bg: "#fdecec", text: "#b91c1c" },
-  archived: { label: "Archived", bg: "#f0edf4", text: "#6b6b6b" },
+  draft: { label: "Draft", bg: "var(--s-accent)", text: "var(--t-soft)" },
+  pending_approval: { label: "Needs approval", bg: "var(--s-warn)", text: "var(--t-warn)" },
+  scheduled: { label: "Scheduled", bg: "var(--s-warn)", text: "var(--t-warn)" },
+  active: { label: "Active", bg: "var(--s-ok)", text: "var(--t-ok)" },
+  expired: { label: "Expired", bg: "var(--s-accent)", text: "var(--t-soft)" },
+  paused: { label: "Paused", bg: "var(--s-bad)", text: "var(--t-bad)" },
+  archived: { label: "Archived", bg: "var(--s-accent)", text: "var(--t-soft)" },
 };
 
 /* ============================================================
@@ -5736,11 +5736,11 @@ export const financeReconcile = (b: Record<string, unknown>) =>
   j<ApiReconciliation>(`/finance/reconcile`, { method: "POST", body: JSON.stringify(b) });
 
 export const FIN_TYPE_META: Record<FinAccountType, { label: string; bg: string; text: string }> = {
-  ASSET: { label: "Asset", bg: "#e8f6ef", text: "#0f7d55" },
-  LIABILITY: { label: "Liability", bg: "#fdecec", text: "#b91c1c" },
-  EQUITY: { label: "Equity", bg: "#f3e8ff", text: "#7c3aed" },
-  INCOME: { label: "Income", bg: "#e0f2fe", text: "#0369a1" },
-  EXPENSE: { label: "Expense", bg: "#fff4e2", text: "#b45309" },
+  ASSET: { label: "Asset", bg: "var(--s-ok)", text: "var(--t-ok)" },
+  LIABILITY: { label: "Liability", bg: "var(--s-bad)", text: "var(--t-bad)" },
+  EQUITY: { label: "Equity", bg: "var(--s-accent)", text: "var(--t-accent)" },
+  INCOME: { label: "Income", bg: "var(--s-info)", text: "var(--t-info)" },
+  EXPENSE: { label: "Expense", bg: "var(--s-warn)", text: "var(--t-warn)" },
 };
 
 /** demo data for practice — every row carries a DEMO: key and can be cleared */

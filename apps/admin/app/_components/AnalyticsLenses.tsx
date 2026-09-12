@@ -100,7 +100,7 @@ export function AnalyticsLenses() {
         eyebrow="Intelligence"
         title="Analytics"
         actions={
-          <Link href="/intelligence/kpis" className="rounded-[10px] border border-[#e4d3f2] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[#faf6fd]">
+          <Link href="/intelligence/kpis" className="rounded-[10px] border border-[var(--l-accent)] bg-white px-3 py-1.5 text-[12.5px] text-purple hover:bg-[var(--s-accent)]">
             Targets & KPIs
           </Link>
         }
@@ -117,9 +117,9 @@ export function AnalyticsLenses() {
               onClick={() => setLens(l.key)}
               className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] border transition-colors"
               style={{
-                borderColor: on ? "#7d2ea8" : "#e4d3f2",
-                background: on ? "#7d2ea8" : "#fff",
-                color: on ? "#fff" : "#470066",
+                borderColor: on ? "var(--l-accent)" : "var(--l-accent)",
+                background: on ? "var(--s-accent)" : "#fff",
+                color: on ? "#fff" : "var(--t-accent)",
               }}
             >
               <Icon name={l.icon} size={13} />
@@ -145,9 +145,9 @@ export function AnalyticsLenses() {
               disabled={dead}
               className="rounded-[9px] px-3 py-1 text-[11.5px] border disabled:cursor-not-allowed"
               style={{
-                borderColor: on && !dead ? "#c7e2fa" : "#eee6f4",
-                background: on && !dead ? "#eaf5ff" : "#fff",
-                color: dead ? "#b3b3bb" : on ? "#0b5f9e" : "#6b6b76",
+                borderColor: on && !dead ? "var(--l-info)" : "var(--l-accent)",
+                background: on && !dead ? "var(--s-info)" : "#fff",
+                color: dead ? "var(--t-main)" : on ? "var(--t-info)" : "var(--t-soft)",
               }}
             >
               {r.label}
@@ -162,7 +162,7 @@ export function AnalyticsLenses() {
       )}
 
       {err && (
-        <div className="rounded-[12px] border border-[#f6cfd2] bg-[#fdeff0] text-[#b42318] px-4 py-3 text-[13px]">{err}</div>
+        <div className="rounded-[12px] border border-[var(--l-bad)] bg-[var(--s-bad)] text-[var(--t-bad)] px-4 py-3 text-[13px]">{err}</div>
       )}
 
       {loading && !data && <p className="text-body-soft text-[13.5px]">Loading…</p>}
@@ -173,14 +173,14 @@ export function AnalyticsLenses() {
               does NOT draw a row of empty charts and leave the reader to guess
               whether the data is missing or the screen is broken. */}
           {data.emptyNote && (
-            <div className="rounded-[14px] border border-[#e4d3f2] bg-[#faf6fd] px-4 py-3 text-[12.5px] text-purple mb-4 leading-relaxed">
+            <div className="rounded-[14px] border border-[var(--l-accent)] bg-[var(--s-accent)] px-4 py-3 text-[12.5px] text-purple mb-4 leading-relaxed">
               {data.emptyNote}
             </div>
           )}
 
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2.5 mb-4">
             {data.cards.map((c) => (
-              <div key={c.key} className="rounded-[14px] border border-[#eee6f4] bg-white px-3.5 py-3" title={c.hint}>
+              <div key={c.key} className="rounded-[14px] border border-[var(--l-accent)] bg-white px-3.5 py-3" title={c.hint}>
                 <div className="text-[11.5px] text-body-soft leading-snug">{c.label}</div>
                 <div className="font-display text-[21px] leading-none text-purple mt-1.5">
                   {formatLensValue(c.value, c.unit)}
@@ -206,7 +206,7 @@ function ChartCard({ chart }: { chart: LensChart }) {
     : chart.parts.some((p) => p.value !== 0);
 
   return (
-    <div className="rounded-[16px] border border-[#eee6f4] bg-white px-4 py-3.5">
+    <div className="rounded-[16px] border border-[var(--l-accent)] bg-white px-4 py-3.5">
       <div className="text-[13.5px] font-medium text-purple">{chart.title}</div>
       {chart.note && <div className="text-[11.5px] text-body-soft mt-0.5">{chart.note}</div>}
 
@@ -258,7 +258,7 @@ function Bars({ rows, unit }: { rows: { label: string; value: number; sub?: stri
             <span className="text-purple truncate">{r.label}</span>
             <span className="text-body-soft shrink-0">{formatLensValue(r.value, unit)}</span>
           </div>
-          <div className="h-[6px] rounded-full bg-[#f3edf8] mt-1 overflow-hidden">
+          <div className="h-[6px] rounded-full bg-[var(--s-accent)] mt-1 overflow-hidden">
             <div className="h-full rounded-full" style={{ width: `${(Math.abs(r.value) / max) * 100}%`, background: BAR }} />
           </div>
           {r.sub && <div className="text-[10.5px] text-body-soft mt-0.5">{r.sub}</div>}
@@ -273,7 +273,7 @@ function Split({ parts, unit }: { parts: { label: string; value: number }[]; uni
   const colours = [BAR, SERIES, "#e08a1e", "#149a52"];
   return (
     <div className="mt-3">
-      <div className="flex h-[10px] rounded-full overflow-hidden bg-[#f3edf8]">
+      <div className="flex h-[10px] rounded-full overflow-hidden bg-[var(--s-accent)]">
         {parts.map((p, i) => (
           <div key={p.label} style={{ width: `${(Math.abs(p.value) / total) * 100}%`, background: colours[i % colours.length] }} />
         ))}

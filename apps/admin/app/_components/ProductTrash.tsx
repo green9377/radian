@@ -122,8 +122,8 @@ export default function ProductTrash() {
       </div>
 
       {err && (
-        <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[#f0c88a] bg-[#fff8ec] px-4 py-3 mb-4 text-[12.5px] text-[#7a4b09]">
-          <span className="text-[#b45309] shrink-0"><Icon name="bolt" size={18} /></span>
+        <div className="flex gap-2.5 rounded-[14px] border-[1.5px] border-[var(--l-warn)] bg-[var(--s-warn)] px-4 py-3 mb-4 text-[12.5px] text-[var(--t-warn)]">
+          <span className="text-[var(--t-warn)] shrink-0"><Icon name="bolt" size={18} /></span>
           <div>{err}</div>
         </div>
       )}
@@ -132,12 +132,12 @@ export default function ProductTrash() {
       {flash && (
         <div className="rounded-[14px] border border-lavender-deep bg-white px-4 py-3 mb-4 text-[13px] space-y-1">
           {flash.ok.length > 0 && (
-            <div className="text-[#0f7d55] font-medium">
+            <div className="text-[var(--t-ok)] font-medium">
               ✓ Permanently deleted: {flash.ok.length === 1 ? flash.ok[0] : `${flash.ok.length} products`}
             </div>
           )}
           {flash.refused.map((r, i) => (
-            <div key={i} className="text-[#a3261f]">✕ {r}</div>
+            <div key={i} className="text-[var(--t-bad)]">✕ {r}</div>
           ))}
           {flash.ok.length === 0 && flash.refused.length === 0 && (
             <div className="text-body-soft">Nothing was deleted.</div>
@@ -153,7 +153,7 @@ export default function ProductTrash() {
           <button
             onClick={() => purgeMany(shown.filter((p) => sel.has(p.id)))}
             disabled={busy === "bulk"}
-            className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white border border-[#e0a1a1] text-[#c0392b] hover:bg-[#fdecea] disabled:opacity-40"
+            className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white border border-[var(--l-bad)] text-[var(--t-bad)] hover:bg-[var(--s-bad)] disabled:opacity-40"
           >
             {busy === "bulk" ? "Deleting…" : "Delete forever"}
           </button>
@@ -246,7 +246,7 @@ export default function ProductTrash() {
                       onClick={() => purgeMany([p])}
                       disabled={busy === p.id || busy === "bulk"}
                       title="Delete forever"
-                      className="ml-1.5 border border-[#e0a1a1] text-[#c0392b] hover:bg-[#fdecea] text-[12.5px] font-semibold px-3 py-2 rounded-[10px] disabled:opacity-40 inline-flex items-center gap-1.5"
+                      className="ml-1.5 border border-[var(--l-bad)] text-[var(--t-bad)] hover:bg-[var(--s-bad)] text-[12.5px] font-semibold px-3 py-2 rounded-[10px] disabled:opacity-40 inline-flex items-center gap-1.5"
                     >
                       <Icon name="trash" size={14} /> Delete forever
                     </button>

@@ -196,8 +196,8 @@ function ChallanSheet({ c, onBack }: { c: ApiMushakChallan; onBack: () => void }
         <button className={btnPrimary} style={btnPrimaryStyle} onClick={() => window.print()}>Print</button>
       </div>
 
-      <div className="challan bg-white border border-[#d9cfe6] rounded-lg p-8 text-[12.5px] text-[#1b1420]">
-        <div className="text-center border-b-2 border-[#1b1420] pb-3 mb-4">
+      <div className="challan bg-white border border-[var(--l-accent)] rounded-lg p-8 text-[12.5px] text-[var(--t-accent)]">
+        <div className="text-center border-b-2 border-[var(--l-accent)] pb-3 mb-4">
           <div className="text-[15px] font-bold">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার</div>
           <div className="text-[13px]">জাতীয় রাজস্ব বোর্ড</div>
           <div className="text-[16px] font-bold mt-2">কর চালানপত্র · TAX INVOICE</div>
@@ -206,14 +206,14 @@ function ChallanSheet({ c, onBack }: { c: ApiMushakChallan; onBack: () => void }
 
         <div className="grid grid-cols-2 gap-6 mb-4">
           <div>
-            <div className="font-bold border-b border-[#c9bcd8] mb-1 pb-0.5">সরবরাহকারী · Supplier</div>
+            <div className="font-bold border-b border-[var(--l-accent)] mb-1 pb-0.5">সরবরাহকারী · Supplier</div>
             <div><b>{c.seller.name}</b></div>
             <div>{c.seller.address}</div>
             <div>BIN: <b className="tracking-[0.08em]">{c.seller.bin}</b></div>
             {c.seller.vatCircle && <div>{c.seller.vatCircle}</div>}
           </div>
           <div>
-            <div className="font-bold border-b border-[#c9bcd8] mb-1 pb-0.5">ক্রেতা · Buyer</div>
+            <div className="font-bold border-b border-[var(--l-accent)] mb-1 pb-0.5">ক্রেতা · Buyer</div>
             <div><b>{c.buyer.name}</b></div>
             <div>{c.buyer.address}</div>
             <div>BIN: {c.buyer.bin ? <b className="tracking-[0.08em]">{c.buyer.bin}</b> : "—"}</div>
@@ -221,14 +221,14 @@ function ChallanSheet({ c, onBack }: { c: ApiMushakChallan; onBack: () => void }
           </div>
         </div>
 
-        <div className="flex justify-between mb-3 pb-2 border-b border-[#c9bcd8]">
+        <div className="flex justify-between mb-3 pb-2 border-b border-[var(--l-accent)]">
           <div>চালান নম্বর · Challan no: <b>{c.challanNo}</b></div>
           <div>ইস্যুর তারিখ ও সময় · Issued: <b>{new Date(c.issuedAt).toLocaleString()}</b></div>
         </div>
 
         <table className="w-full border-collapse mb-3">
           <thead>
-            <tr className="bg-[#f4eefa]">
+            <tr className="bg-[var(--s-accent)]">
               <Cell head w="34">ক্রম</Cell>
               <Cell head>পণ্যের বিবরণ · Description</Cell>
               <Cell head w="52">একক</Cell>
@@ -266,7 +266,7 @@ function ChallanSheet({ c, onBack }: { c: ApiMushakChallan; onBack: () => void }
                 <Cell right><b>{taka(c.deliveryPaisa)}</b></Cell>
               </tr>
             )}
-            <tr className="bg-[#faf6fd] font-bold">
+            <tr className="bg-[var(--s-accent)] font-bold">
               <Cell colSpan={7} right>সর্বমোট · Grand total</Cell>
               <Cell right>{taka(c.vatPaisa)}</Cell>
               <Cell right>{taka(c.totalPaisa)}</Cell>
@@ -277,14 +277,14 @@ function ChallanSheet({ c, onBack }: { c: ApiMushakChallan; onBack: () => void }
         <div className="mb-6">কথায় · In words: <b>{c.inWords}</b></div>
 
         <div className="flex justify-between items-end mt-12">
-          <div className="text-[11.5px] text-[#5b4a68] max-w-[380px]">
+          <div className="text-[11.5px] text-[var(--t-accent)] max-w-[380px]">
             This challan is issued under the Value Added Tax and Supplementary Duty Act, 2012.
           </div>
           <div className="text-center">
-            <div className="border-t border-[#1b1420] w-56 pt-1">
+            <div className="border-t border-[var(--l-accent)] w-56 pt-1">
               <b>{c.signatory.name}</b>
               {c.signatory.designation && <div className="text-[11.5px]">{c.signatory.designation}</div>}
-              <div className="text-[11px] text-[#5b4a68]">দায়িত্বপ্রাপ্ত ব্যক্তির স্বাক্ষর ও সিল</div>
+              <div className="text-[11px] text-[var(--t-accent)]">দায়িত্বপ্রাপ্ত ব্যক্তির স্বাক্ষর ও সিল</div>
             </div>
           </div>
         </div>
@@ -302,7 +302,7 @@ function Cell({
   return (
     <Tag
       colSpan={colSpan}
-      className={`border border-[#c9bcd8] px-2 py-1.5 align-top ${right ? "text-right" : "text-left"} ${head ? "font-bold text-[11.5px]" : ""}`}
+      className={`border border-[var(--l-accent)] px-2 py-1.5 align-top ${right ? "text-right" : "text-left"} ${head ? "font-bold text-[11.5px]" : ""}`}
       style={w ? { width: `${w}px` } : undefined}
     >
       {children}
