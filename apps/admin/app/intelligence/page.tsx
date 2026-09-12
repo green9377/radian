@@ -1,2 +1,2 @@
-import { ExecutiveDashboard } from "../_components/ExecutiveDashboard";
-export default function Page() { return <ExecutiveDashboard />; }
+import { BusinessDashboard } from "../_components/BusinessDashboard";
+export default function Page() { return <BusinessDashboard />; }
