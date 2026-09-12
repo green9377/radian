@@ -82,9 +82,10 @@
   --r-card:     20px;
   --l-card:     #e7d9f2;                    /* the panel edge, with hue in it */
   --elev-card:  0 1px 2px rgba(28, 16, 38, 0.04), 0 10px 30px rgba(107, 13, 147, 0.06);
-  --s-glow-a:   rgba(168, 33, 184, 0.13);   /* the bloom, top left          */
-  --s-glow-b:   rgba(107, 13, 147, 0.09);   /*            top middle        */
-  --s-glow-c:   rgba(198, 64, 176, 0.11);   /*            top right         */
+  --s-glow-a:   rgba(168, 33, 184, 0.09);   /* the corner wash, top left    */
+  --s-glow-b:   rgba(107, 13, 147, 0.05);   /*                 top middle   */
+  --s-glow-c:   rgba(198, 64, 176, 0.07);   /*                 top right    */
+  --s-page:     #f7f3fa;                    /* the dashboard's own ground   */
   --t-live:     #12a172;                    /* the "live" dot               */
   --s-pill-on:  #a021b8;                    /* the chosen period            */
   --t-pill-on:  #ffffff;
@@ -147,9 +148,10 @@
   --r-card:     20px;
   --l-card:     #342a44;
   --elev-card:  0 1px 2px rgba(0, 0, 0, 0.45), 0 12px 34px rgba(0, 0, 0, 0.35);
-  --s-glow-a:   rgba(201, 62, 214, 0.34);
-  --s-glow-b:   rgba(124, 58, 221, 0.24);
-  --s-glow-c:   rgba(92, 40, 190, 0.30);
+  --s-glow-a:   rgba(150, 45, 175, 0.16);
+  --s-glow-b:   rgba(96, 45, 180, 0.10);
+  --s-glow-c:   rgba(150, 50, 150, 0.12);
+  --s-page:     #0c0a11;
   --t-live:     #34d399;
   --s-pill-on:  #b32d9e;
   --t-pill-on:  #ffffff;
@@ -606,17 +608,27 @@ textarea.ipt {
     content ends.  */
 .biz-glow { position: relative; }
 
+/*  THE PAGE'S OWN GROUND. The dashboard sits on a darker, flatter ground than
+    the rest of the admin - that is what the reference design is, and it is
+    what makes the panels read as panels rather than as slightly different
+    grey. The wash in the corners is deliberately faint: the reference is a
+    dark room with a little colour bleeding in at the edges, not a lit stage.  */
+.biz-glow {
+  background-color: var(--s-page);
+  margin-left: -1px;              /* cover the hairline beside the rail */
+}
+
 .biz-glow::before {
   content: "";
   position: absolute;
   left: -40px; right: -40px; top: -60px;
-  height: 820px;
+  height: 700px;
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(640px 420px at 6% 0%,   var(--s-glow-a), transparent 70%),
-    radial-gradient(560px 360px at 52% -8%, var(--s-glow-b), transparent 72%),
-    radial-gradient(820px 480px at 102% 4%, var(--s-glow-c), transparent 72%);
+    radial-gradient(560px 380px at 2% 0%,   var(--s-glow-a), transparent 72%),
+    radial-gradient(520px 340px at 55% -10%, var(--s-glow-b), transparent 74%),
+    radial-gradient(760px 440px at 103% 2%, var(--s-glow-c), transparent 74%);
 }
 
 /*  everything the page draws sits above the light  */
@@ -625,7 +637,7 @@ textarea.ipt {
 .biz-panel {
   /*  a touch of the bloom shows THROUGH the panel, which is what stops a row
       of cards reading as flat grey boxes cut out of the page  */
-  background: color-mix(in srgb, var(--s-card) 93%, transparent);
+  background: var(--s-card);
   border: 1px solid var(--l-card);
   border-radius: var(--r-card);
   box-shadow: var(--elev-card);
