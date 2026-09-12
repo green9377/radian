@@ -55,7 +55,6 @@ import {
   type AddonRuleField,
   type DiscountKind,
   demoAddonStats,
-  demoUpgradeStats,
   demoOrderCount,
   PLACEMENTS,
   PLACEMENT_LABEL,
@@ -480,10 +479,14 @@ export function ProductsOverview() {
 
       <Card title="Needs your attention" sub="Click a tile to go fix it">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Attn n={s.oos.length} l="Out of stock" href="/products/stock" tone="danger" />
+          {/*  The figures are unchanged (owner's request). Only the three
+               destinations moved: the Stock, Margin and Health boards are gone,
+               so out-of-stock now opens Inventory's own stock board, and the
+               other two open the product list where the products are fixed. */}
+          <Attn n={s.oos.length} l="Out of stock" href="/inventory/stock" tone="danger" />
           <Attn n={s.drafts.length} l="Still drafts" href="/products/list" tone="warn" />
-          <Attn n={s.negative.length} l="Negative margin" href="/products/margin" tone="danger" />
-          <Attn n={s.noCost.length + s.noTags.length} l="Incomplete info" href="/products/health" tone="warn" />
+          <Attn n={s.negative.length} l="Negative margin" href="/products/list" tone="danger" />
+          <Attn n={s.noCost.length + s.noTags.length} l="Incomplete info" href="/products/list" tone="warn" />
         </div>
       </Card>
     </div>
@@ -576,435 +579,18 @@ function Attn({
   );
 }
 
-/* ================= 2 · STOCK BOARD ================= */
-export function StockBoard() {
-  const say = useSay();
-  const { items, setItems, loading, demo, patch } = useCatalog();
-  const [filter, setFilter] = useState<"all" | "low" | "out">("all");
-  const [q, setQ] = useState("");
+/*  ── Stock, Margin and Health boards REMOVED (owner, 11 Sep 2026) ─────────
+    "stock margin health agula lagbe na". Stock is Inventory's, margin is
+    Finance's; the Products module is not where either is managed, so three
+    screens that read one and wrote the other are gone rather than mended.
 
-  const rows = useMemo(
-    () =>
-      items
-        .filter((p) => {
-          const okQ = !q || p.name.toLowerCase().includes(q.toLowerCase());
-          const okF =
-            filter === "all"
-              ? true
-              : filter === "out"
-                ? p.stockQty <= 0
-                : p.stockQty > 0 && p.stockQty <= 5;
-          return okQ && okF;
-        })
-        .sort((a, b) => a.stockQty - b.stockQty),
-    [items, q, filter],
-  );
+    The Stock board also carried a real fault worth recording: its quantity box
+    PATCHed `stockQty` back on a number it had DERIVED (the sum of the variant
+    rows, or the Inventory total) for products whose stock does not live in that
+    column at all. Nothing reads `product.stockQty` for those, so the write was
+    both wrong and invisible.
 
-  const setStock = (p: ApiProduct, qty: number) =>
-    patch(p.id, { stockQty: Math.max(0, qty) }).catch((e) =>
-      say.fromError(e, `Could not save the stock for ${p.name}.`),
-    );
-
-  const out = items.filter((p) => p.stockQty <= 0).length;
-  const low = items.filter((p) => p.stockQty > 0 && p.stockQty <= 5).length;
-
-  return (
-    <div className={WRAP}>
-      <PageHead eyebrow="Product Management · stock" title="Stock Board" demo={demo} />
-
-      <Said say={say} />
-
-
-      <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
-        <Kpi n={String(items.length)} l="Products" hue="purple" icon="box" />
-        <Kpi n={String(out)} l="Out of stock" hue="red" icon="bolt" />
-        <Kpi n={String(low)} l="Low (≤5)" hue="amber" icon="layers" />
-        <Kpi
-          n={String(items.reduce((x, p) => x + Math.max(0, p.stockQty), 0))}
-          l="Units on hand"
-          hue="teal"
-          icon="grid"
-        />
-      </div>
-
-      <div className="flex gap-2.5 flex-wrap items-center mb-4">
-        <div className="relative max-w-[300px] w-full">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-body-soft">
-            <Icon name="search" size={18} />
-          </span>
-          <input
-            className="ipt ipt-icon h-[44px]"
-            placeholder="Search product…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </div>
-        <div className="inline-flex bg-lavender rounded-[11px] p-1 gap-1">
-          {(["all", "low", "out"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`text-[12.5px] font-semibold px-3.5 py-2 rounded-[9px] transition-colors ${filter === f ? "bg-white text-purple shadow-soft" : "text-body-soft hover:text-purple"}`}
-            >
-              {f === "all" ? "All" : f === "low" ? "Low stock" : "Out of stock"}
-            </button>
-          ))}
-        </div>
-        <span className="text-[13px] text-body-soft ml-auto">
-          {loading ? "loading…" : `${rows.length} shown`}
-        </span>
-      </div>
-
-      <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
-        <table className="w-full border-collapse text-[13.5px]">
-          <thead>
-            <tr className="text-body-soft text-[11px] uppercase tracking-[0.05em] bg-lavender/60">
-              <th className="text-left font-medium px-4 py-3">Product</th>
-              <th className="text-left font-medium px-4 py-3">Category</th>
-              <th className="text-left font-medium px-4 py-3">Sold</th>
-              <th className="text-left font-medium px-4 py-3">Stock left</th>
-              <th className="text-left font-medium px-4 py-3">Show on site</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((p) => (
-              <tr key={p.id} className="hover:bg-lavender/70 border-t border-lavender-deep">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <Thumb slug={p.slug} imageUrl={p.images?.[0]?.url} />
-                    <Link href={`/products/${p.slug}`} className="font-medium text-purple hover:underline">
-                      {p.name}
-                    </Link>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-body-soft">{p.category?.name ?? "—"}</td>
-                <td className="px-4 py-3 text-body-soft">{p.salesCount}</td>
-                <td className="px-4 py-3">
-                  <div className="inline-flex items-center gap-1.5">
-                    <button
-                      onClick={() => setStock(p, p.stockQty - 1)}
-                      className="w-[30px] h-[30px] rounded-[9px] border border-lavender-deep bg-white text-purple hover:border-orchid"
-                    >
-                      −
-                    </button>
-                    <input
-                      className="ipt text-center"
-                      style={{ width: 74, minHeight: 34 }}
-                      value={p.stockQty}
-                      onChange={(e) =>
-                        setItems((prev) =>
-                          prev.map((x) =>
-                            x.id === p.id ? { ...x, stockQty: Number(e.target.value) || 0 } : x,
-                          ),
-                        )
-                      }
-                      onBlur={(e) => setStock(p, Number(e.target.value) || 0)}
-                    />
-                    <button
-                      onClick={() => setStock(p, p.stockQty + 1)}
-                      className="w-[30px] h-[30px] rounded-[9px] border border-lavender-deep bg-white text-purple hover:border-orchid"
-                    >
-                      +
-                    </button>
-                    {p.stockQty <= 0 && (
-                      <span className="text-[11px] font-bold text-[var(--t-bad)] ml-1">OUT</span>
-                    )}
-                    {p.stockQty > 0 && p.stockQty <= 5 && (
-                      <span className="text-[11px] font-bold text-[var(--t-warn)] ml-1">LOW</span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => patch(p.id, { showStock: !p.showStock })}
-                    className={`w-[38px] h-[22px] rounded-full relative transition-colors ${p.showStock ? "bg-[var(--s-ok)]" : "bg-[var(--s-accent)]"}`}
-                  >
-                    <span
-                      className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white transition-all ${p.showStock ? "left-[18px]" : "left-[2px]"}`}
-                    />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-/* ================= 3 · PRICE & MARGIN ================= */
-export function MarginBoard() {
-  const say = useSay();
-  const { items, setItems, loading, demo, patch } = useCatalog();
-  const [q, setQ] = useState("");
-  const [onlyRisk, setOnlyRisk] = useState(false);
-  const [saved, setSaved] = useState<string | null>(null);
-
-  /* type freely, save on blur — same pattern as the stock board */
-  const typeLocal = (id: string, patchObj: Partial<ApiProduct>) =>
-    setItems((prev) => prev.map((x) => (x.id === id ? { ...x, ...patchObj } : x)));
-  async function commit(id: string, body: Record<string, unknown>) {
-    try {
-      await patch(id, body);
-      setSaved(id);
-      setTimeout(() => setSaved((v) => (v === id ? null : v)), 1200);
-    } catch (e) {
-      say.fromError(e, "Could not save that change.");
-    }
-  }
-
-  const rows = useMemo(
-    () =>
-      items
-        .filter((p) => {
-          const okQ = !q || p.name.toLowerCase().includes(q.toLowerCase());
-          const risk = p.costPaisa <= 0 || marginPctOf(p) < 20;
-          return okQ && (!onlyRisk || risk);
-        })
-        .sort((a, b) => marginPctOf(a) - marginPctOf(b)),
-    [items, q, onlyRisk],
-  );
-
-  const withCost = items.filter((p) => p.costPaisa > 0);
-  const avg = withCost.length
-    ? Math.round(withCost.reduce((x, p) => x + marginPctOf(p), 0) / withCost.length)
-    : 0;
-  const negative = withCost.filter((p) => marginOf(p) < 0).length;
-  const noCost = items.filter((p) => p.costPaisa <= 0).length;
-  const profit = items.reduce(
-    (x, p) => x + (p.costPaisa > 0 ? marginOf(p) * p.salesCount : 0),
-    0,
-  );
-
-  return (
-    <div className={WRAP}>
-      <PageHead
-        eyebrow="Product Management · money"
-        title="Price & Margin"
-        demo={demo}
-        tip="Green is healthy, amber is under 20%, red loses money on every sale."
-      />
-
-      <Said say={say} />
-
-      <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
-        <Kpi n={`${avg}%`} l="Average margin" hue={avg < 20 ? "amber" : "teal"} icon="cash" />
-        <Kpi n={String(negative)} l="Selling at a loss" hue={negative ? "red" : "green"} icon="shield" />
-        <Kpi n={String(noCost)} l="No cost entered" hue={noCost ? "amber" : "green"} icon="edit" />
-        <Kpi n={formatTaka(profit)} l="Gross profit so far" hue="purple" icon="star" />
-      </div>
-
-      <div className="flex gap-2.5 flex-wrap items-center mb-4">
-        <div className="relative max-w-[300px] w-full">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-body-soft">
-            <Icon name="search" size={18} />
-          </span>
-          <input
-            className="ipt ipt-icon h-[44px]"
-            placeholder="Search product…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </div>
-        <button
-          onClick={() => setOnlyRisk(!onlyRisk)}
-          className={`text-[12.5px] font-semibold px-4 py-2.5 rounded-[11px] border transition-colors ${onlyRisk ? "bg-purple border-purple text-white" : "bg-white border-lavender-deep text-purple hover:border-orchid"}`}
-        >
-          Only problems
-        </button>
-        <span className="text-[13px] text-body-soft ml-auto">
-          {loading ? "loading…" : `${rows.length} shown`}
-        </span>
-      </div>
-
-      <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft overflow-hidden">
-        <table className="w-full border-collapse text-[13.5px]">
-          <thead>
-            <tr className="text-body-soft text-[11px] uppercase tracking-[0.05em] bg-lavender/60">
-              <th className="text-left font-medium px-4 py-3">Product</th>
-              <th className="text-left font-medium px-4 py-3">Cost (edit)</th>
-              <th className="text-left font-medium px-4 py-3">Price (edit)</th>
-              <th className="text-left font-medium px-4 py-3">Margin</th>
-              <th className="text-left font-medium px-4 py-3 w-[190px]">Health</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((p) => {
-              const m = marginOf(p);
-              const pct = marginPctOf(p);
-              const noC = p.costPaisa <= 0;
-              const c = noC
-                ? "text-body-soft"
-                : m < 0
-                  ? "text-[var(--t-bad)]"
-                  : pct < 20
-                    ? "text-[var(--t-warn)]"
-                    : "text-[var(--t-ok)]";
-              const bar = noC ? 0 : Math.max(0, Math.min(100, pct));
-              return (
-                <tr key={p.id} className="hover:bg-lavender/70 border-t border-lavender-deep">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <Thumb slug={p.slug} imageUrl={p.images?.[0]?.url} />
-                      <div>
-                        <Link href={`/products/${p.slug}`} className="font-medium text-purple hover:underline block">
-                          {p.name}
-                        </Link>
-                        <span className="text-[13px] text-body-soft">
-                          was {formatTaka(p.sellingPricePaisa)}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[13px] text-body-soft">৳</span>
-                      <input
-                        className="ipt"
-                        style={{ width: 92, minHeight: 34, borderColor: noC ? "var(--l-warn)" : undefined }}
-                        type="number"
-                        placeholder="not set"
-                        value={p.costPaisa ? Math.round(p.costPaisa / 100) : ""}
-                        onChange={(e) => typeLocal(p.id, { costPaisa: (Number(e.target.value) || 0) * 100 })}
-                        onBlur={(e) => commit(p.id, { costPaisa: (Number(e.target.value) || 0) * 100 })}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[13px] text-body-soft">৳</span>
-                      <input
-                        className="ipt"
-                        style={{ width: 100, minHeight: 34 }}
-                        type="number"
-                        title="Selling price — what the customer pays is this minus any discount"
-                        value={Math.round(p.sellingPricePaisa / 100)}
-                        onChange={(e) => typeLocal(p.id, { sellingPricePaisa: (Number(e.target.value) || 0) * 100 })}
-                        onBlur={(e) => commit(p.id, { sellingPricePaisa: (Number(e.target.value) || 0) * 100 })}
-                      />
-                      {saved === p.id && <span className="text-[var(--t-ok)]"><Icon name="check" size={15} /></span>}
-                    </div>
-                    <span className="text-[13px] text-body-soft">pays {formatTaka(p.offerPricePaisa)}</span>
-                  </td>
-                  <td className={`px-4 py-3 font-semibold ${c}`}>
-                    {noC ? "—" : `${formatTaka(m)} · ${pct}%`}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="h-[8px] rounded-full bg-lavender-deep/60 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${m < 0 ? "bg-[var(--s-bad)]" : pct < 20 ? "bg-[var(--s-warn)]" : "bg-[var(--s-ok)]"}`}
-                        style={{ width: `${bar}%` }}
-                      />
-                    </div>
-                    <span className={`text-[11px] font-semibold ${c}`}>
-                      {noC ? "add cost to measure" : m < 0 ? "losing money" : pct < 20 ? "thin" : "healthy"}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-/* ================= 4 · PRODUCT HEALTH ================= */
-const CHECKS = [
-  { key: "cat", label: "Category", ok: (p: ApiProduct) => !!p.category },
-  { key: "tags", label: "Tags", ok: (p: ApiProduct) => (p.tags?.length ?? 0) > 0 },
-  { key: "cost", label: "Cost price", ok: (p: ApiProduct) => p.costPaisa > 0 },
-  { key: "price", label: "Selling price", ok: (p: ApiProduct) => p.sellingPricePaisa > 0 },
-  { key: "stock", label: "In stock", ok: (p: ApiProduct) => p.stockQty > 0 },
-  { key: "pub", label: "Published", ok: (p: ApiProduct) => p.isPublished },
-];
-
-export function HealthBoard() {
-  const { items, loading, demo } = useCatalog();
-  const [onlyBad, setOnlyBad] = useState(true);
-
-  const scored = useMemo(
-    () =>
-      items
-        .map((p) => {
-          const failed = CHECKS.filter((c) => !c.ok(p));
-          return { p, failed, pct: Math.round(((CHECKS.length - failed.length) / CHECKS.length) * 100) };
-        })
-        .sort((a, b) => a.pct - b.pct),
-    [items],
-  );
-  const rows = onlyBad ? scored.filter((r) => r.failed.length > 0) : scored;
-  const perfect = scored.filter((r) => r.failed.length === 0).length;
-  const avg = scored.length ? Math.round(scored.reduce((x, r) => x + r.pct, 0) / scored.length) : 0;
-
-  return (
-    <div className={WRAP}>
-      <PageHead eyebrow="Product Management · quality" title="Product Health" demo={demo} />
-
-
-      <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
-        <Kpi n={`${avg}%`} l="Catalog completeness" hue={avg >= 80 ? "green" : "amber"} icon="check" />
-        <Kpi n={String(perfect)} l="Fully complete" hue="teal" icon="shield" />
-        <Kpi n={String(scored.length - perfect)} l="Need work" hue="amber" icon="edit" />
-        <Kpi n={String(items.length)} l="Products" hue="purple" icon="box" />
-      </div>
-
-      <div className="flex items-center gap-3 mb-4">
-        <button
-          onClick={() => setOnlyBad(!onlyBad)}
-          className={`text-[12.5px] font-semibold px-4 py-2.5 rounded-[11px] border transition-colors ${onlyBad ? "bg-purple border-purple text-white" : "bg-white border-lavender-deep text-purple hover:border-orchid"}`}
-        >
-          Only incomplete
-        </button>
-        <span className="text-[13px] text-body-soft ml-auto">
-          {loading ? "loading…" : `${rows.length} shown`}
-        </span>
-      </div>
-
-      <div className="flex flex-col gap-2.5">
-        {rows.map(({ p, pct }) => (
-          <div
-            key={p.id}
-            className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-3.5 flex items-center gap-4 flex-wrap"
-          >
-            <Thumb slug={p.slug} imageUrl={p.images?.[0]?.url} size={44} />
-            <div className="min-w-[170px] flex-1">
-              <Link href={`/products/${p.slug}`} className="font-medium text-purple hover:underline block">
-                {p.name}
-              </Link>
-              <span className="text-[13px] text-body-soft">{p.category?.name ?? "no category"}</span>
-            </div>
-            <div className="flex gap-1.5 flex-wrap flex-1">
-              {CHECKS.map((c) => {
-                const ok = c.ok(p);
-                return (
-                  <span
-                    key={c.key}
-                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${ok ? "bg-[var(--s-ok)] text-[var(--t-ok)]" : "bg-[var(--s-bad)] text-[var(--t-bad)]"}`}
-                  >
-                    {ok ? "✓" : "✕"} {c.label}
-                  </span>
-                );
-              })}
-            </div>
-            <div
-              className={`text-[18px] font-display font-medium shrink-0 ${pct === 100 ? "text-[var(--t-ok)]" : pct >= 70 ? "text-[var(--t-warn)]" : "text-[var(--t-bad)]"}`}
-            >
-              {pct}%
-            </div>
-          </div>
-        ))}
-        {rows.length === 0 && (
-          <div className="bg-white border border-lavender-deep rounded-[16px] shadow-soft px-4 py-12 text-center text-body-soft text-[13px]">
-            {loading ? "loading…" : "Every product is complete."}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+    The Overview's own figures stay — the owner asked for those.  */
 
 /* ================= 5 · BULK ACTIONS ================= */
 export function BulkActions() {
@@ -1018,6 +604,22 @@ export function BulkActions() {
   const [importRows, setImportRows] = useState<ImportRow[]>([]);
   const [importName, setImportName] = useState("");
   const [importError, setImportError] = useState("");
+  /*  ⚠️ WHICH ONES DID NOT GO THROUGH (12 Sep 2026).
+
+      A bulk action used to be `for (const p of chosen) await patch(...)` over a
+      `patch` that does not catch. The FIRST refusal threw out of the loop: the
+      products before it were already changed, the ones after it were never
+      tried, the tick boxes stayed exactly as they were, and the only thing on
+      screen was one sentence that did not name a single product.
+
+      And a refusal is the normal case here, not the rare one — the API refuses
+      to publish any product without a SKU, without a photo, or without an
+      offerable delivery type. On a twenty-product publish several will be
+      refused, so "how far did it get, and which ones" is the whole question.
+
+      So: every product is attempted, each failure is kept with the API's own
+      words, and only the ones that really saved leave the selection.  */
+  const [failures, setFailures] = useState<{ name: string; why: string }[]>([]);
 
   const rows = useMemo(
     () => items.filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase())),
@@ -1032,15 +634,35 @@ export function BulkActions() {
     if (!confirm(`${label} — ${chosen.length} product(s)?`)) return;
     setBusy(true);
     setDone("");
-    try {
-      for (const p of chosen) await patch(p.id, body(p));
-      setDone(`${label} applied to ${chosen.length} product(s).`);
-      setSel(new Set());
-    } catch (e) {
-      say.fromError(e, "That bulk action did not go through.");
-    } finally {
-      setBusy(false);
+    setFailures([]);
+    say.clear();
+    const bad: { name: string; why: string }[] = [];
+    const okIds: string[] = [];
+    for (const p of chosen) {
+      try {
+        await patch(p.id, body(p));
+        okIds.push(p.id);
+      } catch (e) {
+        bad.push({ name: p.name, why: e instanceof Error ? e.message : "The API refused it." });
+      }
     }
+    setBusy(false);
+    setFailures(bad);
+    /*  The ones that saved let go of their tick; the ones that did not stay
+        selected, so the owner can fix them and press the button again.  */
+    setSel((prev) => {
+      const n = new Set(prev);
+      okIds.forEach((id) => n.delete(id));
+      return n;
+    });
+    if (!bad.length) {
+      setDone(`${label} applied to ${okIds.length} product(s).`);
+      return;
+    }
+    if (okIds.length) setDone(`${label} applied to ${okIds.length} of ${chosen.length}.`);
+    say.bad(
+      `${bad.length} of ${chosen.length} could not be saved — they are listed below and stay selected.`,
+    );
   }
 
   const btn =
@@ -1183,19 +805,35 @@ export function BulkActions() {
     if (!confirm(`Save changes to ${okRows.length} product(s)?`)) return;
     setBusy(true);
     setDone("");
-    try {
-      for (const r of okRows) {
-        const body = r.changes.reduce((acc, c) => ({ ...acc, ...c.body }), {} as Record<string, unknown>);
+    setFailures([]);
+    setImportError("");
+    /*  Same rule as `run`: one refused row must not stop the other nineteen,
+        and the owner is told which rows were refused and why.  */
+    const bad: { name: string; why: string }[] = [];
+    let saved = 0;
+    for (const r of okRows) {
+      const body = r.changes.reduce((acc, c) => ({ ...acc, ...c.body }), {} as Record<string, unknown>);
+      try {
         await patch(r.product!.id, body);
+        saved++;
+      } catch (e) {
+        bad.push({
+          name: `row ${r.line} · ${r.product!.name}`,
+          why: e instanceof Error ? e.message : "The API refused it.",
+        });
       }
-      setDone(`Uploaded — ${okRows.length} product(s) updated.`);
+    }
+    setBusy(false);
+    setFailures(bad);
+    if (!bad.length) {
+      setDone(`Uploaded — ${saved} product(s) updated.`);
       setImportRows([]);
       setImportName("");
-    } catch (e) {
-      setImportError("Upload failed: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
-      setBusy(false);
+      return;
     }
+    /*  The preview stays on screen when something was refused — it is the only
+        place the rejected rows can be read and corrected.  */
+    setImportError(`${saved} of ${okRows.length} saved. ${bad.length} refused — see the list below.`);
   }
 
 
@@ -1373,6 +1011,28 @@ export function BulkActions() {
           <p className="text-[12.5px] font-semibold text-[var(--t-ok)] mt-3 mb-0 inline-flex items-center gap-1.5">
             <Icon name="check" size={15} /> {done}
           </p>
+        )}
+        {failures.length > 0 && (
+          <div className="mt-3 rounded-[12px] border border-[var(--l-bad)] bg-[var(--s-bad)] px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <b className="text-[12.5px] text-[var(--t-bad)]">
+                {failures.length} not saved — nothing was changed on these
+              </b>
+              <button
+                onClick={() => setFailures([])}
+                className="text-[12px] font-semibold underline text-[var(--t-bad)]"
+              >
+                Dismiss
+              </button>
+            </div>
+            <ul className="mt-2 mb-0 pl-4 flex flex-col gap-1">
+              {failures.map((f, i) => (
+                <li key={i} className="text-[12.5px] text-[var(--t-bad)]">
+                  <b>{f.name}</b> — {f.why}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
 
@@ -2067,8 +1727,9 @@ export function UpgradeProducts() {
   const [base, setBase] = useState("");
   const [picker, setPicker] = useState<string | null>(null); // baseId whose picker is open
   const [pq, setPq] = useState("");
-  const [tab, setTab] = useState<"setup" | "perf">("setup");
-  const [days, setDays] = useState(30);
+  /*  The Setup/Performance tab pair is gone with the Performance tab — one
+      screen, one job. `days` went with it: it only ever chose a window for
+      numbers that were never real.  */
 
   /*  The sample-upgrades fallback (DEMO_UPGRADES shown when the API was down)
       was removed on the owner's order, 19 Aug: sample data never appears as if
@@ -2106,12 +1767,31 @@ export function UpgradeProducts() {
   /** stop a product being an upgrade — it stays in the catalog, just unlinked */
   function unlink(u: DemoUpgrade) {
     if (demo) { setDemoUps((p) => p.filter((x) => x.id !== u.id)); return; }
-    patch(u.id, { upgradeOfProductId: null }).catch(() => {});
+    /*  `patch` only touches local state after the API says yes, so a refusal
+        leaves the row where it is — but it used to do that in total silence,
+        and the owner read "still listed" as "the button does nothing".  */
+    patch(u.id, { upgradeOfProductId: null }).catch((e) =>
+      say.fromError(e, `Could not unlink "${u.name}" — it is still an upgrade.`),
+    );
   }
 
   /* editing a row edits the underlying product (the upgrade IS that product).
      debounced so typing a price does not fire a call per keystroke. */
   const upTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  /*  ⚠️ THE ROW THAT KEPT SHOWING A NUMBER THE DATABASE REFUSED (12 Sep 2026).
+
+      The debounced save was `updateProduct(id, body).catch(() => {})`. The row
+      is painted optimistically the moment a key is pressed, so a refusal — a
+      flat discount bigger than the selling price, a price that is not a whole
+      number of paisa, both of which the API rejects outright — left the typed
+      figure sitting on screen as if it had saved. It survived until a reload.
+
+      So the row as the API last confirmed it is kept from the first unsaved
+      keystroke, and a refusal puts that row back and says why.  */
+  const upRevert = useRef<Record<string, ApiProduct | undefined>>({});
+  /*  Which save is the latest one for a row — so an older answer arriving
+      late cannot clear a newer edit's fallback.  */
+  const upSeq = useRef<Record<string, number>>({});
   const set = (id: string, p: Partial<DemoUpgrade>) => {
     if (demo) { setDemoUps((prev) => prev.map((x) => (x.id === id ? { ...x, ...p } : x))); return; }
     const cur = ups.find((x) => x.id === id);
@@ -2129,9 +1809,52 @@ export function UpgradeProducts() {
     }
     // reflect the change IMMEDIATELY on the product (ups is derived from items),
     // then debounce the API call — otherwise the field snaps back while typing.
+    const before = items.find((x) => x.id === id);
+    if (!upRevert.current[id] && before) upRevert.current[id] = before;
     setItems((prev) => prev.map((x) => (x.id === id ? { ...x, ...body } as ApiProduct : x)));
     clearTimeout(upTimers.current[id]);
-    upTimers.current[id] = setTimeout(() => { updateProduct(id, body).catch(() => {}); }, 500);
+    upTimers.current[id] = setTimeout(() => {
+      /*  ⚠️ THE BASELINE BELONGS TO THE REQUEST, NOT TO THE ROW (12 Sep 2026).
+          It was captured once per id and deleted in `.then`, so: type, let
+          the first save fly, type again — the first one answers yes and wipes
+          the baseline, the second is refused, and there is nothing left to
+          put back. The row kept the refused figure while the toast said it
+          had been restored, which is worse than saying nothing. Each request
+          now carries the row it started from in its own closure.  */
+      const baseline = upRevert.current[id];
+      const seq = (upSeq.current[id] = (upSeq.current[id] ?? 0) + 1);
+      delete upTimers.current[id];
+      updateProduct(id, body)
+        .then(() => {
+          /*  Only this request's own baseline may be cleared, and only once
+              nothing is left outstanding. While a later keystroke is still
+              unsaved the fallback row is what THIS request just committed —
+              dropping it would leave that next refusal with nothing, and
+              keeping the older one would put a row on screen that the
+              database no longer holds.  */
+          if (upRevert.current[id] !== baseline) return;
+          if (upSeq.current[id] === seq && !upTimers.current[id]) delete upRevert.current[id];
+          else if (baseline) upRevert.current[id] = { ...baseline, ...body } as ApiProduct;
+        })
+        .catch((e: unknown) => {
+          /*  ⚠️ THE REVERT AND THE DEBOUNCE USED TO FIGHT EACH OTHER. A timer
+              armed after this request went out still holds the refused figure
+              in its closure: left alone it fires, paints the refused number
+              back over the row we just put right, and sends it to the API a
+              second time. It goes before the row does.  */
+          clearTimeout(upTimers.current[id]);
+          delete upTimers.current[id];
+          if (baseline) {
+            upRevert.current[id] = baseline;
+            setItems((prev) => prev.map((x) => (x.id === id ? baseline : x)));
+            say.fromError(e, `Could not save "${next.name}" — the row has been put back.`);
+          } else {
+            /*  No row to put back (the list reloaded under us). Say that, and
+                do not claim a restore that did not happen.  */
+            say.fromError(e, `Could not save "${next.name}" — reload the list to see what it really holds.`);
+          }
+        });
+    }, 500);
   };
   /** same discount rule as the rest of Radian: NONE | FLAT ৳ | PERCENT % */
   const paysOf = (u: DemoUpgrade) =>
@@ -2141,63 +1864,15 @@ export function UpgradeProducts() {
         ? Math.max(0, u.pricePaisa - (u.discountValue || 0))
         : u.pricePaisa;
 
-  /* ---- performance (demo money data; real version reads OrderLine) ---- */
-  const basePriceOf = (upgradeId: string) => {
-    const u = ups.find((x) => x.id === upgradeId);
-    const bp = u ? items.find((p) => p.id === u.baseProductId) : undefined;
-    return bp ? bp.offerPricePaisa || bp.sellingPricePaisa : 0;
-  };
-  const upStats = demoUpgradeStats(ups, basePriceOf, days);
-  const perfRows = ups
-    .map((up) => {
-      const stat = upStats.find((x) => x.upgradeId === up.id)!;
-      const total = stat.baseOrders + stat.upgradeOrders;
-      const takePct = total ? Math.round((stat.upgradeOrders / total) * 100) : 0;
-      return {
-        up,
-        stat,
-        takePct,
-        delta: takePct - stat.prevTakePct,
-        basePrice: basePriceOf(up.id),
-        pays: paysOf(up),
-      };
-    })
-    .sort((a, b) => b.takePct - a.takePct);
-  const totalUpgradeOrders = upStats.reduce((s2, x) => s2 + x.upgradeOrders, 0);
-  const totalAllOrders = upStats.reduce((s2, x) => s2 + x.baseOrders + x.upgradeOrders, 0);
-  const overallTakePct = totalAllOrders ? Math.round((totalUpgradeOrders / totalAllOrders) * 100) : 0;
-  const upgradeRevenue = upStats.reduce((s2, x) => s2 + x.revenuePaisa, 0);
-  const totalLift = upStats.reduce((s2, x) => s2 + x.liftPaisa, 0);
-  const avgLift = totalUpgradeOrders ? Math.round(totalLift / totalUpgradeOrders) : 0;
-  const baseRevenue = upStats.reduce((s2, x) => {
-    const bp = basePriceOf(x.upgradeId);
-    return s2 + x.baseOrders * bp;
-  }, 0);
-  const upgradeSharePct =
-    upgradeRevenue + baseRevenue > 0 ? Math.round((upgradeRevenue / (upgradeRevenue + baseRevenue)) * 100) : 0;
-  const upgradeMargin = ups.reduce((s2, u) => {
-    const st = upStats.find((x) => x.upgradeId === u.id);
-    return s2 + (st ? st.upgradeOrders * (paysOf(u) - u.costPaisa) : 0);
-  }, 0);
-  const needsWork = perfRows.filter((r) => {
-    const jump = r.basePrice > 0 ? ((r.pays - r.basePrice) / r.basePrice) * 100 : 0;
-    return r.up.active && (r.takePct < 8 || jump > 90 || r.up.costPaisa <= 0);
-  }).length;
-  const byBase = grouped
-    .map(([baseId, list]) => {
-      const ids = list.map((u) => u.id);
-      const rows2 = upStats.filter((x) => ids.includes(x.upgradeId));
-      const upgradeOrders = rows2.reduce((s2, x) => s2 + x.upgradeOrders, 0);
-      const baseOrders = Math.max(0, Math.round(rows2.reduce((s2, x) => s2 + x.baseOrders, 0) / Math.max(1, rows2.length)));
-      return {
-        baseId,
-        upgradeOrders,
-        baseOrders,
-        total: baseOrders + upgradeOrders,
-        lift: rows2.reduce((s2, x) => s2 + x.liftPaisa, 0),
-      };
-    })
-    .sort((a, b) => b.lift - a.lift);
+  /*  ── The "Performance" tab is GONE (12 Sep 2026) ─────────────────────────
+      It showed take rate, upgrade revenue, order lift and margin earned — and
+      every one of those numbers came out of `demoUpgradeStats`, a generator in
+      `_data/demoProducts.ts`. No order line was ever read. The owner's rule,
+      set on 19 Aug and already applied to the catalog list, the product funnel
+      and the add-on figures: no screen may present sample data as if it were
+      real. There is no API behind upgrade performance yet, so the tab is
+      removed rather than dressed up; it comes back when OrderLine can answer
+      it, like the add-on sales figures did.  */
 
   return (
     <div className={WRAP}>
@@ -2228,20 +1903,6 @@ export function UpgradeProducts() {
         />
       </div>
 
-      <div className="flex gap-1 flex-wrap mb-5 border-b border-lavender-deep">
-        {([["setup", "Setup"], ["perf", "Performance"]] as const).map(([id, label]) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`px-4 py-2.5 text-[13.5px] font-medium border-b-2 -mb-px ${tab === id ? "text-purple border-orchid" : "text-body-soft border-transparent hover:text-purple"}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {tab === "setup" && (
-        <>
       <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5 mb-4">
         <h3 className="font-display text-[16px] text-purple m-0 mb-1">Add an upgrade</h3>
         <p className="text-[13px] text-body-soft mt-0 mb-4">
@@ -2513,237 +2174,6 @@ export function UpgradeProducts() {
           );
         })}
       </div>
-        </>
-      )}
-
-      {tab === "perf" && (
-        <>
-
-          <div className="flex gap-2 flex-wrap items-center mb-4">
-            <div className="inline-flex rounded-[11px] border border-lavender-deep bg-white overflow-hidden">
-              {[7, 30, 90].map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setDays(d)}
-                  className={`text-[12.5px] font-medium px-3.5 py-2 ${days === d ? "bg-purple text-white" : "text-body-soft hover:text-purple"}`}
-                >
-                  {d} days
-                </button>
-              ))}
-            </div>
-            <span className="text-[13px] text-body-soft">Source: own database (OrderLine)</span>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-3">
-            <Kpi n={`${overallTakePct}%`} l="Customers who moved up" hue={overallTakePct < 10 ? "amber" : "green"} icon="star" />
-            <Kpi n={formatTaka(totalLift)} l="Extra revenue from upgrades" hue="purple" icon="cash" />
-            <Kpi n={formatTaka(upgradeRevenue)} l="Upgrade revenue" hue="orchid" icon="tag" />
-            <Kpi n={formatTaka(avgLift)} l="Average order lift" hue="teal" icon="chart" />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 mb-5">
-            <Kpi n={`${upgradeSharePct}%`} l="Share of product revenue" hue="blue" icon="chart" />
-            <Kpi n={formatTaka(upgradeMargin)} l="Margin earned" hue={upgradeMargin > 0 ? "green" : "red"} icon="shield" />
-            <Kpi n={`${grouped.length}/${items.length}`} l="Products with an upgrade" hue="rose" icon="box" />
-            <Kpi n={String(needsWork)} l="Need attention" hue={needsWork ? "red" : "teal"} icon="bolt" />
-          </div>
-
-          {/* best and weakest, side by side */}
-          <div className="grid md:grid-cols-2 gap-4 mb-4">
-            {[
-              { row: perfRows[0], tone: "good" as const },
-              { row: perfRows[perfRows.length - 1], tone: "bad" as const },
-            ].map(({ row, tone }, i) =>
-              row && perfRows.length > 1 ? (
-                <div
-                  key={i}
-                  className="rounded-[16px] border-[1.5px] shadow-soft px-5 py-4"
-                  style={{
-                    borderColor: tone === "good" ? "var(--l-ok)" : "var(--l-bad)",
-                    background: tone === "good" ? "linear-gradient(135deg,var(--f-ok),#ffffff)" : "linear-gradient(135deg,var(--f-bad),#ffffff)",
-                  }}
-                >
-                  <div
-                    className="text-[11px] font-bold uppercase tracking-[0.05em] mb-1.5"
-                    style={{ color: tone === "good" ? "var(--t-ok)" : "var(--t-bad)" }}
-                  >
-                    {tone === "good" ? "Best performer" : "Weakest link"}
-                  </div>
-                  <div className="font-display text-[19px] text-purple leading-tight">{row.up.name}</div>
-                  <div className="text-[13px] text-body-soft mb-3">on {nameOf(row.up.baseProductId)}</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      ["Take rate", `${row.takePct}%`],
-                      ["Price jump", `+${row.basePrice > 0 ? Math.round(((row.pays - row.basePrice) / row.basePrice) * 100) : 0}%`],
-                      ["Extra earned", formatTaka(row.stat.liftPaisa)],
-                    ].map(([l, v]) => (
-                      <div key={l} className="bg-white/70 border border-lavender-deep rounded-[10px] px-2.5 py-2">
-                        <span className="block text-[10px] uppercase tracking-[0.04em] text-body-soft">{l}</span>
-                        <b className="text-[14px] text-purple">{v}</b>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-[12px] mt-3" style={{ color: tone === "good" ? "var(--t-ok)" : "var(--t-bad)" }}>
-                    {tone === "good"
-                      ? "Copy this pattern — same kind of jump on your other products."
-                      : "Start here: shrink the jump, or show the upgrade better on the page."}
-                  </div>
-                </div>
-              ) : null,
-            )}
-          </div>
-
-          {/* where the sweet spot is */}
-          <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5 mb-4">
-            <div className="font-display text-[15px] text-purple">Price jump vs. how many take it</div>
-            <div className="relative h-[180px] border-l border-b border-lavender-deep ml-9 mr-2">
-              {/* bands */}
-              <span className="absolute inset-y-0 left-0 w-[45%] bg-[var(--s-ok)]/70" />
-              <span className="absolute inset-y-0 left-[45%] w-[30%] bg-[var(--s-warn)]/70" />
-              <span className="absolute inset-y-0 left-[75%] right-0 bg-[var(--s-bad)]/70" />
-              {perfRows.map((r) => {
-                const jump = r.basePrice > 0 ? ((r.pays - r.basePrice) / r.basePrice) * 100 : 0;
-                const x = Math.min(97, (jump / 150) * 100);
-                const y = 100 - Math.min(96, r.takePct * 2.2);
-                return (
-                  <span
-                    key={r.up.id}
-                    title={`${r.up.name} — +${Math.round(jump)}% jump, ${r.takePct}% take`}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-soft"
-                    style={{
-                      left: `${x}%`,
-                      top: `${y}%`,
-                      width: Math.max(12, Math.min(30, 12 + r.stat.upgradeOrders)),
-                      height: Math.max(12, Math.min(30, 12 + r.stat.upgradeOrders)),
-                      background: r.takePct >= 18 ? "var(--s-ok)" : r.takePct >= 8 ? "var(--s-warn)" : "var(--s-bad)",
-                    }}
-                  />
-                );
-              })}
-              <span className="absolute -left-9 top-0 text-[13px] text-body-soft">45%</span>
-              <span className="absolute -left-7 bottom-0 text-[13px] text-body-soft">0%</span>
-              <span className="absolute -left-9 top-1/2 -translate-y-1/2 text-[13px] text-body-soft rotate-[-90deg] origin-center">take</span>
-            </div>
-            <div className="flex justify-between text-[13px] text-body-soft ml-9 mr-2 mt-1">
-              <span>+0%</span><span className="text-[var(--t-ok)]">sweet spot</span><span className="text-[var(--t-warn)]">risky</span><span className="text-[var(--t-bad)]">too steep</span><span>+150%</span>
-            </div>
-            <div className="text-[13px] text-body-soft mt-2">Bubble size = how many orders took it.</div>
-          </div>
-
-          {/* per base product */}
-          <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft px-5 py-5 mb-4">
-            <div className="font-display text-[15px] text-purple mb-1">Standard vs. upgraded, per product</div>
-            <div className="text-[13px] text-body-soft mb-4">How the orders of each product split</div>
-            <div className="flex flex-col gap-3">
-              {byBase.map((b) => (
-                <div key={b.baseId} className="flex items-center gap-3 flex-wrap">
-                  <span className="text-[13px] text-purple font-medium w-[170px] shrink-0 truncate">{nameOf(b.baseId)}</span>
-                  <span className="flex h-[22px] rounded-[8px] overflow-hidden flex-1 min-w-[180px] bg-lavender">
-                    <span
-                      className="grid place-items-center text-[11px] font-bold text-white bg-[var(--s-accent)]"
-                      style={{ width: `${b.total ? (b.baseOrders / b.total) * 100 : 100}%` }}
-                    >
-                      {b.baseOrders > 0 && b.baseOrders}
-                    </span>
-                    <span
-                      className="grid place-items-center text-[11px] font-bold text-white bg-gradient-to-r from-[var(--a-solid)] to-[var(--o-solid)]"
-                      style={{ width: `${b.total ? (b.upgradeOrders / b.total) * 100 : 0}%` }}
-                    >
-                      {b.upgradeOrders > 0 && b.upgradeOrders}
-                    </span>
-                  </span>
-                  <span className="text-[12.5px] w-[130px] text-right shrink-0">
-                    <b className="text-purple">{b.total ? Math.round((b.upgradeOrders / b.total) * 100) : 0}%</b>
-                    <span className="text-body-soft"> moved up</span>
-                  </span>
-                  <b className="text-[13px] text-purple w-[86px] text-right shrink-0">{formatTaka(b.lift)}</b>
-                </div>
-              ))}
-              {byBase.length === 0 && <div className="text-[13px] text-body-soft">No upgrades yet.</div>}
-            </div>
-            <div className="flex gap-4 mt-4 text-[13px] text-body-soft">
-              <span className="inline-flex items-center gap-1.5"><span className="w-[10px] h-[10px] rounded-full bg-[var(--s-accent)]" /> took the standard</span>
-              <span className="inline-flex items-center gap-1.5"><span className="w-[10px] h-[10px] rounded-full bg-[var(--s-accent)]" /> moved up</span>
-            </div>
-          </div>
-
-          <div className="bg-white border border-lavender-deep rounded-[18px] shadow-soft overflow-hidden mb-4">
-            <div className="px-5 py-3.5 border-b border-lavender-deep">
-              <div className="font-display text-[15px] text-purple">Every upgrade</div>
-              <div className="text-[13px] text-body-soft">Sorted by take rate — the weakest sit at the bottom</div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-[13px] border-collapse">
-                <thead>
-                  <tr className="bg-lavender/50 text-left">
-                    <th className="px-4 py-2.5 font-semibold text-[11px] uppercase tracking-[0.04em] text-body-soft">Upgrade</th>
-                    <th className="px-3 py-2.5 font-semibold text-[11px] uppercase tracking-[0.04em] text-body-soft">Take rate</th>
-                    <th className="px-3 py-2.5 font-semibold text-[11px] uppercase tracking-[0.04em] text-body-soft text-right">Price jump</th>
-                    <th className="px-3 py-2.5 font-semibold text-[11px] uppercase tracking-[0.04em] text-body-soft text-right">Standard</th>
-                    <th className="px-3 py-2.5 font-semibold text-[11px] uppercase tracking-[0.04em] text-body-soft text-right">Upgraded</th>
-                    <th className="px-3 py-2.5 font-semibold text-[11px] uppercase tracking-[0.04em] text-body-soft text-right">Extra earned</th>
-                    <th className="px-4 py-2.5 font-semibold text-[11px] uppercase tracking-[0.04em] text-body-soft">Verdict</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {perfRows.map(({ up, stat, takePct, delta, basePrice, pays }) => {
-                    const jump = basePrice > 0 ? Math.round(((pays - basePrice) / basePrice) * 100) : 0;
-                    return (
-                      <tr key={up.id} className="border-t border-lavender-deep">
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-purple">{up.name}</div>
-                          <div className="text-[13px] text-body-soft truncate">on {nameOf(up.baseProductId)}</div>
-                        </td>
-                        <td className="px-3 py-3 min-w-[170px]">
-                          <div className="flex items-center gap-2">
-                            <span className="h-[7px] rounded-full bg-lavender flex-1 min-w-[60px] overflow-hidden">
-                              <span
-                                className={`block h-full rounded-full ${takePct < 8 ? "bg-[var(--s-bad)]" : takePct < 18 ? "bg-[var(--s-warn)]" : "bg-[var(--s-ok)]"}`}
-                                style={{ width: `${Math.min(100, takePct * 2.5)}%` }}
-                              />
-                            </span>
-                            <b className="text-purple w-[38px] text-right">{takePct}%</b>
-                            <span className={`text-[11px] w-[42px] ${delta >= 0 ? "text-[var(--t-ok)]" : "text-[var(--t-bad)]"}`}>
-                              {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3 text-right">
-                          <b className={jump > 90 ? "text-[var(--t-bad)]" : "text-purple"}>+{jump}%</b>
-                          <div className="text-[13px] text-body-soft">{formatTaka(basePrice)} → {formatTaka(pays)}</div>
-                        </td>
-                        <td className="px-3 py-3 text-right">{stat.baseOrders}</td>
-                        <td className="px-3 py-3 text-right font-medium text-purple">{stat.upgradeOrders}</td>
-                        <td className="px-3 py-3 text-right font-medium text-purple">{formatTaka(stat.liftPaisa)}</td>
-                        <td className="px-4 py-3">
-                          {!up.active ? (
-                            <span className="text-[11.5px] bg-lavender text-body-soft px-2 py-1 rounded-full">Off</span>
-                          ) : takePct < 8 ? (
-                            <span className="text-[11.5px] bg-[var(--s-bad)] text-[var(--t-bad)] px-2 py-1 rounded-full">
-                              {jump > 90 ? "Jump too big" : "Explain it better"}
-                            </span>
-                          ) : takePct >= 30 ? (
-                            <span className="text-[11.5px] bg-[var(--s-ok)] text-[var(--t-ok)] px-2 py-1 rounded-full">Strong — price it higher</span>
-                          ) : (
-                            <span className="text-[11.5px] bg-lavender text-purple px-2 py-1 rounded-full">Doing fine</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {perfRows.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-10 text-center text-body-soft text-[13px]">
-                        No upgrades yet — add one in the Setup tab.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-        </>
-      )}
 
     </div>
   );
@@ -2899,7 +2329,15 @@ export function AddonsView() {
     if (demo || id.startsWith("a")) return; // demo rows never persist
     clearTimeout(saveTimers.current[id]);
     saveTimers.current[id] = setTimeout(() => {
-      updateAddOn(id, toApiAddon(next)).catch(() => {});
+      /*  ⚠️ SEVEN SILENT SAVES (12 Sep 2026). Every write on this screen was
+          `.catch(() => {})` over state that had already been painted, so a
+          refused price, a refused rename, a refused delete all looked done
+          until the next refresh threw the work away. Exactly the fault found
+          in VariantAttributes on 22 Aug, fixed here the same way: the screen
+          says what did not save, and says the row is not saved.  */
+      updateAddOn(id, toApiAddon(next)).catch((e: unknown) =>
+        say.fromError(e, `Could not save "${next.name || "that add-on"}".`),
+      );
     }, 600);
   };
 
@@ -2927,7 +2365,10 @@ export function AddonsView() {
       x.map((g) => {
         if (g.id !== groupId) return g;
         const addonIds = g.addonIds.includes(addonId) ? g.addonIds.filter((z) => z !== addonId) : [...g.addonIds, addonId];
-        if (!demo) setAddOnGroupItems(groupId, addonIds).catch(() => {});
+        if (!demo)
+          setAddOnGroupItems(groupId, addonIds).catch((e: unknown) =>
+            say.fromError(e, "Could not change that group's add-ons. Refresh to see what is really in it."),
+          );
         return { ...g, addonIds };
       }),
     );
@@ -2936,7 +2377,11 @@ export function AddonsView() {
     setGroups((x) => x.map((y) => (y.id === id ? { ...y, name } : y)));
     if (demo) return;
     clearTimeout(saveTimers.current["g:" + id]);
-    saveTimers.current["g:" + id] = setTimeout(() => { updateAddOnGroup(id, { name }).catch(() => {}); }, 600);
+    saveTimers.current["g:" + id] = setTimeout(() => {
+      updateAddOnGroup(id, { name }).catch((e: unknown) =>
+        say.fromError(e, `Could not rename that group to "${name}".`),
+      );
+    }, 600);
   };
 
   async function makeGroup(name: string) {
@@ -2952,15 +2397,49 @@ export function AddonsView() {
 
   /* deleting must not leave orphans: an add-on leaves every group it sits in,
      and a group takes its rules with it. The API mirrors this server-side. */
+  /*  ⚠️ THE MESSAGE CONTRADICTED THE SCREEN (12 Sep 2026). All three deletes
+      below take the row off the list first and, when the API refuses, told
+      the owner "it is still there — refresh to see it" — about a row he could
+      see was gone. He is not the one who should be reconciling the two. The
+      row goes back where it was instead, the same way a refused Upgrade edit
+      is put back above, and the message only says the delete did not happen.  */
   function deleteAddon(id: string) {
+    const at = rows.findIndex((x) => x.id === id);
+    const gone = rows[at];
+    /*  Which groups held it, so putting it back puts it back in them too.  */
+    const heldBy = groups.filter((g) => g.addonIds.includes(id)).map((g) => g.id);
     setRows((r) => r.filter((x) => x.id !== id));
     setGroups((x) => x.map((g) => ({ ...g, addonIds: g.addonIds.filter((z) => z !== id) })));
-    if (!demo) deleteAddOn(id).catch(() => {});
+    if (!demo)
+      deleteAddOn(id).catch((e: unknown) => {
+        if (gone)
+          setRows((r) => (r.some((x) => x.id === id) ? r : [...r.slice(0, at), gone, ...r.slice(at)]));
+        setGroups((x) =>
+          x.map((g) =>
+            heldBy.includes(g.id) && !g.addonIds.includes(id)
+              ? { ...g, addonIds: [...g.addonIds, id] }
+              : g,
+          ),
+        );
+        say.fromError(e, "Could not delete that add-on — it has been put back in the list.");
+      });
   }
   function deleteGroup(id: string) {
+    const at = groups.findIndex((y) => y.id === id);
+    const gone = groups[at];
+    /*  A group takes its rules with it, so a refusal has to bring them back
+        as well — otherwise the rules vanish from the screen while the group
+        they belong to returns.  */
+    const goneRules = rules.filter((y) => y.groupId === id);
     setGroups((x) => x.filter((y) => y.id !== id));
     setRules((x) => x.filter((y) => y.groupId !== id));
-    if (!demo) deleteAddOnGroup(id).catch(() => {});
+    if (!demo)
+      deleteAddOnGroup(id).catch((e: unknown) => {
+        if (gone)
+          setGroups((x) => (x.some((y) => y.id === id) ? x : [...x.slice(0, at), gone, ...x.slice(at)]));
+        setRules((x) => [...x, ...goneRules.filter((r) => !x.some((y) => y.id === r.id))]);
+        say.fromError(e, "Could not delete that group — it has been put back in the list.");
+      });
   }
 
   async function addBlank() {
@@ -2993,12 +2472,21 @@ export function AddonsView() {
     const merged = { ...cur, ...patch } as DemoAddonRule;
     clearTimeout(saveTimers.current["r:" + id]);
     saveTimers.current["r:" + id] = setTimeout(() => {
-      updateAddOnRule(id, { field: merged.field, values: merged.values, groupId: merged.groupId, isActive: merged.active }).catch(() => {});
+      updateAddOnRule(id, { field: merged.field, values: merged.values, groupId: merged.groupId, isActive: merged.active }).catch((e: unknown) =>
+        say.fromError(e, "Could not save that rule — what you see is not saved."),
+      );
     }, 400);
   };
   function removeRule(id: string) {
+    const at = rules.findIndex((y) => y.id === id);
+    const gone = rules[at];
     setRules((x) => x.filter((y) => y.id !== id));
-    if (!demo) deleteAddOnRule(id).catch(() => {});
+    if (!demo)
+      deleteAddOnRule(id).catch((e: unknown) => {
+        if (gone)
+          setRules((x) => (x.some((y) => y.id === id) ? x : [...x.slice(0, at), gone, ...x.slice(at)]));
+        say.fromError(e, "Could not delete that rule — it has been put back in the list.");
+      });
   }
 
   /* ---- rule matching ---- */

@@ -152,9 +152,6 @@ const GROUPS: Group[] = [
         label: "Products", href: "/products", icon: "flower",
         subs: [
           { label: "All products", href: "/products/list" },
-          { label: "Stock", href: "/products/stock" },
-          { label: "Margin", href: "/products/margin" },
-          { label: "Health", href: "/products/health" },
           { label: "Catalog funnel", href: "/products/funnel" },
           { label: "Add-ons", href: "/products/addons" },
           { label: "Upgrades", href: "/products/upgrades" },

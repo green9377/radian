@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, DiscountType, ProductType, ProductZone } from '@prisma/client';
+import { Prisma, DiscountType, ProductType, ProductZone, StockMode } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 import {
@@ -261,40 +261,10 @@ export class ProductsService {
 
     /*  The funnel carried the same fault the product list did (23 Aug 2026):
         it printed `stockQty` raw, so every TRACKED product read 0 here too.
-        One groupBy for the whole page, same as the list.  */
-    const funnelItemIds = [
-      ...new Set(
-        products.flatMap((p) => [
-          ...(p.itemId ? [p.itemId] : []),
-          ...p.variants.flatMap((v) => (v.itemId ? [v.itemId] : [])),
-        ]),
-      ),
-    ];
-    const funnelSums = funnelItemIds.length
-      ? await this.prisma.db.inventoryStock.groupBy({
-          by: ['itemId'],
-          where: { itemId: { in: funnelItemIds } },
-          _sum: { qtyMilli: true },
-        })
-      : [];
-    const funnelQty = new Map(
-      funnelSums.map((r) => [r.itemId, Math.max(0, Math.floor((r._sum.qtyMilli ?? 0) / 1000))]),
-    );
-    const stockOf = (p: {
-      stockMode: string; stockQty: number; itemId: string | null;
-      variants: { itemId: string | null; stockQty: number }[];
-    }) => {
-      if (p.stockMode === 'MANUAL')
-        return p.variants.length ? p.variants.reduce((n, v) => n + v.stockQty, 0) : p.stockQty;
-      return p.variants.length
-        ? p.variants.reduce(
-            (n, v) => n + (v.itemId ? (funnelQty.get(v.itemId) ?? 0) : v.stockQty),
-            0,
-          )
-        : p.itemId
-          ? (funnelQty.get(p.itemId) ?? 0)
-          : 0;
-    };
+        It then carried its own COPY of the correction - the third one in this
+        file - so the three screens could drift apart one edit at a time. One
+        rule, `stockReader`, for all of them.  */
+    const stockOf = await this.stockReader(products);
 
     const items = products.map((p) => {
       const a = map.get(p.id);
@@ -419,6 +389,69 @@ export class ProductsService {
 
   /* ---------------- read ---------------- */
 
+  /*  DEC-PRD-014 / DEC-PRD-015 - ONE answer to "how many of this are there".
+
+      The list corrected `stockQty` from Inventory and `findOne` did not
+      (12 Sep 2026), so the row said 280 and the editor it opened said 0 - for
+      the same product, reached from the same screen. A number the admin gives
+      two answers to is worse than no number, so the rule now lives in one
+      place and every read goes through it.
+
+      MANUAL - the hand-typed numbers: the variants' when there are variants
+      (they govern, and the product's own field then only shows their total),
+      the product's own when there are none.
+      TRACKED - the count belongs to Inventory. A variant with no Item of its
+      own falls back to ITS OWN typed number, exactly as the storefront does
+      (`product-detail.ts`, variantCount); reading it as zero was the second
+      half of the same bug.
+
+      Takes the whole page at once and returns the reader, so a hundred rows
+      are still one round trip - never N+1.  */
+  private async stockReader(
+    rows: {
+      itemId: string | null;
+      variants: { itemId: string | null; stockQty: number; isActive?: boolean }[];
+    }[],
+  ) {
+    /*  An inactive variant is not on sale, so its stock is not the product's.
+        `findOne` includes them (the editor draws them); the list does not.  */
+    const live = <V extends { isActive?: boolean }>(vs: V[]) => vs.filter((v) => v.isActive !== false);
+    const linkedItemIds = [
+      ...new Set(
+        rows.flatMap((p) => [
+          ...(p.itemId ? [p.itemId] : []),
+          ...live(p.variants).flatMap((v) => (v.itemId ? [v.itemId] : [])),
+        ]),
+      ),
+    ];
+    const invSums = linkedItemIds.length
+      ? await this.prisma.db.inventoryStock.groupBy({
+          by: ['itemId'],
+          where: { itemId: { in: linkedItemIds } },
+          _sum: { qtyMilli: true },
+        })
+      : [];
+    /*  milli-units floor to whole pieces, the same way the product page does it */
+    const invQty = new Map(
+      invSums.map((r) => [r.itemId, Math.max(0, Math.floor((r._sum.qtyMilli ?? 0) / 1000))]),
+    );
+    return (p: {
+      stockMode: string;
+      stockQty: number;
+      itemId: string | null;
+      variants: { itemId: string | null; stockQty: number; isActive?: boolean }[];
+    }): number => {
+      const vs = live(p.variants);
+      if (p.stockMode === 'MANUAL')
+        return vs.length > 0 ? vs.reduce((n, v) => n + v.stockQty, 0) : p.stockQty;
+      return vs.length > 0
+        ? vs.reduce((n, v) => n + (v.itemId ? (invQty.get(v.itemId) ?? 0) : v.stockQty), 0)
+        : p.itemId
+          ? (invQty.get(p.itemId) ?? 0)
+          : 0;
+    };
+  }
+
   async list(q: ListProductQuery) {
     await this.refreshNewDays(); // DEC-PRD-050
     const page = Math.max(1, parseInt(q.page ?? '1', 10) || 1);
@@ -429,11 +462,22 @@ export class ProductsService {
       where.OR = [
         { name: { contains: q.search, mode: 'insensitive' } },
         { slug: { contains: q.search, mode: 'insensitive' } },
+        /*  THE SKU IS WHAT STAFF SEARCH BY. It is the staff-facing short code
+            on the packing slip and the one thing a phone order arrives as
+            ("ROSE-78"), and this list returns it in every row - but typing it
+            into the search box found nothing, because only the name and the
+            slug were matched. (12 Sep 2026)  */
+        { sku: { contains: q.search, mode: 'insensitive' } },
       ];
     }
     if (q.categoryId) where.categoryId = q.categoryId;
-    if (q.productType) where.productType = q.productType as ProductType;
-    if (q.zone) where.zone = q.zone as ProductZone;
+    /*  A query string is whatever the caller typed. These two were cast
+        straight to the Prisma enum, so `?zone=DHAKAA` reached Postgres as an
+        invalid enum value and came back a 500 with no message. A filter the
+        database does not recognise is the caller's mistake, and it is told
+        so.  */
+    if (q.productType) where.productType = this.enumOr400(ProductType, q.productType, 'productType');
+    if (q.zone) where.zone = this.enumOr400(ProductZone, q.zone, 'zone');
     if (q.published === 'true') where.isPublished = true;
     if (q.published === 'false') where.isPublished = false;
 
@@ -485,45 +529,7 @@ export class ProductsService {
       this.prisma.db.product.count({ where }),
     ]);
 
-    /*  One query for every linked item on the page — the product's own and
-        each variant's. Never N+1: a hundred rows must still be one round trip. */
-    const linkedItemIds = [
-      ...new Set(
-        items.flatMap((p) => [
-          ...(p.itemId ? [p.itemId] : []),
-          ...p.variants.flatMap((v) => (v.itemId ? [v.itemId] : [])),
-        ]),
-      ),
-    ];
-    const invSums = linkedItemIds.length
-      ? await this.prisma.db.inventoryStock.groupBy({
-          by: ['itemId'],
-          where: { itemId: { in: linkedItemIds } },
-          _sum: { qtyMilli: true },
-        })
-      : [];
-    /*  milli-units floor to whole pieces, the same way the product page does it */
-    const invQty = new Map(
-      invSums.map((r) => [r.itemId, Math.max(0, Math.floor((r._sum.qtyMilli ?? 0) / 1000))]),
-    );
-    /*  ⚠️ A variant with no item of its own falls back to ITS OWN typed
-        number — exactly what the storefront does (`product-detail.ts`,
-        variantCount). Reading it as zero instead was the second half of the
-        same bug: the owner's product is TRACKED with one unlinked variant
-        holding 10, and the row still said OUT. The admin and the shop have to
-        answer this question the same way or the number is worthless.  */
-    const trackedQty = (p: {
-      itemId: string | null;
-      variants: { itemId: string | null; stockQty: number }[];
-    }) =>
-      p.variants.length > 0
-        ? p.variants.reduce(
-            (n, v) => n + (v.itemId ? (invQty.get(v.itemId) ?? 0) : v.stockQty),
-            0,
-          )
-        : p.itemId
-          ? (invQty.get(p.itemId) ?? 0)
-          : 0;
+    const stockOf = await this.stockReader(items);
 
     return {
       /*
@@ -536,28 +542,7 @@ export class ProductsService {
         variants it governs again. Keeping two numbers and showing two numbers
         are not the same thing.
       */
-      items: items.map((p) =>
-        this.withOffer(
-          p.stockMode === 'MANUAL'
-            ? /*  DEC-PRD-014 — with variants, the variants' hand-typed fields
-                  add up to the product's answer.  */
-              p.variants.length > 0
-              ? { ...p, stockQty: p.variants.reduce((n, v) => n + v.stockQty, 0) }
-              : p
-            : /*  TRACKED — the count belongs to Inventory (DEC-PRD-015), and
-                  until 23 Aug 2026 this list never asked it. It returned the
-                  product's own `stockQty` column, which under TRACKED is never
-                  written, so every tracked product read 0 and the list stamped
-                  it "OUT" — while the shop itself showed the real number,
-                  because the storefront always did ask Inventory.
-
-                  The owner caught it on his first product: item Red-Rose held
-                  280 and the row said 0 OUT. A stock figure that is wrong in
-                  the admin and right on the website is worse than no figure —
-                  it is the one number he would reorder against.  */
-              { ...p, stockQty: trackedQty(p) },
-        ),
-      ),
+      items: items.map((p) => this.withOffer({ ...p, stockQty: stockOf(p) })),
       total,
       page,
       pageSize,
@@ -572,7 +557,17 @@ export class ProductsService {
       include: FULL_INCLUDE,
     });
     if (!product) throw new NotFoundException('Product not found');
-    return this.withOffer(product);
+    /*  ⚠️ `stockQty` STAYS RAW HERE, and the real figure travels beside it.
+
+        The editor binds its stock box to `stockQty` and sends that number back
+        on every save. Overwriting it with the DERIVED figure would make a save
+        that only fixed a typo write the Inventory total (or the variant sum)
+        into a column nothing reads for that product - which is exactly the
+        fault the Stock board was deleted for on 11 Sep 2026. `stockOnHand` is
+        read-only: it is what the list shows, so the two screens agree without
+        either of them writing it.  */
+    const stockOf = await this.stockReader([product]);
+    return this.withOffer({ ...product, stockOnHand: stockOf(product) });
   }
 
   async timeline(id: string) {
@@ -608,6 +603,11 @@ export class ProductsService {
             the rule is written once.  */
         await this.replaceDeliveryTypes(tx, row.id, dto.deliveryTypeIds);
         await this.replaceVariants(tx, row.id, dto.variants);
+        /*  The gate again, on this transaction's own client and on the rows
+            that are really there now - see `assertPublishReady`'s `db`. The
+            check above the transaction is the one that gives a fast, cheap
+            answer; this is the one that is true.  */
+        await this.assertPublishReady(dto, null, row.id, tx, true);
         return row;
       },
       { timeout: 30_000, maxWait: 15_000 },
@@ -677,6 +677,13 @@ export class ProductsService {
           },
         });
         await this.replaceChildrenIn(tx, id, dto);
+        /*  LAST, AND INSIDE. The gate above this transaction read the photo
+            and delivery counts on the loose client, so a request deleting them
+            in parallel could slip between the check and the write and leave a
+            published product with no photo. Re-asserted here, after our own
+            child rows are in, it judges exactly what is about to be committed
+            - and a refusal rolls the whole save back.  */
+        await this.assertPublishReady(dto, existing, id, tx, true);
       },
       { timeout: 30_000, maxWait: 15_000 },
     );
@@ -759,32 +766,127 @@ export class ProductsService {
     });
     if (!existing) throw new NotFoundException('Not in the recovery list');
 
-    const orderRefs = await this.prisma.orderLine.count({ where: { productId: id } });
-    if (orderRefs > 0) {
+    /*  WHAT MUST SURVIVE, AND WHAT ONLY LOOKS LIKE IT MUST (12 Sep 2026).
+
+        The rule is unchanged: business history keeps the product. What was
+        wrong is which records counted as history. Every one of these is a
+        record of a transaction that happened; none of them can be rewritten
+        to forget the product, so the product stays. They are counted
+        SEPARATELY so the refusal can say which, because "sales, returns or
+        POS" sent the owner looking through three modules for one wishlist.  */
+    const [webLines, counterLines, variantLines, returnLines, replacementLines, otherBundles, discountRules, bookings] =
+      await Promise.all([
+        this.prisma.orderLine.count({
+          where: { productId: id, order: { fulfillmentType: { not: 'COUNTER' } } },
+        }),
+        this.prisma.orderLine.count({
+          where: { productId: id, order: { fulfillmentType: 'COUNTER' } },
+        }),
+        /*  A line written against a VARIANT carries no productId of its own.
+            Counted here, not only in the error handler below, because this is
+            the sentence the owner acts on.  */
+        this.prisma.orderLine.count({ where: { productId: null, variant: { productId: id } } }),
+        /*  DEC-RTN-002 - the return line keeps its own snapshot of what came
+            back. Not an FK, so the database would let the delete through and
+            the return would be left describing a product that is gone.  */
+        this.prisma.salesReturnLine.count({ where: { productId: id } }),
+        this.prisma.returnReplacementLine.count({ where: { productId: id } }),
+        /*  ⚠️ ANOTHER PRODUCT'S ADD-ON OFFER.
+            `Bundle.addsProductId` is NOT nullable, so freeing it means
+            DELETING the bundle - and its combo rows cascade with it, quietly
+            turning somebody else's priced 3-item combo into a 2-item combo at
+            the same price. That is not ours to do inside a purge, so it is a
+            blocker with a name instead.  */
+        this.prisma.bundle.count({ where: { addsProductId: id, NOT: { productId: id } } }),
+        /*  Non-FK pointers. Nothing stops the delete, so nothing would ever
+            report them - the rule would just start matching a dead id.  */
+        this.prisma.posDiscountRule.count({ where: { productId: id } }),
+        this.prisma.capacityBooking.count({ where: { productId: id } }),
+      ]);
+    const held: string[] = [];
+    if (webLines > 0)
+      held.push(`${webLines} website order line${webLines === 1 ? '' : 's'}`);
+    if (counterLines > 0)
+      held.push(`${counterLines} counter (POS) sale line${counterLines === 1 ? '' : 's'}`);
+    if (variantLines > 0)
+      held.push(`${variantLines} order line${variantLines === 1 ? '' : 's'} on one of its variants`);
+    if (returnLines > 0)
+      held.push(`${returnLines} return line${returnLines === 1 ? '' : 's'}`);
+    if (replacementLines > 0)
+      held.push(`${replacementLines} replacement line${replacementLines === 1 ? '' : 's'}`);
+    if (otherBundles > 0)
+      held.push(`${otherBundles} add-on offer${otherBundles === 1 ? '' : 's'} on other products`);
+    if (discountRules > 0)
+      held.push(`${discountRules} counter discount rule${discountRules === 1 ? '' : 's'}`);
+    if (bookings > 0)
+      held.push(`${bookings} capacity booking${bookings === 1 ? '' : 's'}`);
+    if (held.length > 0) {
       throw new BadRequestException(
-        `"${existing.name}" appears on ${orderRefs} order${orderRefs === 1 ? '' : 's'} — order history must keep it. It stays in recovery, hidden from everything else.`,
+        `"${existing.name}" appears on ${held.join(' and ')} - that history must keep it. It stays in recovery, hidden from everything else.`,
       );
     }
 
     try {
       await this.prisma.$transaction([
-        // catalog-owned children whose FKs are not ON DELETE CASCADE
+        /*  CATALOG DATA - ours, and meaningless once the product is gone. All
+            of it is cleared here, because a product that only a wishlist or a
+            dead delivery link pointed at used to fail the delete with a
+            foreign-key error and be reported to the owner as sales history.  */
         this.prisma.productImage.deleteMany({ where: { productId: id } }),
         this.prisma.productSize.deleteMany({ where: { productId: id } }),
         this.prisma.productSpec.deleteMany({ where: { productId: id } }),
         this.prisma.productFaq.deleteMany({ where: { productId: id } }),
         this.prisma.productTrustBadge.deleteMany({ where: { productId: id } }),
         this.prisma.review.deleteMany({ where: { productId: id } }),
-        this.prisma.bundle.updateMany({ where: { productId: id }, data: { productId: null } }),
+        /*  DEC-DLV-008 - which speeds it could travel on. Nothing but this
+            product cares.  */
+        this.prisma.productDeliveryType.deleteMany({ where: { productId: id } }),
+        /*  The made-to-order story shown on ITS page. The category-level rows
+            carry no productId and are untouched.  */
+        this.prisma.craftPoint.deleteMany({ where: { productId: id } }),
+        /*  Hand-picked shelves and saved-for-later lists. A shelf position or
+            a heart on a product that no longer exists is not a record of
+            anything.  */
+        this.prisma.collectionProduct.deleteMany({ where: { productId: id } }),
+        this.prisma.wishlistItem.deleteMany({ where: { productId: id } }),
+        /*  DEC-PRD-017 - bundles. Only THIS product's own offers are cleared.
+            A bundle where this product is the thing being ADDED belongs to a
+            different product's page and is refused above by name, because
+            freeing it would mean deleting it (the column is not nullable) and
+            silently shrinking somebody else's priced combo.  */
+        this.prisma.bundleItem.deleteMany({ where: { bundle: { productId: id } } }),
+        this.prisma.bundle.deleteMany({ where: { productId: id } }),
+        this.prisma.bundleCombo.deleteMany({ where: { productId: id } }),
+        /*  The invite is the Orders/Reviews module's row and it survives - it
+            can still ask about the order. Only the pointer to a product that
+            will not exist is cleared; `productId: null` is a valid state there
+            and means "review the shop".  */
+        this.prisma.reviewInvite.updateMany({ where: { productId: id }, data: { productId: null } }),
+        /*  DEC-PRD-016 - another product sold this one as its larger version.
+            That other product stays; it simply stops being an upgrade.  */
+        this.prisma.product.updateMany({
+          where: { upgradeOfProductId: id },
+          data: { upgradeOfProductId: null },
+        }),
+        /*  DEC-OFR - PRODUCT-shape targeting is a many-to-many, so the link
+            rows have to go before the row they point at.  */
+        this.prisma.product.update({ where: { id }, data: { offers: { set: [] } } }),
+        /*  Variants, their values and their combo rows cascade from here.  */
         this.prisma.product.delete({ where: { id } }),
       ]);
     } catch (e) {
-      /*  P2003 = some other table still points here. Naming the constraint
-          would mean nothing to the owner; what matters is the product is
-          part of records that must survive.  */
+      /*  P2003 = something still points here that this method does not know
+          about. The old message guessed - it blamed "sales, returns or POS"
+          for what was usually a wishlist row it had simply forgotten to
+          clear. Now that all of those ARE cleared, a P2003 means a table
+          added since, so the remaining referrer is looked up and NAMED. The
+          owner is entitled to know which record is holding his product.  */
       if ((e as { code?: string }).code === 'P2003') {
+        const still = await this.findRemainingRefs(id);
         throw new BadRequestException(
-          `"${existing.name}" is still referenced by other records (sales, returns or POS) — it must stay in recovery.`,
+          still.length > 0
+            ? `"${existing.name}" is still referenced by ${still.join(' and ')} - it must stay in recovery.`
+            : `"${existing.name}" is still referenced by another record - it must stay in recovery.`,
         );
       }
       throw e;
@@ -801,13 +903,56 @@ export class ProductsService {
     return { id, purged: true };
   }
 
+  /*  Who is still holding this product, in words the owner can act on. Only
+      run after a permanent delete has been refused by the database.  */
+  private async findRemainingRefs(id: string): Promise<string[]> {
+    const checks: [string, Promise<number>][] = [
+      ['an order line', this.prisma.orderLine.count({ where: { productId: id } })],
+      [
+        'an order line on one of its variants',
+        this.prisma.orderLine.count({ where: { variant: { productId: id } } }),
+      ],
+      ['a return line', this.prisma.salesReturnLine.count({ where: { productId: id } })],
+      ['a customer review', this.prisma.review.count({ where: { productId: id } })],
+      ['a review invite', this.prisma.reviewInvite.count({ where: { productId: id } })],
+      ['a wishlist', this.prisma.wishlistItem.count({ where: { productId: id } })],
+      ['a collection', this.prisma.collectionProduct.count({ where: { productId: id } })],
+      ['a delivery link', this.prisma.productDeliveryType.count({ where: { productId: id } })],
+      [
+        'a bundle',
+        this.prisma.bundle.count({ where: { OR: [{ productId: id }, { addsProductId: id }] } }),
+      ],
+      ['a bundle item', this.prisma.bundleItem.count({ where: { addsProductId: id } })],
+      ['a bundle combo', this.prisma.bundleCombo.count({ where: { productId: id } })],
+      ['a craft point', this.prisma.craftPoint.count({ where: { productId: id } })],
+      [
+        'another product that lists it as an upgrade',
+        this.prisma.product.count({ where: { upgradeOfProductId: id } }),
+      ],
+    ];
+    const counts = await Promise.all(checks.map(([, q]) => q.catch(() => 0)));
+    return checks.filter((_, i) => counts[i] > 0).map(([label]) => label);
+  }
+
   /** deleted products — the only way an admin can reach `restore()`.
       Uses the base client so the soft-delete extension does not hide them. */
-  async trash() {
+  async trash(q: { page?: string; pageSize?: string } = {}) {
+    /*  IT USED TO TAKE 200 AND CALL THAT THE TOTAL (12 Sep 2026).
+        `take: 200` with no `skip`, and `total: rows.length`, so a shop past
+        200 trashed products was shown "200" and the 201st - the oldest, the
+        ones most likely to be junk worth purging - could be neither restored
+        nor deleted from any screen. There was no second page to ask for.
+        Paged like every other list now, and the total is counted, not
+        guessed. The default page size stays 200 so the existing screen, which
+        asks for no page, shows exactly what it showed before.  */
+    const page = Math.max(1, parseInt(q.page ?? '1', 10) || 1);
+    const pageSize = Math.min(200, Math.max(1, parseInt(q.pageSize ?? '200', 10) || 200));
+    const where: Prisma.ProductWhereInput = { NOT: { deletedAt: null } };
     const rows = await this.prisma.product.findMany({
-      where: { NOT: { deletedAt: null } },
+      where,
       orderBy: { deletedAt: 'desc' },
-      take: 200,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
       select: {
         id: true,
         slug: true,
@@ -837,7 +982,14 @@ export class ProductsService {
         },
       },
     });
-    return { items: rows.map((r) => this.withOffer(r)), total: rows.length };
+    const total = await this.prisma.product.count({ where });
+    return {
+      items: rows.map((r) => this.withOffer(r)),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
   }
 
   async restore(id: string, actorName = 'Admin') {
@@ -860,6 +1012,20 @@ export class ProductsService {
   }
 
   /* ---------------- helpers ---------------- */
+
+  /*  A filter value out of the query string, checked against the enum it
+      claims to be. Names the field and lists what it accepts, because the
+      person reading this message is the one building the URL.  */
+  private enumOr400<E extends Record<string, string>>(
+    e: E,
+    value: string,
+    field: string,
+  ): E[keyof E] {
+    const allowed = Object.values(e) as string[];
+    if (!allowed.includes(value))
+      throw new BadRequestException(`${field} must be one of: ${allowed.join(', ')}`);
+    return value as E[keyof E];
+  }
 
   private async ensureExists(id: string) {
     const p = await this.prisma.db.product.findFirst({ where: { id }, select: { id: true } });
@@ -1052,8 +1218,11 @@ export class ProductsService {
     if (dto.advanceRequired) {
       if (!dto.advanceType) throw new BadRequestException('advanceType required when advanceRequired=true');
       if (dto.advanceType === 'PARTIAL') {
-        const hasPct = dto.advancePercent != null;
-        const hasAmt = dto.advanceAmountPaisa != null;
+        /*  An empty box arrives as 0, not as absent. Treated as "given", it
+            saved a product demanding an advance of nothing - which blocks the
+            order and collects no money.  */
+        const hasPct = dto.advancePercent != null && dto.advancePercent > 0;
+        const hasAmt = dto.advanceAmountPaisa != null && dto.advanceAmountPaisa > 0;
         if (!hasPct && !hasAmt)
           throw new BadRequestException('PARTIAL advance needs advancePercent or advanceAmountPaisa');
         if (hasPct && (!Number.isInteger(dto.advancePercent!) || dto.advancePercent! < 1 || dto.advancePercent! > 100))
@@ -1086,8 +1255,12 @@ export class ProductsService {
     never stands in the way of saving as a draft; it only checks at the moment
     `isPublished: true` is set.
   */
+  /*  `fromDb` - judge the rows that are really there, not the payload.
+      The pre-transaction call answers fast from what was sent; the call
+      inside the transaction has to look at the table, or it re-evaluates the
+      same constants and closes no race at all.  */
   private async assertPublishReady(
-    dto: { isPublished?: boolean; sellingPricePaisa?: number; categoryId?: string; sku?: string | null; supportsExpress?: boolean; supportsSameDay?: boolean; supportsMidnight?: boolean; deliveryTypeIds?: string[]; images?: { url: string }[]; variants?: ProductVariantInput[] },
+    dto: { isPublished?: boolean; sellingPricePaisa?: number; categoryId?: string; sku?: string | null; supportsExpress?: boolean; supportsSameDay?: boolean; supportsMidnight?: boolean; deliveryTypeIds?: string[]; images?: { url: string }[]; variants?: ProductVariantInput[]; stockMode?: StockMode; itemId?: string | null; supplierId?: string | null },
     existing: {
       isPublished?: boolean;
       sellingPricePaisa?: number;
@@ -1096,8 +1269,21 @@ export class ProductsService {
       supportsExpress?: boolean;
       supportsSameDay?: boolean;
       supportsMidnight?: boolean;
+      stockMode?: StockMode;
+      itemId?: string | null;
+      supplierId?: string | null;
     } | null,
     productId: string | null,
+    /*  RUN ME INSIDE THE TRANSACTION TOO (12 Sep 2026).
+        Every count below used to be read on the loose client, before the
+        transaction that writes. Two saves arriving together - one setting
+        `isPublished: true`, one sending `{ images: [] }` - both passed their
+        own gate on the photo the other was about to delete, and the shop was
+        left with a published product and an empty gallery. The callers now
+        re-assert on the transaction's own client after the children are
+        written, so the gate judges the state that is actually committed.  */
+    db: TxDb = this.prisma.db,
+    fromDb = false,
   ) {
     const willPublish = dto.isPublished ?? existing?.isPublished ?? false;
     if (!willPublish) return;
@@ -1110,14 +1296,20 @@ export class ProductsService {
         genuinely falls back to this price — so the gate stays for that.  */
     const price = dto.sellingPricePaisa ?? existing?.sellingPricePaisa ?? 0;
     if (!(price > 0)) {
-      const rows =
-        dto.variants ??
+      /*  ⚠️ ACTIVE rows only, and the table wins inside the transaction.
+          This block ignored `fromDb`, and `dto.variants` always arrives from
+          the editor - so the switched-off rows were never filtered out and a
+          product whose only priced variants were all INACTIVE could publish
+          at zero.  */
+      const rows = (
+        (!fromDb && dto.variants) ||
         (productId
-          ? await this.prisma.db.productVariant.findMany({
-              where: { productId, deletedAt: null, isActive: true },
-              select: { pricePaisa: true },
+          ? await db.productVariant.findMany({
+              where: { productId, deletedAt: null },
+              select: { pricePaisa: true, isActive: true },
             })
-          : []);
+          : [])
+      ).filter((r) => (r as { isActive?: boolean }).isActive !== false);
       const everyVariantPriced =
         rows.length > 0 && rows.every((r) => r.pricePaisa != null && r.pricePaisa > 0);
       if (!everyVariantPriced) {
@@ -1137,6 +1329,53 @@ export class ProductsService {
     const sku = (dto.sku ?? existing?.sku ?? '').trim();
     if (!sku) {
       throw new BadRequestException('A product cannot be published without a SKU / product code.');
+    }
+
+    /*  TRACKED MEANS "INVENTORY COUNTS IT" - AND SOMETHING HAS TO BE
+        COUNTED (12 Sep 2026).
+
+        `stockMode: TRACKED` with no `itemId` and no variant carrying one was
+        accepted and publishable. The stock figure then comes from Inventory,
+        Inventory has nothing to look at, and the answer is 0 forever: the
+        listing goes live reading OUT OF STOCK, can never be bought, and
+        nothing on the screen says why. The owner would go looking in the
+        stockroom for a shortage that does not exist.
+
+        Judged on the PAYLOAD, not on the merged row: an older product already
+        stored in this state must still be savable while it is being fixed, so
+        the refusal only fires when this save is the one deciding to publish
+        or touching the stock link itself.  */
+    /*  ⚠️ ONLY ON THE SAVE THAT TURNS PUBLISH ON.
+        The first version fired whenever the payload MENTIONED any of these
+        fields - and the editor sends all of them on every save, so it fired
+        always. A product already stored in the bad state could then not be
+        saved at all, not even to fix it, and not even to unpublish it.  */
+    const goingLive = dto.isPublished === true && !existing?.isPublished;
+    /*  A vendor product holds none of our stock: the editor hides the whole
+        Stock card when a supplier is set, and the save deliberately clears
+        `itemId`. Asking it for a stock link would be asking for a control the
+        owner cannot see.  */
+    const fromSupplier =
+      dto.supplierId !== undefined ? !!dto.supplierId : !!existing?.supplierId;
+    const stockMode = dto.stockMode ?? existing?.stockMode;
+    if (goingLive && !fromSupplier && stockMode === 'TRACKED') {
+      const productItemId = dto.itemId !== undefined ? dto.itemId : existing?.itemId;
+      /*  DEC-PRD-015 - a variant may hold its own Item, and then the product
+          does not need one of its own.  */
+      const variantRows =
+        (!fromDb && dto.variants) ||
+        (productId
+          ? await db.productVariant.findMany({
+              where: { productId, deletedAt: null, isActive: true },
+              select: { itemId: true },
+            })
+          : []);
+      const someVariantTracked = variantRows.some((v) => !!v.itemId);
+      if (!productItemId && !someVariantTracked) {
+        throw new BadRequestException(
+          'Stock is set to Tracked, so the count comes from Inventory - but nothing is linked to count. Pick a stock item for this product (or give each variant its own item) on the Stock tab, or set stock back to Manual before publishing.',
+        );
+      }
     }
 
     /*  ⚠️ THIS GATE USED TO BE ABOUT THREE ENGLISH WORDS (fixed 22 Aug 2026).
@@ -1160,25 +1399,54 @@ export class ProductsService {
         deliverable SOME way. So the gate now asks whether any delivery type is
         linked at all. The three booleans are still written (the storefront's
         speed filter reads them) — they are just no longer the judge.  */
-    const linkedTypes =
-      dto.deliveryTypeIds !== undefined
-        ? dto.deliveryTypeIds.length
+    /*  AND IT MUST BE A DELIVERY THAT CAN ACTUALLY BE OFFERED (12 Sep
+        2026). The gate counted the LINKS, while `replaceDeliveryTypes` - two
+        screens away, on the same save - only believes a type that is active,
+        not deleted, and has a fee in at least one zone. So a product whose one
+        ticked type had since been deleted or left without a rate published
+        happily, showed no delivery badge, and reached checkout with nothing to
+        offer the customer. The two now ask the same question.  */
+    const linkedTypeIds =
+      !fromDb && dto.deliveryTypeIds !== undefined
+        ? [...new Set(dto.deliveryTypeIds)]
         : productId
-          ? await this.prisma.db.productDeliveryType.count({ where: { productId } })
-          : 0;
-    if (linkedTypes === 0) {
+          ? (
+              await db.productDeliveryType.findMany({
+                where: { productId },
+                select: { typeId: true },
+              })
+            ).map((r) => r.typeId)
+          : [];
+    const linkedTypes = linkedTypeIds.length
+      ? await db.deliveryType.count({
+          where: {
+            id: { in: linkedTypeIds },
+            isActive: true,
+            deletedAt: null,
+            rates: { some: { deletedAt: null } },
+          },
+        })
+      : 0;
+    /*  The "offerable" half of this rule is new (12 Sep 2026), so it judges
+        only a save that is turning publish ON. A product that has been live
+        for weeks and whose delivery type was deleted last month must still be
+        savable - otherwise the owner meets a 400 while editing its name, with
+        no way out but a rule he cannot satisfy from that screen.  */
+    if (linkedTypeIds.length === 0 || (goingLive && linkedTypes === 0)) {
       throw new BadRequestException(
-        'Pick at least one delivery type on the Delivery tab before publishing.',
+        linkedTypeIds.length === 0
+          ? 'Pick at least one delivery type on the Delivery tab before publishing.'
+          : 'The delivery type on this product cannot be offered - it is switched off, deleted, or has no zone rate set up. Fix it in the Delivery module, or tick another one, before publishing.',
       );
     }
 
     // `images` is REPLACE-not-merge (see `replaceChildren`) — if it is in the
     // dto that is the final list; if not, whatever is in the DB survives.
     let imageCount: number;
-    if (dto.images !== undefined) {
+    if (!fromDb && dto.images !== undefined) {
       imageCount = dto.images.length;
     } else if (productId) {
-      imageCount = await this.prisma.db.productImage.count({
+      imageCount = await db.productImage.count({
         where: { productId, deletedAt: null },
       });
     } else {

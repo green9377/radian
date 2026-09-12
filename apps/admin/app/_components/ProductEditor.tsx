@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PRODUCTS } from "../_data/products";
@@ -1794,6 +1794,27 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       overwrite a real row with blanks or create a duplicate. Saving is refused
       while this is set.  */
   const [loadFailed, setLoadFailed] = useState(false);
+  /*  HAS ANYBODY TYPED YET (12 Sep 2026).
+
+      Opening an existing product runs TWO requests one after the other (the
+      search, then the detail read), so the form sits there editable for a
+      second or more before its answer lands. Anybody who started typing the
+      name in that second watched it replaced by the stored one — their work
+      gone, with nothing on screen to say why.
+
+      A ref, not state: it must be readable inside the load callback without
+      re-running the effect, and nothing on screen depends on it.  */
+  const userEditedRef = useRef(false);
+  /*  The read came back AFTER the owner had started typing, so it was not
+      applied. The form is then neither the product nor a new one: the edited
+      box holds his words and every other box is still a placeholder, so
+      saving would write those placeholders over the real row — the 1 Aug
+      disaster from the other direction. Saving is refused while this is set,
+      and the banner offers to load the product properly.  */
+  const [loadStale, setLoadStale] = useState(false);
+  /*  Bumped by that banner's button: it re-runs the read from the top, with
+      the typed-in flag cleared, so the product lands in full.  */
+  const [reloadNonce, setReloadNonce] = useState(0);
   const [loadedCatId, setLoadedCatId] = useState<string | null>(null);
   const [apiCats, setApiCats] = useState<ApiCategory[]>([]);
   const [apiTags, setApiTags] = useState<ApiTag[]>([]);
@@ -1811,6 +1832,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       them empty. They can also be filled later, in bulk, from Marketing → SEO. */
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
+  /*  SEO-D01 — the share-card wording. Both columns have been in the DTO and
+      in both backend build functions from the start, but this screen never
+      drew a box for them, so they could only ever stay null: the card
+      WhatsApp and Facebook draw fell back to the Google wording, which is
+      written for a search result, not for somebody looking at a shared
+      link.  */
+  const [ogTitle, setOgTitle] = useState("");
+  const [ogDescription, setOgDescription] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
   /** DEC-PRD-024 — whether the share image is uploading */
   const [ogBusy, setOgBusy] = useState(false);
@@ -2082,8 +2111,22 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         So: the database is the source now, for every field, and the mock is
         only the placeholder for a product that does not exist yet.
       */
+      /*  A late answer from a slug this screen has already left is not ours
+          to apply — it would hydrate the form with the previous product.  */
+      /*  A LOAD THAT HAS NOT HAPPENED YET CANNOT HAVE BEEN EDITED (12 Sep
+          2026). This editor is one component on a dynamic route: walking from
+          product A to product B re-renders the same instance, and the flag
+          was never cleared. One character typed into A meant B's read landed
+          on a form that refused to hydrate — B's id with A's words in the
+          boxes, the amber bar up, and Save refused. Cleared here, at the top
+          of every new read (a slug change AND the bar's own reload), so the
+          flag only ever describes typing done since THIS load started.  */
+      userEditedRef.current = false;
+      setLoadStale(false);
+      let cancelled = false;
       getProductBySlug(slug)
         .then((p) => {
+          if (cancelled) return;
           /*  A slug that matches nothing, on a screen that is only ever opened
               FOR an existing product, is a failed read too — not a blank new
               product. Left as "new", the next Save created a duplicate.  */
@@ -2092,7 +2135,24 @@ export default function ProductEditor({ slug }: { slug?: string }) {
             return;
           }
           setLoadFailed(false);
+          /*  These two are settled whatever the owner has typed. `loadFailed`
+              is the saving gate, and `apiProductId` decides PATCH versus
+              POST — dropping it because somebody had started typing would
+              turn the next Save into a brand new duplicate product.  */
           setApiProductId(p.id);
+
+          /*  EVERYTHING BELOW OVERWRITES A BOX THE OWNER CAN BE TYPING IN.
+              Opening a product runs two requests one after the other, so there
+              is a second of editable form before the answer lands, and
+              whatever was typed in it used to be wiped. Once a field has been
+              edited the answer is dropped instead — and because the rest of
+              the form is then still placeholder state, saving is held until
+              the product is loaded properly (`loadStale`).  */
+          if (userEditedRef.current) {
+            setLoadStale(true);
+            return;
+          }
+          setLoadStale(false);
 
           // identity
           setName(p.name ?? "");
@@ -2327,12 +2387,19 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           // SEO
           if (p.metaTitle) setMetaTitle(p.metaTitle);
           if (p.metaDescription) setMetaDescription(p.metaDescription);
+          if (p.ogTitle) setOgTitle(p.ogTitle);
+          if (p.ogDescription) setOgDescription(p.ogDescription);
           if (p.ogImageUrl) setOgImageUrl(p.ogImageUrl);
           setNoIndex(!!p.noIndex);
         })
-        .catch(() => setLoadFailed(true));
+        .catch(() => {
+          if (!cancelled) setLoadFailed(true);
+        });
+      return () => {
+        cancelled = true;
+      };
     }
-  }, [slug]);
+  }, [slug, reloadNonce]);
 
   // real category list, split into top-level + children of the chosen top
   const topCats = apiCats
@@ -2497,7 +2564,37 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       discountStartsAt: fromDhakaLocal(discStart, "00:00"),
       discountEndsAt: fromDhakaLocal(discEnd, "23:59"),
       discountOnVariants: discOnVariants,
-      variantAxisOrder: orderedAxes(axisPicks).map((a) => a.id),
+      /*  DEC-PRD-063 — the order the variant lists show in.
+
+          ⚠️ IT WAS BEING TRUNCATED SILENTLY (12 Sep 2026). `orderedAxes`
+          filters through `liveAttrs`, the attribute master fetched by
+          `refetchMasters`. When that call failed, or a list was switched off
+          in Variant & Options after this product was built, the master knows
+          fewer axes than the product has — so the order went out short, or
+          empty, while the variant ROWS still saved in full. The owner's
+          arrangement was lost by a request he never saw fail.
+
+          The rows themselves carry the answer: every part holds its
+          `attributeId`, in the product's own order. So the master's order is
+          kept (that is where the owner arranges them) and every axis the
+          product actually has that the master could not confirm is appended
+          in row order.
+
+          Chosen over refusing the save because it cannot lose data: refusing
+          would block the prices, the photos and the variant rows too, every
+          time an unrelated master call was down — and this path reconstructs
+          exactly what the rows say the product is.  */
+      variantAxisOrder: (() => {
+        const ids = orderedAxes(axisPicks).map((a) => a.id);
+        const seen = new Set(ids);
+        for (const v of variants)
+          for (const part of v.parts)
+            if (part.attributeId && !seen.has(part.attributeId)) {
+              seen.add(part.attributeId);
+              ids.push(part.attributeId);
+            }
+        return ids;
+      })(),
       discountValue:
         discType === "FLAT"
           ? toPaisa(discVal)
@@ -2506,12 +2603,34 @@ export default function ProductEditor({ slug }: { slug?: string }) {
             : 0,
       advanceRequired: advReq,
       advanceType: advReq ? advType : undefined,
+      /*  A PARTIAL ADVANCE IN TAKA USED TO TURN BACK INTO THE OLD PERCENTAGE
+          (12 Sep 2026).
+
+          Only one of these two is ever in use, and the unused one was sent as
+          `undefined` — which means "do not touch this column", so the old
+          percentage stayed in the row beside the new amount. The loader reads
+          `advancePercent` FIRST, so on reopening, the stale percentage won and
+          the typed amount was never seen again; the next save then wrote the
+          percentage back. The one that does not apply is now cleared
+          explicitly. Both columns are nullable (`advancePercent Int?`,
+          `advanceAmountPaisa Int?`) and `validateMoneyAndRules` reads them
+          with `!= null`, so a null is "not given", never a zero advance.
+
+          ⚠️ Still `undefined` when the advance is off or FULL: nothing on the
+          form is describing these two boxes then, and a save from this screen
+          should not erase a partial setting the owner may switch back to.  */
       advancePercent:
-        advReq && advType === "PARTIAL" && advPartType === "PCT"
-          ? parseInt(advPartVal || "0")
+        advReq && advType === "PARTIAL"
+          ? advPartType === "PCT"
+            ? parseInt(advPartVal || "0")
+            : null
           : undefined,
       advanceAmountPaisa:
-        advReq && advType === "PARTIAL" && advPartType === "FLAT" ? toPaisa(advPartVal) : undefined,
+        advReq && advType === "PARTIAL"
+          ? advPartType === "FLAT"
+            ? toPaisa(advPartVal)
+            : null
+          : undefined,
       stockMode,
       /*  DEC-ITM-021 — the FK, never the SKU text.
           ⚠️ Sent whatever the stock mode is. It used to be cleared outside
@@ -2628,6 +2747,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       // SEO-D01 — null, not undefined, so clearing a field actually clears it
       metaTitle: metaTitle.trim() || null,
       metaDescription: metaDescription.trim() || null,
+      /*  Blank stays `null` on purpose — the storefront's share card then
+          falls back to the meta wording, which is what the preview shows.  */
+      ogTitle: ogTitle.trim() || null,
+      ogDescription: ogDescription.trim() || null,
       ogImageUrl: ogImageUrl.trim() || null,
       noIndex,
 
@@ -2686,6 +2809,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       setSaveErr("This product could not be loaded, so what you see is not it. Reload the page before saving.");
       return;
     }
+    /*  Same reasoning as `loadFailed`: only part of what is on screen is this
+        product, so a save would write placeholders over the rest.  */
+    if (loadStale) {
+      setSaveErr(
+        "This product finished loading after you started typing, so the rest of the form is not its data yet. Press \"Load this product\" in the amber bar above first.",
+      );
+      return;
+    }
     if (!name.trim()) {
       setSaveErr("Give the product a name.");
       return;
@@ -2737,8 +2868,17 @@ export default function ProductEditor({ slug }: { slug?: string }) {
               pendingDiscType === "NONE" ? 0 : Math.round((Number(pendingDiscValue) || 0) * 100),
           }).catch(() => {});
         }
+        /*  A refusal here used to be swallowed whole: the upgrade simply was
+            not linked, and the owner was told the product had saved. The
+            product HAS saved and must not be undone, so the failure is
+            carried onto the new product's own page instead of thrown — the
+            editor is the same instance across this navigation, so the red
+            bar is still there to read when it lands.  */
+        const unlinked: string[] = [];
         for (const u of pendingUp) {
-          await updateProduct(u.id, { upgradeOfProductId: created.id }).catch(() => {});
+          await updateProduct(u.id, { upgradeOfProductId: created.id }).catch(() =>
+            unlinked.push(u.name),
+          );
         }
         /*  A brand-new product has no edit URL yet — this is the one case
             that still has to navigate, since apiProductId/slug only exist
@@ -2747,6 +2887,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
             same product to keep adding photos/variants/etc. — never on
             somebody else's row in a 500-product list.  */
         router.push(`/products/${created.slug}`);
+        if (unlinked.length)
+          setSaveErr(
+            `The product was created, but ${unlinked.join(", ")} could not be linked as an upgrade. Add it again from the Upgrades card.`,
+          );
         return;
       }
     } catch (e) {
@@ -2828,8 +2972,15 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   }
   function unlinkUpgrade(prod: ApiProduct) {
     if (apiProductId && prod.upgradeOfProductId) {
+      /*  Put the link back when the API refuses it, exactly as `linkUpgrade`
+          does — a silent failure left the row off the list while the product
+          was still an upgrade in the database, and the owner would only find
+          out on the next reload.  */
+      const was = prod.upgradeOfProductId;
       setAllProducts((prev) => prev.map((p) => (p.id === prod.id ? { ...p, upgradeOfProductId: null } : p)));
-      updateProduct(prod.id, { upgradeOfProductId: null }).catch(() => {});
+      updateProduct(prod.id, { upgradeOfProductId: null }).catch(() =>
+        setAllProducts((prev) => prev.map((p) => (p.id === prod.id ? { ...p, upgradeOfProductId: was } : p))),
+      );
     } else {
       setPendingUp((prev) => prev.filter((x) => x.id !== prod.id));
     }
@@ -3026,14 +3177,35 @@ export default function ProductEditor({ slug }: { slug?: string }) {
 
   /*  What each tab still owes before this product can go live.
       The list mirrors `assertPublishReady` on the API (products.service.ts) —
-      the same six gates, read here so the owner sees them BEFORE pressing
-      Publish instead of after. Sections that hold no gate stay blank rather
+      the same gates, read here so the owner sees them BEFORE pressing
+      Publish instead of after. When a gate is added there it belongs here
+      too, or the button opens on a save that is already refused. Sections that hold no gate stay blank rather
       than showing a tick they did not earn.  */
+  /*  DEC-PRD-035 — a product whose variants each carry their own price is
+      sold without a product-level price at all: the shop quotes "from Tk X"
+      and each variant charges its own number. `assertPublishReady` allows
+      exactly that, and this screen did not — so the owner was blocked here
+      by a rule the API does not have, and had to invent a price nothing
+      would ever sell at (his complaint, 9 Aug 2026).
+
+      ⚠️ ACTIVE rows only — 12 Sep 2026. This counted EVERY row, including
+      the switched-off ones, so a product whose only priced variants were
+      inactive passed the gate and could go live at ৳0. The API judges the
+      active rows alone (`assertPublishReady`, its `everyVariantPriced`
+      block), and the two have to ask the same question. A switched-off row
+      is never sold, so it can never be the price the shop quotes — and with
+      no active row left there is nothing to quote "from", which is why the
+      product's own price is then required.  */
+  const activeVariants = variants.filter((v) => v.isActive);
+  const priceOk =
+    Number(sell) > 0 ||
+    (activeVariants.length > 0 &&
+      activeVariants.every((v) => v.price.trim() !== "" && Number(v.price) > 0));
   const sectionState: Partial<Record<SecId, "todo" | "done">> = {
     basics: name.trim() && topCatId && skuV.trim() ? "done" : "todo",
     media: photos.length > 0 ? "done" : "todo",
     delivery: delivTypeIds.length > 0 ? "done" : "todo",
-    price: Number(sell) > 0 ? "done" : "todo",
+    price: priceOk ? "done" : "todo",
   };
   /*  A green dot on a chip means that group already holds something, so an
       untouched group is visible without opening it. "Why buy" cannot be read
@@ -3073,17 +3245,77 @@ export default function ProductEditor({ slug }: { slug?: string }) {
 
   /*  The named gates, so the Publish button can say what it is waiting for
       rather than refusing and explaining afterwards.  */
+  /*  ── THE TWO GATES THIS LIST DID NOT HAVE (12 Sep 2026) ──
+      `assertPublishReady` grew two more refusals and this list did not, so
+      the button stayed enabled on a save the API answers with a 400 — the
+      owner learning what was wrong only by pressing it and reading the
+      message, which is the exact dead end this list exists to prevent.
+
+      Both are judged only when this save is the one turning publish ON, the
+      same way the API judges them (`goingLive`). A product that has been
+      live for weeks and whose delivery type was deleted last month must
+      still be re-savable from this screen, or the owner meets a wall while
+      fixing its name with no way through but "Save draft", which would take
+      the product off the website.  */
+  const alreadyLive = !!apiProductId && status === "ACTIVE";
+  /*  `delivTypes` is fetched already filtered to what a customer could really
+      be given — active, and priced in at least one zone (see the fetch, and
+      DEC-DLV-009). So a tick on an id that is NOT in that list is a delivery
+      the API refuses to publish on: switched off, deleted, or rate-less.  */
+  const delivOfferable = delivTypeIds.some((id) => delivTypes.some((t) => t.id === id));
+  /*  … unless the list never arrived. Then a missing id means "not loaded",
+      not "not offerable", and the button says so rather than guessing.  */
+  const delivListKnown = delivTypes.length > 0;
+  /*  TRACKED means Inventory supplies the count, so something has to be
+      linked for it to count: this product's Item, or an active variant with
+      one of its own (DEC-PRD-015). Otherwise the answer is 0 forever and the
+      listing goes live reading OUT OF STOCK. A vendor product is exempt — it
+      holds none of our stock, its Stock card is hidden, and the save
+      deliberately clears `itemId`.  */
+  const stockUncounted =
+    stockMode === "TRACKED" &&
+    !supplierId &&
+    !itemId &&
+    !variants.some((v) => v.isActive && v.itemId);
   const publishMissing = [
     !name.trim() && "a name",
     !topCatId && "a category",
     !skuV.trim() && "a SKU",
-    Number(sell) > 0 ? null : "a price",
+    /*  Named with BOTH ways out, because there are two and the second one is
+        not obvious from a blank price box.  */
+    priceOk ? null : "a price — either on the product, or on every variant",
     photos.length === 0 && "a photo",
     delivTypeIds.length === 0 && "a delivery type",
+    !alreadyLive &&
+      delivTypeIds.length > 0 &&
+      !delivListKnown &&
+      "the delivery list — it has not loaded yet, so whether the delivery picked can still be offered cannot be checked here",
+    !alreadyLive &&
+      delivTypeIds.length > 0 &&
+      delivListKnown &&
+      !delivOfferable &&
+      "a delivery type that can be offered — the one picked is switched off, deleted, or has no charge in any zone",
+    !alreadyLive &&
+      stockUncounted &&
+      "a stock item — stock is Tracked, so Inventory has to have something to count (link an item on the Stock tab, or set stock back to Manual)",
   ].filter((x): x is string => typeof x === "string");
 
   return (
-    <div className="px-6 md:px-8 pt-6 pb-24 max-w-[1650px]">
+    /*  The first real edit anywhere in the form is recorded here, in ONE
+        place, rather than in several hundred `onChange` handlers. Capture
+        phase, so it is seen whatever the field does with the event; `input`
+        covers what is typed and `change` covers ticks, dropdowns and file
+        pickers. Scrolling, tab-switching and opening a card are not edits and
+        deliberately do not count.  */
+    <div
+      className="px-6 md:px-8 pt-6 pb-24 max-w-[1650px]"
+      onInputCapture={() => {
+        userEditedRef.current = true;
+      }}
+      onChangeCapture={() => {
+        userEditedRef.current = true;
+      }}
+    >
       {/* top bar */}
       <div className="sticky top-0 z-20 -mx-6 md:-mx-8 px-6 md:px-8 py-3.5 bg-lavender/85 backdrop-blur border-b border-lavender-deep flex items-center gap-3 mb-6">
         <Link
@@ -3116,9 +3348,9 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           {saving ? "Saving…" : "Save draft"}
         </button>
         {/*  Bold and clear (CLAUDE.md §16). It also says what it is waiting
-             for: the API refuses a publish that is missing any of six things,
-             and the owner used to learn which one only by pressing and
-             reading the refusal. The ⓘ names them all; the rail shows which
+             for: the API refuses a publish that is missing any one of its
+             gates, and the owner used to learn which one only by pressing
+             and reading the refusal. The ⓘ names them all; the rail shows which
              tab they live on.  */}
         <button
           type="button"
@@ -3143,6 +3375,27 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       {loadFailed && (
         <div className="bg-[var(--s-bad)] border border-[var(--l-bad)] text-[var(--t-bad)] rounded-[12px] px-4 py-3 mb-4 text-[13px] font-medium">
           This product could not be loaded, so nothing below is its real data. Reload the page — saving is off until it opens.
+        </div>
+      )}
+      {/*  Said plainly, with the way out on it: the typing stays on screen so
+           it can be copied, and one press loads the product for real.  */}
+      {loadStale && !loadFailed && (
+        <div className="bg-[var(--s-warn)] border border-[var(--l-warn)] text-[var(--t-warn)] rounded-[12px] px-4 py-3 mb-4 text-[13px] font-medium flex items-center gap-3 flex-wrap">
+          <span>
+            This product finished loading after you started typing, so what you typed was kept and
+            the rest of the form is not its data. Copy anything you want to keep, then load it.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              userEditedRef.current = false;
+              setLoadStale(false);
+              setReloadNonce((n) => n + 1);
+            }}
+            className="border border-[var(--l-warn)] bg-white rounded-[10px] px-3 py-1.5 font-semibold"
+          >
+            Load this product
+          </button>
         </div>
       )}
       {saveErr && (
@@ -7378,6 +7631,38 @@ No bundle products yet — add them on{" "}
               <Card icon="photo" title="When somebody shares the link"
 >
                 <div className="grid gap-4">
+                  {/*  SEO-D01 — the wording on the card itself.
+
+                       Both columns were written by the API and by Marketing ->
+                       SEO all along; this screen simply had no box for them,
+                       so a product edited here could never have its own share
+                       wording. Leaving them blank is still a good answer, and
+                       the note says exactly what happens then — the Google
+                       wording is used, and that is written for a search
+                       result, not for a person deciding whether to open a
+                       link a friend sent them.  */}
+                  <Field
+                    label="Share title"
+                    note="Blank uses the Google title above"
+                  >
+                    <input
+                      className="ipt h-[44px]"
+                      value={ogTitle}
+                      onChange={(e) => setOgTitle(e.target.value)}
+                      placeholder={metaTitle || name || "Someone sent you flowers"}
+                    />
+                  </Field>
+                  <Field
+                    label="Share description"
+                    note="Blank uses the Google description above"
+                  >
+                    <textarea
+                      className="ipt min-h-[68px] py-2"
+                      value={ogDescription}
+                      onChange={(e) => setOgDescription(e.target.value)}
+                      placeholder={metaDescription || shortDesc || "Hand-tied and delivered across Dhaka in two hours."}
+                    />
+                  </Field>
                   {/*
                     DEC-PRD-024 — owner, 2 Aug 2026: *"I didn't understand
                     what link I'm supposed to give for the image."*
@@ -7443,6 +7728,37 @@ No bundle products yet — add them on{" "}
                       placeholder="…or paste a picture address"
                     />
                   </Field>
+                  {/*  The card as WhatsApp and Facebook draw it. It shows the
+                       share wording when there is any and the Google wording
+                       when there is not — the storefront's own fallback, so
+                       what is previewed is what is sent. It used to show the
+                       meta values with no hint that a share title even
+                       existed, which is why nobody missed the two boxes.  */}
+                  <div className="rounded-[12px] border border-lavender-deep bg-white overflow-hidden">
+                    <div
+                      className="h-[112px] bg-lavender"
+                      style={
+                        ogImageUrl
+                          ? { background: `url(${ogImageUrl}) center/cover no-repeat` }
+                          : undefined
+                      }
+                    />
+                    <div className="p-3 border-t border-lavender-deep">
+                      <div className="text-[11px] uppercase tracking-wide text-[var(--t-soft)]">
+                        {WEB_HOST}
+                      </div>
+                      <div className="text-[14px] font-semibold leading-snug mt-0.5 text-purple">
+                        {ogTitle || metaTitle || name || "Product name"}
+                      </div>
+                      <div className="text-[12.5px] leading-snug mt-0.5 text-[var(--t-soft)]">
+                        {(ogDescription || metaDescription || shortDesc ||
+                          "The first lines of the page are used when nothing is written here.").slice(0, 160)}
+                      </div>
+                    </div>
+                    <div className="px-3 pb-3 text-[11.5px] text-[var(--t-soft)]">
+                      Share title and description are used when they are filled in; otherwise the Google ones above are.
+                    </div>
+                  </div>
                   <label className="flex items-start gap-2.5 text-[14px] cursor-pointer">
                     <input
                       type="checkbox"

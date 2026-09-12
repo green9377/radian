@@ -9,6 +9,8 @@ import {
   deleteProduct,
   updateProduct,
   createProduct,
+  getProduct,
+  restoreProduct,
   storefrontUrl,
   formatTaka,
   type ApiProduct,
@@ -69,6 +71,16 @@ export default function ProductListView() {
   const [page, setPage] = useState(1);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<string | null>(null);
+  /*  A double click used to make two copies: the first call had not come back
+      yet, so nothing was disabled. One at a time, and the row says so.  */
+  const [dupBusy, setDupBusy] = useState<string | null>(null);
+  /*  ⚠️ THE DELETED ROW JUST VANISHED (12 Sep 2026). The delete is soft — the
+      product is sitting in Trash — but this screen offered no way back and no
+      way in, so a mis-click read as "gone forever". The row's name is kept here
+      until the next action, and one press puts it back.  */
+  const [undo, setUndo] = useState<{ id: string; name: string } | null>(null);
+  /** which products a bulk action could not save, and the API's reason */
+  const [bulkFails, setBulkFails] = useState<{ name: string; why: string }[]>([]);
 
   async function load() {
     setLoading(true);
@@ -143,41 +155,221 @@ export default function ProductListView() {
     return { total: all.length, active, oos, draft };
   }, [all]);
 
-  async function patch(p: ApiProduct, body: Record<string, unknown>) {
+  /** returns the API's refusal, or null when it saved — the bulk bar needs to
+      know WHICH rows were refused, not just that something was.
+      ⚠️ IT DOES NOT SPEAK (12 Sep 2026). It used to call the banner on every
+      refusal as well as returning it, and the banner is one slot: a bulk
+      publish over twenty rows wrote it twenty times, each one wiping the last,
+      and then the summary landed on top of all of them. Whoever calls this
+      decides what is said — the single-row toggle says it, and the bulk bar
+      lists every refusal by name underneath its own one-line summary. */
+  async function patch(p: ApiProduct, body: Record<string, unknown>): Promise<string | null> {
     try {
       await updateProduct(p.id, body);
     } catch (e) {
-      say.fromError(e, `Could not save "${p.name}".`);
-      return;
+      return e instanceof Error ? e.message : `Could not save "${p.name}".`;
     }
     setAll((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...(body as Partial<ApiProduct>) } : x)));
+    return null;
   }
 
-  async function duplicate(p: ApiProduct) {
-    const slug = `${p.slug}-copy-${Math.floor(Math.random() * 900 + 100)}`;
+  /*
+    ⚠️ DUPLICATE USED TO PRODUCE AN EMPTY SHELL (12 Sep 2026).
+
+    It copied nine scalars off the LIST row and called that a duplicate. The
+    list endpoint does not carry a product's photos, variants, spec rows, FAQ
+    or trust badges at all (see `getProductBySlug` — the editor learned this on
+    1 Aug), and the nine it did copy left out the discount and its window, the
+    delivery types, tags, brand, unit, Item/supplier, the advance rules,
+    personalisation, the customise box, SEO, lead time and the sold-out mode.
+    What came back was a name and a price: everything that makes the copy worth
+    making had to be typed again.
+
+    Two smaller faults rode along. `categoryId: p.category?.id` was sent with no
+    guard, so a row with no category sent `undefined` and the create died on the
+    foreign key with a message about nothing the owner could see. And there was
+    no busy guard, so a second click while the first call was in flight made a
+    second copy.
+
+    So: read the whole product first, then send what the editor would send.
+  */
+  async function duplicate(row: ApiProduct) {
+    if (dupBusy) return;
+    setDupBusy(row.id);
+    setUndo(null);
+    say.clear();
     try {
-      await createProduct({
-        slug,
-        sku: p.sku ? `${p.sku}-C` : null,
+      /*  The list row is only an id — the product itself has to be read.  */
+      const p = await getProduct(row.id);
+      if (!p.category?.id) {
+        say.bad(
+          `"${p.name}" has no category, and a product cannot be created without one. Give it a category first, then duplicate it.`,
+        );
+        return;
+      }
+      const tag = Math.floor(Math.random() * 900 + 100);
+      /*  Slug and SKU are the two things that must NOT be copied — both are
+          unique, and the API refuses the create outright if either is taken.
+          The copy is born a draft whatever the original was: it still needs a
+          photograph of its own and a price check before anyone may buy it.  */
+      const dto: Record<string, unknown> = {
+        slug: `${p.slug}-copy-${tag}`,
+        sku: p.sku ? `${p.sku}-C${tag}` : null,
         name: `${p.name} (copy)`,
-        categoryId: p.category?.id,
+        categoryId: p.category.id,
+        brandId: p.brandId ?? null,
+        unitId: p.unitId ?? null,
+        tagIds: (p.tags ?? []).map((t) => t.id),
         productType: p.productType,
         zone: p.zone,
         natureType: p.natureType,
+        natureLabel: p.natureLabel ?? null,
+        shortDesc: p.shortDesc ?? null,
+        typeText: p.typeText ?? null,
+        videoId: p.videoId ?? null,
+        nationwideMsg: p.nationwideMsg ?? null,
         costPaisa: p.costPaisa,
         sellingPricePaisa: p.sellingPricePaisa,
-        stockQty: p.stockQty,
+        /*  offerPricePaisa is DERIVED by the API — the discount and its window
+            are what actually carry the offer across.
+
+            ⚠️ AN OFFER THAT IS ALREADY OVER DOES NOT COME WITH IT (12 Sep
+            2026). The copy is deliberately born a draft, days or months after
+            the original was made; a sale that ended in August would arrive on
+            it dead, showing "Ended 14 Aug" in the editor and nothing on the
+            shop. Carrying a window that can never open again is not copying
+            an offer, it is copying litter — so the window goes, and the
+            discount with it, and the owner sets a live one if he wants one.
+            Instants are compared, not date strings (DEC-PRD-042).  */
+        ...(p.discountEndsAt && Date.parse(p.discountEndsAt) < Date.now()
+          ? {
+              discountType: "NONE",
+              discountValue: 0,
+              discountStartsAt: null,
+              discountEndsAt: null,
+            }
+          : {
+              discountType: p.discountType,
+              discountValue: p.discountValue,
+              discountStartsAt: p.discountStartsAt ?? null,
+              discountEndsAt: p.discountEndsAt ?? null,
+            }),
+        discountOnVariants: p.discountOnVariants,
+        variantAxisOrder: p.variantAxisOrder,
+        advanceRequired: p.advanceRequired,
+        advanceType: p.advanceType ?? undefined,
+        advancePercent: p.advancePercent ?? undefined,
+        advanceAmountPaisa: p.advanceAmountPaisa ?? undefined,
+        stockMode: p.stockMode,
+        /*  ⚠️ NOT COPIED (12 Sep 2026). A copy of a bouquet with 12 on hand
+            used to claim 12 of its own — twelve arrangements nobody has made,
+            sellable the moment the copy is published. A new listing holds
+            nothing until somebody counts it in.  */
+        stockQty: 0,
+        showStock: p.showStock,
+        soldOutMode: p.soldOutMode,
+        allowOrderAtZero: p.allowOrderAtZero,
+        preorderDate: p.preorderDate ?? null,
+        leadTimeDays: p.leadTimeDays ?? 0,
+        /*  `itemId` IS copied on purpose: two listings drawing on one
+            stockroom item is a real pattern (a bouquet sold under two names),
+            and the count then comes from Inventory for both — one count, two
+            listings, so selling on either draws the same stock down.  */
+        itemId: p.itemId ?? null,
+        supplierId: p.supplierId ?? null,
+        displayQty: p.displayQty ?? null,
+        makeMinutes: p.makeMinutes ?? null,
+        persoTitle: p.persoTitle ?? null,
+        persoText: p.persoText,
+        persoTextLabel: p.persoTextLabel ?? null,
+        persoTextMax: p.persoTextMax ?? null,
+        persoTextHint: p.persoTextHint ?? null,
+        persoTextRequired: p.persoTextRequired,
+        persoImage: p.persoImage,
+        persoImageLabel: p.persoImageLabel ?? null,
+        persoImageHint: p.persoImageHint ?? null,
+        persoImageRequired: p.persoImageRequired,
+        customiseOn: p.customiseOn,
+        customiseTitle: p.customiseTitle ?? null,
+        customiseSub: p.customiseSub ?? null,
+        metaTitle: p.metaTitle ?? null,
+        metaDescription: p.metaDescription ?? null,
+        ogTitle: p.ogTitle ?? null,
+        ogDescription: p.ogDescription ?? null,
+        ogImageUrl: p.ogImageUrl ?? null,
+        noIndex: p.noIndex,
+        /*  DEC-PRD-050 — the two badge MODES, not the computed badges. They
+            are the owner's decision about the product ("always a best
+            seller"), and a copy that dropped them silently went back to AUTO.  */
+        bestSellerMode: p.bestSellerMode ?? "AUTO",
+        newArrivalMode: p.newArrivalMode ?? "AUTO",
+        /*  D-CAT-01 — the product's own colour, an id from the Variant &
+            Option master. It is what "show me the red ones" filters on, so a
+            copy without it is invisible to every colour filter.  */
+        variantValueId: p.variantValueId ?? null,
+        /*  ⚠️ `manualAddOnGroupIds` IS NOT SENT AT ALL when the read did not
+            carry the groups (12 Sep 2026). `manualAddOnGroups` is not in the
+            detail endpoint's include, so `(p.manualAddOnGroups ?? [])` was
+            always `[]` — and an explicit empty array means "this product has
+            none", not "I do not know". The copy was born with its pinned
+            add-on groups deliberately emptied. Absent leaves the decision to
+            the API instead of stating something untrue.  */
+        ...(p.manualAddOnGroups
+          ? { manualAddOnGroupIds: p.manualAddOnGroups.map((g) => g.id) }
+          : {}),
+        /*  DEC-DLV-008 — which deliveries it may ride on.  */
+        deliveryTypeIds: (p.deliveryTypes ?? []).map((d) => d.typeId),
+        supportsExpress: p.supportsExpress,
+        supportsSameDay: p.supportsSameDay,
+        supportsMidnight: p.supportsMidnight,
+        images: (p.images ?? [])
+          .filter((i) => /^https?:\/\//i.test(i.url))
+          .map((i) => ({ url: i.url })),
+        sizes: (p.sizes ?? []).map((z) => ({ label: z.label, sub: z.sub ?? undefined, pricePaisa: z.pricePaisa })),
+        specRows: (p.specRows ?? []).map((r) => ({ item: r.item, qty: r.qty })),
+        faqs: (p.faqs ?? []).map((f) => ({ question: f.question, answer: f.answer })),
+        trustBadges: (p.trustBadges ?? []).map((t) => ({
+          icon: t.icon,
+          iconUrl: t.iconUrl ?? null,
+          label: t.label,
+          sub: t.sub ?? undefined,
+        })),
+        /*  DEC-PRD-045 — a variant is the whole combination, not just its lead
+            value, so every value id comes along with it.  */
+        variants: (p.variants ?? []).map((v, i) => ({
+          variantValueId: v.variantValueId,
+          valueIds: (v.values ?? []).map((x) => x.variantValue.id),
+          imageUrl: v.imageUrl ?? null,
+          stockQty: v.stockQty,
+          itemId: v.itemId ?? null,
+          pricePaisa: v.pricePaisa ?? null,
+          discountType: v.discountType ?? "NONE",
+          discountValue: v.discountValue ?? 0,
+          sortOrder: i,
+          isActive: v.isActive,
+        })),
+        /*  Never live on creation, whatever the original was.  */
         isPublished: false,
-      });
+      };
+      /*  `upgradeOfProductId` and the variant-group link are deliberately NOT
+          copied: both would silently attach the copy to the original's place on
+          the storefront — a second upgrade of the same base, or an extra colour
+          beside it — which is a business decision, not part of copying a row.  */
+      await createProduct(dto);
       await load();
+      say.good(`Copied as a draft: "${p.name} (copy)". Open it to give it its own photo and SKU.`);
     } catch (e) {
-      say.fromError(e, `Could not duplicate "${p.name}".`);
+      say.fromError(e, `Could not duplicate "${row.name}".`);
+    } finally {
+      setDupBusy(null);
+      setMenu(null);
     }
-    setMenu(null);
   }
 
   async function remove(p: ApiProduct) {
-    if (!confirm(`Delete "${p.name}"? It goes to Trash and can be restored.`)) return;
+    /*  The confirmation names the destination: "delete" in Radian never erases,
+        and the owner has to be able to read that before pressing OK.  */
+    if (!confirm(`Delete "${p.name}"?\n\nIt is not erased — it moves to Products \u2192 Trash, where it can be restored.`)) return;
     try {
       await deleteProduct(p.id);
     } catch (e) {
@@ -186,14 +378,50 @@ export default function ProductListView() {
     }
     setAll((prev) => prev.filter((x) => x.id !== p.id));
     setMenu(null);
+    say.clear();
+    setUndo({ id: p.id, name: p.name });
   }
 
+  /** put back the product just deleted — the same restore the Trash screen uses */
+  async function undoDelete() {
+    if (!undo) return;
+    const u = undo;
+    setUndo(null);
+    try {
+      await restoreProduct(u.id);
+      await load();
+      say.good(`"${u.name}" is back in the catalog.`);
+    } catch (e) {
+      say.fromError(e, `Could not restore "${u.name}" — it is still in Trash.`);
+    }
+  }
+
+  /*  ⚠️ Publishing is refused for any product without a SKU, without a photo or
+      without an offerable delivery type, so on twenty products a refusal is the
+      normal case. Every one is attempted, the refusals are listed by name, and
+      only the ones that really saved let go of their tick.  */
   async function bulkPublish(v: boolean) {
     const chosen = all.filter((p) => sel.has(p.id));
     if (!chosen.length) return;
     if (!confirm(`${v ? "Publish" : "Unpublish"} ${chosen.length} product(s)?`)) return;
-    for (const p of chosen) await patch(p, { isPublished: v });
-    setSel(new Set());
+    say.clear();
+    setUndo(null);
+    const bad: { name: string; why: string }[] = [];
+    const okIds: string[] = [];
+    for (const p of chosen) {
+      const why = await patch(p, { isPublished: v });
+      if (why) bad.push({ name: p.name, why });
+      else okIds.push(p.id);
+    }
+    setSel((prev) => {
+      const n = new Set(prev);
+      okIds.forEach((id) => n.delete(id));
+      return n;
+    });
+    setBulkFails(bad);
+    if (bad.length)
+      say.bad(`${bad.length} of ${chosen.length} could not be saved — they stay selected, listed below.`);
+    else say.good(`${v ? "Published" : "Unpublished"} ${okIds.length} product(s).`);
   }
 
   /*  6 Aug 2026 — the bulk bar had Publish/Unpublish but no Delete, so
@@ -203,19 +431,28 @@ export default function ProductListView() {
   async function bulkDelete() {
     const chosen = all.filter((p) => sel.has(p.id));
     if (!chosen.length) return;
-    if (!confirm(`Delete ${chosen.length} product(s)? They go to Trash and can be restored.`)) return;
-    let failed = 0;
+    if (!confirm(`Delete ${chosen.length} product(s)?\n\nThey are not erased — they move to Products \u2192 Trash, where they can be restored.`)) return;
+    const bad: { name: string; why: string }[] = [];
+    const okIds = new Set<string>();
     for (const p of chosen) {
       try {
         await deleteProduct(p.id);
-      } catch {
-        failed++;
+        okIds.add(p.id);
+      } catch (e) {
+        bad.push({ name: p.name, why: e instanceof Error ? e.message : "The API refused it." });
       }
     }
-    const okIds = new Set(chosen.map((p) => p.id));
+    /*  Only the ones that were really deleted leave the table and the
+        selection — the rest are still there and still ticked.  */
     setAll((prev) => prev.filter((x) => !okIds.has(x.id)));
-    setSel(new Set());
-    if (failed > 0) say.bad(`${failed} of ${chosen.length} could not be deleted — refresh and try again.`);
+    setSel((prev) => {
+      const n = new Set(prev);
+      okIds.forEach((id) => n.delete(id));
+      return n;
+    });
+    setBulkFails(bad);
+    if (bad.length) say.bad(`${bad.length} of ${chosen.length} could not be deleted — listed below.`);
+    else say.good(`${okIds.size} product(s) moved to Trash.`);
     await load();
   }
 
@@ -260,6 +497,23 @@ export default function ProductListView() {
   return (
     <div className="px-6 md:px-8 xl:px-10 2xl:px-12 pt-7 pb-16 w-full">
       <Said say={say} />
+      {undo && (
+        <div className="flex items-center gap-3 flex-wrap rounded-[12px] border border-lavender-deep bg-lavender/60 px-4 py-3 mb-4 text-[13px] text-body">
+          <Icon name="trash" size={16} />
+          <span className="flex-1">
+            <b className="text-purple">{undo.name}</b> moved to Trash.
+          </span>
+          <button onClick={undoDelete} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-purple text-white">
+            Undo
+          </button>
+          <Link href="/products/trash" className="text-[12.5px] font-semibold text-orchid hover:text-purple">
+            Open Trash
+          </Link>
+          <button onClick={() => setUndo(null)} aria-label="Dismiss" className="font-bold opacity-60 hover:opacity-100">
+            ✕
+          </button>
+        </div>
+      )}
       <div className="flex items-end justify-between gap-4 mb-5 flex-wrap">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
@@ -276,6 +530,11 @@ export default function ProductListView() {
           <h1 className="font-display text-[28px] text-purple mt-1.5 mb-1 leading-tight">All Products</h1>
         </div>
         <div className="flex gap-2.5">
+          {/*  The way back in. Deletes from this screen are soft, and until now
+               the only door to the bin was a sidebar entry two levels down. */}
+          <Link href="/products/trash" className="bg-white border border-lavender-deep text-purple hover:border-orchid text-[13.5px] font-medium px-4 py-2.5 rounded-[12px] inline-flex items-center gap-2">
+            <Icon name="trash" size={16} /> Trash
+          </Link>
           <button onClick={exportCsv} className="bg-white border border-lavender-deep text-purple hover:border-orchid text-[13.5px] font-medium px-4 py-2.5 rounded-[12px] inline-flex items-center gap-2">
             <Icon name="download" size={16} /> Export CSV
           </button>
@@ -329,6 +588,24 @@ export default function ProductListView() {
           <button onClick={() => bulkPublish(false)} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white border border-lavender-deep text-purple">Unpublish</button>
           <button onClick={() => bulkDelete()} className="text-[12.5px] font-semibold px-3 py-1.5 rounded-[9px] bg-white border border-[var(--l-bad)] text-[var(--t-bad)] hover:bg-[var(--s-bad)]">Delete</button>
           <button onClick={() => setSel(new Set())} className="text-[12.5px] font-medium text-orchid ml-auto">Clear</button>
+        </div>
+      )}
+
+      {bulkFails.length > 0 && (
+        <div className="rounded-[12px] border border-[var(--l-bad)] bg-[var(--s-bad)] px-4 py-3 mb-3">
+          <div className="flex items-center justify-between gap-3">
+            <b className="text-[12.5px] text-[var(--t-bad)]">
+              {bulkFails.length} not saved — nothing was changed on these
+            </b>
+            <button onClick={() => setBulkFails([])} className="text-[12px] font-semibold underline text-[var(--t-bad)]">
+              Dismiss
+            </button>
+          </div>
+          <ul className="mt-2 mb-0 pl-4 flex flex-col gap-1">
+            {bulkFails.map((f, i) => (
+              <li key={i} className="text-[12.5px] text-[var(--t-bad)]"><b>{f.name}</b> — {f.why}</li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -455,7 +732,13 @@ export default function ProductListView() {
 
                   <td className="px-3 py-3">
                     <button
-                      onClick={() => patch(p, { isPublished: !p.isPublished })}
+                      /*  One row, so the refusal is said here — `patch` no
+                          longer says it for everybody.  */
+                      onClick={() => {
+                        void patch(p, { isPublished: !p.isPublished }).then((why) => {
+                          if (why) say.bad(why);
+                        });
+                      }}
                       title={p.isPublished ? "Published — click to hide" : "Draft — click to publish"}
                       className={`w-[38px] h-[22px] rounded-full relative transition-colors ${p.isPublished ? "bg-[var(--s-ok)]" : "bg-[var(--s-accent)]"}`}
                     >
@@ -511,8 +794,12 @@ export default function ProductListView() {
                           <Link href={`/products/${p.slug}/analysis`} className="w-full text-left px-3.5 py-2 text-[13px] hover:bg-lavender text-body flex items-center gap-2">
                             <Icon name="chart" size={15} /> Analysis
                           </Link>
-                          <button onClick={() => duplicate(p)} className="w-full text-left px-3.5 py-2 text-[13px] hover:bg-lavender text-body flex items-center gap-2">
-                            <Icon name="copy" size={15} /> Duplicate
+                          <button
+                            onClick={() => duplicate(p)}
+                            disabled={!!dupBusy}
+                            className="w-full text-left px-3.5 py-2 text-[13px] hover:bg-lavender text-body flex items-center gap-2 disabled:opacity-40"
+                          >
+                            <Icon name="copy" size={15} /> {dupBusy === p.id ? "Copying…" : "Duplicate"}
                           </button>
                           <a href={storefrontUrl(p.slug)} target="_blank" rel="noreferrer" className="w-full text-left px-3.5 py-2 text-[13px] hover:bg-lavender text-body flex items-center gap-2">
                             <Icon name="eye" size={15} /> Open on site
@@ -572,7 +859,8 @@ export default function ProductListView() {
       <p className="text-body-soft text-[12px] mt-3.5">
         <b>SKU</b> is the short staff code used on phone orders and packing slips.{" "}
         <b>Margin</b> = customer price − cost. The eye icon opens the product on the
-        live storefront. Delete hides a product — it is never erased.
+        live storefront. Delete hides a product — it is never erased; it waits in{" "}
+        <Link href="/products/trash" className="text-orchid hover:underline">Trash</Link>.
       </p>
     </div>
   );

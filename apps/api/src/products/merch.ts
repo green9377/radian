@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Injectable, Module, Patch, Post } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { DAY_MS, startOfBdDay } from '../common/bd-day';
 
 /*  ── DEC-PRD-050 · Best seller and New arrival ──────────────────────────────
 
@@ -88,7 +89,13 @@ export function isNewNow(
   if (p.newArrivalMode === 'ALWAYS') return true;
   if (p.newArrivalMode === 'NEVER') return false;
   const live = p.publishedAt ?? p.createdAt;
-  return live.getTime() >= now.getTime() - days * 24 * 60 * 60 * 1000;
+  /*  DHAKA DAYS, NOT A ROLLING 504 HOURS. Counted from `now` the badge fell
+      off mid-afternoon, at whatever o'clock the product had been published
+      21 days earlier - and on a UTC server that moment is not even the same
+      Dhaka day. "New for 21 days" means 21 of the shop's days, so the window
+      opens at the start of the Dhaka day 20 days back and the badge lives out
+      its last day whole.  */
+  return live.getTime() >= startOfBdDay(new Date(now.getTime() - Math.max(0, days - 1) * DAY_MS));
 }
 
 @Injectable()
@@ -164,16 +171,28 @@ export class MerchService {
    * honest reading, and the one a shopper would recognise.
    */
   private async soldInWindow(since: Date): Promise<Map<string, number>> {
+    /*  The one predicate for "this was really sold", so the subtraction below
+        can be taken against exactly the same set of lines.  */
+    const soldOrder: Prisma.OrderWhereInput = {
+      deletedAt: null,
+      deliveryStatus: 'delivered',
+      placedAt: { gte: since },
+      /*  A CANCELLED SALE IS NOT A SALE.
+          Only `deliveryStatus: 'delivered'` was asked, and Sales owns a
+          second, separate column: an order cancelled AFTER the rider handed
+          it over keeps `delivered` and turns `salesStatus` to `cancelled`.
+          Those were counting towards the badge, which is a claim about what
+          customers bought made partly out of orders that were unbought.  */
+      salesStatus: { not: 'cancelled' },
+    };
     const rows = await this.prisma.db.orderLine.groupBy({
       by: ['productId'],
       where: {
         deletedAt: null,
         productId: { not: null },
         order: {
-          deletedAt: null,
-          deliveryStatus: 'delivered',
-          placedAt: { gte: since },
-          /*  ── THE COUNTER DOES NOT VOTE ─────────────────────────────────
+          ...soldOrder,
+          /*  ── THE COUNTER DOES NOT VOTE ─────────────────────────────
               Owner, 24 August 2026, asked outright whether a hundred of the
               same bouquet sold over the counter should earn the website's
               badge. His answer: the website's badge belongs to the website.
@@ -193,16 +212,110 @@ export class MerchService {
       },
       _sum: { qty: true },
     });
-    return new Map(
+    const sold = new Map(
       rows
         .filter((r): r is typeof r & { productId: string } => r.productId != null)
         .map((r) => [r.productId, r._sum.qty ?? 0]),
     );
+
+    /*  AND GOODS THAT CAME BACK WERE NEVER SOLD.
+        A bouquet delivered and then returned left the badge untouched, so a
+        product could be "Best seller" on the strength of parcels the shop had
+        already taken back and refunded.
+
+        Returns owns this, and this is Returns' own reading of it: a line on a
+        return that is neither rejected nor cancelled, which is the predicate
+        `returns.service.ts` itself uses to work out how much of an order line
+        has already come back. Scoped through the order line to the very same
+        window and the same delivered, not-cancelled orders counted above, so
+        the subtraction can never take away more than was counted.
+
+        A REPLACEMENT is still subtracted: the goods came back, and the
+        replacement that went out is not itself an order line anybody placed.
+        Listed for the owner - see the note in the report.  */
+    const returned = await this.prisma.db.salesReturnLine.groupBy({
+      by: ['productId'],
+      where: {
+        deletedAt: null,
+        productId: { not: null },
+        /*  ⚠️ ONLY GOODS THAT HAVE ACTUALLY COME BACK.
+            The `notIn: ['rejected','cancelled']` predicate borrowed from the
+            Returns module counts DRAFTS on purpose - there it stops a
+            half-built return double-claiming a line. Used here it would mean a
+            staff member opening a return form for 40 units, never submitting
+            it, and the product losing its Best seller badge that minute.  */
+        return: { deletedAt: null, status: { in: ['approved', 'completed'] } },
+        orderLine: { deletedAt: null, order: { ...soldOrder, fulfillmentType: 'DELIVERY' } },
+      },
+      _sum: { qty: true },
+    });
+    for (const r of returned) {
+      if (!r.productId) continue;
+      const net = (sold.get(r.productId) ?? 0) - (r._sum.qty ?? 0);
+      /*  Never below zero: a return recorded against a line outside this
+          window would otherwise push a product into negative sales and past
+          `bestSellerMinSales` from the wrong side.  */
+      if (net > 0) sold.set(r.productId, net);
+      else sold.delete(r.productId);
+    }
+    return sold;
+  }
+
+  /*  THE WINDOW IS IN DHAKA DAYS (12 Sep 2026).
+      `Date.now() - 90 * 86400000` is a rolling 2160 hours ending at whatever
+      time of day the ranking happens to run, on a server that keeps UTC. Run
+      at 09:00 Dhaka it dropped the first six hours of the 90th day, so the
+      same 90 days gave two different answers depending on when the button was
+      pressed. "The last 90 days" is 90 of the shop's days, ending tonight.  */
+  private windowStart(days: number): Date {
+    return new Date(startOfBdDay(new Date(Date.now() - Math.max(0, days - 1) * DAY_MS)));
+  }
+
+  /*  ONE SCOPE, WALKED TO THE REAL ROOT (12 Sep 2026).
+      The doc block above promises the product's TOP-LEVEL category, and
+      neither side delivered it: `recompute` keyed on `category.parentId ??
+      categoryId`, which is one level up and not the top, while `preview`
+      listed only `parentId: null` categories and matched the same one-level
+      key against them. A product three levels deep (Gifts > Flowers > Roses >
+      Red Roses) was therefore ranked inside "Roses" by one and shown under
+      nothing at all by the other - the owner's screen and the badges it
+      explained were computed by two different rules. Both now call this.
+
+      The RAW client on purpose: a soft-deleted parent still shapes the tree,
+      and stopping the walk at it would file a product under a middle category
+      again. A cycle - which the tree should not have and a bad edit can
+      create - stops the walk rather than hanging the ranking.  */
+  private async rootCategoryReader(): Promise<(categoryId: string) => string> {
+    const cats = await this.prisma.category.findMany({ select: { id: true, parentId: true } });
+    const parentOf = new Map(cats.map((c) => [c.id, c.parentId]));
+    return (categoryId: string): string => {
+      let cur = categoryId;
+      const seen = new Set<string>([categoryId]);
+      for (;;) {
+        const up = parentOf.get(cur);
+        if (!up || seen.has(up)) return cur;
+        seen.add(up);
+        cur = up;
+      }
+    };
+  }
+
+  /** Products filed under their top-level category — the badge's scope. */
+  private async groupByScope<T extends { categoryId: string }>(rows: T[]) {
+    const rootOf = await this.rootCategoryReader();
+    const byScope = new Map<string, T[]>();
+    for (const p of rows) {
+      const key = rootOf(p.categoryId);
+      const list = byScope.get(key);
+      if (list) list.push(p);
+      else byScope.set(key, [p]);
+    }
+    return byScope;
   }
 
   async recompute() {
     const rules = await this.rules();
-    const since = new Date(Date.now() - rules.bestSellerDays * 24 * 60 * 60 * 1000);
+    const since = this.windowStart(rules.bestSellerDays);
 
     const soldBy = await this.soldInWindow(since);
 
@@ -214,19 +327,14 @@ export class MerchService {
         bestSellerSales: true,
         bestSellerMode: true,
         categoryId: true,
-        category: { select: { parentId: true } },
       },
     });
 
     /*  Scope = the TOP-LEVEL category. A product filed under Roses competes
-        with everything under Fresh Flowers, not with the three other roses.  */
-    const byScope = new Map<string, typeof products>();
-    for (const p of products) {
-      const key = p.category?.parentId ?? p.categoryId;
-      const list = byScope.get(key);
-      if (list) list.push(p);
-      else byScope.set(key, [p]);
-    }
+        with everything under Fresh Flowers, not with the three other roses.
+        The walk to the real root, and the grouping itself, are shared with
+        `preview()` - see `groupByScope`.  */
+    const byScope = await this.groupByScope(products);
 
     const winners = new Set<string>();
     for (const [, group] of byScope) {
@@ -312,31 +420,40 @@ export class MerchService {
    */
   async preview() {
     const rules = await this.rules();
-    const since = new Date(Date.now() - rules.bestSellerDays * 24 * 60 * 60 * 1000);
+    const since = this.windowStart(rules.bestSellerDays);
     const soldBy = await this.soldInWindow(since);
 
-    const cats = await this.prisma.db.category.findMany({
-      where: { parentId: null, deletedAt: null },
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' },
-    });
     const products = await this.prisma.db.product.findMany({
       where: { isPublished: true, deletedAt: null },
       select: {
         id: true,
         categoryId: true,
         bestSellerMode: true,
-        category: { select: { parentId: true } },
       },
     });
 
+    /*  THE SCREEN IS BUILT FROM THE GROUPING, NOT FROM A SECOND GUESS AT
+        IT (12 Sep 2026). This used to list the `parentId: null` categories and
+        then filter the products against a one-level-up key of its own, so a
+        product three levels deep landed in no row here while `recompute` gave
+        it a badge inside its middle parent - the screen explaining the badges
+        and the badges themselves disagreed. One grouping, one answer; the
+        names are looked up afterwards, for whatever roots the products
+        actually have.  */
+    const byScope = await this.groupByScope(products);
+    const names = new Map(
+      (
+        await this.prisma.db.category.findMany({
+          where: { id: { in: [...byScope.keys()] } },
+          select: { id: true, name: true },
+        })
+      ).map((c) => [c.id, c.name]),
+    );
+
     return {
       rules,
-      rows: cats
-        .map((c) => {
-          const group = products.filter(
-            (p) => (p.category?.parentId ?? p.categoryId) === c.id,
-          );
+      rows: [...byScope.entries()]
+        .map(([id, group]) => {
           const target = Math.max(
             rules.bestSellerMinCount,
             Math.ceil((group.length * rules.bestSellerPercent) / 100),
@@ -345,8 +462,11 @@ export class MerchService {
             (p) => (soldBy.get(p.id) ?? 0) >= rules.bestSellerMinSales,
           ).length;
           return {
-            id: c.id,
-            name: c.name,
+            id,
+            /*  A root that is itself soft-deleted still holds products and
+                still gets a row; it is named rather than left blank, because a
+                row the owner cannot name is a row he cannot act on.  */
+            name: names.get(id) ?? 'Deleted category',
             products: group.length,
             /*  What the percentage asks for … */
             target,
@@ -358,7 +478,8 @@ export class MerchService {
             blocked: group.filter((p) => p.bestSellerMode === 'NEVER').length,
           };
         })
-        .filter((r) => r.products > 0),
+        .filter((r) => r.products > 0)
+        .sort((a, b) => a.name.localeCompare(b.name)),
     };
   }
 }
