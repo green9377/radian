@@ -44,6 +44,17 @@ function bdDayOf(iso: string): string {
 /** a supplier is quiet when nothing has been bought from them in this long */
 const QUIET_DAYS = 60;
 
+/**
+ * ONE SUPPLIER, ONE LABEL.
+ *
+ * The balance cards were labelling a supplier by nickname while the purchase
+ * cards label it by the name written on the purchase, so "Bhai" was owed money
+ * and "Ajgor" was bought from - the same shop, reading as two. The record's own
+ * name leads, with the nickname after it when there is one.
+ */
+const label = (s: { name: string; nickname: string | null }) =>
+  s.nickname && s.nickname !== s.name ? `${s.name} (${s.nickname})` : s.name;
+
 export function SuppliersOverviewView() {
   const [range, setRange] = useState<Range>(presetRange("d30"));
   const [rows, setRows] = useState<ApiSupplier[] | null>(null);
@@ -266,7 +277,7 @@ export function SuppliersOverviewView() {
           <div className="mt-3.5">
             {b.topBought.length > 0 ? b.topBought.slice(0, 5).map((s) => (
               <Link key={s.id} href={`/suppliers/${s.id}`} className="block">
-                <TrackRow label={s.nickname || s.name} value={formatTaka(s.totalBoughtPaisa)}
+                <TrackRow label={label(s)} value={formatTaka(s.totalBoughtPaisa)}
                   width={(s.totalBoughtPaisa / boughtMax) * 100} color="var(--t-orchid)"
                   right={<span className="text-[10.5px] tabular-nums" style={{ color: "var(--t-faint)" }}>
                     {`${count(s.purchaseCount)} purchase${s.purchaseCount === 1 ? "" : "s"}`}
@@ -283,7 +294,7 @@ export function SuppliersOverviewView() {
           <div className="mt-[18px]">
             {b.owed.length > 0 ? b.owed.slice(0, 8).map((s) => (
               <Link key={s.id} href={`/suppliers/${s.id}`} className="block">
-                <TrackRow label={s.nickname || s.name} value={formatTaka(s.duePaisa)}
+                <TrackRow label={label(s)} value={formatTaka(s.duePaisa)}
                   width={(s.duePaisa / owedMax) * 100} color="var(--t-warn)"
                   right={s.creditPaisa > 0
                     ? <span className="text-[10.5px] tabular-nums" style={{ color: "var(--t-ok)" }}>
@@ -342,7 +353,7 @@ export function SuppliersOverviewView() {
             <Table head={[{ label: "Supplier" }, { label: "Last bought" }, { label: "Purchases", right: true }, { label: "Bought", right: true }, { label: "Owed", right: true }]} min={620}>
               {b.quiet.slice(0, 8).map((s) => (
                 <tr key={s.id}>
-                  <Td bold><Link href={`/suppliers/${s.id}`} className="hover:underline">{s.nickname || s.name}</Link></Td>
+                  <Td bold><Link href={`/suppliers/${s.id}`} className="hover:underline">{label(s)}</Link></Td>
                   <Td>{s.lastPurchaseAt ? dayLabel(bdDayOf(s.lastPurchaseAt)) : "—"}</Td>
                   <Td right>{count(s.purchaseCount)}</Td>
                   <Td right>{formatTaka(s.totalBoughtPaisa)}</Td>
@@ -375,7 +386,9 @@ export function SuppliersOverviewView() {
         figures come from the <b>purchase book</b>, counted over the purchases booked between {dayLabel(range.from)}{" "}
         and {dayLabel(range.to)}, with cancelled ones left out. A purchase records its supplier as a <b>name</b> rather
         than a link, so &ldquo;who was bought from&rdquo; is grouped by that name; any name with no supplier record
-        behind it is counted on the band and belongs to no supplier&apos;s figures. A party that both supplies goods
+        behind it is counted on the band and belongs to no supplier&apos;s figures. A supplier is named here by the
+        record&apos;s own name with its nickname after it, so the same shop reads the same way in every card even when
+        the purchases were written up under the other one. A party that both supplies goods
         and delivers stands in both books, so the two counts overlap and must never be added together. The purchase
         book is read whole, so a comparison with the period before is against that same book — an earlier period with
         nothing in it means nothing was bought then.
