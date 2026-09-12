@@ -1586,6 +1586,8 @@ export interface ApiOrderStats {
   /** delivered orders only — DEC-FIN-002 posts revenue at delivered */
   revenuePaisa: number;
   collectedPaisa: number;
+  /** money that went back out to customers against these orders */
+  refundedPaisa: number;
   duePaisa: number;
   dueOrders: number;
   deliveredToday: number;
