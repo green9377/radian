@@ -866,7 +866,13 @@ function Delta({ now, before }: { now: number | null; before: number | null }) {
     It is only drawn where the two halves come from ONE definition, counted the
     same way on both sides; a split whose halves mean different things would be
     worse than no split at all.  */
-function SplitLine({ web, counter, fmt }: { web: number | null; counter: number | null; fmt: (n: number) => string }) {
+function SplitLine({ web, counter, fmt, tone }: {
+  web: number | null; counter: number | null; fmt: (n: number) => string;
+  /** "warn" paints both halves amber - for a figure that is owed, not taken */
+  tone?: "warn";
+}) {
+  const cWeb = tone === "warn" ? "var(--t-warn)" : "var(--f-chart)";
+  const cCounter = "var(--t-gold)";
   if (web === null || counter === null) return null;
   const total = web + counter;
   if (total === 0) {
@@ -880,15 +886,15 @@ function SplitLine({ web, counter, fmt }: { web: number | null; counter: number 
   return (
     <div className="mt-3.5">
       <div className="h-[6px] rounded flex overflow-hidden gap-[2px]" style={{ background: "var(--s-sunken)" }}>
-        <span style={{ flex: `0 1 ${webPc}%`, background: "var(--f-chart)" }} />
-        <span style={{ flex: `0 1 ${100 - webPc}%`, background: "var(--t-gold)" }} />
+        <span style={{ flex: `0 1 ${webPc}%`, background: cWeb }} />
+        <span style={{ flex: `0 1 ${100 - webPc}%`, background: cCounter }} />
       </div>
       <div className="flex justify-between text-[11px] mt-[7px] tabular-nums">
         <span style={{ color: "var(--t-faint)" }}>
-          <b style={{ color: "var(--f-chart)" }}>Website</b> {fmt(web)}
+          <b style={{ color: cWeb }}>Website</b> {fmt(web)}
         </span>
         <span style={{ color: "var(--t-faint)" }}>
-          <b style={{ color: "var(--t-gold)" }}>Counter</b> {fmt(counter)}
+          <b style={{ color: cCounter }}>Counter</b> {fmt(counter)}
         </span>
       </div>
     </div>
@@ -1192,12 +1198,12 @@ export function BusinessDashboard() {
             style={{ background: "var(--s-sunken)", color: "var(--t-faint)" }}>
             {dueAll ? `${dueAll.dueOrders} orders` : ""}
           </span>}>
-          <SplitLine web={dueWeb?.duePaisa ?? null} counter={counterDue} fmt={formatTaka} />
+          <SplitLine web={dueWeb?.duePaisa ?? null} counter={counterDue} fmt={formatTaka} tone="warn" />
         </Kpi>
       </div>
 
       {/* ── one chart, three answers ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1.55fr_1fr] gap-[18px] mb-[18px]">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-[18px] mb-[18px]">
         <div className="biz-panel px-6 py-[22px]">
           <div className="flex items-center justify-between gap-3.5 flex-wrap">
             <div className="flex items-center gap-3">
@@ -1271,7 +1277,7 @@ export function BusinessDashboard() {
              right  which days sold, and under it where the money is
            `items-start` so a short column does not stretch to match a tall
            one - three panels of different heights is the design, not a bug.  */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1.62fr_0.7fr_0.7fr] gap-[18px] mb-[18px] items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.62fr)_minmax(0,0.7fr)_minmax(0,0.7fr)] gap-[18px] mb-[18px] items-start">
         <div className="flex flex-col gap-[18px] min-w-0">
       <div className="biz-panel px-6 py-[22px] mb-[18px]">
         <div className="flex items-center justify-between gap-3.5 flex-wrap">
@@ -1353,7 +1359,7 @@ export function BusinessDashboard() {
           ) : <Empty state={st.items ?? "loading"} empty="Nothing sold at the counter in this period." error="Could not read the counter figures." />
         )}
       </div>
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.15fr] gap-[18px]">
+          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-[18px]">
         <Card title="Delivery performance" icon="truck" tone="info">
           {/*  `inFlight` carries no date window, so counting it here opened the
                 card on a period with no deliveries and drew "0 of 0" beside a
