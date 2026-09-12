@@ -1,6 +1,6 @@
-import { ProductsOverview } from "../_components/ProductViews";
+import { ProductsOverviewView } from "../_components/ProductsOverviewView";
 
-/* /products — Product Management overview (KPI dashboard). */
+/* /products — catalogue overview, on the shared overview pattern. */
 export default function ProductsPage() {
-  return <ProductsOverview />;
+  return <ProductsOverviewView />;
 }
