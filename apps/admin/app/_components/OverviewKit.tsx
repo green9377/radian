@@ -377,7 +377,12 @@ export function RangeBar({ range, onPick, maxBack = 364, right, only }: {
  * red "down 100%" beside a value of "—". `before === 0` is growth from nothing,
  * not an infinite percentage.
  */
-export function Delta({ now, before }: { now: number | null; before: number | null }) {
+export function Delta({ now, before, invert }: {
+  now: number | null; before: number | null;
+  /*  set on a figure where MORE is worse - a cost, a return, a complaint. The
+      arrow still points the way the number moved; only the colour flips.  */
+  invert?: boolean;
+}) {
   let cls = "flat", text = "no earlier period";
   if (now !== null && before !== null) {
     if (now === before) text = "no change";
@@ -389,8 +394,9 @@ export function Delta({ now, before }: { now: number | null; before: number | nu
     }
   }
   if (now === null) return null;
-  const st = cls === "up" ? { background: "var(--s-ok)", color: "var(--t-ok)" }
-    : cls === "down" ? { background: "var(--s-bad)", color: "var(--t-bad)" }
+  const good = invert ? (cls === "down" ? "up" : cls === "up" ? "down" : "flat") : cls;
+  const st = good === "up" ? { background: "var(--s-ok)", color: "var(--t-ok)" }
+    : good === "down" ? { background: "var(--s-bad)", color: "var(--t-bad)" }
     : { background: "var(--s-sunken)", color: "var(--t-faint)" };
   return (
     <span className="ml-auto text-[10.5px] font-bold px-2 py-[3px] rounded-full whitespace-nowrap" style={st}>{text}</span>
@@ -802,7 +808,10 @@ export function NowBand({ title, figures, jobs, note, loading }: {
               </span>
             </div>
             <div className="text-[13px] mt-2.5" style={{ color: "var(--t-soft)" }}>
-              {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+              {/*  the shop's own day. A browser set to UTC read 02:00 Dhaka as
+                   yesterday, so the band and the figures disagreed.  */}
+              {new Date(`${bdDay(0)}T00:00:00Z`).toLocaleDateString("en-GB",
+                { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })}
             </div>
           </div>
           {figures.map((f) => (
