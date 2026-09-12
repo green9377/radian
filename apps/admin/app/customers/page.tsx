@@ -1,9 +1,6 @@
-import CustomerOverview from "../_components/CustomerOverview";
+import { CustomersOverviewView } from "../_components/CustomersOverviewView";
 
-/*
-  /customers — Customer Management overview (KPIs, occasion radar, segments, top customers).
-  Reads :4000 /customers + /segments. Orders/LTV = Sales-owned, read-only here.
-*/
+/* /customers — the module overview. The searchable book is /customers/list. */
 export default function CustomersPage() {
-  return <CustomerOverview />;
+  return <CustomersOverviewView />;
 }
