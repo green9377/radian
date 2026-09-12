@@ -1,6 +1,6 @@
-import FulfilmentBoard from "../_components/FulfilmentBoard";
+import { DeliveryOverviewView } from "../_components/DeliveryOverviewView";
 
-/* /delivery — the fulfilment board (owner, 10 Sep 2026): same buttons as the order page. */
-export default function DeliveryBoardPage() {
-  return <FulfilmentBoard />;
+/* /delivery — the module overview. The working board is /delivery/board. */
+export default function DeliveryPage() {
+  return <DeliveryOverviewView />;
 }
