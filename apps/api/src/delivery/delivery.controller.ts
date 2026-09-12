@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { DeliveryService } from './delivery.service';
 import { Roles } from '../auth/auth.guard';
+import { startOfBdDay, endOfBdDay, DAY_MS } from '../common/bd-day';
 import type {
   AreaWriteDto,
   TypeWriteDto,
@@ -42,13 +43,40 @@ export class DeliveryController {
       been drawing an invented "94 % on-time" from a fixture file; this is what
       replaces it. Static path, so it sits above any `:id` route.  */
   @Get('performance')
-  performance(@Query('days') days?: string) {
-    const n = Number(days);
-    const span = Number.isFinite(n) && n > 0 ? Math.min(n, 730) : 30;
-    const to = new Date();
-    const from = new Date(to.getTime() - span * 24 * 3600 * 1000);
-    return this.analytics.analytics(from, to);
+  performance(
+    @Query('days') days?: string,
+    @Query('from') fromQ?: string,
+    @Query('to') toQ?: string,
+  ) {
+    const w = DeliveryController.span(days, fromQ, toQ);
+    return this.analytics.analytics(w.from, w.to);
   }
+
+  /*  A bare "2026-09-12" parses as UTC midnight. Read raw, a one-day window
+      becomes `gte X, lte X` - zero width, so Today and Yesterday answered
+      "nothing delivered" on a day the shop delivered forty parcels; and a
+      multi-day window lost its last day and shifted every bucket six hours.
+      The shop's day is a Dhaka day, so both ends are snapped to one.
+      The span is capped for the same reason the `days` helper is: an
+      uncapped window pulls every row the shop has ever written. */
+  private static span(days?: string, fromQ?: string, toQ?: string, maxDays = 730) {
+    if (fromQ && toQ) {
+      const a = new Date(fromQ), b = new Date(toQ);
+      if (!Number.isNaN(a.getTime()) && !Number.isNaN(b.getTime()) && a <= b) {
+        const to = new Date(endOfBdDay(b));
+        const floor = new Date(startOfBdDay(b) - (maxDays - 1) * DAY_MS);
+        const from = new Date(Math.max(startOfBdDay(a), floor.getTime()));
+        return { from, to };
+      }
+    }
+    const n = Number(days);
+    const back = Number.isFinite(n) && n > 0 ? Math.min(Math.floor(n), maxDays) : 30;
+    return {
+      from: new Date(startOfBdDay(new Date(Date.now() - (back - 1) * DAY_MS))),
+      to: new Date(endOfBdDay(new Date())),
+    };
+  }
+
 
   /*  Everything is a query string, so a filtered board is a shareable link —
       "the late Dhaka ones" can be pasted into a message to whoever is on
