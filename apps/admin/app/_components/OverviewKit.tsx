@@ -796,7 +796,15 @@ export function ChartCard<T extends string>({ title, tab, tabs, onTab, big, scop
 /* ═══════════════════════════ the live band ═══════════════════════════ */
 
 export interface NowFigure { label: string; value: string; sub?: string; quiet?: boolean }
-export interface NowJob { key: string; label: string; count: number; href: string; tone: "ok" | "info" | "warn" | "danger" }
+export interface NowJob {
+  key: string; label: string; count: number; href: string;
+  tone: "ok" | "info" | "warn" | "danger";
+  /*  a job that is a CONDITION rather than a quantity - "nothing recorded
+      today" - shows no number. `count: 1` still makes it appear and `count: 0`
+      still hides it; the badge is what is dropped, because "Nothing recorded
+      today 1" invites the question "one what?".  */
+  flag?: boolean;
+}
 
 const JOB_TONE: Record<string, "bad" | "warn" | "mute"> = { danger: "bad", warn: "warn", info: "mute", ok: "mute" };
 
@@ -864,10 +872,12 @@ export function NowBand({ title, figures, jobs, note, loading, failed }: {
                   className="inline-flex items-center gap-2 rounded-full border pl-3 pr-2 py-[6px] text-[12px] font-medium transition-transform hover:-translate-y-[1px]"
                   style={st}>
                   {j.label}
-                  <b className="tabular-nums text-[13px] font-bold px-[7px] py-[1px] rounded-full"
-                    style={{ background: "color-mix(in srgb, currentColor 16%, transparent)" }}>
-                    {j.count}
-                  </b>
+                  {j.flag ? null : (
+                    <b className="tabular-nums text-[13px] font-bold px-[7px] py-[1px] rounded-full"
+                      style={{ background: "color-mix(in srgb, currentColor 16%, transparent)" }}>
+                      {j.count}
+                    </b>
+                  )}
                 </a>
               );
             })}

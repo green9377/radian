@@ -33,8 +33,8 @@ import {
 import {
   AreaChart, BD_OFFSET_MS, BarChart, Card, ChartCard, Chip, DAY_MS, Delta, DivergeChart,
   Empty, Kpi, KpiRow, NowBand, RangeBar, Rule, Scope, SourceNote, Stat, SubHead, Table, Td,
-  TrackRow, bdDay, count, dayLabel, daysBetween, presetRange, previousRange, useLoadState,
-  type NowJob, type Point, type Range, type RangeKey,
+  TrackRow, bdDay, count, dayLabel, presetRange, previousRange, useLoadState,
+  type NowJob, type Point, type Range,
 } from "./OverviewKit";
 
 function bdDayOf(iso: string): string {
@@ -149,27 +149,15 @@ export function InventoryOverviewView() {
   const prev = previousRange(range);
   const cut = useMemo(() => slice(range.from, range.to), [moves, range.from, range.to]); // eslint-disable-line react-hooks/exhaustive-deps
   const before = useMemo(() => slice(prev.from, prev.to), [moves, prev.from, prev.to]); // eslint-disable-line react-hooks/exhaustive-deps
-  const prevCovered = firstMoveDay === null || firstMoveDay <= prev.from;
-  const cmp = (v: number) => (mvSt !== "ok" ? undefined : prevCovered ? v : null);
-  /*  the picker must not reach past the first movement, and a preset that would
-      is not offered either - a heading naming June over figures that start in
-      August is the lie rule 3 exists to stop  */
-  const reach = firstMoveDay ? daysBetween(firstMoveDay, bdDay(0)) : 365;
-  const presets: RangeKey[] = ["today", "yesterday", "d7", "d30", "d90", "custom"]
-    .filter((k) => (k === "d7" ? reach >= 7 : k === "d30" ? reach >= 30 : k === "d90" ? reach >= 90 : true)) as RangeKey[];
-
-  /*  the screen opens on 30 days, but the movement list may not reach that far.
-      Once it has been read, fall back to the longest period the list can
-      actually answer - a heading naming 30 days over a 23-day book is the same
-      lie as letting the picker choose those dates.  */
-  useEffect(() => {
-    if (mvSt !== "ok" || firstMoveDay === null) return;
-    if (presets.includes(range.key)) return;
-    const fit: RangeKey[] = ["d90", "d30", "d7", "yesterday", "today"];
-    const pick = fit.find((k) => presets.includes(k)) ?? "today";
-    setRange(presetRange(pick as Exclude<RangeKey, "custom">));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mvSt, firstMoveDay]);
+  /*  COVERAGE IS ABOUT THE FETCH, NOT ABOUT THE OLDEST MOVEMENT. The list is
+      read with `days: 365`, so any window inside that year is fully covered
+      and a period with no movements means nothing moved then - which is an
+      answer, not a gap. An earlier draft capped the picker and hid the 30- and
+      90-day presets whenever the shop's first movement was recent, which
+      refused to answer a question the data answers perfectly well ("nothing").
+      Only a period reaching past the year read here is unmeasured.  */
+  const prevCovered = prev.from >= bdDay(364);
+  const cmp = (v: number) => (mvSt === "ok" && prevCovered ? v : undefined);
 
   const reasonMax = Math.max(1, ...cut.reasons.map((r) => r.inPaisa + r.outPaisa));
 
@@ -250,8 +238,7 @@ export function InventoryOverviewView() {
       />
 
       <div className="mt-[18px]">
-        <RangeBar range={range} onPick={setRange} only={presets}
-          maxBack={firstMoveDay ? Math.min(364, Math.max(1, reach - 1)) : 364}
+        <RangeBar range={range} onPick={setRange} maxBack={364}
           right={<Link href="/inventory/movements" className="underline font-semibold" style={{ color: "var(--t-accent)" }}>every movement →</Link>} />
       </div>
 
@@ -451,7 +438,10 @@ export function InventoryOverviewView() {
         because nothing entered or left the shop. Stock worth here is the averaged cost of what is on the shelves, which
         is not the same number as the Inventory account on the Accounts dashboard — where the two disagree, the
         books-vs-shop check is what settles it.
-        {!prevCovered ? " The period before this one reaches further back than the movement list, so no comparison with it is shown." : ""}
+        {firstMoveDay && firstMoveDay > range.from
+          ? ` The movement list itself starts on ${dayLabel(firstMoveDay)}, so days before that are empty rather than zero.`
+          : ""}
+        {!prevCovered ? " The period before this one reaches further back than the year of movements read here, so no comparison with it is shown." : ""}
       </SourceNote>
     </div>
   );

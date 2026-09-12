@@ -30,7 +30,7 @@ import {
 } from "../_data/api";
 import {
   Card, Chip, Delta, Empty, Kpi, KpiRow, NowBand, RangeBar, Rule, Scope, SourceNote,
-  SplitLine, Stat, SubHead, Table, Td, TrackRow, count, dayLabel, presetRange,
+  SplitLine, Stat, Table, Td, TrackRow, count, dayLabel, presetRange,
   previousRange, useLoadState, type NowJob, type Range,
 } from "./OverviewKit";
 

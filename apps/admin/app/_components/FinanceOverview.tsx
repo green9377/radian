@@ -45,7 +45,7 @@ import {
 import {
   AreaChart, BD_OFFSET_MS, Card, ChartCard, Chip, DAY_MS, Delta, DivergeChart, Empty,
   Kpi, KpiRow, Rule, Scope, SourceNote, Stat, SubHead, TrackRow, RangeBar,
-  NowBand, bdDay, dayLabel, daysBetween, presetRange, previousRange, useLoadState,
+  NowBand, bdDay, dayLabel, presetRange, previousRange, useLoadState,
   type NowJob, type Point, type Range,
 } from "./OverviewKit";
 
@@ -253,10 +253,15 @@ export function FinanceOverviewLive() {
   const capped = (led?.length ?? 0) >= 8000;
   const bookStart = capped ? null : firstBookDay;
   const shortBook = bookStart !== null && bookStart > range.from;
-  /*  a delta against a period the book only half covers is a made-up
-      percentage, so it is not drawn at all  */
-  const prevCovered = bookStart === null || bookStart <= prev.from;
-  const cmp = (v: number) => (bookSt !== "ok" ? undefined : prevCovered ? v : null);
+  /*  COVERAGE IS ABOUT THE FETCH, NOT ABOUT THE OLDEST ENTRY. The journal is
+      read from `bdDay(364)` forward, so any window inside that year is fully
+      covered and an earlier period with no entries means the shop booked
+      nothing then - "nothing before". Judging coverage by the first entry seen
+      made every KPI claim "no earlier period" over a year the read covers.
+      Only a period reaching past the fetch floor is genuinely unmeasured, and
+      then nothing is drawn rather than a made-up percentage.  */
+  const prevCovered = prev.from >= bdDay(364);
+  const cmp = (v: number) => (bookSt === "ok" && prevCovered ? v : undefined);
 
   const leftPaisa = cut.inPaisa - cut.outPaisa;
   const beforeLeft = before.inPaisa - before.outPaisa;
@@ -379,7 +384,7 @@ export function FinanceOverviewLive() {
 
       <div className="mt-[18px]">
         <RangeBar range={range} onPick={setRange}
-          maxBack={bookStart ? Math.min(364, Math.max(1, daysBetween(bookStart, today) - 1)) : 364} />
+          maxBack={364} />
       </div>
 
       {bookSt === "error" ? (
@@ -621,7 +626,7 @@ export function FinanceOverviewLive() {
             with returns and refunds already netted off. Figures marked <b>now</b> are balances true at this moment and
             do not follow the period switch. The cash line is worked back from the balance the accounts hold today.
             {shortBook ? ` The book itself starts on ${dayLabel(bookStart!)}, so days before that are empty rather than zero.` : ""}
-            {!prevCovered ? " The period before this one is not fully in the book, so no comparison with it is shown." : ""}
+            {!prevCovered ? " The period before this one reaches further back than the year of journal read here, so no comparison with it is shown." : ""}
             {capped ? " The journal returned the maximum number of entries it will send at once, so an older part of this period may be missing from these figures." : ""}
           </SourceNote>
         </>
