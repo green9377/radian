@@ -985,10 +985,31 @@ async function j<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 /* ---------------- Products ---------------- */
-export function listProducts(params?: { search?: string }): Promise<Paged<ApiProduct>> {
+export function listProducts(params?: { search?: string; page?: number }): Promise<Paged<ApiProduct>> {
   const q = new URLSearchParams({ pageSize: "100" });
   if (params?.search) q.set("search", params.search);
+  if (params?.page && params.page > 1) q.set("page", String(params.page));
   return j<Paged<ApiProduct>>(`/products?${q.toString()}`);
+}
+/**
+ * THE WHOLE catalogue, not the first hundred of it.
+ *
+ * `pageSize` is capped at 100 by the server, so any screen that counts the
+ * catalogue (how many are live, what the shelves are worth, how many have no
+ * cost) has to page. A screen that reads one page and prints the count as the
+ * catalogue is wrong the moment the shop passes a hundred products, and wrong
+ * silently, which is worse.
+ */
+export async function listProductsAll(): Promise<{ items: ApiProduct[]; total: number; complete: boolean }> {
+  const first = await listProducts();
+  const items = [...first.items];
+  const pages = Math.max(1, first.totalPages || 1);
+  for (let page = 2; page <= Math.min(pages, 40); page++) {
+    const next = await listProducts({ page });
+    items.push(...next.items);
+    if (next.items.length === 0) break;
+  }
+  return { items, total: first.total, complete: items.length >= first.total };
 }
 export function getProduct(id: string): Promise<ApiProduct> {
   return j<ApiProduct>(`/products/${id}`);
