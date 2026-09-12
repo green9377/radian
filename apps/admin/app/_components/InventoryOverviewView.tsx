@@ -182,6 +182,13 @@ export function InventoryOverviewView() {
   const onShelf = rows.filter((r) => r.assemblyMode !== "MAKE_TO_ORDER");
   const dearest = onShelf.slice().sort((a, b) => b.valuePaisa - a.valuePaisa).slice(0, 6);
   const dearMax = Math.max(1, ...dearest.map((r) => Math.abs(r.valuePaisa)));
+  /**
+   * `isNegative` can be true while the TOTAL is positive: the stock board flags
+   * a row negative when any ONE warehouse is below zero. A table headed "below
+   * zero" printing "7 stick" is the kind of thing that makes a reader stop
+   * trusting the screen, so the row says where the hole is.
+   */
+  const negPlaces = (r: InvStockRow) => r.perWarehouse.filter((w) => w.qtyMilli < 0).length;
   /** a row's own quantity, or what it could be built into when it keeps none */
   const heldBy = (r: InvStockRow) => r.assemblyMode === "MAKE_TO_ORDER"
     ? `can build ${count(r.canBuild ?? 0)}`
@@ -359,11 +366,16 @@ export function InventoryOverviewView() {
             <SubHead>Below zero — the shop cannot hold less than nothing</SubHead>
             <div className="mt-3.5">
               {negative.length > 0 ? (
-                <Table head={[{ label: "Item" }, { label: "On the books", right: true }, { label: "Worth", right: true }]} min={460}>
+                <Table head={[{ label: "Item" }, { label: "Where it is short" }, { label: "On the books", right: true }, { label: "Worth", right: true }]} min={560}>
                   {negative.slice(0, 6).map((r) => (
                     <tr key={r.itemId}>
                       <Td>{r.name}</Td>
-                      <Td right color="var(--t-bad)" bold>{heldBy(r)}</Td>
+                      <Td color="var(--t-bad)">
+                        {r.totalQtyMilli < 0
+                          ? "every place together"
+                          : `${count(negPlaces(r))} of ${count(r.perWarehouse.length)} places`}
+                      </Td>
+                      <Td right bold color={r.totalQtyMilli < 0 ? "var(--t-bad)" : undefined}>{heldBy(r)}</Td>
                       <Td right>{formatTaka(r.valuePaisa)}</Td>
                     </tr>
                   ))}
