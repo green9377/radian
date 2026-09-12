@@ -1177,10 +1177,12 @@ export function BusinessDashboard() {
 
       {/* ── one chart, three answers ── */}
       <div className="grid grid-cols-1 xl:grid-cols-[1.55fr_1fr] gap-[18px] mb-[18px]">
-        <div className="rounded-[16px] border px-6 py-[22px]"
-          style={{ background: "var(--s-card)", borderColor: "var(--l-soft)", boxShadow: "var(--elev-soft)" }}>
+        <div className="biz-panel px-6 py-[22px]">
           <div className="flex items-center justify-between gap-3.5 flex-wrap">
-            <h2 className="text-[15.5px] font-semibold m-0 tracking-[-0.01em]" style={{ color: "var(--t-main)" }}>{meta.title}</h2>
+            <div className="flex items-center gap-3">
+              <Tile icon="chart" tone="accent" />
+              <h2 className="text-[16px] font-semibold m-0 tracking-[-0.01em]" style={{ color: "var(--t-main)" }}>{meta.title}</h2>
+            </div>
             <Seg<ChartKey> label="Which chart" value={chart} onPick={setChart}
               options={[{ v: "sales", label: "Money" }, { v: "orders", label: "Orders" }, { v: "profit", label: "Profit" }]} />
           </div>
@@ -1241,10 +1243,12 @@ export function BusinessDashboard() {
       </div>
 
       {/* ── what sold ── */}
-      <div className="rounded-[16px] border px-6 py-[22px] mb-[18px]"
-        style={{ background: "var(--s-card)", borderColor: "var(--l-soft)", boxShadow: "var(--elev-soft)" }}>
+      <div className="biz-panel px-6 py-[22px] mb-[18px]">
         <div className="flex items-center justify-between gap-3.5 flex-wrap">
-          <h2 className="text-[15.5px] font-semibold m-0 tracking-[-0.01em]" style={{ color: "var(--t-main)" }}>What sold</h2>
+          <div className="flex items-center gap-3">
+            <Tile icon="box" tone="accent" />
+            <h2 className="text-[16px] font-semibold m-0 tracking-[-0.01em]" style={{ color: "var(--t-main)" }}>What sold</h2>
+          </div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <Scope text={soldTab === "web" ? "orders placed" : "line value, delivered"} />
             <Seg<SoldTab> label="Which shop" value={soldTab} onPick={setSoldTab}
