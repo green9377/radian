@@ -13,8 +13,22 @@ import {
   ProductVariantInput,
 } from './product.dto';
 import { paidPaisa } from '../common/discount-window';
+import { BD_OFFSET_MS, DAY_MS, startOfBdDay, endOfBdDay } from '../common/bd-day';
 /*  DEC-PRD-050 — one rule for "is this new", shared with the storefront.  */
 import { isNewNow, MERCH_DEFAULTS, type BadgeMode } from './merch';
+
+/*  One write, or none at all.
+
+    A product's photos, sizes, specs, FAQs, badges, delivery links and variants
+    are REPLACED on every save: the old rows go, the new rows come. Run loose,
+    that is a window in which the product owns nothing — and any failure in the
+    second half (a bad id, a stray key in the request body) leaves it there for
+    good, published, with an empty gallery. So every replace now takes the
+    client it must run on, and the callers hand it a transaction.  */
+type TxDb = Omit<
+  PrismaService['db'],
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>;
 
 const ENTITY = 'Product';
 
@@ -133,8 +147,17 @@ export class ProductsService {
       The fix belongs here, not there: a report may not quietly redefine what
       the owning module measured. */
   private async funnelRows(window: number | { from: Date; to: Date }, productId?: string) {
-    const since = typeof window === 'number' ? new Date(Date.now() - window * 86400000) : window.from;
-    const until = typeof window === 'number' ? undefined : window.to;
+    /*  "The last 7 days" means seven Dhaka days ending tonight, not a rolling
+        168 hours in UTC. Counted the old way, at 09:00 in Dhaka a 1-day report
+        reached back to 09:00 yesterday and billed half of yesterday to today.
+        The daily bars below are bucketed on Dhaka days, so the window that
+        feeds them has to be cut on the same clock or the first bar is a part
+        day drawn as a whole one.  */
+    const since =
+      typeof window === 'number'
+        ? new Date(startOfBdDay(new Date(Date.now() - Math.max(0, window - 1) * DAY_MS)))
+        : new Date(startOfBdDay(window.from));
+    const until = typeof window === 'number' ? undefined : new Date(endOfBdDay(window.to));
     const lines = await this.prisma.db.orderLine.findMany({
       where: {
         ...(productId ? { productId } : {}),
@@ -277,10 +300,14 @@ export class ProductsService {
       const a = map.get(p.id);
       const orders = a ? a.orderIds.size - a.cancelledIds.size : 0;
       const revenuePaisa = a?.revenuePaisa ?? 0;
-      const offer = this.withOffer(p as never) as unknown as {
-        offerPricePaisa: number;
-      };
-      const unitMargin = offer.offerPricePaisa - p.costPaisa;
+      /*  MARGIN IS MEASURED AGAINST WHAT WAS ACTUALLY CHARGED.
+          It used to be `todayOfferPrice − cost` multiplied by units sold,
+          while revenue beside it was the historical line total. Raising a
+          price today then changed last month's margin, and a product priced
+          only on its variants (sellingPricePaisa 0, DEC-PRD-035) reported a
+          large negative one. Revenue is already the real money; the cost of
+          the goods is the only other half.  */
+      const unitsSold = a?.units ?? 0;
       return {
         productId: p.id,
         slug: p.slug,
@@ -297,7 +324,10 @@ export class ProductsService {
         units: a?.units ?? 0,
         revenuePaisa,
         refundPaisa: a?.refundPaisa ?? 0,
-        marginPaisa: (a?.units ?? 0) * unitMargin,
+        /*  Money that went back out is not margin. It is shown in its own
+            column right beside this one, and leaving it in made a fully
+            refunded product report its full profit.  */
+        marginPaisa: revenuePaisa - (a?.refundPaisa ?? 0) - unitsSold * p.costPaisa,
         // top of funnel — not tracked yet (Phase 2)
         views: null as number | null,
         addToCarts: null as number | null,
@@ -343,7 +373,10 @@ export class ProductsService {
     const daily = new Map<string, { date: string; orders: number; units: number; revenuePaisa: number }>();
     const seen = new Set<string>();
     for (const l of lines) {
-      const date = l.order.placedAt.toISOString().slice(0, 10);
+      /*  A Dhaka day, not a UTC one. An order placed at 01:30 in Dhaka is
+          19:30 the previous day in UTC — every midnight delivery, a headline
+          product here, was landing on yesterday's bar.  */
+      const date = new Date(l.order.placedAt.getTime() + BD_OFFSET_MS).toISOString().slice(0, 10);
       let d = daily.get(date);
       if (!d) {
         d = { date, orders: 0, units: 0, revenuePaisa: 0 };
@@ -360,10 +393,6 @@ export class ProductsService {
       }
     }
 
-    const withOffer = this.withOffer(product as never) as unknown as {
-      offerPricePaisa: number;
-    };
-    const unitMargin = withOffer.offerPricePaisa - product.costPaisa;
 
     return {
       days,
@@ -381,7 +410,8 @@ export class ProductsService {
         units: a?.units ?? 0,
         revenuePaisa: a?.revenuePaisa ?? 0,
         refundPaisa: a?.refundPaisa ?? 0,
-        marginPaisa: (a?.units ?? 0) * unitMargin,
+        marginPaisa:
+          (a?.revenuePaisa ?? 0) - (a?.refundPaisa ?? 0) - (a?.units ?? 0) * product.costPaisa,
       },
       daily: [...daily.values()].sort((x, y) => x.date.localeCompare(y.date)),
     };
@@ -556,20 +586,32 @@ export class ProductsService {
     this.validateMoneyAndRules(dto);
     await this.validateRefs(dto);
     await this.ensureSlugFree(dto.slug);
+    await this.ensureSkuFree(dto.sku, null);
     await this.assertPublishReady(dto, null, null);
 
     const actorName = dto.actorName ?? 'Admin';
 
-    const created = await this.prisma.db.product.create({
-      data: this.buildCreateData(dto),
-      select: { id: true },
-    });
-
-    /*  DEC-DLV-008 — the new product's delivery links. Deliberately not nested
-        inside `create`: update calls this very same function, so the rule is
-        written once.  */
-    await this.replaceDeliveryTypes(created.id, dto.deliveryTypeIds);
-    await this.replaceVariants(created.id, dto.variants);
+    /*  ALL OF IT, OR NONE OF IT. The row used to be committed first and its
+        delivery links and variants written after, as separate statements. One
+        bad variant then left a half-made product behind holding the slug, and
+        the second attempt was refused with "slug already in use" — on a
+        product the owner could not see.  */
+    const created = await this.prisma.db.$transaction(
+      async (t) => {
+        const tx = t as unknown as TxDb;
+        const row = await tx.product.create({
+          data: this.buildCreateData(dto),
+          select: { id: true },
+        });
+        /*  DEC-DLV-008 — the new product's delivery links. Deliberately not
+            nested inside `create`: update calls these very same functions, so
+            the rule is written once.  */
+        await this.replaceDeliveryTypes(tx, row.id, dto.deliveryTypeIds);
+        await this.replaceVariants(tx, row.id, dto.variants);
+        return row;
+      },
+      { timeout: 30_000, maxWait: 15_000 },
+    );
 
     const product = await this.prisma.db.product.findFirstOrThrow({
       where: { id: created.id },
@@ -601,25 +643,43 @@ export class ProductsService {
     if (!existing) throw new NotFoundException('Product not found');
 
     // check the money/advance rules against the merged view (even on a partial patch)
-    this.validateMoneyAndRules({ ...existing, ...dto } as CreateProductDto);
+    /*  The merged row for the rules that were always there; the payload alone
+        for the rules added on 12 Sep. A new rule may not make a product that
+        is already in some old state unsavable forever — the owner would meet
+        it while changing a name.  */
+    this.validateMoneyAndRules({ ...existing, ...dto } as CreateProductDto, dto);
     await this.validateRefs(dto);
     if (dto.slug && dto.slug !== existing.slug) await this.ensureSlugFree(dto.slug);
+    if (dto.sku !== undefined && dto.sku !== existing.sku) await this.ensureSkuFree(dto.sku, id);
     await this.assertPublishReady(dto, existing, id);
 
     const actorName = dto.actorName ?? 'Admin';
 
-    await this.prisma.db.product.update({
-      where: { id },
-      data: {
-        ...this.buildUpdateData(dto),
-        /*  DEC-PRD-050 — stamped ONCE, on the first time this product goes
-            live. Re-stamping on every save would make "New arrival" mean
-            "recently edited", and a bouquet would go new again every time
-            somebody fixed a typo in it.  */
-        publishedAt:
-          dto.isPublished && !existing.isPublished ? new Date() : undefined,
+    /*  ⚠️ THE HEADER AND ITS LISTS GO TOGETHER.
+        The scalar update used to commit on its own and the child rows were
+        written after. When the second half failed — one bad delivery id is
+        enough — the price, the discount and `isPublished: true` had already
+        landed, while the admin showed "Save failed". The owner then believed
+        nothing had been saved on a product that was, by then, live.  */
+    await this.prisma.db.$transaction(
+      async (t) => {
+        const tx = t as unknown as TxDb;
+        await tx.product.update({
+          where: { id },
+          data: {
+            ...this.buildUpdateData(dto),
+            /*  DEC-PRD-050 — stamped ONCE, on the first time this product goes
+                live. Re-stamping on every save would make "New arrival" mean
+                "recently edited", and a bouquet would go new again every time
+                somebody fixed a typo in it.  */
+            publishedAt:
+              dto.isPublished && !existing.isPublished ? new Date() : undefined,
+          },
+        });
+        await this.replaceChildrenIn(tx, id, dto);
       },
-    });
+      { timeout: 30_000, maxWait: 15_000 },
+    );
 
     /*
       ⚠️ THE CHILD ROWS WERE NEVER SAVED ON UPDATE — 1 Aug 2026.
@@ -634,7 +694,6 @@ export class ProductsService {
       (`undefined`) leaves it alone — that is what lets a screen save one part
       of a product without carrying the rest.
     */
-    await this.replaceChildren(id, dto);
 
     const product = await this.prisma.db.product.findFirstOrThrow({
       where: { id },
@@ -758,6 +817,10 @@ export class ProductsService {
         costPaisa: true,
         discountType: true,
         discountValue: true,
+        /*  Without the window `withOffer` reads every discount as always-on,
+            so a finished Valentine's 40% keeps depressing today's figures.  */
+        discountStartsAt: true,
+        discountEndsAt: true,
         stockQty: true,
         deletedAt: true,
         category: { select: { id: true, name: true, slug: true } },
@@ -830,6 +893,34 @@ export class ProductsService {
       );
     }
     throw new BadRequestException(`slug "${slug}" already in use`);
+  }
+
+  /*  `Product.sku` is @unique and publishing demands one, yet only the slug was
+      ever checked — a second staff member typing the same code got a bare 500
+      with no message. Same raw-client reasoning as the slug above: the index
+      does not care that a row is soft-deleted.  */
+  private async ensureSkuFree(sku: string | null | undefined, exceptId: string | null) {
+    const code = sku?.trim();
+    if (!code) return;
+    const dupe = await this.prisma.product.findFirst({
+      where: { sku: code, ...(exceptId ? { id: { not: exceptId } } : {}) },
+      select: { id: true, name: true, deletedAt: true },
+    });
+    if (!dupe) return;
+    if (!dupe.deletedAt) {
+      throw new BadRequestException(`The code "${code}" is already on "${dupe.name}".`);
+    }
+    /*  DEC-GBL-007 — a buried row does not hold a code hostage: delete a
+        master and its code is free again. The slug above is the deliberate
+        exception (it is a public URL, and old links and ads point at it); a
+        SKU is an internal code on a packing slip, so the promise stands.
+
+        Freed by clearing the column, not by destroying the trashed product —
+        and done HERE, before the save opens its transaction, because the
+        buried-key extension resolves this by hard-deleting the row on a
+        separate connection, which inside a transaction would commit that
+        deletion even when the save itself rolls back.  */
+    await this.prisma.product.update({ where: { id: dupe.id }, data: { sku: null } });
   }
 
   private async validateRefs(dto: UpdateProductDto) {
@@ -913,7 +1004,7 @@ export class ProductsService {
   }
 
   // DEC (locked §2): money = integer paisa · discount · advance override rules
-  private validateMoneyAndRules(dto: CreateProductDto) {
+  private validateMoneyAndRules(dto: CreateProductDto, typed: UpdateProductDto = dto) {
     const ints: [string, number | undefined][] = [
       ['costPaisa', dto.costPaisa],
       ['sellingPricePaisa', dto.sellingPricePaisa],
@@ -928,10 +1019,35 @@ export class ProductsService {
 
     const dType = dto.discountType ?? DiscountType.NONE;
     const dVal = dto.discountValue ?? 0;
-    if (dType === DiscountType.FLAT && dVal > (dto.sellingPricePaisa ?? 0))
-      throw new BadRequestException('FLAT discount cannot exceed sellingPricePaisa');
-    if (dType === DiscountType.PERCENT && (dVal < 0 || dVal > 10000))
-      throw new BadRequestException('PERCENT discount must be basis points 0..10000 (0-100%)');
+    /*  A DISCOUNT MAY NEVER RAISE THE PRICE, AND MAY NEVER TAKE ALL OF IT.
+        `discountValue` used to skip the integer loop above entirely, so a
+        negative FLAT value went straight through: -10000 on a 150000 product
+        made the customer pay 250000. The bounds are also closed on both ends
+        here, the way the variant path already closes them — a discount equal
+        to the price leaves a free product, which is a mistake, not an offer.  */
+    if (dType !== DiscountType.NONE) {
+      if (!Number.isInteger(dVal) || dVal < 0)
+        throw new BadRequestException('discountValue must be a non-negative integer');
+      /*  The ceilings stay exactly where they were. `update()` validates the
+          MERGED row, so tightening them would make every later save of a
+          product already stored at FLAT 0 (a cleared amount box) or PERCENT
+          10000 (a giveaway) fail on a rule it never broke.  */
+      if (dVal > 0) {
+        if (dType === DiscountType.FLAT && dVal > (dto.sellingPricePaisa ?? 0))
+          throw new BadRequestException('FLAT discount cannot exceed sellingPricePaisa');
+        if (dType === DiscountType.PERCENT && dVal > 10000)
+          throw new BadRequestException('PERCENT discount must be basis points 0..10000 (0-100%)');
+      }
+    }
+    /*  A window that ends before it starts is never on, and nothing downstream
+        would say so — it would simply behave like "no discount" forever.  */
+    if (
+      (typed.discountStartsAt !== undefined || typed.discountEndsAt !== undefined) &&
+      dto.discountStartsAt &&
+      dto.discountEndsAt &&
+      new Date(dto.discountStartsAt) >= new Date(dto.discountEndsAt)
+    )
+      throw new BadRequestException('The discount end must be after its start');
 
     if (dto.advanceRequired) {
       if (!dto.advanceType) throw new BadRequestException('advanceType required when advanceRequired=true');
@@ -940,8 +1056,19 @@ export class ProductsService {
         const hasAmt = dto.advanceAmountPaisa != null;
         if (!hasPct && !hasAmt)
           throw new BadRequestException('PARTIAL advance needs advancePercent or advanceAmountPaisa');
-        if (hasPct && (dto.advancePercent! < 1 || dto.advancePercent! > 100))
-          throw new BadRequestException('advancePercent must be 1..100');
+        if (hasPct && (!Number.isInteger(dto.advancePercent!) || dto.advancePercent! < 1 || dto.advancePercent! > 100))
+          throw new BadRequestException('advancePercent must be a whole number 1..100');
+        /*  Asking for more upfront than the thing costs is never intended —
+            but only where there IS a product price to compare against. A
+            product priced only on its variants carries 0 here (DEC-PRD-035),
+            and every advance would fail against that.  */
+        if (
+          hasAmt &&
+          (typed.advanceAmountPaisa !== undefined || typed.sellingPricePaisa !== undefined) &&
+          (dto.sellingPricePaisa ?? 0) > 0 &&
+          dto.advanceAmountPaisa! > dto.sellingPricePaisa!
+        )
+          throw new BadRequestException('The advance cannot be more than the price');
       }
     }
   }
@@ -1145,7 +1272,7 @@ export class ProductsService {
   private buildCreateData(dto: CreateProductDto): Prisma.ProductCreateInput {
     return {
       slug: dto.slug,
-      sku: dto.sku,
+      sku: dto.sku === undefined ? undefined : (dto.sku?.trim() || null),
       name: dto.name,
       category: { connect: { id: dto.categoryId } },
       brand: dto.brandId ? { connect: { id: dto.brandId } } : undefined,
@@ -1250,11 +1377,15 @@ export class ProductsService {
       /*  The date a customer would call "new" is the day it went live, not the
           day a draft was started.  */
       publishedAt: dto.isPublished ? new Date() : undefined,
-      images: dto.images?.length ? { create: dto.images } : undefined,
-      sizes: dto.sizes?.length ? { create: dto.sizes } : undefined,
-      specRows: dto.specRows?.length ? { create: dto.specRows } : undefined,
-      faqs: dto.faqs?.length ? { create: dto.faqs } : undefined,
-      trustBadges: dto.trustBadges?.length ? { create: dto.trustBadges } : undefined,
+      /*  Same whitelist as the update path — the request body is not allowed
+          to choose an `id` or arrive already `deletedAt`. `sortOrder` is set
+          here too, so a gallery's order does not depend on the order Postgres
+          happens to return rows in.  */
+      images: dto.images?.length ? { create: ProductsService.ordered(dto.images, ProductsService.CHILD_KEYS.images) } : undefined,
+      sizes: dto.sizes?.length ? { create: ProductsService.ordered(dto.sizes, ProductsService.CHILD_KEYS.sizes) } : undefined,
+      specRows: dto.specRows?.length ? { create: ProductsService.ordered(dto.specRows, ProductsService.CHILD_KEYS.specRows) } : undefined,
+      faqs: dto.faqs?.length ? { create: ProductsService.ordered(dto.faqs, ProductsService.CHILD_KEYS.faqs) } : undefined,
+      trustBadges: dto.trustBadges?.length ? { create: ProductsService.ordered(dto.trustBadges, ProductsService.CHILD_KEYS.trustBadges) } : undefined,
     };
   }
 
@@ -1274,14 +1405,44 @@ export class ProductsService {
    * The difference matters: treating the two the same would make every partial
    * save wipe whatever it did not mention.
    */
-  private async replaceChildren(productId: string, dto: UpdateProductDto) {
+  /*  Only the columns the editor is allowed to set. The rows used to be spread
+      into `createMany` raw, so a body carrying `id` or `deletedAt` wrote them —
+      a photo could arrive already deleted, counted by the publish gate and
+      invisible on the page.  */
+  private static readonly CHILD_KEYS = {
+    images: ['url'],
+    sizes: ['label', 'sub', 'pricePaisa'],
+    specRows: ['item', 'qty'],
+    faqs: ['question', 'answer'],
+    trustBadges: ['icon', 'iconUrl', 'label', 'sub'],
+  } as const;
+
+  /*  The cast is only about types: at runtime the row really is stripped to
+      the whitelist. Prisma's nested-create type wants the model's required
+      columns named, and `pick` returns an index signature.  */
+  private static ordered<T extends object>(rows: T[], keys: readonly string[]): (T & { sortOrder: number })[] {
+    return ProductsService.pick(rows, keys).map((r, i) => ({ ...r, sortOrder: i })) as unknown as (T & {
+      sortOrder: number;
+    })[];
+  }
+
+  private static pick<T extends object>(rows: T[], keys: readonly string[]) {
+    return rows.map((r) => {
+      const out: Record<string, unknown> = {};
+      for (const k of keys) if (k in r) out[k] = (r as Record<string, unknown>)[k];
+      return out;
+    });
+  }
+
+  private async replaceChildrenIn(db: TxDb, productId: string, dto: UpdateProductDto) {
     const now = new Date();
-    const swap = async <T>(
+    const swap = async <T extends object>(
       model: {
         updateMany: (a: unknown) => Promise<unknown>;
         createMany: (a: unknown) => Promise<unknown>;
       },
       rows: T[] | undefined,
+      keys: readonly string[],
     ) => {
       if (rows === undefined) return;
       await model.updateMany({
@@ -1290,17 +1451,18 @@ export class ProductsService {
       });
       if (rows.length === 0) return;
       await model.createMany({
-        data: rows.map((r, i) => ({ ...r, productId, sortOrder: i })),
+        data: ProductsService.pick(rows, keys).map((r, i) => ({ ...r, productId, sortOrder: i })),
       });
     };
 
-    await swap(this.prisma.db.productImage, dto.images);
-    await swap(this.prisma.db.productSize, dto.sizes);
-    await swap(this.prisma.db.productSpec, dto.specRows);
-    await swap(this.prisma.db.productFaq, dto.faqs);
-    await swap(this.prisma.db.productTrustBadge, dto.trustBadges);
-    await this.replaceDeliveryTypes(productId, dto.deliveryTypeIds);
-    await this.replaceVariants(productId, dto.variants);
+    const K = ProductsService.CHILD_KEYS;
+    await swap(db.productImage, dto.images, K.images);
+    await swap(db.productSize, dto.sizes, K.sizes);
+    await swap(db.productSpec, dto.specRows, K.specRows);
+    await swap(db.productFaq, dto.faqs, K.faqs);
+    await swap(db.productTrustBadge, dto.trustBadges, K.trustBadges);
+    await this.replaceDeliveryTypes(db, productId, dto.deliveryTypeIds);
+    await this.replaceVariants(db, productId, dto.variants);
   }
 
   /**
@@ -1326,7 +1488,7 @@ export class ProductsService {
    * erased — this is the mistake that was losing photos when a product was
    * edited on 1 Aug.
    */
-  private async replaceVariants(productId: string, rows: ProductVariantInput[] | undefined) {
+  private async replaceVariants(db: TxDb, productId: string, rows: ProductVariantInput[] | undefined) {
     if (rows === undefined) return;
     const now = new Date();
 
@@ -1352,7 +1514,7 @@ export class ProductsService {
       return [...new Set(ids.filter(Boolean))];
     });
     const everyId = [...new Set(combos.flat())];
-    const values = await this.prisma.db.variantValue.findMany({
+    const values = await db.variantValue.findMany({
       where: { id: { in: everyId } },
       select: { id: true, attributeId: true, sortOrder: true, attribute: { select: { sortOrder: true, name: true } } },
     });
@@ -1397,7 +1559,25 @@ export class ProductsService {
     const keyOf = (ids: string[]) => [...ids].sort().join('|');
     const keep = combos.map(keyOf);
 
-    await this.prisma.db.productVariant.updateMany({
+    /*  What is already stored for each combination. A partial save is judged
+        on the MERGED row, not on the handful of keys the screen sent: a
+        price-only save that drops the price to 500 must still be refused if
+        the row it lands on carries a flat discount of 1200.  */
+    const stored = new Map(
+      (
+        await db.productVariant.findMany({
+          /*  `deletedAt: undefined` on purpose — it overrides the soft-delete
+              extension's injected `deletedAt: null`. A deleted combination
+              KEEPS its comboKey (that is why the upsert below revives instead
+              of creating), so without this the one case this merge exists for
+              reads as "no stored row" and a stale discount survives.  */
+          where: { productId, deletedAt: undefined, comboKey: { in: keep.length ? keep : ['—'] } },
+          select: { comboKey: true, pricePaisa: true, discountType: true, discountValue: true },
+        })
+      ).map((v) => [v.comboKey, v]),
+    );
+
+    await db.productVariant.updateMany({
       where: { productId, deletedAt: null, comboKey: { notIn: keep.length ? keep : ['—'] } },
       data: { deletedAt: now },
     });
@@ -1407,7 +1587,20 @@ export class ProductsService {
           variant's own price is what it comes off; without one the product's
           price rules and the number here would never be applied, so it is
           refused loudly rather than saved and quietly ignored.  */
-      if (r.discountType && r.discountType !== 'NONE') {
+      const prev = stored.get(keyOf(combos[i]));
+      /*  Handing the price back to the product ("use the product's price")
+          takes the variant's own discount with it — it came off the variant's
+          own price and would otherwise be pointing at nothing. Decided here,
+          before the check below, or clearing a price on a discounted variant
+          would be refused instead of saved.  */
+      const clearing = r.pricePaisa === null && r.discountType === undefined;
+      const merged = {
+        pricePaisa: r.pricePaisa !== undefined ? r.pricePaisa : (prev?.pricePaisa ?? null),
+        discountType: clearing ? 'NONE' : r.discountType !== undefined ? r.discountType : (prev?.discountType ?? 'NONE'),
+        discountValue: clearing ? 0 : r.discountValue !== undefined ? r.discountValue : (prev?.discountValue ?? 0),
+      };
+      if (merged.discountType && merged.discountType !== 'NONE') {
+        const r = merged;
         if (r.pricePaisa == null) {
           throw new BadRequestException(
             'Give this variant its own price before putting a discount on it.',
@@ -1425,7 +1618,26 @@ export class ProductsService {
           );
         }
       }
-      const data = {
+      /*  A VARIANT'S PRICE AND STOCK ARE REAL MONEY — check them.
+          Only the discount was ever inspected here; a row could carry
+          `pricePaisa: -250000` or `stockQty: -5` and it was written verbatim,
+          and the product's displayed stock was the sum of those.  */
+      if (r.pricePaisa != null && (!Number.isInteger(r.pricePaisa) || r.pricePaisa < 0))
+        throw new BadRequestException('A variant price has to be a whole amount, and not below zero.');
+      if (r.stockQty != null && (!Number.isInteger(r.stockQty) || r.stockQty < 0))
+        throw new BadRequestException('A variant stock count has to be a whole number, and not below zero.');
+
+      /*  ⚠️ WHAT THE SCREEN DID NOT SEND, THE SCREEN IS NOT EDITING.
+          These defaults used to be applied to the UPDATE branch too, so a
+          price-only save (`{variantValueId, pricePaisa}` — all the pricing tab
+          knows) set every variant's stock to 0 and dropped every swatch photo.
+          On a product with `soldOutMode = STOCK_OUT` that put the whole thing
+          out of stock on the website, and the audit diff recorded `variants`
+          as one blob, so nobody could see what had happened.
+
+          A new row still needs a full set of defaults — that is `create`
+          below. An existing row is changed only where the caller spoke.  */
+      const create = {
         imageUrl: r.imageUrl?.trim() ? r.imageUrl : null,
         stockQty: r.stockQty ?? 0,
         /*  DEC-PRD-015 — this colour's own stockroom Item. `null` when blank
@@ -1441,6 +1653,26 @@ export class ProductsService {
         isActive: r.isActive ?? true,
         deletedAt: null,
       };
+      const update: Record<string, unknown> = { deletedAt: null, sortOrder: r.sortOrder ?? i };
+      if (r.imageUrl !== undefined) update.imageUrl = r.imageUrl?.trim() ? r.imageUrl : null;
+      if (r.stockQty !== undefined) update.stockQty = r.stockQty;
+      if (r.itemId !== undefined) update.itemId = r.itemId?.trim() ? r.itemId : null;
+      if (r.pricePaisa !== undefined) {
+        update.pricePaisa = r.pricePaisa;
+        /*  Back to "use the product's price" — the variant's own discount came
+            off the variant's own price, so it goes with it rather than being
+            left pointing at nothing.  */
+        if (clearing) {
+          update.discountType = 'NONE';
+          update.discountValue = 0;
+        }
+      }
+      if (r.discountType !== undefined) {
+        update.discountType = r.discountType;
+        if (r.discountType === 'NONE') update.discountValue = 0;
+      }
+      if (r.discountValue !== undefined) update.discountValue = r.discountValue;
+      if (r.isActive !== undefined) update.isActive = r.isActive;
       /*  If the same combination was deleted before it is brought back rather
           than created afresh — `@@unique([productId, comboKey])` demands it,
           and it keeps old orders' links intact. A soft-deleted row still
@@ -1449,31 +1681,31 @@ export class ProductsService {
       const ids = combos[i];
       const comboKey = keyOf(ids);
       const lead = leadOf(ids);
-      const saved = await this.prisma.db.productVariant.upsert({
+      const saved = await db.productVariant.upsert({
         where: { productId_comboKey: { productId, comboKey } },
-        create: { productId, comboKey, variantValueId: lead, ...data },
-        update: { ...data, variantValueId: lead },
+        create: { productId, comboKey, variantValueId: lead, ...create },
+        update: { ...update, variantValueId: lead },
         select: { id: true },
       });
 
       /*  DEC-PRD-045 — the values this row is made of. Rewritten whole: the
           set is small, and working out which one changed costs more than
           writing two rows.  */
-      await this.prisma.db.productVariantValue.deleteMany({
+      await db.productVariantValue.deleteMany({
         where: { productVariantId: saved.id, variantValueId: { notIn: ids } },
       });
-      await this.prisma.db.productVariantValue.createMany({
+      await db.productVariantValue.createMany({
         data: ids.map((variantValueId) => ({ productVariantId: saved.id, variantValueId })),
         skipDuplicates: true,
       });
     }
   }
 
-  private async replaceDeliveryTypes(productId: string, ids: string[] | undefined) {
+  private async replaceDeliveryTypes(db: TxDb, productId: string, ids: string[] | undefined) {
     if (ids === undefined) return;
-    await this.prisma.db.productDeliveryType.deleteMany({ where: { productId } });
+    await db.productDeliveryType.deleteMany({ where: { productId } });
     if (ids.length > 0) {
-      await this.prisma.db.productDeliveryType.createMany({
+      await db.productDeliveryType.createMany({
         data: [...new Set(ids)].map((typeId) => ({ productId, typeId })),
         skipDuplicates: true,
       });
@@ -1506,7 +1738,7 @@ export class ProductsService {
       cannot be kept is not a badge either.
     */
     const types = ids.length
-      ? await this.prisma.db.deliveryType.findMany({
+      ? await db.deliveryType.findMany({
           where: {
             id: { in: ids },
             isActive: true,
@@ -1517,7 +1749,7 @@ export class ProductsService {
         })
       : [];
     const has = (t: string) => types.some((x) => x.timing === t);
-    await this.prisma.db.product.update({
+    await db.product.update({
       where: { id: productId },
       data: {
         supportsExpress: has('FROM_CONFIRM'),
@@ -1530,7 +1762,7 @@ export class ProductsService {
   private buildUpdateData(dto: UpdateProductDto): Prisma.ProductUpdateInput {
     return {
       slug: dto.slug,
-      sku: dto.sku,
+      sku: dto.sku === undefined ? undefined : (dto.sku?.trim() || null),
       name: dto.name,
       category: dto.categoryId ? { connect: { id: dto.categoryId } } : undefined,
       brand:

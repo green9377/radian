@@ -1043,16 +1043,13 @@ export async function getProductBySlug(slug: string): Promise<ApiProduct | null>
   const res = await listProducts({ search: slug });
   const row = res.items.find((p) => p.slug === slug);
   if (!row) return null;
-  try {
-    return await getProduct(row.id);
-  } catch {
-    /*  Falling back to the list row keeps the screen usable if the detail call
-        fails — but it is the shape that caused the data loss, so the editor
-        must not treat a missing list as an empty one. It does not: every
-        child list is restored with `if (p.images)` and friends, so an absent
-        key leaves the state alone rather than clearing it.  */
-    return row;
-  }
+  /*  ⚠️ NO FALLBACK TO THE LIST ROW.
+      It used to return `row` when the detail call failed, and the editor then
+      looked fully populated while holding a list shape: variants without their
+      options, one photo instead of the gallery. Saving that wrote it back —
+      the real variants were soft-deleted and the gallery truncated, on a
+      screen that had shown no error at all. A failed read must fail.  */
+  return await getProduct(row.id);
 }
 
 /* ---------------- Funnel / analytics (Phase 1 — money half is real) ----------------

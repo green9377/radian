@@ -1789,6 +1789,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   /* ⇄ SWAPPED: save/load via :4000 API */
   const router = useRouter();
   const [apiProductId, setApiProductId] = useState<string | null>(null);
+  /*  The read for an EXISTING product failed. Until it succeeds this screen is
+      showing placeholder state, not the product, and saving it would either
+      overwrite a real row with blanks or create a duplicate. Saving is refused
+      while this is set.  */
+  const [loadFailed, setLoadFailed] = useState(false);
   const [loadedCatId, setLoadedCatId] = useState<string | null>(null);
   const [apiCats, setApiCats] = useState<ApiCategory[]>([]);
   const [apiTags, setApiTags] = useState<ApiTag[]>([]);
@@ -2079,7 +2084,14 @@ export default function ProductEditor({ slug }: { slug?: string }) {
       */
       getProductBySlug(slug)
         .then((p) => {
-          if (!p) return;
+          /*  A slug that matches nothing, on a screen that is only ever opened
+              FOR an existing product, is a failed read too — not a blank new
+              product. Left as "new", the next Save created a duplicate.  */
+          if (!p) {
+            setLoadFailed(true);
+            return;
+          }
+          setLoadFailed(false);
           setApiProductId(p.id);
 
           // identity
@@ -2151,7 +2163,11 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           /*  DEC-DLV-008 — by id, not by name. If the owner renames "Same
               Day" → "Same-day" in the delivery module, this link doesn't
               break.  */
-          setDelivTypeIds((p.deliveryTypes ?? []).map((d) => d.typeId));
+          /*  ⚠️ GUARDED, like every other owned list on this screen. Unguarded,
+              a response without `deliveryTypes` set this to [] and the save
+              then hard-deleted every delivery link the product had — leaving
+              it published with nothing checkout could offer.  */
+          if (p.deliveryTypes) setDelivTypeIds(p.deliveryTypes.map((d) => d.typeId));
           setVariants(
             (p.variants ?? []).map((v) => {
               /*  DEC-PRD-045 — rebuild the combination from its values, in
@@ -2314,7 +2330,7 @@ export default function ProductEditor({ slug }: { slug?: string }) {
           if (p.ogImageUrl) setOgImageUrl(p.ogImageUrl);
           setNoIndex(!!p.noIndex);
         })
-        .catch(() => {});
+        .catch(() => setLoadFailed(true));
     }
   }, [slug]);
 
@@ -2666,6 +2682,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
   async function handleSave(publish: boolean) {
     setSaveErr(null);
     setSavedMsg(null);
+    if (loadFailed) {
+      setSaveErr("This product could not be loaded, so what you see is not it. Reload the page before saving.");
+      return;
+    }
     if (!name.trim()) {
       setSaveErr("Give the product a name.");
       return;
@@ -2689,11 +2709,10 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         setStatus(publish ? "ACTIVE" : "DRAFT");
         setSavedMsg(publish ? "Published." : "Saved as draft.");
       } else {
-        dto.specRows = spec.filter((s) => s.item).map((s) => ({ item: s.item, qty: s.qty }));
-        dto.faqs = faqs.filter((f) => f.q).map((f) => ({ question: f.q, answer: f.a }));
-        dto.trustBadges = trust
-          .filter((t) => t.label)
-          .map((t) => ({ icon: t.icon.split(" ")[0] || "star", label: t.label, sub: t.sub || undefined }));
+        /*  `buildDto` already trims these three and keeps `iconUrl`. This
+            branch used to rebuild them untrimmed and re-split the badge icon,
+            putting back the translation DEC-PRD-031/030 removed — so a custom
+            icon survived an edit but never a create.  */
         const created = await createProduct(dto);
         // now that we have an id, link any upgrades chosen before saving
         /*  DEC-PRD-013 — the bundles are linked the moment the product is
@@ -3119,6 +3138,13 @@ export default function ProductEditor({ slug }: { slug?: string }) {
         )}
       </div>
 
+      {/*  Said at the moment it happens, not after a page of typing. What is
+           on screen below is placeholder state, not the product.  */}
+      {loadFailed && (
+        <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px] font-medium">
+          This product could not be loaded, so nothing below is its real data. Reload the page — saving is off until it opens.
+        </div>
+      )}
       {saveErr && (
         <div className="bg-[#fdecea] border border-[#e0a1a1] text-[#c0392b] rounded-[12px] px-4 py-3 mb-4 text-[13px]">
           {saveErr}

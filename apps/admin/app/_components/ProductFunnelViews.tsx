@@ -496,8 +496,22 @@ export function ProductAnalysis({ slug }: { slug: string }) {
           what happened. Invented numbers on an analysis screen are worse
           than none: they get believed.  */
       try {
-        const p = await getProductBySlug(slug).catch(() => null);
+        /*  A missing product and an API that did not answer are not the same
+            sentence. `getProductBySlug` used to fall back to a list row and so
+            never threw; now it does, and reporting that as "No such product"
+            would send somebody looking for a product that is sitting there.  */
+        let p: Awaited<ReturnType<typeof getProductBySlug>> = null;
+        let readFailed = false;
+        try {
+          p = await getProductBySlug(slug);
+        } catch {
+          readFailed = true;
+        }
         if (!alive) return;
+        if (readFailed) {
+          setError("This product could not be loaded — the API did not answer");
+          return;
+        }
         if (!p) {
           setError("No such product");
           return;
