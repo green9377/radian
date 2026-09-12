@@ -18,6 +18,7 @@ import type {
   CancelAdvanceDto,
 } from './pos.dto';
 import type { Prisma } from '@prisma/client';
+import { startOfBdDay, endOfBdDay, DAY_MS } from '../common/bd-day';
 
 /* /pos — POS module API (RADIAN_POS_MODULE_ARCHITECTURE.md §8).
    Static routes are declared above any ':id' route (Nest route-order trap). */
@@ -74,6 +75,44 @@ export class PosController {
   day(@Query('date') date?: string) {
     return this.pos.day(date);
   }
+
+  /*  What the counter sold, by item. `days` for a rolling window, or `from`
+      and `to` for an exact one — a report that names dates must be able to ask
+      for those dates rather than a day count that lands somewhere near them. */
+  @Get('items-sold')
+  itemsSold(
+    @Query('days') days?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.pos.itemsSold(PosController.span(days, from, to));
+  }
+
+  /*  A bare "2026-09-12" parses as UTC midnight. Read raw, a one-day window
+      becomes `gte X, lte X` - zero width, so Today and Yesterday answered
+      "nothing delivered" on a day the shop delivered forty parcels; and a
+      multi-day window lost its last day and shifted every bucket six hours.
+      The shop's day is a Dhaka day, so both ends are snapped to one.
+      The span is capped for the same reason the `days` helper is: an
+      uncapped window pulls every row the shop has ever written. */
+  private static span(days?: string, fromQ?: string, toQ?: string, maxDays = 730) {
+    if (fromQ && toQ) {
+      const a = new Date(fromQ), b = new Date(toQ);
+      if (!Number.isNaN(a.getTime()) && !Number.isNaN(b.getTime()) && a <= b) {
+        const to = new Date(endOfBdDay(b));
+        const floor = new Date(startOfBdDay(b) - (maxDays - 1) * DAY_MS);
+        const from = new Date(Math.max(startOfBdDay(a), floor.getTime()));
+        return { from, to };
+      }
+    }
+    const n = Number(days);
+    const back = Number.isFinite(n) && n > 0 ? Math.min(Math.floor(n), maxDays) : 30;
+    return {
+      from: new Date(startOfBdDay(new Date(Date.now() - (back - 1) * DAY_MS))),
+      to: new Date(endOfBdDay(new Date())),
+    };
+  }
+
   @Post('day/close')
   closeDay(@Body() dto: CloseShiftDto) {
     return this.pos.closeDay(dto);

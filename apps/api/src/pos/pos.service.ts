@@ -19,7 +19,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentMethodsService } from '../common/payment-methods.service';
 import { paidPaisa } from '../common/discount-window';
-import { startOfBdDay, DAY_MS, BD_OFFSET_MS } from '../common/bd-day';
+import { startOfBdDay, endOfBdDay, DAY_MS, BD_OFFSET_MS } from '../common/bd-day';
 import { AuditService } from '../common/audit.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { FinanceEventsService } from '../finance/finance-events.service';
@@ -2798,5 +2798,145 @@ export class PosService {
       ? await this.expectedCash(shift.id, shift.openingFloatPaisa)
       : 0;
     return { salesPaisa, count, avgPaisa: count ? Math.round(salesPaisa / count) : 0, duePaisa, cashInDrawer, shiftOpen: !!shift };
+  }
+
+  /*  WHAT THE COUNTER SOLD — DEC-POS-018's missing half.
+      ────────────────────────────────────────────────────────────────────
+      The product funnel (`/products/analytics`) counts order lines that carry
+      a `productId` and skips the rest, saying so in a comment: a counter line
+      sells an Item and has none. That left the owner with a "best selling"
+      table that could not see the shop floor at all — and worse, it is not a
+      clean website figure either, because a counter sale of a WEBSITE product
+      does carry a productId and is counted. Half a till in a table labelled
+      "best selling" is the kind of number a business plans against.
+
+      So the till reports its own. Two rules it keeps that `/pos/day` does not:
+
+      1. GROUPED BY `itemId`, NEVER BY `name`. `OrderLine.name` is a frozen
+         snapshot taken when the bill was rung. Rename an item and yesterday's
+         sales split into two rows with half the quantity each — the exact
+         fault the orders module already fixed for products.
+      2. COUNTER ONLY, and cancelled bills do not count as sales. A voided bill
+         is still a row; it is not a sale.
+
+      The unit comes from the item's own Unit relation, so a row can read
+      "12 stems" rather than a bare number. */
+  async itemsSold(window: number | { from: Date; to: Date } = 30) {
+    const since =
+      typeof window === 'number'
+        ? new Date(startOfBdDay(new Date(Date.now() - Math.max(0, window - 1) * DAY_MS)))
+        : new Date(startOfBdDay(window.from));
+    const until = typeof window === 'number' ? undefined : new Date(endOfBdDay(window.to));
+
+    const lines = await this.prisma.db.orderLine.findMany({
+      where: {
+        itemId: { not: null },
+        order: {
+          deletedAt: null,
+          fulfillmentType: FulfillmentType.COUNTER,
+          /*  delivered only, so this sits on the same basis as every other
+              money figure on the dashboard. A counter walk-in is written
+              delivered the moment it is rung; an ADVANCE is not, and counting
+              an advance as taken money would book a wedding order twice -
+              once today and once at handover. */
+          deliveryStatus: DeliveryStatus.delivered,
+          placedAt: until ? { gte: since, lte: until } : { gte: since },
+        },
+      },
+      select: {
+        itemId: true,
+        qty: true,
+        /*  DEC-POS-024 - a line may be sold in the item's own unit or its
+            direct base unit, and snapshots the count already converted
+            (unitQtyMilli, thousandths) with the label it was sold under.
+            Adding raw `qty` across two units gives 1 Stick + 2 Pice = 3. */
+        unitLabel: true,
+        unitQtyMilli: true,
+        linePaisa: true,
+        discountPaisa: true,
+        refundPaisa: true,
+        order: { select: { id: true, salesStatus: true } },
+        item: { select: { id: true, name: true, sku: true, unit: { select: { name: true } } } },
+      },
+    });
+
+    type Row = {
+      itemId: string;
+      name: string;
+      sku: string | null;
+      unitName: string | null;
+      units: number;
+      unitLabel: string | null;
+      bills: Set<string>;
+      revenuePaisa: number;
+      refundPaisa: number;
+    };
+    const map = new Map<string, Row>();
+    for (const l of lines) {
+      const id = l.itemId;
+      if (!id) continue;
+      let r = map.get(id);
+      if (!r) {
+        r = {
+          itemId: id,
+          /*  the item's CURRENT name, not the snapshot on the line — one row
+              per item is the whole point of grouping by id  */
+          name: l.item?.name ?? 'Deleted item',
+          sku: l.item?.sku ?? null,
+          unitName: l.item?.unit?.name ?? null,
+          units: 0,
+          unitLabel: null,
+          bills: new Set(),
+          revenuePaisa: 0,
+          refundPaisa: 0,
+        };
+        map.set(id, r);
+      }
+      /*  a voided bill is a row, not a sale - it must not be counted in the
+          Bills column while its money is left out of the Money column  */
+      if (l.order.salesStatus !== SalesStatus.cancelled) {
+        r.bills.add(l.order.id);
+        r.units += l.unitQtyMilli != null ? l.unitQtyMilli / 1000 : l.qty;
+        if (l.unitLabel) r.unitLabel = l.unitLabel;
+        r.revenuePaisa += l.linePaisa - (l.discountPaisa ?? 0);
+      }
+      r.refundPaisa += l.refundPaisa ?? 0;
+    }
+
+    const rows = [...map.values()]
+      .map((r) => ({
+        itemId: r.itemId,
+        name: r.name,
+        sku: r.sku,
+        /*  the label the lines were actually sold under wins over the item's
+            current own unit, because that is what the number counts  */
+        unitName: r.unitLabel ?? r.unitName,
+        units: Math.round(r.units * 1000) / 1000,
+        bills: r.bills.size,
+        /*  net of refunds, the same way the product funnel reports margin -
+            a fully returned item must not keep its revenue  */
+        revenuePaisa: r.revenuePaisa - r.refundPaisa,
+        refundPaisa: r.refundPaisa,
+      }))
+      .filter((r) => r.units > 0 || r.revenuePaisa > 0)
+      .sort((a, b) => b.revenuePaisa - a.revenuePaisa);
+
+    const billIds = new Set<string>();
+    for (const l of lines) if (l.order.salesStatus !== SalesStatus.cancelled) billIds.add(l.order.id);
+    /*  line value, NOT the bill total: VAT, a bill-level adjustment and
+        rounding live on the Order, never on a line. The dashboard labels this
+        figure "line value" so it is never read as the till's takings. */
+
+    return {
+      from: since.toISOString(),
+      to: (until ?? new Date()).toISOString(),
+      totals: {
+        items: rows.length,
+        units: Math.round(rows.reduce((t, r) => t + r.units, 0) * 1000) / 1000,
+        bills: billIds.size,
+        revenuePaisa: rows.reduce((t, r) => t + r.revenuePaisa, 0),
+      },
+      rows,
+    };
   }
 }
