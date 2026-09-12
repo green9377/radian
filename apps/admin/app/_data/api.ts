@@ -1111,8 +1111,19 @@ export interface ApiProductAnalytics {
   };
   daily: { date: string; orders: number; units: number; revenuePaisa: number }[];
 }
-export function getCatalogFunnel(days = 30): Promise<ApiCatalogFunnel> {
-  return j(`/products/analytics?days=${days}`);
+/** a rolling window, or an exact one when a card names its dates */
+export type ReportWindow = { days: number } | { from: string; to: string };
+function windowQuery(w: ReportWindow): string {
+  return "from" in w
+    ? `from=${encodeURIComponent(w.from)}&to=${encodeURIComponent(w.to)}`
+    : `days=${w.days}`;
+}
+/** `channel` answers "what the WEBSITE sold" vs "what crossed the counter" */
+export function getCatalogFunnel(
+  w: ReportWindow = { days: 30 },
+  channel?: "web" | "counter",
+): Promise<ApiCatalogFunnel> {
+  return j(`/products/analytics?${windowQuery(w)}${channel ? `&channel=${channel}` : ""}`);
 }
 export function getProductAnalytics(
   id: string,
@@ -4791,6 +4802,31 @@ export interface ApiPosDay {
 }
 export const posDay = (date?: string) =>
   j<ApiPosDay>(`/pos/day${date ? `?date=${date}` : ""}`);
+
+/*  WHAT THE COUNTER SOLD, by item.
+    The product funnel cannot answer this: DEC-POS-018 gives a counter line an
+    `itemId` and no `productId`, and the funnel skips those lines. Grouped by
+    the item's id rather than the line's frozen name, so renaming an item does
+    not split its history into two half-rows. */
+export interface ApiItemSoldRow {
+  itemId: string;
+  name: string;
+  sku: string | null;
+  unitName: string | null;
+  units: number;
+  /** how many counter bills carried this item */
+  bills: number;
+  revenuePaisa: number;
+  refundPaisa: number;
+}
+export interface ApiItemsSold {
+  from: string;
+  to: string;
+  totals: { items: number; units: number; bills: number; revenuePaisa: number };
+  rows: ApiItemSoldRow[];
+}
+export const posItemsSold = (w: ReportWindow = { days: 30 }) =>
+  j<ApiItemsSold>(`/pos/items-sold?${windowQuery(w)}`);
 export const posCloseDay = (b: { countedCashPaisa: number; note?: string }) =>
   j<ApiPosShift>(`/pos/day/close`, { method: "POST", body: JSON.stringify(b) });
 /** P7-2 — cash out of the till, always under a heading (Finance writes the expense) */
@@ -5648,8 +5684,8 @@ export interface ApiDeliveryAnalytics {
   byCarrier: { name: string; kind: "RIDER" | "COURIER"; delivered: number; onTimeBp: number | null; measurable: number; costPaisa: number }[];
   daily: { onDate: string; delivered: number; onTimeCount: number; measurable: number }[];
 }
-export const deliveryPerformance = (days = 30) =>
-  j<ApiDeliveryAnalytics>(`/delivery/performance?days=${days}`);
+export const deliveryPerformance = (w: ReportWindow = { days: 30 }) =>
+  j<ApiDeliveryAnalytics>(`/delivery/performance?${windowQuery(w)}`);
 
 /* ============================================================
    FINANCE (ledger) — RADIAN_FINANCE_MODULE_ARCHITECTURE.md v1.1
