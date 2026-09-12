@@ -1,5 +1,5 @@
-import { AssemblyOverview } from "../_components/AssemblyViews";
+import { AssemblyOverviewView } from "../_components/AssemblyOverviewView";
 
 export default function AssemblyPage() {
-  return <AssemblyOverview />;
+  return <AssemblyOverviewView />;
 }
