@@ -1,15 +1,7 @@
-import { Suspense } from "react";
-import { ReturnsOverview } from "../_components/ReturnViews";
+import { ReturnsOverviewView } from "../_components/ReturnsOverviewView";
 
-/* /returns — Returns & Refunds Overview + list (DEC-RTN).
-
-   Suspense because ReturnsOverview reads ?channel= (DEC-RTN-016): the panel
-   offers this same book through a website door and a counter door, and Next
-   requires a boundary around useSearchParams. Same shape as /marketing/seo. */
+/* /returns — the module overview. The full book is /returns?status= and the
+   channel doors are the same book narrowed (DEC-RTN-016). */
 export default function ReturnsPage() {
-  return (
-    <Suspense fallback={null}>
-      <ReturnsOverview />
-    </Suspense>
-  );
+  return <ReturnsOverviewView />;
 }
