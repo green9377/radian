@@ -1250,13 +1250,35 @@ export function listCustomers(params?: {
   segmentId?: string;
   status?: string;
   abroad?: string;
+  page?: number;
 }): Promise<Paged<ApiCustomer>> {
   const q = new URLSearchParams({ pageSize: "100" });
   if (params?.search) q.set("search", params.search);
   if (params?.status) q.set("status", params.status);
   if (params?.segmentId) q.set("segmentId", params.segmentId);
   if (params?.abroad) q.set("abroad", params.abroad);
+  if (params?.page && params.page > 1) q.set("page", String(params.page));
   return j<Paged<ApiCustomer>>(`/customers?${q.toString()}`);
+}
+/**
+ * EVERY customer, not the first hundred.
+ *
+ * `pageSize` is capped at 100 by the server, so a screen that counts the book
+ * — how many are repeat buyers, what the shop has taken from them altogether,
+ * how many have not come back — has to page. Counting one page and printing it
+ * as the book is wrong the moment the shop passes a hundred customers, and
+ * wrong silently.
+ */
+export async function listCustomersAll(): Promise<{ items: ApiCustomer[]; total: number; complete: boolean }> {
+  const first = await listCustomers();
+  const items = [...first.items];
+  const pages = Math.max(1, first.totalPages || 1);
+  for (let page = 2; page <= Math.min(pages, 60); page++) {
+    const next = await listCustomers({ page });
+    items.push(...next.items);
+    if (next.items.length === 0) break;
+  }
+  return { items, total: first.total, complete: items.length >= first.total };
 }
 /** demo rows are served from an editable local store, so every button really works */
 const isDemoRow = (id: string) => id.startsWith("demo-") || isDemoMode();
