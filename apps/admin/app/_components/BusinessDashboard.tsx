@@ -1402,10 +1402,13 @@ export function BusinessDashboard() {
             </>
           ) : <Empty state={st.deliv ?? "loading"} empty="No delivery in this period." error="Could not read the delivery figures." />}
         </Card>
+        {/*  FOUR COLUMNS, NOT FIVE: "Judged" is not a figure of its own, it is
+             the denominator the on-time rate is read against, so it sits under
+             that rate rather than taking a column this card cannot show.  */}
         <Card title="Rider performance" icon="user" tone="orchid">
           {deliv && deliv.byCarrier.length > 0 ? (
-            <Table head={[{ label: "Rider" }, { label: "Delivered", right: true }, { label: "Judged", right: true },
-              { label: "On time", right: true }, { label: "Paid", right: true }]} min={520}>
+            <Table head={[{ label: "Rider" }, { label: "Delivered", right: true },
+              { label: "On time", right: true }, { label: "Paid", right: true }]} min={360}>
               {[...deliv.byCarrier].sort((a, b) => b.delivered - a.delivered).map((c) => {
                 const pct = c.onTimeBp === null || c.measurable === 0 ? null : c.onTimeBp / 100;
                 const col = pct === null ? "var(--t-faint)" : pct >= 80 ? "var(--t-ok)" : pct >= 50 ? "var(--t-warn)" : "var(--t-bad)";
@@ -1413,10 +1416,17 @@ export function BusinessDashboard() {
                   <tr key={c.name}>
                     <Td>{c.name}</Td>
                     <Td right>{c.delivered}</Td>
-                    {/*  how many could be judged at all - a rate off one
-                         delivery is not the same claim as off fifty  */}
-                    <Td right color="var(--t-faint)">{c.measurable}</Td>
-                    <Td right bold color={col}>{c.measurable > 0 ? bp(c.onTimeBp) : "not judged"}</Td>
+                    {/*  the rate, and under it how many could be judged at all
+                         - a rate off one delivery is not the same claim as off
+                         fifty, so the denominator travels with it  */}
+                    <Td right bold color={col}>
+                      {c.measurable > 0 ? bp(c.onTimeBp) : "not judged"}
+                      {c.measurable > 0 ? (
+                        <span className="block text-[10.5px] font-normal mt-[2px]" style={{ color: "var(--t-faint)" }}>
+                          of {c.measurable} judged
+                        </span>
+                      ) : null}
+                    </Td>
                     <Td right>{formatTaka(c.costPaisa)}</Td>
                   </tr>
                 );
