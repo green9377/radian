@@ -568,8 +568,8 @@ function TodayBand({ dash, pos, counter }: {
       <div className="flex flex-wrap items-stretch">
 
         {/* the three live figures */}
-        <div className="flex flex-wrap items-start gap-y-6 px-6 py-5 flex-1" style={{ minWidth: 300 }}>
-          <div className="pr-9">
+        <div className="flex flex-wrap items-start gap-y-6 px-5 py-5 flex-1" style={{ minWidth: 280 }}>
+          <div className="pr-5">
             <div className="flex items-center gap-3">
               <Tile icon="sparkle" tone="accent" />
               <div>
@@ -586,7 +586,7 @@ function TodayBand({ dash, pos, counter }: {
             <div className="text-[11.5px] mt-3" style={{ color: "var(--t-faint)" }}>Live from your shop</div>
           </div>
 
-          <div className="pl-9 pr-9 border-l flex items-start gap-3" style={{ borderColor: "var(--l-accent)" }}>
+          <div className="pl-5 pr-5 border-l flex items-start gap-2.5" style={{ borderColor: "var(--l-accent)" }}>
             <Tile icon="cart" tone="orchid" />
             <div>
               <div className="text-[12.5px] font-semibold" style={{ color: "var(--t-soft)" }}>Orders on the website</div>
@@ -598,7 +598,7 @@ function TodayBand({ dash, pos, counter }: {
             </div>
           </div>
 
-          <div className="pl-9 pr-9 border-l flex items-start gap-3" style={{ borderColor: "var(--l-accent)" }}>
+          <div className="pl-5 pr-5 border-l flex items-start gap-2.5" style={{ borderColor: "var(--l-accent)" }}>
             <Tile icon="register" tone="info" />
             <div>
               <div className="text-[12.5px] font-semibold" style={{ color: "var(--t-soft)" }}>Bills at the counter</div>
@@ -612,7 +612,7 @@ function TodayBand({ dash, pos, counter }: {
             </div>
           </div>
 
-          <div className="pl-9 border-l flex items-start gap-3" style={{ borderColor: "var(--l-accent)" }}>
+          <div className="pl-5 border-l flex items-start gap-2.5" style={{ borderColor: "var(--l-accent)" }}>
             <Tile icon="truck" tone="ok" />
             <div>
               <div className="text-[12.5px] font-semibold" style={{ color: "var(--t-soft)" }}>Out for delivery</div>
@@ -626,7 +626,7 @@ function TodayBand({ dash, pos, counter }: {
         </div>
 
         {/* what is waiting */}
-        <div className="px-6 py-5 border-t xl:border-t-0 xl:border-l w-full xl:w-auto xl:max-w-[52%]"
+        <div className="px-6 py-5 border-t xl:border-t-0 xl:border-l w-full xl:w-auto xl:max-w-[44%]"
           style={{ borderColor: "var(--l-accent)" }}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -760,7 +760,7 @@ function RangeBar({ range, onPick }: { range: Range; onPick: (r: Range) => void 
         aria-expanded={openCustom}
         className="biz-panel flex items-center gap-3 px-4 py-[10px] text-left transition-colors"
         title="Pick your own dates">
-        <Tile icon="clock" tone="orchid" />
+        <Tile icon="grid" tone="orchid" />
         <span>
           <span className="block text-[14px] font-semibold tabular-nums" style={{ color: "var(--t-main)" }}>
             {range.from === range.to ? longDay(range.from) : `${longDay(range.from)} — ${longDay(range.to)}`}
@@ -1143,7 +1143,7 @@ export function BusinessDashboard() {
              says so - two sources, never presented as one number.  */}
         <Kpi icon="chart" tone="accent"
           label="Money taken" value={ordsAll ? formatTaka(ordsAll.revenuePaisa) : "—"}
-          scope={<Scope text="delivered · both shops" />}
+          scope={<Scope text="from delivered orders, website and counter" />}
           delta={<Delta now={ordsAll?.revenuePaisa ?? null} before={ordsPrev?.revenuePaisa ?? null} />}>
           <SplitLine web={ordsWeb?.revenuePaisa ?? null} counter={counterBilled} fmt={formatTaka} />
           <div className="mt-3.5 -mx-[22px] -mb-4"><Spark rows={rows} pick={(r) => r.revenue} mode="area" /></div>
@@ -1151,7 +1151,7 @@ export function BusinessDashboard() {
 
         <Kpi icon="bag" tone="orchid"
           label="Orders" value={ordsAll ? String(ordsAll.counts.all) : "—"}
-          scope={<Scope text="both shops" />}
+          scope={<Scope text="website and counter together" />}
           delta={<Delta now={ordsAll?.counts.all ?? null} before={ordsPrev?.counts.all ?? null} />}>
           <SplitLine web={ordsWeb?.counts.all ?? null} counter={counterOrders} fmt={(n) => String(n)} />
           <div className="mt-3.5 -mx-[22px] -mb-4"><Spark rows={rows} pick={(r) => r.orders} mode="bars" /></div>
@@ -1159,7 +1159,7 @@ export function BusinessDashboard() {
 
         <Kpi icon="cash" tone={profit < 0 ? "bad" : "ok"}
           label="Profit" value={formatTaka(profit)} negative={profit < 0}
-          scope={<Scope text="from the books · both shops" />}
+          scope={<Scope text="from the books, after every cost" />}
           delta={<Delta now={rowsComplete ? profit : null} before={before ? sum(before, (r) => r.profit) : null} />}>
           <div className="mt-3.5 -mx-[22px] -mb-4"><Spark rows={rows} pick={(r) => r.profit} mode="diverge" /></div>
         </Kpi>
